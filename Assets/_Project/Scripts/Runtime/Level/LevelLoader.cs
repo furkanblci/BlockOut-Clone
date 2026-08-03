@@ -88,6 +88,18 @@ namespace BlockOut.Runtime.Level
                 }
             }
 
+            // M2 alanları: negatif sayaç anlamsız; bilinmeyen engel türü fabrikada patlar.
+            for (int i = 0; i < d.Blocks.Count; i++)
+                if (d.Blocks[i].Ice < 0)
+                    errors.Add($"blocks[{i}].ice negatif olamaz.");
+            for (int i = 0; i < d.Gates.Count; i++)
+                if (d.Gates[i].Ice < 0)
+                    errors.Add($"gates[{i}].ice negatif olamaz.");
+            for (int i = 0; i < d.Obstacles.Count; i++)
+                if (string.IsNullOrEmpty(d.Obstacles[i].Type) || d.Obstacles[i].Type != "curtain")
+                    errors.Add($"obstacles[{i}] türü tanınmıyor: '{d.Obstacles[i].Type}' (M2: yalnızca curtain).");
+            // Perde içeriği/bölge derin doğrulaması M3 level editörünün işi.
+
             // Kapısı olmayan renk: hata değil, tasarım uyarısı.
             var gateColors = new HashSet<string>();
             foreach (var g in d.Gates)

@@ -56,8 +56,13 @@ namespace BlockOut.Runtime.Flow
             _buttonStyle.fontSize = Mathf.RoundToInt(26 * s);
             var buttonRect = new Rect(
                 Screen.width * 0.5f - 110 * s, Screen.height * 0.48f, 220 * s, 56 * s);
-            if (GUI.Button(buttonRect, won ? "Tekrar Oyna" : "Tekrar Dene", _buttonStyle))
-                _session.Restart();
+            bool advance = won && _session.HasNextLevel;
+            string label = advance ? "Sonraki Bölüm" : won ? "Tekrar Oyna" : "Tekrar Dene";
+            if (GUI.Button(buttonRect, label, _buttonStyle))
+            {
+                if (advance) _session.NextLevel();
+                else _session.Restart();
+            }
         }
     }
 }
