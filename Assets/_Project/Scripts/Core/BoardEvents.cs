@@ -17,10 +17,39 @@ namespace BlockOut.Core
     public sealed class BoardEvents
     {
         public event Action<BlockModel, GateModel> BlockAbsorbed;
+        public event Action<BlockModel, GateModel> LayerPeeled;
+        public event Action<BlockModel> IceDecremented;
+        public event Action<BlockModel> IceShattered;
+        public event Action<GateModel> GateIceDecremented;
+        public event Action<GateModel> GateIceShattered;
+        public event Action<GateModel> GateGhosted;
+        public event Action<GateModel> GateAdvanced;
+        public event Action<CurtainModel> CurtainDecremented;
+        public event Action<CurtainModel> CurtainOpened;
         public event Action BoardCleared;
 
         public void RaiseBlockAbsorbed(BlockModel block, GateModel gate) =>
             BlockAbsorbed?.Invoke(block, gate);
+
+        public void RaiseLayerPeeled(BlockModel block, GateModel gate) =>
+            LayerPeeled?.Invoke(block, gate);
+
+        public void RaiseIceDecremented(BlockModel block) => IceDecremented?.Invoke(block);
+
+        public void RaiseIceShattered(BlockModel block) => IceShattered?.Invoke(block);
+
+        public void RaiseGateIceDecremented(GateModel gate) => GateIceDecremented?.Invoke(gate);
+
+        public void RaiseGateIceShattered(GateModel gate) => GateIceShattered?.Invoke(gate);
+
+        public void RaiseGateGhosted(GateModel gate) => GateGhosted?.Invoke(gate);
+
+        public void RaiseGateAdvanced(GateModel gate) => GateAdvanced?.Invoke(gate);
+
+        public void RaiseCurtainDecremented(CurtainModel curtain) =>
+            CurtainDecremented?.Invoke(curtain);
+
+        public void RaiseCurtainOpened(CurtainModel curtain) => CurtainOpened?.Invoke(curtain);
 
         public void RaiseBoardCleared() => BoardCleared?.Invoke();
     }

@@ -14,6 +14,9 @@ namespace BlockOut.Core
         public BoardModel Board;
         public readonly List<BlockModel> Blocks = new List<BlockModel>();
         public readonly List<GateModel> Gates = new List<GateModel>();
+        public readonly List<IObstacle> Obstacles = new List<IObstacle>();
+
+        int _nextBlockId;
 
         public static LevelModel Build(LevelData data)
         {
@@ -44,31 +47,18 @@ namespace BlockOut.Core
                 }
             }
 
-            int nextId = 0;
             foreach (var b in data.Blocks)
-            {
-                var block = new BlockModel
-                {
-                    Id = nextId++,
-                    W = b.W,
-                    H = b.H,
-                    Position = new Vector2(b.X, b.Y)
-                };
-                foreach (var layerId in b.Layers)
-                {
-                    if (!BlockColorUtil.TryParse(layerId, out var color))
-                        throw new FormatException($"Blok rengi çözümlenemedi: '{layerId}'");
-                    block.Layers.Add(color);
-                }
-                level.Blocks.Add(block);
-            }
+                level.Blocks.Add(level.BuildBlock(b));
 
             foreach (var g in data.Gates)
             {
                 if (!SideUtil.TryParse(g.Side, out var side))
                     throw new FormatException($"Kapı kenarı çözümlenemedi: '{g.Side}'");
 
-                var gate = new GateModel { X = g.X, Y = g.Y, Side = side, Length = g.Length };
+                var gate = new GateModel
+                {
+                    X = g.X, Y = g.Y, Side = side, Length = g.Length, IceCount = g.Ice
+                };
                 foreach (var colorId in g.Colors)
                 {
                     if (!BlockColorUtil.TryParse(colorId, out var color))
@@ -78,7 +68,60 @@ namespace BlockOut.Core
                 level.Gates.Add(gate);
             }
 
+            foreach (var o in data.Obstacles)
+                level.Obstacles.Add(ObstacleFactory.Create(o, level.BuildBlock));
+
             return level;
+        }
+
+        /// <summary>BlockData → BlockModel. Perde içerikleri de aynı yoldan geçer;
+        /// Id sayacı ortak olduğu için sonradan doğan bloklar çakışmaz.</summary>
+        BlockModel BuildBlock(BlockData b)
+        {
+            var block = new BlockModel
+            {
+                Id = _nextBlockId++,
+                W = b.W,
+                H = b.H,
+                IceCount = b.Ice,
+                Position = new Vector2(b.X, b.Y)
+            };
+            foreach (var layerId in b.Layers)
+            {
+                if (!BlockColorUtil.TryParse(layerId, out var color))
+                    throw new FormatException($"Blok rengi çözümlenemedi: '{layerId}'");
+                block.Layers.Add(color);
+            }
+            return block;
+        }
+
+        /// <summary>
+        /// Renk oyunda HERHANGİ bir yerde hâlâ var mı? Görünen dış katmanlar,
+        /// gizli iç katmanlar VE açılmamış perde içerikleri sayılır — bir kapı
+        /// ancak rengi kalıcı olarak tükendiyse ghost olur (video kuralı).
+        /// </summary>
+        public bool AnyColorRemaining(BlockColor color)
+        {
+            foreach (var b in Blocks)
+                if (b.Layers.Contains(color))
+                    return true;
+
+            foreach (var o in Obstacles)
+                if (o is CurtainModel curtain && !curtain.IsOpen)
+                    foreach (var b in curtain.Contents)
+                        if (b.Layers.Contains(color))
+                            return true;
+
+            return false;
+        }
+
+        /// <summary>Açılmamış perdelerde gizli blok var mı? (Kazanma koşulu bunu da bekler.)</summary>
+        public bool HasPendingContent()
+        {
+            foreach (var o in Obstacles)
+                if (o is CurtainModel curtain && !curtain.IsOpen && curtain.Contents.Count > 0)
+                    return true;
+            return false;
         }
 
         public void RemoveBlock(BlockModel block) => Blocks.Remove(block);
@@ -94,6 +137,8 @@ namespace BlockOut.Core
             foreach (var b in Blocks)
                 if (!ReferenceEquals(b, exclude))
                     output.Add(b.Rect);
+            foreach (var o in Obstacles)
+                o.CollectColliders(output);
         }
     }
 }
