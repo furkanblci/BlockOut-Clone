@@ -25,6 +25,12 @@ namespace BlockOut.Editor.ProjectSetup
         const string SoDir = "Assets/_Project/ScriptableObjects";
         const string MatDir = "Assets/_Project/Art/Materials";
         const string LevelJsonPath = "Assets/_Project/Levels/level_001.json";
+        static readonly string[] LevelSequencePaths =
+        {
+            "Assets/_Project/Levels/level_001.json",
+            "Assets/_Project/Levels/level_002.json",
+            "Assets/_Project/Levels/level_003.json"
+        };
         public const string ScenePath = "Assets/_Project/Scenes/Gameplay.unity";
 
         // ---------- Menü komutları (elle tetikleme) ----------
@@ -224,6 +230,27 @@ namespace BlockOut.Editor.ProjectSetup
                 AssetDatabase.LoadAssetAtPath<TextAsset>(LevelJsonPath));
             changed |= SetReference(so, "input", inputService);
             changed |= SetReference(so, "boardRoot", boardGo.transform);
+
+            // Level sırası (M2): dizi elemanları SerializedProperty ile bağlanır.
+            var seq = so.FindProperty("levelSequence");
+            if (seq != null)
+            {
+                if (seq.arraySize != LevelSequencePaths.Length)
+                {
+                    seq.arraySize = LevelSequencePaths.Length;
+                    changed = true;
+                }
+                for (int i = 0; i < LevelSequencePaths.Length; i++)
+                {
+                    var element = seq.GetArrayElementAtIndex(i);
+                    var asset = AssetDatabase.LoadAssetAtPath<TextAsset>(LevelSequencePaths[i]);
+                    if (element.objectReferenceValue != asset)
+                    {
+                        element.objectReferenceValue = asset;
+                        changed = true;
+                    }
+                }
+            }
             so.ApplyModifiedPropertiesWithoutUndo();
 
             // M0 kalıntıları: geçici zemin görseli ve input konsol logları.
