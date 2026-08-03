@@ -86,6 +86,8 @@ namespace BlockOut.Runtime.Board
                 if (cell.x < r.MinX || cell.x > r.MaxX || cell.y < r.MinY || cell.y > r.MaxY)
                     continue;
 
+                if (block.IsFrozen) return; // buzlu blok kilitli — sallanma efekti M4'te
+
                 _dragged = block;
                 _grabOffset = block.Position - cell;
                 _obstacles.Clear();
@@ -107,8 +109,9 @@ namespace BlockOut.Runtime.Board
                 _obstacles, _config.dragSubstep, _config.collisionEpsilon);
             _views.Blocks[_dragged].SyncFromModel();
 
-            // Emilme sürükleme sırasında gerçekleşir (video kuralı).
-            if (_gates.TryAbsorb(_dragged))
+            // Emilme VE katman soyulması sürükleme sırasında gerçekleşir;
+            // ikisi de sürüklemeyi bitirir (video kuralı).
+            if (_gates.ResolveContact(_dragged) != GateContactResult.None)
                 _dragged = null;
         }
 
@@ -131,8 +134,8 @@ namespace BlockOut.Runtime.Board
                 view.SyncFromModel();
             }
 
-            // Kapıya dayalı bırakıldıysa oturur oturmaz emilsin.
-            _gates.TryAbsorb(block);
+            // Kapıya dayalı bırakıldıysa oturur oturmaz emilsin/soyulsun.
+            _gates.ResolveContact(block);
         }
     }
 }

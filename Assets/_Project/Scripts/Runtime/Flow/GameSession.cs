@@ -20,8 +20,12 @@ namespace BlockOut.Runtime.Flow
         [SerializeField] GameConfigSO config;
         [SerializeField] ColorPaletteSO palette;
         [SerializeField] TextAsset levelJson;
+        [SerializeField, Tooltip("Doluysa levelJson yerine bu sıra oynanır; kazanınca sonrakine geçilir. M5'te LevelDatabaseSO'ya evrilecek.")]
+        TextAsset[] levelSequence;
         [SerializeField] PointerInputService input;
         [SerializeField] Transform boardRoot;
+
+        int _levelIndex;
 
         public GameState State { get; private set; } = GameState.Intro;
         public LevelTimer Timer { get; } = new LevelTimer();
@@ -53,12 +57,26 @@ namespace BlockOut.Runtime.Flow
             Timer.Expired -= OnTimeExpired;
         }
 
+        TextAsset ActiveLevelAsset =>
+            levelSequence != null && levelSequence.Length > 0
+                ? levelSequence[Mathf.Clamp(_levelIndex, 0, levelSequence.Length - 1)]
+                : levelJson;
+
+        public bool HasNextLevel =>
+            levelSequence != null && _levelIndex + 1 < levelSequence.Length;
+
+        public void NextLevel()
+        {
+            if (HasNextLevel) _levelIndex++;
+            Restart();
+        }
+
         void BuildAndStart()
         {
             LevelData data;
             try
             {
-                data = Level.LevelLoader.Parse(levelJson.text);
+                data = Level.LevelLoader.Parse(ActiveLevelAsset.text);
             }
             catch (System.Exception e)
             {
@@ -82,7 +100,9 @@ namespace BlockOut.Runtime.Flow
             var space = new BoardSpace(data.Board.Width, data.Board.Height);
             FitCamera(data.Board.Height);
             var views = BoardBuilder.Build(boardRoot, _level, space, palette);
-            var gates = new GateSystem(_level, views, config, _events);
+            var obstacles = new ObstacleSystem(_level, views, palette, _events, space);
+            var gates = new GateSystem(_level, views, config, _events, obstacles, palette);
+            gates.RecomputeGateStates(); // baştan rengi olmayan kapı hemen ghost görünsün
             _drag = new DragController(
                 input, _camera, _level, views, space, config, gates,
                 () => State == GameState.Playing);
