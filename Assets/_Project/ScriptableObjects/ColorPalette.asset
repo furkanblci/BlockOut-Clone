@@ -14,34 +14,34 @@ MonoBehaviour:
   m_EditorClassIdentifier: BlockOut.Runtime::BlockOut.Runtime.Config.ColorPaletteSO
   entries:
   - color: 0
-    blockMaterial: {fileID: 0}
+    blockMaterial: {fileID: 2100000, guid: 2f81b701635c09a4e8065ee0bfba8475, type: 2}
     uiColor: {r: 0.9, g: 0.15, b: 0.2, a: 1}
     particleColor: {r: 0.9, g: 0.15, b: 0.2, a: 1}
   - color: 1
-    blockMaterial: {fileID: 0}
+    blockMaterial: {fileID: 2100000, guid: c5d05209429194a4498078456ca666bf, type: 2}
     uiColor: {r: 0.15, g: 0.45, b: 0.95, a: 1}
     particleColor: {r: 0.15, g: 0.45, b: 0.95, a: 1}
   - color: 2
-    blockMaterial: {fileID: 0}
+    blockMaterial: {fileID: 2100000, guid: a46e96aa55bd3ef4eb708580b7f4d3bd, type: 2}
     uiColor: {r: 1, g: 0.75, b: 0.1, a: 1}
     particleColor: {r: 1, g: 0.75, b: 0.1, a: 1}
   - color: 3
-    blockMaterial: {fileID: 0}
+    blockMaterial: {fileID: 2100000, guid: 8bf527693f8078d4199a371ea1db492c, type: 2}
     uiColor: {r: 0.2, g: 0.75, b: 0.25, a: 1}
     particleColor: {r: 0.2, g: 0.75, b: 0.25, a: 1}
   - color: 4
-    blockMaterial: {fileID: 0}
+    blockMaterial: {fileID: 2100000, guid: 5a4b1426a89429a43b53ad90d7e21d51, type: 2}
     uiColor: {r: 0.93, g: 0.91, b: 0.88, a: 1}
     particleColor: {r: 0.93, g: 0.91, b: 0.88, a: 1}
   - color: 5
-    blockMaterial: {fileID: 0}
+    blockMaterial: {fileID: 2100000, guid: 6d95c7ab34df9a244af1747f819a8090, type: 2}
     uiColor: {r: 0.16, g: 0.16, b: 0.18, a: 1}
     particleColor: {r: 0.16, g: 0.16, b: 0.18, a: 1}
   - color: 6
-    blockMaterial: {fileID: 0}
+    blockMaterial: {fileID: 2100000, guid: 633955e9079ac3843ab285073ed19566, type: 2}
     uiColor: {r: 0.95, g: 0.25, b: 0.65, a: 1}
     particleColor: {r: 0.95, g: 0.25, b: 0.65, a: 1}
   - color: 7
-    blockMaterial: {fileID: 0}
+    blockMaterial: {fileID: 2100000, guid: 6462ad73b1b5360428580e82ab4edae8, type: 2}
     uiColor: {r: 1, g: 0.55, b: 0.1, a: 1}
     particleColor: {r: 1, g: 0.55, b: 0.1, a: 1}

@@ -1,5 +1,6 @@
 using BlockOut.Core;
 using BlockOut.Runtime.Config;
+using BlockOut.Runtime.Flow;
 using BlockOut.Runtime.Input;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -22,6 +23,8 @@ namespace BlockOut.Editor.ProjectSetup
     public static class ProjectSetupTool
     {
         const string SoDir = "Assets/_Project/ScriptableObjects";
+        const string MatDir = "Assets/_Project/Art/Materials";
+        const string LevelJsonPath = "Assets/_Project/Levels/level_001.json";
         public const string ScenePath = "Assets/_Project/Scenes/Gameplay.unity";
 
         // ---------- Menü komutları (elle tetikleme) ----------
@@ -31,7 +34,9 @@ namespace BlockOut.Editor.ProjectSetup
         {
             bool a = EnsureConfigAssets();
             bool b = EnsureGameplayScene();
-            Debug.Log(a || b
+            bool c = EnsureBlockMaterials();
+            bool d = EnsureGameplayWiring();
+            Debug.Log(a || b || c || d
                 ? "[Setup] Eksikler tamamlandı."
                 : "[Setup] Her şey zaten kuruluydu, değişiklik yok.");
         }
@@ -96,6 +101,169 @@ namespace BlockOut.Editor.ProjectSetup
 
             Debug.Log("[Setup] Gameplay sahnesi arka planda kuruldu: " + ScenePath);
             return true;
+        }
+
+        /// <summary>
+        /// 8 blok rengine karşılık 8 paylaşımlı URP materyali üretir ve palet
+        /// asset'ine bağlar. Paylaşımlı materyal = SRP Batcher dostu (M0 dersi).
+        /// </summary>
+        /// <returns>Bir şey üretildi ya da bağlandıysa true.</returns>
+        public static bool EnsureBlockMaterials()
+        {
+            var palette = AssetDatabase.LoadAssetAtPath<ColorPaletteSO>($"{SoDir}/ColorPalette.asset");
+            if (palette == null) return false; // EnsureConfigAssets henüz koşmadı
+
+            EnsureFolder(MatDir);
+            var shader = Shader.Find("Universal Render Pipeline/Lit");
+            bool changed = false;
+
+            foreach (var entry in palette.EditorEntries)
+            {
+                string path = $"{MatDir}/Block_{entry.color}.mat";
+                var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+                if (mat == null)
+                {
+                    mat = new Material(shader);
+                    mat.SetColor("_BaseColor", entry.uiColor);
+                    AssetDatabase.CreateAsset(mat, path);
+                    changed = true;
+                }
+                if (entry.blockMaterial != mat)
+                {
+                    entry.blockMaterial = mat;
+                    EditorUtility.SetDirty(palette);
+                    changed = true;
+                }
+            }
+
+            if (changed) AssetDatabase.SaveAssets();
+            return changed;
+        }
+
+        /// <summary>
+        /// Gameplay sahnesine M1 bağlantılarını kurar: Game nesnesi + GameSession
+        /// ve serileşen alan referansları. M0 kalıntılarını da temizler
+        /// (geçici zemin quad'ı, input konsol logları).
+        ///
+        /// DERS (SerializedObject): private [SerializeField] alanlara editörden
+        /// yazmanın resmi yolu budur — alanı public yapmak yerine Unity'nin
+        /// serileştirme katmanından geçilir; undo/dirty işaretleme doğru işler.
+        /// </summary>
+        /// <returns>Sahnede bir şey değiştiyse true.</returns>
+        public static bool EnsureGameplayWiring()
+        {
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) == null)
+                return false; // sahne henüz yok
+
+            var scene = SceneManager.GetSceneByPath(ScenePath);
+            bool wasOpen = scene.IsValid() && scene.isLoaded;
+            if (!wasOpen)
+                scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Additive);
+
+            try
+            {
+                bool changed = WireGameplayScene(scene);
+                if (changed) EditorSceneManager.SaveScene(scene);
+                return changed;
+            }
+            finally
+            {
+                if (!wasOpen) EditorSceneManager.CloseScene(scene, removeScene: true);
+            }
+        }
+
+        static bool WireGameplayScene(Scene scene)
+        {
+            bool changed = false;
+            GameObject boardGo = null, servicesGo = null, gameGo = null, tempPlane = null;
+
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                switch (root.name)
+                {
+                    case "Board": boardGo = root; break;
+                    case "Services": servicesGo = root; break;
+                    case "Game": gameGo = root; break;
+                    case "BoardPlane_TEMP": tempPlane = root; break;
+                }
+            }
+
+            GameObject NewRoot(string rootName)
+            {
+                var go = new GameObject(rootName);
+                SceneManager.MoveGameObjectToScene(go, scene);
+                changed = true;
+                return go;
+            }
+
+            if (boardGo == null) boardGo = NewRoot("Board");
+            if (servicesGo == null) servicesGo = NewRoot("Services");
+            if (gameGo == null) gameGo = NewRoot("Game");
+
+            var inputService = servicesGo.GetComponent<PointerInputService>();
+            if (inputService == null)
+            {
+                inputService = servicesGo.AddComponent<PointerInputService>();
+                changed = true;
+            }
+
+            var session = gameGo.GetComponent<GameSession>();
+            if (session == null)
+            {
+                session = gameGo.AddComponent<GameSession>();
+                changed = true;
+            }
+
+            // GameSession'ın private [SerializeField] alanlarını bağla.
+            var so = new SerializedObject(session);
+            changed |= SetReference(so, "config",
+                AssetDatabase.LoadAssetAtPath<GameConfigSO>($"{SoDir}/GameConfig.asset"));
+            changed |= SetReference(so, "palette",
+                AssetDatabase.LoadAssetAtPath<ColorPaletteSO>($"{SoDir}/ColorPalette.asset"));
+            changed |= SetReference(so, "levelJson",
+                AssetDatabase.LoadAssetAtPath<TextAsset>(LevelJsonPath));
+            changed |= SetReference(so, "input", inputService);
+            changed |= SetReference(so, "boardRoot", boardGo.transform);
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            // M0 kalıntıları: geçici zemin görseli ve input konsol logları.
+            if (tempPlane != null)
+            {
+                Object.DestroyImmediate(tempPlane);
+                changed = true;
+            }
+            var inputSo = new SerializedObject(inputService);
+            var logProp = inputSo.FindProperty("logEvents");
+            if (logProp != null && logProp.boolValue)
+            {
+                logProp.boolValue = false;
+                inputSo.ApplyModifiedPropertiesWithoutUndo();
+                changed = true;
+            }
+
+            return changed;
+        }
+
+        static bool SetReference(SerializedObject so, string propertyName, Object value)
+        {
+            var prop = so.FindProperty(propertyName);
+            if (prop == null)
+            {
+                Debug.LogError($"[Setup] GameSession'da '{propertyName}' alanı bulunamadı — alan adı mı değişti?");
+                return false;
+            }
+            if (prop.objectReferenceValue == value) return false;
+            prop.objectReferenceValue = value;
+            return true;
+        }
+
+        static void EnsureFolder(string path)
+        {
+            if (AssetDatabase.IsValidFolder(path)) return;
+            int slash = path.LastIndexOf('/');
+            string parent = path.Substring(0, slash);
+            EnsureFolder(parent);
+            AssetDatabase.CreateFolder(parent, path.Substring(slash + 1));
         }
 
         // ---------- Sahne içeriği ----------
