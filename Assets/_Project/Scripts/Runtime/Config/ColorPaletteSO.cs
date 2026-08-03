@@ -35,11 +35,16 @@ namespace BlockOut.Runtime.Config
 
         // Enum değeriyle O(1) erişim için önbellek. Lazy kurulur çünkü
         // OnEnable sırası SO'larda güvenilmezdir.
-        Entry[] _lookup;
+        //
+        // DERS (domain reload tuzağı): Unity, script yeniden yüklenirken
+        // [SerializeField] OLMAYAN private alanları bile anlık görüntüye alır
+        // ve null dizileri BOŞ diziye normalize eder. [NonSerialized] "bu
+        // alana hiç dokunma" der; uzunluk kontrolü de ikinci emniyet kemeri.
+        [NonSerialized] Entry[] _lookup;
 
         public Entry Get(BlockColor color)
         {
-            if (_lookup == null) BuildLookup();
+            if (_lookup == null || _lookup.Length == 0) BuildLookup();
             var entry = _lookup[(int)color];
             if (entry == null)
                 Debug.LogError($"[ColorPalette] '{color}' için palet girdisi yok! {name} asset'ini kontrol et.", this);
@@ -61,6 +66,9 @@ namespace BlockOut.Runtime.Config
             entries = newEntries;
             _lookup = null;
         }
+
+        /// <summary>Kurulum aracı materyal bağlarken girdilere doğrudan erişir.</summary>
+        public Entry[] EditorEntries => entries;
 #endif
     }
 }

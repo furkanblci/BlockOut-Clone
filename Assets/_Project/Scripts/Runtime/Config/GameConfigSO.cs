@@ -26,6 +26,9 @@ namespace BlockOut.Runtime.Config
         [Tooltip("Bloğun kapıya 'temas etti' sayılması için gereken maksimum boşluk (hücre biriminde).")]
         public float gateContactGap = 0.05f;
 
+        [Tooltip("Kenar boyunca hizada bloğun kapı aralığından taşabileceği pay (hücre biriminde) — his ayarı.")]
+        public float gateSpanTolerance = 0.12f;
+
         [Header("Animasyon süreleri (saniye)")]
         [Tooltip("Blok kapıdan emilirken oynayan tween süresi.")]
         public float absorbDuration = 0.25f;
