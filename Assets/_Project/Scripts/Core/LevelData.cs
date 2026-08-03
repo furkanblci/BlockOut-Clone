@@ -62,6 +62,12 @@ namespace BlockOut.Core
 
         /// <summary>Renk katmanları; index 0 = dış katman. Tek katman = normal blok.</summary>
         [JsonProperty("layers")] public List<string> Layers = new List<string>();
+
+        /// <summary>Buz sayacı; 0 = buz yok. DERS (şema evrimi): buz ayrı bir engel
+        /// değil BLOĞUN ÖZELLİĞİ olarak modellendi — videoda buzun altından hep
+        /// normal blok çıkıyor. Eski JSON'lar alansız kalabilir; Newtonsoft
+        /// eksik alanı varsayılanla doldurur = geriye dönük uyumluluk.</summary>
+        [JsonProperty("ice")]    public int Ice;
     }
 
     public sealed class GateData
@@ -71,8 +77,12 @@ namespace BlockOut.Core
         [JsonProperty("side")]   public string Side;
         [JsonProperty("length")] public int Length = 1;
 
-        /// <summary>Sıralı renk kuyruğu; index 0 aktif renk. M1'de tek renk kullanılır, kuyruk M2'de.</summary>
+        /// <summary>Renk kuyruğu; index 0 aktif. Videoda (L1-20) kuyruk geçişi yok —
+        /// tek renk kullanılır; dizi L21+ olasılığı için şemada duruyor.</summary>
         [JsonProperty("colors")] public List<string> Colors = new List<string>();
+
+        /// <summary>Buz kaplaması sayacı; buzluyken renk gizli, kapı devre dışı.</summary>
+        [JsonProperty("ice")]    public int Ice;
     }
 
     /// <summary>

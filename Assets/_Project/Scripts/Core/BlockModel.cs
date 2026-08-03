@@ -17,8 +17,17 @@ namespace BlockOut.Core
         public int W = 1;
         public int H = 1;
 
-        /// <summary>Renk katmanları; index 0 = dış (aktif) katman. M1'de hep tek katman.</summary>
+        /// <summary>Renk katmanları; index 0 = dış (aktif) katman. Tek katman = normal blok.</summary>
         public List<BlockColor> Layers = new List<BlockColor>();
+
+        /// <summary>
+        /// Buz sayacı. 0'dan büyükse blok buz içindedir: sürüklenemez, ama
+        /// çarpışmaya normal katılır. Her blok emilişinde 1 azalır (videodan
+        /// doğrulanan kural); 0'a inince buz kırılır, blok serbest kalır.
+        /// </summary>
+        public int IceCount;
+
+        public bool IsFrozen => IceCount > 0;
 
         /// <summary>
         /// Sol-üst (min) köşenin hücre-uzayı konumu. Park halindeyken tam sayı;
