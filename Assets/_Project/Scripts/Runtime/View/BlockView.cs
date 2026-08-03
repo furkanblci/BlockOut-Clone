@@ -20,6 +20,9 @@ namespace BlockOut.Runtime.View
         BoardSpace _space;
         Vector3 _baseScale;
         bool _highlighted;
+        MeshRenderer _renderer;
+        GameObject _iceShell;
+        TextMesh _iceCounter;
 
         public static BlockView Create(Transform parent, BlockModel model, BoardSpace space, Material material)
         {
@@ -29,17 +32,61 @@ namespace BlockOut.Runtime.View
             go.transform.SetParent(parent, worldPositionStays: false);
             Destroy(go.GetComponent<Collider>());
 
-            var renderer = go.GetComponent<MeshRenderer>();
-            renderer.sharedMaterial = material; // paylaşımlı — SRP Batcher dostu
-
             var view = go.AddComponent<BlockView>();
+            view._renderer = go.GetComponent<MeshRenderer>();
+            view._renderer.sharedMaterial = material; // paylaşımlı — SRP Batcher dostu
             view._model = model;
             view._space = space;
             view._baseScale = new Vector3(model.W - EdgeInset, BlockHeight, model.H - EdgeInset);
             go.transform.localScale = view._baseScale;
             view.SyncFromModel();
+
+            if (model.IsFrozen)
+                view.BuildIceShell(parent);
+
             return view;
         }
+
+        /// <summary>
+        /// Buz kabuğu + sayaç. Bloğun ÇOCUĞU değil, kardeşi: bloğun eşit olmayan
+        /// ölçeği (w≠h) çocukları da ezerdi. Donmuş blok zaten hareket edemez,
+        /// dünya konumuna sabitlemek güvenli.
+        /// </summary>
+        void BuildIceShell(Transform parent)
+        {
+            _iceShell = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            _iceShell.name = $"Ice_{_model.Id}";
+            _iceShell.transform.SetParent(parent, worldPositionStays: false);
+            Destroy(_iceShell.GetComponent<Collider>());
+            _iceShell.GetComponent<MeshRenderer>().sharedMaterial = ViewKit.Ice;
+
+            Vector3 center = _space.RectCenterToWorld(
+                _model.Position, _model.W, _model.H, BlockHeight * 0.5f + 0.06f);
+            _iceShell.transform.position = center;
+            _iceShell.transform.localScale = new Vector3(
+                _model.W - 0.02f, BlockHeight + 0.16f, _model.H - 0.02f);
+
+            _iceCounter = ViewKit.CreateCounter(
+                parent, center + Vector3.up * (BlockHeight * 0.5f + 0.16f), _model.IceCount);
+        }
+
+        public void UpdateIceCount()
+        {
+            if (_iceCounter != null)
+                _iceCounter.text = _model.IceCount.ToString();
+        }
+
+        /// <summary>Buz kırıldı: kabuk ve sayaç gider, blok normal bloğa döner. Parçacıklar M4'te.</summary>
+        public void ShatterIce()
+        {
+            if (_iceShell != null) Destroy(_iceShell);
+            if (_iceCounter != null) Destroy(_iceCounter.gameObject);
+            _iceShell = null;
+            _iceCounter = null;
+        }
+
+        /// <summary>Katman soyulunca dış rengin materyali değişir.</summary>
+        public void SetLayerMaterial(Material material) => _renderer.sharedMaterial = material;
 
         /// <summary>Modelin hücre-uzayı konumunu dünyaya yansıtır. Sürükleme sırasında her kare çağrılır.</summary>
         public void SyncFromModel()

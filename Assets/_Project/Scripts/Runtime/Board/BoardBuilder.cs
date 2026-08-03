@@ -22,9 +22,12 @@ namespace BlockOut.Runtime.Board
         public static BoardViews Build(
             Transform root, LevelModel level, BoardSpace space, ColorPaletteSO palette)
         {
-            // Yeniden başlatmada eski tahtayı temizle.
+            // Yeniden başlatmada eski tahtayı temizle. DestroyImmediate bilinçli:
+            // Destroy kare SONUNA ertelenir; yık-yeniden-kur geçişinde eski ve
+            // yeni tahta bir karelik üst üste görünürdü. Oyun içi tekil yok
+            // etmeler (emilme animasyonu) ertelenmiş Destroy kullanmaya devam eder.
             for (int i = root.childCount - 1; i >= 0; i--)
-                Object.Destroy(root.GetChild(i).gameObject);
+                Object.DestroyImmediate(root.GetChild(i).gameObject);
 
             var views = new BoardViews();
             var board = level.Board;
@@ -110,9 +113,10 @@ namespace BlockOut.Runtime.Board
                     : new Vector3(WallThickness, WallHeight, 1f + WallThickness);
             }
 
-            // --- Bloklar ve kapılar ---
+            // --- Bloklar, kapılar ve engeller ---
             var blockRoot = new GameObject("Blocks").transform;
             blockRoot.SetParent(root, false);
+            views.BlockRoot = blockRoot; // perde açılınca doğan bloklar da buraya
             foreach (var block in level.Blocks)
                 views.Blocks[block] = BlockView.Create(
                     blockRoot, block, space, GetBlockMaterial(palette, block.CurrentColor));
@@ -123,10 +127,16 @@ namespace BlockOut.Runtime.Board
                 views.Gates[gate] = GateView.Create(
                     gateRoot, gate, space, GetBlockMaterial(palette, gate.ActiveColor));
 
+            var obstacleRoot = new GameObject("Obstacles").transform;
+            obstacleRoot.SetParent(root, false);
+            foreach (var obstacle in level.Obstacles)
+                if (obstacle is CurtainModel curtain)
+                    views.Curtains[curtain] = CurtainView.Create(obstacleRoot, curtain, space);
+
             return views;
         }
 
-        static Material GetBlockMaterial(ColorPaletteSO palette, BlockColor color)
+        public static Material GetBlockMaterial(ColorPaletteSO palette, BlockColor color)
         {
             var entry = palette.Get(color);
             if (entry != null && entry.blockMaterial != null)

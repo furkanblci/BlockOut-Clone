@@ -5,23 +5,29 @@ using UnityEngine;
 namespace BlockOut.Runtime.View
 {
     /// <summary>
-    /// Kapının sahnedeki görseli: kenarın hemen dışında, kapı renginde yatık bar.
-    /// M1'de sade bar; oklar, ghost solması ve kuyruk göstergesi M2/M4'te.
+    /// Kapının sahnedeki görseli: kenarın hemen dışında yatık bar.
+    /// M2 halleri: buzlu (renk gizli + sayaç), normal (renk), ghost (soluk).
+    /// Oklar ve cila M4'te.
     /// </summary>
     public sealed class GateView : MonoBehaviour
     {
         const float BarHeight = 0.22f;
-        const float BarDepth = 0.3f;      // kenara dik kalınlık
-        const float OutwardOffset = 0.2f; // kenar çizgisinden dışarı kayma
-        const float EndInset = 0.12f;     // kenar boyunca uçlardan içeri çekme
+        const float BarDepth = 0.3f;
+        const float OutwardOffset = 0.2f;
+        const float EndInset = 0.12f;
 
-        public static GateView Create(Transform parent, GateModel model, BoardSpace space, Material material)
+        MeshRenderer _renderer;
+        Material _colorMaterial;
+        TextMesh _iceCounter;
+        GateModel _model;
+
+        public static GateView Create(
+            Transform parent, GateModel model, BoardSpace space, Material colorMaterial)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
             go.name = $"Gate_{model.ActiveColor}_{model.Side.ToId()}";
             go.transform.SetParent(parent, worldPositionStays: false);
             Destroy(go.GetComponent<Collider>());
-            go.GetComponent<MeshRenderer>().sharedMaterial = material;
 
             float spanCenter = (model.SpanMin + model.SpanMax) * 0.5f;
             float offCoord = model.EdgeCoord + model.OutwardSign * OutwardOffset;
@@ -41,7 +47,50 @@ namespace BlockOut.Runtime.View
             go.transform.position = center;
             go.transform.localScale = scale;
 
-            return go.AddComponent<GateView>();
+            var view = go.AddComponent<GateView>();
+            view._model = model;
+            view._renderer = go.GetComponent<MeshRenderer>();
+            view._colorMaterial = colorMaterial;
+
+            if (model.IsIced)
+            {
+                // Buz rengi GİZLER (video kuralı) — bar buz materyaliyle başlar.
+                view._renderer.sharedMaterial = ViewKit.Ice;
+                view._iceCounter = ViewKit.CreateCounter(
+                    parent, center + Vector3.up * (BarHeight * 0.5f + 0.12f), model.IceCount);
+            }
+            else
+            {
+                view._renderer.sharedMaterial = colorMaterial;
+            }
+
+            return view;
         }
+
+        public void UpdateIceCount()
+        {
+            if (_iceCounter != null)
+                _iceCounter.text = _model.IceCount.ToString();
+        }
+
+        /// <summary>Buz kırıldı: gizli renk ortaya çıkar.</summary>
+        public void RevealColor()
+        {
+            if (_iceCounter != null) Destroy(_iceCounter.gameObject);
+            _iceCounter = null;
+            _renderer.sharedMaterial = _colorMaterial;
+        }
+
+        /// <summary>Kuyruk ilerledi: yeni aktif rengin materyali (L21+ olasılığı).</summary>
+        public void SetColorMaterial(Material material)
+        {
+            _colorMaterial = material;
+            if (!_model.IsIced)
+                _renderer.sharedMaterial = material;
+        }
+
+        /// <summary>Rengi tükendi: soluk (ghost) hal.</summary>
+        public void SetGhost(Material ghostMaterial) =>
+            _renderer.sharedMaterial = ghostMaterial;
     }
 }
