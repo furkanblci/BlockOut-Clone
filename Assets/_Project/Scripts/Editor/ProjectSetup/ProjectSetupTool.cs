@@ -9,28 +9,47 @@ using UnityEngine.SceneManagement;
 namespace BlockOut.Editor.ProjectSetup
 {
     /// <summary>
-    /// M0 kurulum aracı: config asset'lerini ve Gameplay sahnesini tek tıkla üretir.
+    /// Kurulum mantığı: config asset'leri ve Gameplay sahnesi.
     ///
-    /// DERS (Editor scripting): Stüdyolarda "elle 12 adım" yerine böyle menü
-    /// komutları yazılır; kurulum tekrarlanabilir ve ekipteki herkeste aynı olur.
-    /// [MenuItem] bir statik metodu Unity menüsüne bağlar. Bu kod BlockOut.Editor
-    /// asmdef'inde olduğu için build'e ASLA girmez.
+    /// Buradaki metodlar İDEMPOTENT'tir (varsa dokunmaz, yoksa oluşturur) —
+    /// bu sayede <see cref="ProjectBootstrap"/> her domain reload'da güvenle
+    /// çağırabilir. Menü komutları yalnızca elle tetiklemek isteyenler için.
+    ///
+    /// DERS (Editor scripting): Sahne, açık sahneyi bozmamak için ADDITIVE
+    /// modda arka planda kurulur, kaydedilir ve kapatılır. "Single" mod
+    /// kullansaydık kullanıcının o an açık sahnesini kapatırdık.
     /// </summary>
     public static class ProjectSetupTool
     {
         const string SoDir = "Assets/_Project/ScriptableObjects";
-        const string ScenePath = "Assets/_Project/Scenes/Gameplay.unity";
+        public const string ScenePath = "Assets/_Project/Scenes/Gameplay.unity";
 
-        [MenuItem("Tools/Block Out/1. Config Asset'lerini Oluştur")]
-        public static void CreateConfigAssets()
+        // ---------- Menü komutları (elle tetikleme) ----------
+
+        [MenuItem("Tools/Block Out/Kurulumu Şimdi Çalıştır")]
+        public static void RunSetupNow()
         {
-            CreateAssetIfMissing<GameConfigSO>($"{SoDir}/GameConfig.asset");
+            bool a = EnsureConfigAssets();
+            bool b = EnsureGameplayScene();
+            Debug.Log(a || b
+                ? "[Setup] Eksikler tamamlandı."
+                : "[Setup] Her şey zaten kuruluydu, değişiklik yok.");
+        }
 
-            var palette = CreateAssetIfMissing<ColorPaletteSO>($"{SoDir}/ColorPalette.asset", created =>
+        // ---------- İdempotent kurulum adımları ----------
+
+        /// <returns>Bir şey oluşturulduysa true.</returns>
+        public static bool EnsureConfigAssets()
+        {
+            bool created = false;
+
+            created |= CreateAssetIfMissing<GameConfigSO>($"{SoDir}/GameConfig.asset") != null;
+
+            created |= CreateAssetIfMissing<ColorPaletteSO>($"{SoDir}/ColorPalette.asset", palette =>
             {
                 // Videodan göz kararı alınan başlangıç paleti — M4'te orijinale
                 // yaklaştırılacak. Materyaller M1'de üretilip buraya bağlanacak.
-                created.EditorSetEntries(new[]
+                palette.EditorSetEntries(new[]
                 {
                     Entry(BlockColor.Red,    new Color(0.90f, 0.15f, 0.20f)),
                     Entry(BlockColor.Blue,   new Color(0.15f, 0.45f, 0.95f)),
@@ -41,23 +60,49 @@ namespace BlockOut.Editor.ProjectSetup
                     Entry(BlockColor.Pink,   new Color(0.95f, 0.25f, 0.65f)),
                     Entry(BlockColor.Orange, new Color(1.00f, 0.55f, 0.10f))
                 });
-                EditorUtility.SetDirty(created);
-            });
+                EditorUtility.SetDirty(palette);
+            }) != null;
 
-            AssetDatabase.SaveAssets();
-            EditorGUIUtility.PingObject(palette);
-            Debug.Log("[Setup] Config asset'leri hazır: " + SoDir);
+            if (created) AssetDatabase.SaveAssets();
+            return created;
         }
 
-        [MenuItem("Tools/Block Out/2. Gameplay Sahnesini Kur")]
-        public static void SetupGameplayScene()
+        /// <summary>
+        /// Gameplay sahnesi yoksa AÇIK SAHNEYE DOKUNMADAN arka planda oluşturur.
+        /// </summary>
+        /// <returns>Sahne oluşturulduysa true.</returns>
+        public static bool EnsureGameplayScene()
         {
-            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
-                return;
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) != null)
+                return false; // zaten var
 
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            var previousActive = SceneManager.GetActiveScene();
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
 
-            // --- Kamera: dikey telefon görünümü, tahtaya yukarıdan hafif eğik bakış ---
+            // new GameObject() aktif sahneye doğar; bu yüzden geçici olarak
+            // yeni sahneyi aktif yapıp işimiz bitince eskisini geri getiriyoruz.
+            SceneManager.SetActiveScene(scene);
+            try
+            {
+                PopulateGameplayScene();
+                EditorSceneManager.SaveScene(scene, ScenePath);
+            }
+            finally
+            {
+                if (previousActive.IsValid())
+                    SceneManager.SetActiveScene(previousActive);
+                EditorSceneManager.CloseScene(scene, removeScene: true);
+            }
+
+            Debug.Log("[Setup] Gameplay sahnesi arka planda kuruldu: " + ScenePath);
+            return true;
+        }
+
+        // ---------- Sahne içeriği ----------
+
+        static void PopulateGameplayScene()
+        {
+            // Kamera: dikey telefon görünümü, tahtaya yukarıdan hafif eğik bakış.
             var camGo = new GameObject("Main Camera");
             camGo.tag = "MainCamera";
             var cam = camGo.AddComponent<Camera>();
@@ -72,7 +117,7 @@ namespace BlockOut.Editor.ProjectSetup
             // Not: URP'nin UniversalAdditionalCameraData bileşenini elle eklemiyoruz;
             // URP ihtiyaç duyduğunda kameraya kendisi ekler.
 
-            // --- Işık: gölgesiz tek yönlü ışık (mobil bütçe) ---
+            // Işık: gölgesiz tek yönlü ışık (mobil bütçe).
             var lightGo = new GameObject("Directional Light");
             var light = lightGo.AddComponent<Light>();
             light.type = LightType.Directional;
@@ -80,30 +125,26 @@ namespace BlockOut.Editor.ProjectSetup
             light.intensity = 1.1f;
             lightGo.transform.rotation = Quaternion.Euler(55f, -25f, 0f);
 
-            // --- Kök nesneler: sistemlerin yaşayacağı iskelet ---
+            // Kök nesneler: sistemlerin yaşayacağı iskelet.
             new GameObject("Board");                       // BoardBuilder buraya kuracak (M1)
             var services = new GameObject("Services");
             services.AddComponent<PointerInputService>();  // M0 doğrulaması: Console'da Down/Up logları
 
-            // --- Zemin referansı: tahta düzlemini görmek için geçici quad ---
+            // Zemin referansı: tahta düzlemini görmek için geçici quad.
             var plane = GameObject.CreatePrimitive(PrimitiveType.Quad);
             plane.name = "BoardPlane_TEMP";
             Object.DestroyImmediate(plane.GetComponent<Collider>()); // fizik kullanmıyoruz!
             plane.transform.SetPositionAndRotation(Vector3.zero, Quaternion.Euler(90f, 0f, 0f));
             plane.transform.localScale = new Vector3(6f, 8f, 1f);    // ~6x8 hücrelik alan hissi
-
-            EditorSceneManager.SaveScene(scene, ScenePath);
-            Debug.Log("[Setup] Gameplay sahnesi kuruldu: " + ScenePath +
-                      "\nPlay'e bas, ekrana tıkla → Console'da [Input] Down/Up loglarını gör.");
         }
 
-        // ---- yardımcılar ----
+        // ---------- Yardımcılar ----------
 
         static T CreateAssetIfMissing<T>(string path, System.Action<T> onCreated = null)
             where T : ScriptableObject
         {
-            var existing = AssetDatabase.LoadAssetAtPath<T>(path);
-            if (existing != null) return existing;
+            if (AssetDatabase.LoadAssetAtPath<T>(path) != null)
+                return null; // zaten vardı — "yeni oluşturulmadı" bilgisi için null
 
             var asset = ScriptableObject.CreateInstance<T>();
             onCreated?.Invoke(asset);
