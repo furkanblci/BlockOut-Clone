@@ -1,0 +1,19 @@
+{
+    "name": "BlockOut.Editor",
+    "rootNamespace": "BlockOut.Editor",
+    "references": [
+        "BlockOut.Core",
+        "BlockOut.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
