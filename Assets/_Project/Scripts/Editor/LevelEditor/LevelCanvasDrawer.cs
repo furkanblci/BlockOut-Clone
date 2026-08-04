@@ -17,22 +17,48 @@ namespace BlockOut.Editor.LevelEditor
     /// </summary>
     public sealed class LevelCanvasDrawer
     {
+        public const float MinZoom = 0.4f, MaxZoom = 4f;
+
         public float CellSize { get; private set; }
         public Vector2 Origin { get; private set; }
         public Rect BoardRect { get; private set; }
+
+        /// <summary>Tuvale sığdırılmış temel ölçeğin katı (1 = tam sığdır).</summary>
+        public float Zoom = 1f;
+
+        /// <summary>Piksel cinsinden kaydırma (orta tuş sürüklemesi).</summary>
+        public Vector2 Pan;
 
         /// <summary>Verilen alana width×height ızgarayı ortalayarak yerleştirir.</summary>
         public void Layout(Rect area, int width, int height)
         {
             const float pad = 24f; // kapı barları tahta dışına taştığı için pay
-            float cs = Mathf.Min((area.width - pad * 2f) / width, (area.height - pad * 2f) / height);
-            CellSize = Mathf.Max(Mathf.Floor(cs), 10f);
+            float fit = Mathf.Min((area.width - pad * 2f) / width, (area.height - pad * 2f) / height);
+            CellSize = Mathf.Max(Mathf.Floor(fit * Mathf.Clamp(Zoom, MinZoom, MaxZoom)), 6f);
 
             float w = CellSize * width, h = CellSize * height;
             Origin = new Vector2(
-                Mathf.Floor(area.x + (area.width - w) * 0.5f),
-                Mathf.Floor(area.y + (area.height - h) * 0.5f));
+                Mathf.Floor(area.x + (area.width - w) * 0.5f + Pan.x),
+                Mathf.Floor(area.y + (area.height - h) * 0.5f + Pan.y));
             BoardRect = new Rect(Origin.x, Origin.y, w, h);
+        }
+
+        /// <summary>İmleç altındaki noktayı sabit tutarak yakınlaştırır (harita gibi).</summary>
+        public void ZoomAt(Vector2 pivot, float delta)
+        {
+            float before = Zoom;
+            Zoom = Mathf.Clamp(Zoom * (1f - delta * 0.06f), MinZoom, MaxZoom);
+            if (Mathf.Approximately(before, Zoom)) return;
+
+            // Pivotun ızgara üzerindeki yeri değişmesin diye kaydırmayı düzelt.
+            Vector2 toPivot = pivot - (Origin + BoardRect.size * 0.5f);
+            Pan -= toPivot * (Zoom / before - 1f);
+        }
+
+        public void ResetView()
+        {
+            Zoom = 1f;
+            Pan = Vector2.zero;
         }
 
         public Rect RectFor(int x, int y, int w = 1, int h = 1) =>
