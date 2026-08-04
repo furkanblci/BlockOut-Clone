@@ -63,18 +63,45 @@ namespace BlockOut.Editor.ProjectSetup
                 return false;
             }
 
-            var errors = new List<string>();
-            if (!LevelLoader.Validate(data, errors))
+            var messages = new List<string>();
+            if (!ValidateData(data, palette, config, messages, out int moves))
             {
-                foreach (var err in errors)
-                    Debug.LogError($"[Validate] {name}: {err}", asset);
+                foreach (var msg in messages)
+                    Debug.LogError($"[Validate] {name}: {msg}", asset);
                 return false;
             }
 
-            // Oynanabilirlik: GÖRSELSİZ kurulum. Sistemler boş BoardViews ile
-            // çalışır (view sözlükleri boş kalır, TryGetValue sessizce atlar) —
-            // edit modunda sahne nesnesi yaratmadığımız için hem hızlı hem güvenli.
-            var level = LevelModel.Build(data);
+            Debug.Log($"[Validate] {name}: OK ({moves} hamlede çözülebilir)", asset);
+            return true;
+        }
+
+        /// <summary>
+        /// Bellekteki bir bölümü şema + oynanabilirlik açısından denetler.
+        /// Level editörü bunu canlı uyarı paneli olarak kullanır (dosyaya
+        /// kaydetmeden doğrulayabilmek için ayrı metot).
+        /// </summary>
+        public static bool ValidateData(
+            LevelData data, ColorPaletteSO palette, GameConfigSO config,
+            List<string> messages, out int moveCount)
+        {
+            moveCount = 0;
+            if (!LevelLoader.Validate(data, messages))
+                return false;
+
+            // GÖRSELSİZ kurulum: sistemler boş BoardViews ile çalışır (view
+            // sözlükleri boş kalır, TryGetValue sessizce atlar) — edit modunda
+            // sahne nesnesi yaratmadığımız için hem hızlı hem güvenli.
+            LevelModel level;
+            try
+            {
+                level = LevelModel.Build(data);
+            }
+            catch (System.Exception e)
+            {
+                messages.Add("Model kurulamadı: " + e.Message);
+                return false;
+            }
+
             var space = new BoardSpace(data.Board.Width, data.Board.Height);
             var views = new BoardViews();
             var events = new BoardEvents();
@@ -92,17 +119,13 @@ namespace BlockOut.Editor.ProjectSetup
                 },
                 config.dragSubstep, config.collisionEpsilon);
 
-            if (!result.Solved)
-            {
-                Debug.LogError(
-                    $"[Validate] {name}: ÇÖZÜLEMEZ — {result.RemainingBlocks} blok kaldı" +
-                    (result.PendingCurtainContent ? ", perde açılmadı" : "") +
-                    $". Yapılabilen hamleler: {result.Moves.Count}", asset);
-                return false;
-            }
+            moveCount = result.Moves.Count;
+            if (result.Solved) return true;
 
-            Debug.Log($"[Validate] {name}: OK ({result.Moves.Count} hamlede çözülebilir)", asset);
-            return true;
+            messages.Add($"ÇÖZÜLEMEZ — {result.RemainingBlocks} blok kaldı" +
+                         (result.PendingCurtainContent ? ", perde açılmadı" : "") +
+                         $" (yapılabilen hamle: {result.Moves.Count})");
+            return false;
         }
     }
 }
