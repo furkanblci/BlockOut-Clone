@@ -56,7 +56,8 @@ namespace BlockOut.Editor.ProjectSetup
             bool b = EnsureGameplayScene();
             bool c = EnsureBlockMaterials();
             bool d = EnsureGameplayWiring();
-            Debug.Log(a || b || c || d
+            bool e = EnsureBuildScenes();
+            Debug.Log(a || b || c || d || e
                 ? "[Setup] Eksikler tamamlandı."
                 : "[Setup] Her şey zaten kuruluydu, değişiklik yok.");
         }
@@ -296,6 +297,23 @@ namespace BlockOut.Editor.ProjectSetup
             }
             if (prop.objectReferenceValue == value) return false;
             prop.objectReferenceValue = value;
+            return true;
+        }
+
+        /// <summary>
+        /// Build sahne listesini Gameplay sahnesine ayarlar. Unity'nin varsayılan
+        /// SampleScene'i listede kalırsa cihazda BOŞ EKRAN gelir — bu, mobil
+        /// duman testinde en sık düşülen tuzaktır.
+        /// </summary>
+        public static bool EnsureBuildScenes()
+        {
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) == null) return false;
+
+            var scenes = EditorBuildSettings.scenes;
+            bool correct = scenes.Length == 1 && scenes[0].path == ScenePath && scenes[0].enabled;
+            if (correct) return false;
+
+            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
             return true;
         }
 

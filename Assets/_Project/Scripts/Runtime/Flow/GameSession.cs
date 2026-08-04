@@ -97,9 +97,25 @@ namespace BlockOut.Runtime.Flow
         public bool HasNextLevel =>
             levelSequence != null && _levelIndex + 1 < levelSequence.Length;
 
+        /// <summary>Dizideki bölüm sayısı (test seçicisi için).</summary>
+        public int LevelCount => levelSequence != null ? levelSequence.Length : 0;
+
+        public int LevelIndex => _levelIndex;
+
         public void NextLevel()
         {
             if (HasNextLevel) _levelIndex++;
+            Restart();
+        }
+
+        /// <summary>
+        /// Doğrudan bir bölüme atlar. Cihazda test ederken bölüm seçebilmek için;
+        /// gerçek bölüm haritası (Journey) M5'te bunun yerini alacak.
+        /// </summary>
+        public void GoToLevel(int index)
+        {
+            if (LevelCount == 0) return;
+            _levelIndex = Mathf.Clamp(index, 0, LevelCount - 1);
             Restart();
         }
 
