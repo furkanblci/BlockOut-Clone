@@ -99,12 +99,15 @@ namespace BlockOut.Runtime.Board
             }
 
             // Gizli içerik tahtaya doğar — artık normal (gerekirse buzlu) bloklar.
+            // BlockRoot yoksa görselsiz (headless) koşuyoruz: level doğrulama aracı
+            // ve testler modeli sahne kurmadan sürer. Model/view ayrımının karşılığı.
             foreach (var block in curtain.Contents)
             {
                 _level.Blocks.Add(block);
-                _views.Blocks[block] = BlockView.Create(
-                    _views.BlockRoot, block, _space,
-                    BoardBuilder.GetBlockMaterial(_palette, block.CurrentColor));
+                if (_views.BlockRoot != null)
+                    _views.Blocks[block] = BlockView.Create(
+                        _views.BlockRoot, block, _space,
+                        BoardBuilder.GetBlockMaterial(_palette, block.CurrentColor));
             }
             curtain.Contents.Clear();
 
