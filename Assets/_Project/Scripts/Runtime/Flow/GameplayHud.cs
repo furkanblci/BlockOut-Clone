@@ -33,7 +33,9 @@ namespace BlockOut.Runtime.Flow
                 _buttonStyle = new GUIStyle(GUI.skin.button) { fontStyle = FontStyle.Bold };
             }
 
-            float s = Screen.height / 800f; // farklı çözünürlüklerde aynı oran
+            // Ölçek DAR kenara bağlı: yalnızca yüksekliğe bakmak dikey telefonda
+            // (1080x1920) yazıyı ekran genişliğinden taşırıyordu.
+            float s = Mathf.Min(Screen.width / 500f, Screen.height / 800f);
 
             // Üst bant: bölüm + süre
             _timerStyle.fontSize = Mathf.RoundToInt(34 * s);
@@ -48,9 +50,12 @@ namespace BlockOut.Runtime.Flow
 
             // Sonuç ekranı
             bool won = _session.State == GameState.Won;
-            _bannerStyle.fontSize = Mathf.RoundToInt(52 * s);
+            _bannerStyle.fontSize = Mathf.RoundToInt(40 * s);
+            _bannerStyle.wordWrap = true; // uzun başlık dar ekranda alt satıra insin
             _bannerStyle.normal.textColor = won ? new Color(0.4f, 1f, 0.5f) : new Color(1f, 0.4f, 0.35f);
-            GUI.Label(new Rect(0, Screen.height * 0.35f, Screen.width, 70 * s),
+            float margin = Screen.width * 0.06f;
+            GUI.Label(
+                new Rect(margin, Screen.height * 0.32f, Screen.width - margin * 2f, 160 * s),
                 won ? "BÖLÜM TAMAMLANDI!" : "SÜRE DOLDU", _bannerStyle);
 
             _buttonStyle.fontSize = Mathf.RoundToInt(26 * s);
