@@ -135,7 +135,10 @@ namespace BlockOut.Editor.ProjectSetup
             if (palette == null) return false; // EnsureConfigAssets henüz koşmadı
 
             EnsureFolder(MatDir);
-            var shader = Shader.Find("Universal Render Pipeline/Lit");
+            // M4: bloklar artık prosedürel tuğla mesh'i + vertex AO kullanıyor;
+            // materyaller bunu okuyan özel shader'a taşınır.
+            var shader = Shader.Find("BlockOut/Brick") ??
+                         Shader.Find("Universal Render Pipeline/Lit");
             bool changed = false;
 
             foreach (var entry in palette.EditorEntries)
@@ -147,6 +150,14 @@ namespace BlockOut.Editor.ProjectSetup
                     mat = new Material(shader);
                     mat.SetColor("_BaseColor", entry.uiColor);
                     AssetDatabase.CreateAsset(mat, path);
+                    changed = true;
+                }
+                else if (mat.shader != shader && shader != null)
+                {
+                    // Shader değiştiyse mevcut asset'i taşı (renk korunur).
+                    mat.shader = shader;
+                    mat.SetColor("_BaseColor", entry.uiColor);
+                    EditorUtility.SetDirty(mat);
                     changed = true;
                 }
                 if (entry.blockMaterial != mat)
