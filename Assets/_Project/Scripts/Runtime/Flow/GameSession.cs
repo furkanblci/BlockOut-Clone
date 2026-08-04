@@ -191,9 +191,14 @@ namespace BlockOut.Runtime.Flow
             _fitHeight = boardHeight;
             _lastAspect = cam.aspect;
 
-            var rotation = Quaternion.Euler(68f, 0f, 0f);
+            // Referans oyun tahtaya NEREDEYSE TEPEDEN bakar: blokların yalnızca
+            // üst yüzü ve ince bir yan bandı görünür. 68° fazla yatıktı, yan
+            // yüzler baskın çıkıyordu. Dar FOV perspektifi yassılaştırır —
+            // uzaktaki hücreler yakındakilerle aynı boyutta görünür, bulmaca
+            // okunaklı olur (bulmaca oyunlarının standart kamera dili).
+            var rotation = Quaternion.Euler(80f, 0f, 0f);
             Vector3 forward = rotation * Vector3.forward;
-            cam.fieldOfView = 33f;
+            cam.fieldOfView = 27f;
 
             // Kapı barları ve duvarlar tahta sınırının dışına taşar → kenar payı.
             float hw = boardWidth * 0.5f + 0.9f;

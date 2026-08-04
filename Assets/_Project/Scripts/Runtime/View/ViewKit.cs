@@ -39,18 +39,21 @@ namespace BlockOut.Runtime.View
 
         static Material _arrow;
 
-        /// <summary>Kapı oklarının düz beyaz materyali.</summary>
+        /// <summary>
+        /// Kapı okları: tuğla shader'ı kullanılır ki ok da speküler parlaklık
+        /// alsın ve kabartma kenarları belirginleşsin (unlit materyal düz
+        /// beyaz bir leke bırakıyordu).
+        /// </summary>
         public static Material ArrowMaterial
         {
             get
             {
                 if (_arrow == null)
                 {
-                    var shader = Shader.Find("Universal Render Pipeline/Unlit")
-                                 ?? Shader.Find("Sprites/Default");
+                    var shader = Shader.Find("BlockOut/Brick")
+                                 ?? Shader.Find("Universal Render Pipeline/Unlit");
                     _arrow = new Material(shader) { name = "GateArrow" };
-                    _arrow.SetColor("_BaseColor", new Color(1f, 0.98f, 0.94f));
-                    _arrow.color = new Color(1f, 0.98f, 0.94f);
+                    _arrow.SetColor("_BaseColor", new Color(1f, 0.99f, 0.96f));
                 }
                 return _arrow;
             }

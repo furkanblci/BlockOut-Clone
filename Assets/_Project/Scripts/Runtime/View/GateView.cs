@@ -6,16 +6,22 @@ using UnityEngine;
 namespace BlockOut.Runtime.View
 {
     /// <summary>
-    /// Kapının sahnedeki görseli: kenarın hemen dışında yatık bar.
-    /// M2 halleri: buzlu (renk gizli + sayaç), normal (renk), ghost (soluk).
-    /// Oklar ve cila M4'te.
+    /// Kapının sahnedeki görseli: kenarın hemen dışında, duvar yüksekliğinde
+    /// renkli bar + üstünde çıkış yönünü gösteren kabartmalı ok.
+    ///
+    /// Ölçüler referans oyuna göre: bar duvarla aynı yükseklikte ve ondan
+    /// KALIN — ince bir şerit tepeden bakıldığında kaybolur ve "buradan
+    /// çıkılıyor" mesajını vermez.
     /// </summary>
     public sealed class GateView : MonoBehaviour
     {
-        const float BarHeight = 0.22f;
-        const float BarDepth = 0.3f;
-        const float OutwardOffset = 0.2f;
-        const float EndInset = 0.12f;
+        const float BarHeight = 0.40f;    // duvarla aynı seviye
+        const float BarDepth = 0.44f;     // duvardan kalın: göze çarpsın
+        const float OutwardOffset = 0.16f;
+        const float EndInset = 0.10f;
+
+        const float ArrowSize = 0.20f;
+        const float ArrowRise = 0.055f;   // kabartma yüksekliği
 
         MeshRenderer _renderer;
         Material _colorMaterial;
@@ -52,8 +58,9 @@ namespace BlockOut.Runtime.View
             var view = go.AddComponent<GateView>();
             view._model = model;
             view._renderer = go.GetComponent<MeshRenderer>();
+            view._renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             view._colorMaterial = colorMaterial;
-            view._arrow = CreateArrow(go.transform, model, center, scale);
+            view._arrow = CreateArrow(parent, model, center);
 
             if (model.IsIced)
             {
@@ -71,37 +78,67 @@ namespace BlockOut.Runtime.View
         }
 
         /// <summary>
-        /// Kapının üstündeki beyaz ok — referans oyunda çıkış yönünü gösterir.
-        /// Üç köşeli düz bir mesh; ayrı asset gerektirmez.
+        /// Kapının üstündeki ok: düz üçgen değil ALÇAK PRİZMA. Düz üçgen tek
+        /// renk kalır ve "detaysız" görünür; prizmanın yan yüzleri ışığı farklı
+        /// açıyla aldığı için kenarları belirginleşir.
         /// </summary>
-        static GameObject CreateArrow(Transform parent, GateModel model, Vector3 center, Vector3 scale)
+        static GameObject CreateArrow(Transform parent, GateModel model, Vector3 barCenter)
         {
             var go = new GameObject("Arrow");
             go.transform.SetParent(parent, worldPositionStays: false);
 
-            // Ok, barın DAR kenarına sığmalı: toplam derinlik ≈ size*1.45,
-            // bar derinliği 0.3 hücre. Daha büyüğü barın dışına taşıyor.
-            const float size = 0.16f;
+            // Dışarı yönü: yatay kapılarda ±Z, dikey kapılarda ±X.
+            Vector3 forward = model.EdgeHorizontal
+                ? new Vector3(0f, 0f, -model.OutwardSign)
+                : new Vector3(model.OutwardSign, 0f, 0f);
+            Vector3 across = new Vector3(-forward.z, 0f, forward.x);
+
+            Vector3 tip = forward * ArrowSize;
+            Vector3 left = across * ArrowSize * 0.78f - forward * ArrowSize * 0.48f;
+            Vector3 right = -across * ArrowSize * 0.78f - forward * ArrowSize * 0.48f;
+
+            var verts = new List<Vector3>();
+            var normals = new List<Vector3>();
+            var colors = new List<Color>();
+            var tris = new List<int>();
+
+            float top = ArrowRise;
+            Vector3[] baseRing = { tip, left, right };
+
+            // Üst yüz
+            for (int i = 0; i < 3; i++)
+            {
+                verts.Add(baseRing[i] + Vector3.up * top);
+                normals.Add(Vector3.up);
+                colors.Add(Color.white);
+            }
+            tris.Add(0); tris.Add(2); tris.Add(1);
+
+            // Yan yüzler (taban → üst)
+            for (int i = 0; i < 3; i++)
+            {
+                Vector3 a = baseRing[i];
+                Vector3 b = baseRing[(i + 1) % 3];
+                Vector3 edge = (b - a).normalized;
+                Vector3 outward = Vector3.Cross(Vector3.up, edge).normalized;
+
+                int start = verts.Count;
+                verts.Add(a); verts.Add(b);
+                verts.Add(b + Vector3.up * top); verts.Add(a + Vector3.up * top);
+                for (int n = 0; n < 4; n++) normals.Add(outward);
+                colors.Add(new Color(0.72f, 0.72f, 0.72f));
+                colors.Add(new Color(0.72f, 0.72f, 0.72f));
+                colors.Add(Color.white); colors.Add(Color.white);
+
+                tris.Add(start); tris.Add(start + 2); tris.Add(start + 1);
+                tris.Add(start); tris.Add(start + 3); tris.Add(start + 2);
+            }
+
             var mesh = new Mesh { name = "GateArrow" };
-
-            // Ok, dışa doğru bakar: hücre uzayında dışarı yönü dünyada
-            // yatay kapılarda -Z/+Z, dikey kapılarda ±X'e karşılık gelir.
-            Vector2 outward = model.EdgeHorizontal
-                ? new Vector2(0f, -model.OutwardSign)
-                : new Vector2(model.OutwardSign, 0f);
-            Vector2 side = new Vector2(-outward.y, outward.x);
-
-            Vector3 forward = new Vector3(outward.x, 0f, outward.y);
-            Vector3 across = new Vector3(side.x, 0f, side.y);
-
-            Vector3 tip = forward * size;
-            Vector3 left = across * size * 0.75f - forward * size * 0.45f;
-            Vector3 right = -across * size * 0.75f - forward * size * 0.45f;
-
-            mesh.SetVertices(new List<Vector3> { tip, left, right });
-            mesh.SetNormals(new List<Vector3> { Vector3.up, Vector3.up, Vector3.up });
-            // Sarım yönü: (0,1,2) normali AŞAĞI çevirip oku görünmez yapıyordu.
-            mesh.SetTriangles(new[] { 0, 2, 1 }, 0);
+            mesh.SetVertices(verts);
+            mesh.SetNormals(normals);
+            mesh.SetColors(colors);
+            mesh.SetTriangles(tris, 0);
             mesh.RecalculateBounds();
 
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
@@ -109,7 +146,7 @@ namespace BlockOut.Runtime.View
             renderer.sharedMaterial = ViewKit.ArrowMaterial;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
-            go.transform.position = center + Vector3.up * (scale.y * 0.5f + 0.01f);
+            go.transform.position = barCenter + Vector3.up * (BarHeight * 0.5f + 0.005f);
             return go;
         }
 
@@ -131,12 +168,14 @@ namespace BlockOut.Runtime.View
         public void SetColorMaterial(Material material)
         {
             _colorMaterial = material;
-            if (!_model.IsIced)
-                _renderer.sharedMaterial = material;
+            if (!_model.IsIced) _renderer.sharedMaterial = material;
         }
 
-        /// <summary>Rengi tükendi: soluk (ghost) hal.</summary>
-        public void SetGhost(Material ghostMaterial) =>
+        /// <summary>Rengi tükendi: soluk (ghost) hal, ok da söner.</summary>
+        public void SetGhost(Material ghostMaterial)
+        {
             _renderer.sharedMaterial = ghostMaterial;
+            if (_arrow != null) _arrow.SetActive(false);
+        }
     }
 }
