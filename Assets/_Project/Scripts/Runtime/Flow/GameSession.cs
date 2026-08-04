@@ -49,6 +49,10 @@ namespace BlockOut.Runtime.Flow
         {
             if (State == GameState.Playing)
                 Timer.Tick(Time.deltaTime);
+
+            // Game view boyutu / cihaz yönü değişirse kadrajı tazele.
+            if (_fitWidth > 0 && !Mathf.Approximately(_camera.aspect, _lastAspect))
+                FitCamera(_fitWidth, _fitHeight);
         }
 
         void OnDestroy()
@@ -98,7 +102,7 @@ namespace BlockOut.Runtime.Flow
             _events.BoardCleared += OnBoardCleared;
 
             var space = new BoardSpace(data.Board.Width, data.Board.Height);
-            FitCamera(data.Board.Height);
+            FitCamera(data.Board.Width, data.Board.Height);
             var views = BoardBuilder.Build(boardRoot, _level, space, palette);
             var obstacles = new ObstacleSystem(_level, views, palette, _events, space);
             var gates = new GateSystem(_level, views, config, _events, obstacles, palette);
@@ -112,18 +116,58 @@ namespace BlockOut.Runtime.Flow
         }
 
         /// <summary>
-        /// Kamerayı tahta yüksekliğine göre çerçeveler — her bölümün tahtası
-        /// farklı boyutta olabileceği için kamera sahneye gömülü değer taşımaz.
-        /// Oranlar 68° eğim + 33° FOV için elle ayarlandı; M4'te en-boy oranına
-        /// duyarlı (telefon dikey ekranı) gerçek bir fit hesabına dönüşecek.
+        /// Kamerayı tahtaya EN-BOY ORANINA DUYARLI çerçeveler: tahta köşeleri
+        /// (kapı barları için kenar payıyla) görüş alanına sığana dek kamera
+        /// bakış ekseni boyunca geri çekilir (ikili arama — bölüm başına bir
+        /// kez, maliyeti yok). Böylece aynı bölüm 16:9 yatayda da 9:16 dikey
+        /// telefonda da tam kadrajlanır.
         /// </summary>
-        void FitCamera(int boardHeight)
+        void FitCamera(int boardWidth, int boardHeight)
         {
+            _fitWidth = boardWidth;
+            _fitHeight = boardHeight;
+            _lastAspect = _camera.aspect;
+
+            var rotation = Quaternion.Euler(68f, 0f, 0f);
+            Vector3 forward = rotation * Vector3.forward;
             _camera.fieldOfView = 33f;
-            _camera.transform.SetPositionAndRotation(
-                new Vector3(0f, boardHeight * 2f, -boardHeight * 0.8f),
-                Quaternion.Euler(68f, 0f, 0f));
+
+            // Kapı barları ve duvarlar tahta sınırının dışına taşar → kenar payı.
+            float hw = boardWidth * 0.5f + 0.9f;
+            float hh = boardHeight * 0.5f + 0.9f;
+            var corners = new[]
+            {
+                new Vector3(-hw, 0f, -hh), new Vector3(hw, 0f, -hh),
+                new Vector3(-hw, 0f,  hh), new Vector3(hw, 0f,  hh),
+                new Vector3(-hw, 0.7f, -hh), new Vector3(hw, 0.7f, -hh),
+                new Vector3(-hw, 0.7f,  hh), new Vector3(hw, 0.7f,  hh)
+            };
+
+            float near = 6f, far = 80f;
+            for (int i = 0; i < 18; i++)
+            {
+                float mid = (near + far) * 0.5f;
+                _camera.transform.SetPositionAndRotation(-forward * mid, rotation);
+                if (AllCornersVisible(corners)) far = mid;
+                else near = mid;
+            }
+            _camera.transform.SetPositionAndRotation(-forward * far, rotation);
         }
+
+        bool AllCornersVisible(Vector3[] points)
+        {
+            foreach (var p in points)
+            {
+                var v = _camera.WorldToViewportPoint(p);
+                // Üstte HUD şeridi için pay bırak (y 0.90), yanlarda küçük marj.
+                if (v.z < 0f || v.x < 0.04f || v.x > 0.96f || v.y < 0.05f || v.y > 0.90f)
+                    return false;
+            }
+            return true;
+        }
+
+        int _fitWidth, _fitHeight;
+        float _lastAspect;
 
         /// <summary>Aynı bölümü baştan kurar. Sahne yeniden yüklemeye gerek yok —
         /// tüm durum bu sınıfın altında olduğu için yıkıp yeniden kurmak yeterli.</summary>
