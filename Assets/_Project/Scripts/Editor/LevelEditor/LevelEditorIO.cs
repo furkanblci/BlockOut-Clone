@@ -44,8 +44,73 @@ namespace BlockOut.Editor.LevelEditor
             JsonConvert.SerializeObject(data, Formatting.Indented,
                 new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
 
-        public static LevelData FromJson(string json) =>
-            JsonConvert.DeserializeObject<LevelData>(json);
+        /// <summary>
+        /// JSON → LevelData; okurken şema göçünü de uygular. Böylece eski
+        /// dosyalar editörde açıldığı anda güncel şemaya taşınır.
+        /// </summary>
+        public static LevelData FromJson(string json)
+        {
+            var data = JsonConvert.DeserializeObject<LevelData>(json);
+            if (data == null) throw new JsonException("Level JSON çözümlenemedi.");
+            if (LevelMigration.IsFromFuture(data))
+                throw new JsonException($"Bu bölüm sürüm {data.Version} ile yazılmış; " +
+                                        $"araç en fazla {LevelMigration.CurrentVersion} destekliyor.");
+            LevelMigration.Upgrade(data, null);
+            return data;
+        }
+
+        /// <summary>
+        /// Levels klasöründeki en büyük numaradan sonraki dosya yolunu üretir
+        /// (level_003 varsa level_004). "Sonraki bölüm olarak kaydet" için.
+        /// </summary>
+        public static string NextLevelPath(out int number)
+        {
+            number = 0;
+            foreach (var guid in AssetDatabase.FindAssets("t:TextAsset", new[] { LevelDir }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                string name = System.IO.Path.GetFileNameWithoutExtension(path);
+                if (!name.StartsWith("level_")) continue;
+                if (int.TryParse(name.Substring(6), out int value) && value > number)
+                    number = value;
+            }
+            number++;
+            return $"{LevelDir}/level_{number:000}.json";
+        }
+
+        // ---------- otomatik kurtarma ----------
+        // DERS: Domain reload'ı [SerializeField] ile atlatıyoruz ama Unity
+        // ÇÖKERSE o da gider. Çalışma kopyasını proje dışına (Library) yazmak
+        // ucuz bir sigortadır: repoyu kirletmez, sonraki açılışta sorulur.
+
+        static string RecoveryPath =>
+            System.IO.Path.Combine(
+                System.IO.Path.GetDirectoryName(Application.dataPath) ?? ".",
+                "Library", "BlockOut_LevelRecovery.json");
+
+        public static void WriteRecovery(LevelData data)
+        {
+            try { File.WriteAllText(RecoveryPath, ToJson(data)); }
+            catch { /* kurtarma yazılamadıysa sessiz geç — asıl iş engellenmemeli */ }
+        }
+
+        public static void ClearRecovery()
+        {
+            try { if (File.Exists(RecoveryPath)) File.Delete(RecoveryPath); }
+            catch { }
+        }
+
+        public static bool TryReadRecovery(out LevelData data)
+        {
+            data = null;
+            try
+            {
+                if (!File.Exists(RecoveryPath)) return false;
+                data = FromJson(File.ReadAllText(RecoveryPath));
+                return data != null;
+            }
+            catch { return false; }
+        }
 
         /// <summary>Kaydeder ve asset veritabanına bildirir. Yol proje içindeyse import edilir.</summary>
         public static void Save(LevelData data, string assetPath)

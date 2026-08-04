@@ -1,0 +1,56 @@
+name: Bölüm Doğrulama
+
+# İçerik de kod gibi test edilir: her PR'da tüm level JSON'ları şema ve
+# OYNANABİLİRLİK açısından denetlenir. Çözülemez bir bölüm main'e giremez.
+#
+# KURULUM (bir kereliğine): Unity batch modu lisans ister.
+#   1. https://game.ci/docs/github/activation adımlarıyla .alf → .ulf al
+#   2. Repo → Settings → Secrets → Actions:
+#        UNITY_LICENSE  (ulf dosyasının tam içeriği)
+#        UNITY_EMAIL / UNITY_PASSWORD  (Personal lisans için)
+# Secret'lar tanımlı değilse iş atlanır, PR bloke olmaz.
+
+on:
+  pull_request:
+    paths:
+      - 'Assets/_Project/Levels/**'
+      - 'Assets/_Project/Scripts/**'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Bölümleri doğrula
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Lisans var mı?
+        id: license
+        run: |
+          if [ -n "${{ secrets.UNITY_LICENSE }}" ]; then
+            echo "ready=true" >> $GITHUB_OUTPUT
+          else
+            echo "ready=false" >> $GITHUB_OUTPUT
+            echo "::warning::UNITY_LICENSE tanımlı değil — doğrulama atlandı."
+          fi
+
+      - uses: actions/cache@v4
+        if: steps.license.outputs.ready == 'true'
+        with:
+          path: Library
+          key: Library-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: Library-
+
+      - name: Unity batch modda doğrula
+        if: steps.license.outputs.ready == 'true'
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: StandaloneLinux64
+          buildMethod: BlockOut.Editor.ProjectSetup.LevelValidationTool.ValidateAllBatch
+          allowDirtyBuild: true

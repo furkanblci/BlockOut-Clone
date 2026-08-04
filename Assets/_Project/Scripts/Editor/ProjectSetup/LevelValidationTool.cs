@@ -8,19 +8,57 @@ using UnityEngine;
 
 namespace BlockOut.Editor.ProjectSetup
 {
+    /// <summary>Bir bölümün denetim sonucu: hatalar, tasarım uyarıları ve ölçümler.</summary>
+    public sealed class LevelReport
+    {
+        public bool Ok;
+        public readonly List<string> Errors = new List<string>();
+        public readonly List<string> Warnings = new List<string>();
+        public LevelSolver.Result Solution;
+
+        public readonly Dictionary<BlockColor, int> BlockCounts = new Dictionary<BlockColor, int>();
+        public readonly Dictionary<BlockColor, int> GateCounts = new Dictionary<BlockColor, int>();
+        public int EstimatedSeconds;
+
+        public IEnumerable<string> AllMessages
+        {
+            get
+            {
+                foreach (var e in Errors) yield return "HATA: " + e;
+                foreach (var w in Warnings) yield return w;
+            }
+        }
+    }
+
     /// <summary>
-    /// Tüm level JSON'larını şema + oynanabilirlik açısından denetler.
+    /// Bölümleri şema + oynanabilirlik + tasarım açısından denetler.
     ///
     /// Stüdyo alışkanlığı: içerik doğrulaması ELLE test edilmez, araç koşar.
-    /// M3'te level editörü bu aracı canlı uyarı paneli olarak kullanacak;
-    /// ileride CI'da da koşturulabilir (bozuk level merge edilemez).
+    /// Aynı kod üç yerden çağrılır: menü (toplu), level editörü (canlı),
+    /// CI (batch modda çıkış koduyla).
     /// </summary>
     public static class LevelValidationTool
     {
         const string LevelDir = "Assets/_Project/Levels";
 
+        /// <summary>Bir hamlenin oyuncuya kabaca kaç saniyeye mal olduğu — süre denetimi için.</summary>
+        const float SecondsPerMove = 4.5f;
+
         [MenuItem("Tools/Block Out/Tüm Bölümleri Doğrula")]
-        public static void ValidateAll()
+        public static void ValidateAll() => RunAll(logToConsole: true);
+
+        /// <summary>
+        /// CI girişi: `Unity -batchmode -executeMethod
+        /// BlockOut.Editor.ProjectSetup.LevelValidationTool.ValidateAllBatch`
+        /// Bozuk bölüm varsa 1 ile çıkar; böylece PR kırmızı olur.
+        /// </summary>
+        public static void ValidateAllBatch()
+        {
+            bool ok = RunAll(logToConsole: true);
+            EditorApplication.Exit(ok ? 0 : 1);
+        }
+
+        static bool RunAll(bool logToConsole)
         {
             var palette = AssetDatabase.LoadAssetAtPath<ColorPaletteSO>(
                 "Assets/_Project/ScriptableObjects/ColorPalette.asset");
@@ -28,69 +66,84 @@ namespace BlockOut.Editor.ProjectSetup
                 "Assets/_Project/ScriptableObjects/GameConfig.asset");
             if (palette == null || config == null)
             {
-                Debug.LogError("[Validate] Config asset'leri bulunamadı.");
-                return;
+                Debug.LogError("[Validate] ColorPalette / GameConfig asset'i bulunamadı.");
+                return false;
             }
 
             int ok = 0, failed = 0;
             foreach (var guid in AssetDatabase.FindAssets("t:TextAsset", new[] { LevelDir }))
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
-                if (!path.EndsWith(".json")) continue;
+                if (!path.EndsWith(".json") || path.Contains("__playtest")) continue;
 
-                if (ValidateOne(path, palette, config)) ok++;
-                else failed++;
+                var asset = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
+                var report = Validate(asset.text, palette, config);
+                string name = System.IO.Path.GetFileNameWithoutExtension(path);
+
+                if (report.Ok)
+                {
+                    ok++;
+                    if (logToConsole)
+                        Debug.Log($"[Validate] {name}: OK — {report.Solution.Moves.Count} hamle, " +
+                                  $"zorunlu {report.Solution.ForcedSteps}, " +
+                                  $"ort. seçenek {report.Solution.AverageOptions:0.0}", asset);
+                }
+                else
+                {
+                    failed++;
+                    foreach (var error in report.Errors)
+                        Debug.LogError($"[Validate] {name}: {error}", asset);
+                }
+
+                if (logToConsole)
+                    foreach (var warning in report.Warnings)
+                        Debug.LogWarning($"[Validate] {name}: {warning}", asset);
             }
 
             string summary = $"[Validate] {ok} bölüm geçti, {failed} bölüm sorunlu.";
-            if (failed > 0) Debug.LogError(summary);
-            else Debug.Log(summary);
+            if (failed > 0) Debug.LogError(summary); else Debug.Log(summary);
+            return failed == 0;
         }
 
-        static bool ValidateOne(string path, ColorPaletteSO palette, GameConfigSO config)
+        /// <summary>JSON metninden doğrudan denetim (import ve CI yolu).</summary>
+        public static LevelReport Validate(string json, ColorPaletteSO palette, GameConfigSO config)
         {
-            string name = System.IO.Path.GetFileNameWithoutExtension(path);
-            var asset = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
-
+            var report = new LevelReport();
             LevelData data;
             try
             {
-                data = LevelLoader.Parse(asset.text);
+                data = LevelLoader.Parse(json);
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"[Validate] {name}: parse hatası — {e.Message}", asset);
-                return false;
+                report.Errors.Add("parse edilemedi — " + e.Message);
+                return report;
             }
-
-            var messages = new List<string>();
-            if (!ValidateData(data, palette, config, messages, out int moves))
-            {
-                foreach (var msg in messages)
-                    Debug.LogError($"[Validate] {name}: {msg}", asset);
-                return false;
-            }
-
-            Debug.Log($"[Validate] {name}: OK ({moves} hamlede çözülebilir)", asset);
-            return true;
+            return ValidateData(data, palette, config);
         }
 
         /// <summary>
-        /// Bellekteki bir bölümü şema + oynanabilirlik açısından denetler.
-        /// Level editörü bunu canlı uyarı paneli olarak kullanır (dosyaya
-        /// kaydetmeden doğrulayabilmek için ayrı metot).
+        /// Bellekteki bir bölümü denetler. Level editörü bunu her değişiklikten
+        /// sonra çağırır (dosyaya kaydetmeden canlı rapor).
         /// </summary>
-        public static bool ValidateData(
-            LevelData data, ColorPaletteSO palette, GameConfigSO config,
-            List<string> messages, out int moveCount)
+        public static LevelReport ValidateData(
+            LevelData data, ColorPaletteSO palette, GameConfigSO config)
         {
-            moveCount = 0;
-            if (!LevelLoader.Validate(data, messages))
-                return false;
+            var report = new LevelReport();
 
-            // GÖRSELSİZ kurulum: sistemler boş BoardViews ile çalışır (view
-            // sözlükleri boş kalır, TryGetValue sessizce atlar) — edit modunda
-            // sahne nesnesi yaratmadığımız için hem hızlı hem güvenli.
+            if (LevelMigration.IsFromFuture(data))
+            {
+                report.Errors.Add($"Bölüm sürümü {data.Version}, bu yapı en fazla " +
+                                  $"{LevelMigration.CurrentVersion} destekliyor.");
+                return report;
+            }
+            LevelMigration.Upgrade(data, null);
+
+            if (!LevelLoader.Validate(data, report.Errors))
+                return report;
+
+            CollectColorSummary(data, report);
+
             LevelModel level;
             try
             {
@@ -98,10 +151,13 @@ namespace BlockOut.Editor.ProjectSetup
             }
             catch (System.Exception e)
             {
-                messages.Add("Model kurulamadı: " + e.Message);
-                return false;
+                report.Errors.Add("Model kurulamadı: " + e.Message);
+                return report;
             }
 
+            // GÖRSELSİZ kurulum: sistemler boş BoardViews ile çalışır (view
+            // sözlükleri boş kalır, TryGetValue sessizce atlar) — edit modunda
+            // sahne nesnesi yaratmadığımız için hem hızlı hem güvenli.
             var space = new BoardSpace(data.Board.Width, data.Board.Height);
             var views = new BoardViews();
             var events = new BoardEvents();
@@ -109,23 +165,91 @@ namespace BlockOut.Editor.ProjectSetup
             var gates = new GateSystem(level, views, config, events, obstacles, palette);
             gates.RecomputeGateStates();
 
-            var result = LevelSolver.Solve(
+            report.Solution = LevelSolver.Solve(
                 level,
-                (BlockModel block, out string outcome) =>
-                {
-                    var contact = gates.ResolveContact(block);
-                    outcome = contact.ToString();
-                    return contact != GateContactResult.None;
-                },
+                block => gates.CanResolve(block),
+                block => gates.ResolveContact(block).ToString(),
                 config.dragSubstep, config.collisionEpsilon);
 
-            moveCount = result.Moves.Count;
-            if (result.Solved) return true;
+            if (!report.Solution.Solved)
+            {
+                report.Errors.Add(
+                    $"ÇÖZÜLEMEZ — {report.Solution.RemainingBlocks} blok kaldı" +
+                    (report.Solution.PendingCurtainContent ? ", perde açılmadı" : "") +
+                    $" (yapılabilen hamle: {report.Solution.Moves.Count})");
+                return report;
+            }
 
-            messages.Add($"ÇÖZÜLEMEZ — {result.RemainingBlocks} blok kaldı" +
-                         (result.PendingCurtainContent ? ", perde açılmadı" : "") +
-                         $" (yapılabilen hamle: {result.Moves.Count})");
-            return false;
+            AddDesignWarnings(data, report);
+            report.Ok = true;
+            return report;
+        }
+
+        static void CollectColorSummary(LevelData data, LevelReport report)
+        {
+            void CountBlock(BlockData block)
+            {
+                foreach (var id in block.Layers)
+                    if (BlockColorUtil.TryParse(id, out var color))
+                    {
+                        report.BlockCounts.TryGetValue(color, out int count);
+                        report.BlockCounts[color] = count + 1;
+                    }
+            }
+
+            foreach (var block in data.Blocks) CountBlock(block);
+
+            // Perde içindeki gizli bloklar da renk bütçesine dahildir.
+            foreach (var obstacle in data.Obstacles)
+            {
+                if (obstacle.Type != "curtain" || obstacle.Extra == null) continue;
+                if (!obstacle.Extra.TryGetValue("contents", out var token)) continue;
+                var hidden = token.ToObject<List<BlockData>>();
+                if (hidden == null) continue;
+                foreach (var block in hidden) CountBlock(block);
+            }
+
+            foreach (var gate in data.Gates)
+                foreach (var id in gate.Colors)
+                    if (BlockColorUtil.TryParse(id, out var color))
+                    {
+                        report.GateCounts.TryGetValue(color, out int count);
+                        report.GateCounts[color] = count + 1;
+                    }
+        }
+
+        /// <summary>Bölüm çalışıyor ama İYİ mi? Tasarımcıya yönelik uyarılar.</summary>
+        static void AddDesignWarnings(LevelData data, LevelReport report)
+        {
+            foreach (var pair in report.BlockCounts)
+                if (!report.GateCounts.ContainsKey(pair.Key))
+                    report.Warnings.Add($"'{pair.Key}' renginde {pair.Value} katman var ama kapısı yok.");
+
+            foreach (var pair in report.GateCounts)
+                if (!report.BlockCounts.ContainsKey(pair.Key))
+                    report.Warnings.Add($"'{pair.Key}' kapısı var ama o renkte blok yok (kapı baştan ghost olur).");
+
+            var solution = report.Solution;
+            report.EstimatedSeconds = Mathf.CeilToInt(solution.Moves.Count * SecondsPerMove);
+
+            if (data.TimeSeconds < report.EstimatedSeconds * 1.2f)
+                report.Warnings.Add($"Süre dar olabilir: tahmini çözüm ~{report.EstimatedSeconds} sn, " +
+                                    $"verilen süre {data.TimeSeconds} sn.");
+            else if (data.TimeSeconds > report.EstimatedSeconds * 4f)
+                report.Warnings.Add($"Süre çok bol: tahmini çözüm ~{report.EstimatedSeconds} sn, " +
+                                    $"verilen süre {data.TimeSeconds} sn.");
+
+            if (solution.Moves.Count > 0 && solution.InitialOptions == 1)
+                report.Warnings.Add("Açılışta tek hamle var — oyuncu deneme yapamadan doğru yolu bulmalı.");
+
+            if (solution.Moves.Count >= 4 &&
+                solution.ForcedSteps >= solution.Moves.Count * 0.8f)
+                report.Warnings.Add($"Bölüm çok dar: {solution.Moves.Count} hamlenin " +
+                                    $"{solution.ForcedSteps} tanesi zorunlu (tek çözüm sırası).");
+
+            if (solution.AverageOptions > 4.5f)
+                report.Warnings.Add($"Bölüm çok serbest (ort. {solution.AverageOptions:0.0} seçenek) — " +
+                                    "bulmaca hissi zayıf olabilir.");
         }
     }
 }
