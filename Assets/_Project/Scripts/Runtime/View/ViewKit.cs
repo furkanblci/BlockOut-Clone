@@ -37,6 +37,27 @@ namespace BlockOut.Runtime.View
             }
         }
 
+        static Material _particle;
+
+        /// <summary>
+        /// Parçacık materyali: vertex rengini olduğu gibi gösteren unlit yol.
+        /// ParticleSystem her parçacığın rengini vertex rengiyle taşıdığı için
+        /// tek materyal tüm renkler için yeterlidir.
+        /// </summary>
+        public static Material ParticleMaterial
+        {
+            get
+            {
+                if (_particle == null)
+                {
+                    var shader = Shader.Find("Universal Render Pipeline/Particles/Unlit")
+                                 ?? Shader.Find("Sprites/Default");
+                    _particle = new Material(shader) { name = "Crumb_TEMP" };
+                }
+                return _particle;
+            }
+        }
+
         public static Material CurtainPanel
         {
             get

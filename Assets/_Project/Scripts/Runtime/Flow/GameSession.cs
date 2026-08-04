@@ -37,6 +37,11 @@ namespace BlockOut.Runtime.Flow
         DragController _drag;
         Camera _camera;
 
+        // Cila servisleri: bir kez kurulur, her bölümde yeni olay merkezine bağlanır.
+        FX.FXService _fx;
+        Services.AudioService _audio;
+        Services.HapticsService _haptics;
+
         /// <summary>
         /// Kamerayı tembel çözer. Restart/NextLevel dışarıdan (HUD, editör
         /// aracı) Start'tan önce çağrılabildiği için doğrudan alana güvenmiyoruz.
@@ -47,6 +52,11 @@ namespace BlockOut.Runtime.Flow
         {
             _camera = Camera.main;
             gameObject.AddComponent<GameplayHud>().Init(this);
+
+            _fx = FX.FXService.Create(transform, palette);
+            _audio = Services.AudioService.Create(transform);
+            _haptics = Services.HapticsService.Create(transform);
+
             Timer.Expired += OnTimeExpired;
             BuildAndStart();
         }
@@ -155,6 +165,12 @@ namespace BlockOut.Runtime.Flow
                 input, Cam, _level, views, space, config, gates,
                 () => State == GameState.Playing);
 
+            // Cila servisleri taze olay merkezine bağlanır.
+            _fx?.Bind(_events, space);
+            _audio?.Bind(_events);
+            _haptics?.Bind(_events);
+
+            PlayBoardIntro(views);
             Timer.StartCountdown(data.TimeSeconds);
             State = GameState.Playing;
         }
@@ -227,6 +243,24 @@ namespace BlockOut.Runtime.Flow
             BuildAndStart();
         }
 
+        /// <summary>
+        /// Bloklar yukarıdan sırayla düşerek tahtayı kurar. Gecikme köşegen
+        /// sırayla artar (sol-üstten sağ-alta doğru dalga) — hepsi aynı anda
+        /// düşerse kaotik görünür, dalga halinde düşerse tahta "kuruluyor" hissi verir.
+        /// </summary>
+        void PlayBoardIntro(BoardViews views)
+        {
+            const float step = 0.045f;
+            const float duration = 0.34f;
+
+            foreach (var pair in views.Blocks)
+            {
+                var model = pair.Key;
+                float delay = (model.Position.x + model.Position.y) * step;
+                pair.Value.PlayIntro(delay, duration);
+            }
+        }
+
         void OnBoardCleared()
         {
             State = GameState.Won;
@@ -235,8 +269,10 @@ namespace BlockOut.Runtime.Flow
 
         void OnTimeExpired()
         {
-            if (State == GameState.Playing)
-                State = GameState.Lost;
+            if (State != GameState.Playing) return;
+            State = GameState.Lost;
+            _audio?.PlayLose();
+            _haptics?.Pulse();
         }
     }
 }
