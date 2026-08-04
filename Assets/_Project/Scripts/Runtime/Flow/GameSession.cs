@@ -61,7 +61,29 @@ namespace BlockOut.Runtime.Flow
             Timer.Expired -= OnTimeExpired;
         }
 
-        TextAsset ActiveLevelAsset =>
+        TextAsset ActiveLevelAsset
+        {
+#if UNITY_EDITOR
+            get
+            {
+                // Level editöründeki "Play Test" düğmesi SessionState'e bir yol
+                // bırakır; varsa normal sıranın yerine o bölüm oynanır.
+                // SessionState domain reload'ı aşar, editör kapanınca silinir.
+                string playtest = UnityEditor.SessionState.GetString(
+                    "BlockOut.PlaytestLevel", string.Empty);
+                if (!string.IsNullOrEmpty(playtest))
+                {
+                    var asset = UnityEditor.AssetDatabase.LoadAssetAtPath<TextAsset>(playtest);
+                    if (asset != null) return asset;
+                }
+                return NormalLevelAsset;
+            }
+#else
+            get => NormalLevelAsset;
+#endif
+        }
+
+        TextAsset NormalLevelAsset =>
             levelSequence != null && levelSequence.Length > 0
                 ? levelSequence[Mathf.Clamp(_levelIndex, 0, levelSequence.Length - 1)]
                 : levelJson;
