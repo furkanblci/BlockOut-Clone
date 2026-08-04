@@ -36,6 +36,24 @@ namespace BlockOut.Runtime.Board
             _palette = palette;
         }
 
+        /// <summary>
+        /// Blok şu an bir kapıdan çıkabilir mi? DURUMU DEĞİŞTİRMEZ — level
+        /// çözücüsü "kaç seçenek var" sayarken bunu kullanır (ResolveContact
+        /// çağırsaydı bloğu gerçekten çıkarırdı).
+        /// </summary>
+        public bool CanResolve(BlockModel block)
+        {
+            if (block.IsFrozen) return false;
+
+            foreach (var gate in _level.Gates)
+            {
+                if (gate.IsIced || gate.IsGhost) continue;
+                if (block.CurrentColor != gate.ActiveColor) continue;
+                if (IsTouching(block, gate)) return true;
+            }
+            return false;
+        }
+
         /// <summary>Blok bir kapıya değiyorsa sonucu uygular ve ne olduğunu döndürür.</summary>
         public GateContactResult ResolveContact(BlockModel block)
         {
