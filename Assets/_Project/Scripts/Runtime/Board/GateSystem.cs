@@ -133,7 +133,11 @@ namespace BlockOut.Runtime.Board
                 Vector3 dir = gate.EdgeHorizontal
                     ? new Vector3(0f, 0f, -gate.OutwardSign)
                     : new Vector3(gate.OutwardSign, 0f, 0f);
-                view.PlayAbsorb(dir, _config.absorbDuration);
+
+                // Bloğun merkezi kapı çizgisine tam oturana kadar ilerlesin;
+                // daha fazlası duvarın üstünden geçmesine yol açar.
+                float travel = (gate.EdgeHorizontal ? block.H : block.W) * 0.5f + 0.2f;
+                view.PlayAbsorb(dir, travel, _config.absorbDuration);
             }
 
             _events.RaiseBlockAbsorbed(block, gate);

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using BlockOut.Core;
 using BlockOut.Runtime.Board;
 using UnityEngine;
@@ -20,6 +21,7 @@ namespace BlockOut.Runtime.View
         Material _colorMaterial;
         TextMesh _iceCounter;
         GateModel _model;
+        GameObject _arrow;
 
         public static GateView Create(
             Transform parent, GateModel model, BoardSpace space, Material colorMaterial)
@@ -51,6 +53,7 @@ namespace BlockOut.Runtime.View
             view._model = model;
             view._renderer = go.GetComponent<MeshRenderer>();
             view._colorMaterial = colorMaterial;
+            view._arrow = CreateArrow(go.transform, model, center, scale);
 
             if (model.IsIced)
             {
@@ -65,6 +68,49 @@ namespace BlockOut.Runtime.View
             }
 
             return view;
+        }
+
+        /// <summary>
+        /// Kapının üstündeki beyaz ok — referans oyunda çıkış yönünü gösterir.
+        /// Üç köşeli düz bir mesh; ayrı asset gerektirmez.
+        /// </summary>
+        static GameObject CreateArrow(Transform parent, GateModel model, Vector3 center, Vector3 scale)
+        {
+            var go = new GameObject("Arrow");
+            go.transform.SetParent(parent, worldPositionStays: false);
+
+            // Ok, barın DAR kenarına sığmalı: toplam derinlik ≈ size*1.45,
+            // bar derinliği 0.3 hücre. Daha büyüğü barın dışına taşıyor.
+            const float size = 0.16f;
+            var mesh = new Mesh { name = "GateArrow" };
+
+            // Ok, dışa doğru bakar: hücre uzayında dışarı yönü dünyada
+            // yatay kapılarda -Z/+Z, dikey kapılarda ±X'e karşılık gelir.
+            Vector2 outward = model.EdgeHorizontal
+                ? new Vector2(0f, -model.OutwardSign)
+                : new Vector2(model.OutwardSign, 0f);
+            Vector2 side = new Vector2(-outward.y, outward.x);
+
+            Vector3 forward = new Vector3(outward.x, 0f, outward.y);
+            Vector3 across = new Vector3(side.x, 0f, side.y);
+
+            Vector3 tip = forward * size;
+            Vector3 left = across * size * 0.75f - forward * size * 0.45f;
+            Vector3 right = -across * size * 0.75f - forward * size * 0.45f;
+
+            mesh.SetVertices(new List<Vector3> { tip, left, right });
+            mesh.SetNormals(new List<Vector3> { Vector3.up, Vector3.up, Vector3.up });
+            // Sarım yönü: (0,1,2) normali AŞAĞI çevirip oku görünmez yapıyordu.
+            mesh.SetTriangles(new[] { 0, 2, 1 }, 0);
+            mesh.RecalculateBounds();
+
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = go.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = ViewKit.ArrowMaterial;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+
+            go.transform.position = center + Vector3.up * (scale.y * 0.5f + 0.01f);
+            return go;
         }
 
         public void UpdateIceCount()

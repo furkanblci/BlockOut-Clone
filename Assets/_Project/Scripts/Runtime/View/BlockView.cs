@@ -158,7 +158,7 @@ namespace BlockOut.Runtime.View
         IEnumerator IntroRoutine(float delay, float duration)
         {
             Vector3 target = WorldPosition(0f);
-            Vector3 start = target + Vector3.up * 5f;
+            Vector3 start = target + Vector3.up * 2.2f; // fazla yüksek düşüş tahtanın dışına taşıyor
             transform.position = start;
             transform.localScale = Vector3.one * 0.6f;
 
@@ -179,33 +179,43 @@ namespace BlockOut.Runtime.View
         }
 
         /// <summary>
-        /// Kapıdan emilme: önce kapıya doğru squash (sıkışma), sonra hızla
-        /// içeri kayıp yok olma. Squash yönü hareket eksenindedir — blok
-        /// gerçekten deliğe sığmak için eziliyormuş gibi görünür.
+        /// Kapıdan emilme: blok kapı çizgisine doğru ilerlerken hareket ekseninde
+        /// hızla incelir, hafifçe aşağı çöker ve yuvaya girmiş gibi kaybolur.
+        ///
+        /// <paramref name="travel"/> = bloğun MERKEZİNİN kapı çizgisine olan
+        /// mesafesi. Sabit bir mesafe kullanmak (eski hali) bloğun duvarın
+        /// ÜSTÜNDEN geçmesine yol açıyordu; artık tam yuvada duruyor.
         /// </summary>
-        public void PlayAbsorb(Vector3 outwardWorldDir, float duration)
+        public void PlayAbsorb(Vector3 outwardWorldDir, float travel, float duration)
         {
             StopTween();
-            StartCoroutine(AbsorbRoutine(outwardWorldDir, duration));
+            StartCoroutine(AbsorbRoutine(outwardWorldDir, travel, duration));
         }
 
-        IEnumerator AbsorbRoutine(Vector3 dir, float duration)
+        IEnumerator AbsorbRoutine(Vector3 dir, float travel, float duration)
         {
             Vector3 startPos = transform.position;
-            Vector3 endPos = startPos + dir * 1.1f;
-            Vector3 startScale = Vector3.one;
+            Vector3 endPos = startPos + dir * travel;
 
-            // Hareket eksenini sıkıştır, dik ekseni hafif şişir.
-            Vector3 squash = new Vector3(
-                Mathf.Lerp(1f, 0.25f, Mathf.Abs(dir.x)),
-                0.8f,
-                Mathf.Lerp(1f, 0.25f, Mathf.Abs(dir.z)));
+            // Hareket eksenine göre daralma: yalnızca gidiş yönünde incelir,
+            // dik eksen neredeyse korunur — "yuvaya sığmak için sıkışma" hissi.
+            float axisX = Mathf.Abs(dir.x);
+            float axisZ = Mathf.Abs(dir.z);
 
             for (float t = 0f; t < duration; t += Time.deltaTime)
             {
-                float k = t / duration;
-                transform.position = Vector3.Lerp(startPos, endPos, k * k);
-                transform.localScale = Vector3.Lerp(startScale, squash, Mathf.Min(1f, k * 2f));
+                float k = Mathf.Clamp01(t / duration);
+                float eased = k * k;                       // hızlanarak girer
+
+                transform.position = Vector3.Lerp(startPos, endPos, eased)
+                                     + Vector3.down * (eased * 0.18f); // yuvaya çöker
+
+                float shrink = Mathf.Lerp(1f, 0.06f, eased);
+                float keep = Mathf.Lerp(1f, 0.82f, eased);
+                transform.localScale = new Vector3(
+                    Mathf.Lerp(keep, shrink, axisX),
+                    Mathf.Lerp(1f, 0.55f, eased),
+                    Mathf.Lerp(keep, shrink, axisZ));
                 yield return null;
             }
             Destroy(gameObject);
