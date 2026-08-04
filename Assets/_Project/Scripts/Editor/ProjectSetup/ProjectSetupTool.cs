@@ -160,6 +160,17 @@ namespace BlockOut.Editor.ProjectSetup
                     EditorUtility.SetDirty(mat);
                     changed = true;
                 }
+
+                // Parlaklık ayarları kodda tek yerden yönetilir; mevcut
+                // materyallerde de güncellensin (shader varsayılanı yalnızca
+                // YENİ materyale uygulanır, eskiler serileşmiş değeri taşır).
+                if (mat.HasProperty("_Specular"))
+                {
+                    mat.SetFloat("_Specular", 0.5f);
+                    mat.SetFloat("_Gloss", 64f);
+                    mat.SetFloat("_Ambient", 0.6f);
+                    EditorUtility.SetDirty(mat);
+                }
                 if (entry.blockMaterial != mat)
                 {
                     entry.blockMaterial = mat;

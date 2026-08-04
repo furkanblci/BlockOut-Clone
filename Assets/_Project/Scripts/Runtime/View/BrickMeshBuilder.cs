@@ -30,9 +30,10 @@ namespace BlockOut.Runtime.View
 
         // Referans oyunda her HÜCREDE 2×2 saplama var (tek kocaman değil).
         const int StudsPerCell = 2;
-        const float StudRadius = 0.165f;
-        const float StudHeight = 0.085f;
-        const int StudSegments = 12;
+        const float StudRadius = 0.168f;
+        const float StudHeight = 0.115f;   // tepeden bakınca yan bandı görünsün
+        const float StudBevel = 0.035f;    // üst kenar pahı — ışığı yakalar
+        const int StudSegments = 14;
 
         static readonly Dictionary<int, Mesh> Cache = new Dictionary<int, Mesh>();
 
@@ -58,10 +59,18 @@ namespace BlockOut.Runtime.View
             float shoulder = Height - Chamfer;
             float ix = hx - Chamfer, iz = hz - Chamfer;
 
-            // Sahte AO: alt koyu, üst aydınlık.
-            Color bottom = new Color(0.55f, 0.55f, 0.55f);
-            Color mid = new Color(0.88f, 0.88f, 0.88f);
-            Color top = Color.white;
+            // Sahte AO tonları. KRİTİK: tuğlanın üst yüzü saplama tepelerinden
+            // daha KOYU olmalı, saplama DİBİ ise en koyu — aksi halde saplamalar
+            // düz yüzeyde erir ve referanstaki belirginlik kaybolur.
+            Color bottom = new Color(0.48f, 0.48f, 0.48f);
+            Color mid = new Color(0.86f, 0.86f, 0.86f);
+            Color top = new Color(0.72f, 0.72f, 0.72f);   // tuğlanın üst yüzeyi
+
+            // Saplama tonları AYRI: dibi yüzeyden koyu (gölge halkası), tepesi
+            // yüzeyden parlak. Tepeden bakan kamerada saplamayı görünür kılan
+            // tek şey bu kontrast — yan yüzler zaten neredeyse görünmüyor.
+            Color studFoot = new Color(0.42f, 0.42f, 0.42f);
+            Color studTop = Color.white;
 
             // --- yan duvarlar ---
             Quad(verts, normals, tris, colors, Vector3.back,
@@ -112,7 +121,7 @@ namespace BlockOut.Runtime.View
                             AddStud(verts, normals, tris, colors, new Vector3(
                                 -w * 0.5f + cx + first + sx * step,
                                 Height,
-                                -h * 0.5f + cz + first + sz * step), mid, top);
+                                -h * 0.5f + cz + first + sz * step), studFoot, studTop);
 
             var mesh = new Mesh { name = $"Brick_{w}x{h}" };
             if (verts.Count > 65000) mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
@@ -139,12 +148,28 @@ namespace BlockOut.Runtime.View
             tris.Add(start); tris.Add(start + 3); tris.Add(start + 2);
         }
 
+        /// <summary>
+        /// Bir saplama: dik yan duvar + PAHLI üst kenar + düz kapak.
+        ///
+        /// Pah şart: tepeden bakan bir kamerada dik silindirin yan yüzü neredeyse
+        /// hiç görünmez, saplama düz bir daireye dönüşür. Pahlı kenar ışığa dönük
+        /// olduğu için parlak bir halka oluşturur; saplamanın dibi ise koyu
+        /// tutulur. Aradaki bu kontrast referans oyundaki belirginliğin kaynağı.
+        /// </summary>
         static void AddStud(List<Vector3> verts, List<Vector3> normals, List<int> tris,
-            List<Color> colors, Vector3 center, Color side, Color cap)
+            List<Color> colors, Vector3 center, Color baseTone, Color brightTone)
         {
-            int ringStart = verts.Count;
             float topY = center.y + StudHeight;
+            float shoulderY = topY - StudBevel;
+            float capRadius = StudRadius - StudBevel;
 
+            Color footTone = baseTone;      // dip: koyu gölge halkası
+            Color shoulderTone = Color.Lerp(baseTone, brightTone, 0.75f);
+            Color rimTone = brightTone;     // pah: en parlak
+            Color capTone = Color.Lerp(brightTone, shoulderTone, 0.25f);
+
+            // --- yan duvar (dik) ---
+            int sideStart = verts.Count;
             for (int i = 0; i < StudSegments; i++)
             {
                 float angle = i / (float)StudSegments * Mathf.PI * 2f;
@@ -152,42 +177,61 @@ namespace BlockOut.Runtime.View
                 var radial = new Vector3(cos, 0f, sin);
 
                 verts.Add(center + radial * StudRadius);
-                verts.Add(new Vector3(center.x + cos * StudRadius, topY, center.z + sin * StudRadius));
-                // Radyal normal: silindir pürüzsüz görünür, parlaklık üzerinde kayar.
-                normals.Add(radial); normals.Add(radial);
-                colors.Add(side); colors.Add(cap);
+                verts.Add(new Vector3(center.x + cos * StudRadius, shoulderY, center.z + sin * StudRadius));
+                normals.Add(radial); normals.Add(radial);   // radyal = pürüzsüz silindir
+                colors.Add(footTone); colors.Add(shoulderTone);
             }
+            RingQuads(tris, sideStart);
 
+            // --- pah halkası (yan duvardan kapağa geçiş) ---
+            int bevelStart = verts.Count;
             for (int i = 0; i < StudSegments; i++)
             {
-                int a = ringStart + i * 2;
-                int b = ringStart + ((i + 1) % StudSegments) * 2;
-                tris.Add(a); tris.Add(a + 1); tris.Add(b);
-                tris.Add(b); tris.Add(a + 1); tris.Add(b + 1);
-            }
+                float angle = i / (float)StudSegments * Mathf.PI * 2f;
+                float cos = Mathf.Cos(angle), sin = Mathf.Sin(angle);
+                var bevelNormal = new Vector3(cos, 1.1f, sin).normalized;
 
-            // Üst kapak: ayrı vertex halkası (normali YUKARI olmalı, radyal değil).
+                verts.Add(new Vector3(center.x + cos * StudRadius, shoulderY, center.z + sin * StudRadius));
+                verts.Add(new Vector3(center.x + cos * capRadius, topY, center.z + sin * capRadius));
+                normals.Add(bevelNormal); normals.Add(bevelNormal);
+                colors.Add(shoulderTone); colors.Add(rimTone);
+            }
+            RingQuads(tris, bevelStart);
+
+            // --- kapak (yelpaze) ---
             int capStart = verts.Count;
             for (int i = 0; i < StudSegments; i++)
             {
                 float angle = i / (float)StudSegments * Mathf.PI * 2f;
                 verts.Add(new Vector3(
-                    center.x + Mathf.Cos(angle) * StudRadius, topY,
-                    center.z + Mathf.Sin(angle) * StudRadius));
+                    center.x + Mathf.Cos(angle) * capRadius, topY,
+                    center.z + Mathf.Sin(angle) * capRadius));
                 normals.Add(Vector3.up);
-                colors.Add(cap);
+                colors.Add(capTone);
             }
 
             int capCenter = verts.Count;
             verts.Add(new Vector3(center.x, topY, center.z));
             normals.Add(Vector3.up);
-            colors.Add(cap);
+            colors.Add(capTone);
 
             for (int i = 0; i < StudSegments; i++)
             {
                 int a = capStart + i;
                 int b = capStart + (i + 1) % StudSegments;
                 tris.Add(capCenter); tris.Add(b); tris.Add(a);
+            }
+        }
+
+        /// <summary>Alt/üst çiftler halinde eklenmiş bir halkayı dörtgenlere böler.</summary>
+        static void RingQuads(List<int> tris, int ringStart)
+        {
+            for (int i = 0; i < StudSegments; i++)
+            {
+                int a = ringStart + i * 2;
+                int b = ringStart + ((i + 1) % StudSegments) * 2;
+                tris.Add(a); tris.Add(a + 1); tris.Add(b);
+                tris.Add(b); tris.Add(a + 1); tris.Add(b + 1);
             }
         }
     }
