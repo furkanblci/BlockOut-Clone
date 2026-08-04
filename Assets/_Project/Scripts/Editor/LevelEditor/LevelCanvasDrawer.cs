@@ -102,6 +102,13 @@ namespace BlockOut.Editor.LevelEditor
             EditorGUI.DrawRect(new Rect(r.xMax - t, r.y, t, r.height), c);
         }
 
+        /// <summary>Seçili nesnenin animasyonsuz "marching ants" benzeri vurgusu.</summary>
+        public static void Highlight(Rect r, Color color)
+        {
+            Outline(new Rect(r.x - 2, r.y - 2, r.width + 4, r.height + 4), color, 2f);
+            Outline(r, Color.black, 1f);
+        }
+
         public static void Label(Rect r, string text, Color color, int fontSize, FontStyle style = FontStyle.Bold)
         {
             var gs = new GUIStyle(EditorStyles.label)
