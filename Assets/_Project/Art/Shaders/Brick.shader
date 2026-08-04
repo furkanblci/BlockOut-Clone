@@ -14,9 +14,12 @@ Shader "BlockOut/Brick"
     Properties
     {
         _BaseColor("Taban Rengi", Color) = (1, 1, 1, 1)
-        _LightDir("Isik Yonu", Vector) = (0.35, 1, -0.3, 0)
-        _Ambient("Ortam Isigi", Range(0, 1)) = 0.55
-        _RimStrength("Kenar Parlakligi", Range(0, 1)) = 0.15
+        _LightDir("Isik Yonu", Vector) = (0.4, 1, -0.35, 0)
+        _Ambient("Ortam Isigi", Range(0, 1)) = 0.62
+        _RimStrength("Kenar Parlakligi", Range(0, 1)) = 0.12
+        _Specular("Spekuler Guc", Range(0, 2)) = 0.85
+        _Gloss("Parlaklik Keskinligi", Range(4, 128)) = 42
+        _Saturation("Renk Doygunlugu", Range(1, 2)) = 1.18
     }
 
     SubShader
@@ -58,6 +61,9 @@ Shader "BlockOut/Brick"
                 float4 _LightDir;
                 half _Ambient;
                 half _RimStrength;
+                half _Specular;
+                half _Gloss;
+                half _Saturation;
             CBUFFER_END
 
             Varyings vert(Attributes IN)
@@ -75,17 +81,27 @@ Shader "BlockOut/Brick"
             {
                 half3 normal = normalize(IN.normalWS);
                 half3 light = normalize(_LightDir.xyz);
+                half3 view = normalize(IN.viewDirWS);
 
                 // Yarım-lambert: gölgede kalan yüzler tamamen kararmaz, oyuncak hissi verir.
                 half ndl = saturate(dot(normal, light));
                 half shade = lerp(_Ambient, 1.0h, ndl);
 
-                // Hafif kenar parlaklığı: tuğlanın silueti zeminden ayrılsın.
-                half3 view = normalize(IN.viewDirWS);
-                half rim = pow(1.0h - saturate(dot(normal, view)), 3.0h) * _RimStrength;
+                // Blinn-Phong spekülar: cilalı plastik parlaması. Saplamaların
+                // radyal normalleri sayesinde parlaklık her saplamanın üstünde
+                // ayrı ayrı oturur — referans oyundaki görünümün anahtarı bu.
+                half3 halfDir = normalize(light + view);
+                half spec = pow(saturate(dot(normal, halfDir)), _Gloss) * _Specular * ndl;
 
+                // Kenar parlaklığı: tuğlanın silueti koyu zeminden ayrılsın.
+                half rim = pow(1.0h - saturate(dot(normal, view)), 4.0h) * _RimStrength;
+
+                // Doygunluk artışı: referanstaki canlı oyuncak renkleri.
                 half3 albedo = _BaseColor.rgb * IN.color.rgb;
-                return half4(albedo * shade + rim, 1.0h);
+                half grey = dot(albedo, half3(0.299h, 0.587h, 0.114h));
+                albedo = lerp(half3(grey, grey, grey), albedo, _Saturation);
+
+                return half4(saturate(albedo * shade + spec + rim), 1.0h);
             }
             ENDHLSL
         }

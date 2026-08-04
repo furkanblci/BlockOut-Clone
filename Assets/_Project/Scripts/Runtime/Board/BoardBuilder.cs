@@ -32,9 +32,12 @@ namespace BlockOut.Runtime.Board
             var views = new BoardViews();
             var board = level.Board;
 
-            Material floorLight = MakeMat("Floor_Light", new Color(0.82f, 0.79f, 0.90f));
-            Material floorDark = MakeMat("Floor_Dark", new Color(0.74f, 0.71f, 0.85f));
-            Material wallMat = MakeMat("Wall", new Color(0.33f, 0.28f, 0.52f));
+            // Referans oyunun zemini KOYU lacivert, hücreler arası fark çok
+            // hafif; parlak tuğlalar bu koyu zeminde öne çıkar. Açık renkli
+            // satranç deseni tuğlaların doygunluğunu bastırıyordu.
+            Material floorLight = MakeMat("Floor_Light", new Color(0.17f, 0.15f, 0.31f));
+            Material floorDark = MakeMat("Floor_Dark", new Color(0.14f, 0.12f, 0.27f));
+            Material wallMat = MakeMat("Wall", new Color(0.36f, 0.32f, 0.62f));
 
             // --- Zemin: her oynanabilir hücreye bir karo (satranç deseni) ---
             var floorRoot = new GameObject("Floor").transform;

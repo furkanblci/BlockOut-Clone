@@ -37,6 +37,25 @@ namespace BlockOut.Runtime.View
             }
         }
 
+        static Material _arrow;
+
+        /// <summary>Kapı oklarının düz beyaz materyali.</summary>
+        public static Material ArrowMaterial
+        {
+            get
+            {
+                if (_arrow == null)
+                {
+                    var shader = Shader.Find("Universal Render Pipeline/Unlit")
+                                 ?? Shader.Find("Sprites/Default");
+                    _arrow = new Material(shader) { name = "GateArrow" };
+                    _arrow.SetColor("_BaseColor", new Color(1f, 0.98f, 0.94f));
+                    _arrow.color = new Color(1f, 0.98f, 0.94f);
+                }
+                return _arrow;
+            }
+        }
+
         static Material _particle;
 
         /// <summary>
