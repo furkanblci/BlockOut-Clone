@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "id": "level_005",
+  "displayNumber": 5,
+  "difficulty": "normal",
+  "timeSeconds": 130,
+  "board": {
+    "width": 6,
+    "height": 6,
+    "rows": [
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX"
+    ],
+    "walls": []
+  },
+  "blocks": [
+    { "x": 0, "y": 2, "w": 2, "h": 1, "layers": ["red"] },
+    { "x": 4, "y": 4, "w": 1, "h": 1, "layers": ["red"] },
+    { "x": 2, "y": 1, "w": 2, "h": 2, "layers": ["green"] },
+    { "x": 5, "y": 3, "w": 1, "h": 2, "layers": ["green"] },
+    { "x": 2, "y": 3, "w": 2, "h": 1, "layers": ["yellow"] },
+    { "x": 3, "y": 5, "w": 1, "h": 1, "layers": ["blue"] }
+  ],
+  "gates": [
+    { "x": 0, "y": 0, "side": "N", "length": 2, "colors": ["red"] },
+    { "x": 5, "y": 0, "side": "E", "length": 3, "colors": ["green"] },
+    { "x": 2, "y": 5, "side": "S", "length": 3, "colors": ["yellow"] },
+    { "x": 0, "y": 3, "side": "W", "length": 3, "colors": ["blue"] }
+  ],
+  "obstacles": []
+}
