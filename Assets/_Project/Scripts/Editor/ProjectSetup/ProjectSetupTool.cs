@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using BlockOut.Core;
 using BlockOut.Runtime.Config;
 using BlockOut.Runtime.Flow;
@@ -25,12 +26,25 @@ namespace BlockOut.Editor.ProjectSetup
         const string SoDir = "Assets/_Project/ScriptableObjects";
         const string MatDir = "Assets/_Project/Art/Materials";
         const string LevelJsonPath = "Assets/_Project/Levels/level_001.json";
-        static readonly string[] LevelSequencePaths =
+        /// <summary>
+        /// Oyun sırası. Levels klasöründeki level_NNN dosyaları numara sırasına
+        /// göre dizilir — yeni bölüm eklemek için burayı düzenlemek gerekmez.
+        /// (M5'te bu liste LevelDatabaseSO'ya taşınacak.)
+        /// </summary>
+        const string LevelDir = "Assets/_Project/Levels";
+
+        static string[] LevelSequencePaths()
         {
-            "Assets/_Project/Levels/level_001.json",
-            "Assets/_Project/Levels/level_002.json",
-            "Assets/_Project/Levels/level_003.json"
-        };
+            var paths = new List<string>();
+            foreach (var guid in AssetDatabase.FindAssets("t:TextAsset", new[] { LevelDir }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                string name = System.IO.Path.GetFileNameWithoutExtension(path);
+                if (path.EndsWith(".json") && name.StartsWith("level_")) paths.Add(path);
+            }
+            paths.Sort(System.StringComparer.Ordinal);
+            return paths.ToArray();
+        }
         public const string ScenePath = "Assets/_Project/Scenes/Gameplay.unity";
 
         // ---------- Menü komutları (elle tetikleme) ----------
@@ -235,15 +249,16 @@ namespace BlockOut.Editor.ProjectSetup
             var seq = so.FindProperty("levelSequence");
             if (seq != null)
             {
-                if (seq.arraySize != LevelSequencePaths.Length)
+                var levelPaths = LevelSequencePaths();
+                if (seq.arraySize != levelPaths.Length)
                 {
-                    seq.arraySize = LevelSequencePaths.Length;
+                    seq.arraySize = levelPaths.Length;
                     changed = true;
                 }
-                for (int i = 0; i < LevelSequencePaths.Length; i++)
+                for (int i = 0; i < levelPaths.Length; i++)
                 {
                     var element = seq.GetArrayElementAtIndex(i);
-                    var asset = AssetDatabase.LoadAssetAtPath<TextAsset>(LevelSequencePaths[i]);
+                    var asset = AssetDatabase.LoadAssetAtPath<TextAsset>(levelPaths[i]);
                     if (element.objectReferenceValue != asset)
                     {
                         element.objectReferenceValue = asset;

@@ -41,8 +41,11 @@ namespace BlockOut.Editor.ProjectSetup
     {
         const string LevelDir = "Assets/_Project/Levels";
 
-        /// <summary>Bir hamlenin oyuncuya kabaca kaç saniyeye mal olduğu — süre denetimi için.</summary>
-        const float SecondsPerMove = 4.5f;
+        // Süre tahmini modeli: oyuncu önce tahtayı okur, sonra her hamle için
+        // düşünüp sürükler. Çözücünün hamle sayısı ALT sınırdır — gerçek oyuncu
+        // deneme yanılma da yapar, o yüzden hamle başına cömert bir katsayı.
+        const float ReadSeconds = 15f;
+        const float SecondsPerMove = 8f;
 
         [MenuItem("Tools/Block Out/Tüm Bölümleri Doğrula")]
         public static void ValidateAll() => RunAll(logToConsole: true);
@@ -230,12 +233,14 @@ namespace BlockOut.Editor.ProjectSetup
                     report.Warnings.Add($"'{pair.Key}' kapısı var ama o renkte blok yok (kapı baştan ghost olur).");
 
             var solution = report.Solution;
-            report.EstimatedSeconds = Mathf.CeilToInt(solution.Moves.Count * SecondsPerMove);
+            report.EstimatedSeconds = Mathf.CeilToInt(ReadSeconds + solution.Moves.Count * SecondsPerMove);
 
             if (data.TimeSeconds < report.EstimatedSeconds * 1.2f)
                 report.Warnings.Add($"Süre dar olabilir: tahmini çözüm ~{report.EstimatedSeconds} sn, " +
                                     $"verilen süre {data.TimeSeconds} sn.");
-            else if (data.TimeSeconds > report.EstimatedSeconds * 4f)
+            // Öğretici bölümlerde bol süre KASITLIDIR (oyuncu baskı hissetmesin),
+            // o yüzden alt sınır 90 sn: kısa bölümler boşuna uyarı vermez.
+            else if (data.TimeSeconds > Mathf.Max(90f, report.EstimatedSeconds * 4f))
                 report.Warnings.Add($"Süre çok bol: tahmini çözüm ~{report.EstimatedSeconds} sn, " +
                                     $"verilen süre {data.TimeSeconds} sn.");
 
