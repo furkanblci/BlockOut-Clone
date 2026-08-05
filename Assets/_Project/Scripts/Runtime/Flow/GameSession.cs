@@ -19,6 +19,8 @@ namespace BlockOut.Runtime.Flow
     {
         [SerializeField] GameConfigSO config;
         [SerializeField] ColorPaletteSO palette;
+        [SerializeField, Tooltip("Görsel ayarlar — Tools > Block Out > Görünüm Ayarları'ndan canlı düzenlenir.")]
+        BlockVisualConfigSO visuals;
         [SerializeField] TextAsset levelJson;
         [SerializeField, Tooltip("Doluysa levelJson yerine bu sıra oynanır; kazanınca sonrakine geçilir. M5'te LevelDatabaseSO'ya evrilecek.")]
         TextAsset[] levelSequence;
@@ -129,8 +131,20 @@ namespace BlockOut.Runtime.Flow
             Restart();
         }
 
+        /// <summary>
+        /// Görsel ayarlar değiştiğinde tahtayı yeniden kurar (ayar penceresi çağırır).
+        /// Bölüm baştan başlar — ayar denerken istenen davranış budur.
+        /// </summary>
+        public void RefreshVisuals()
+        {
+            if (visuals != null) View.VisualSettings.Apply(visuals);
+            if (State != GameState.Intro) Restart();
+        }
+
         void BuildAndStart()
         {
+            if (visuals != null) View.VisualSettings.Apply(visuals);
+
             LevelData data;
             try
             {

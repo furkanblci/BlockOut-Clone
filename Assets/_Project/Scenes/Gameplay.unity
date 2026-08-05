@@ -150,6 +150,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: BlockOut.Runtime::BlockOut.Runtime.Flow.GameSession
   config: {fileID: 11400000, guid: 4ed6afe1772506e4187a5747aeeca131, type: 2}
   palette: {fileID: 11400000, guid: f39f5753d454eba4789e0523c188cf38, type: 2}
+  visuals: {fileID: 11400000, guid: 08c5eff6c4b05ae46a1c6a26afafad75, type: 2}
   levelJson: {fileID: 4900000, guid: 722939382ce688a48b04fa2fc5b13e21, type: 3}
   levelSequence:
   - {fileID: 4900000, guid: 722939382ce688a48b04fa2fc5b13e21, type: 3}

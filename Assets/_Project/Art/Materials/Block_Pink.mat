@@ -85,7 +85,7 @@ Material:
     - _AddPrecomputedVelocity: 0
     - _AlphaClip: 0
     - _AlphaToMask: 0
-    - _Ambient: 0.6
+    - _Ambient: 0.5
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
     - _BumpScale: 1
@@ -107,7 +107,7 @@ Material:
     - _Parallax: 0.005
     - _QueueOffset: 0
     - _ReceiveShadows: 1
-    - _RimStrength: 0.15
+    - _RimStrength: 0.12
     - _Saturation: 1.18
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
@@ -123,7 +123,7 @@ Material:
     - _BaseColor: {r: 0.95, g: 0.25, b: 0.65, a: 1}
     - _Color: {r: 0.95, g: 0.24999997, b: 0.65, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _LightDir: {r: 0.35, g: 1, b: -0.3, a: 0}
+    - _LightDir: {r: 0.44943854, g: 0.79900193, b: -0.39950097, a: 0}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

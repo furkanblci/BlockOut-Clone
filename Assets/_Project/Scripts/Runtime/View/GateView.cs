@@ -15,13 +15,14 @@ namespace BlockOut.Runtime.View
     /// </summary>
     public sealed class GateView : MonoBehaviour
     {
-        const float BarHeight = 0.40f;    // duvarla aynı seviye
-        const float BarDepth = 0.44f;     // duvardan kalın: göze çarpsın
-        const float OutwardOffset = 0.16f;
         const float EndInset = 0.10f;
 
-        const float ArrowSize = 0.20f;
-        const float ArrowRise = 0.055f;   // kabartma yüksekliği
+        static float BarHeight => VisualSettings.Current != null
+            ? VisualSettings.Current.gateBarHeight : 0.40f;
+        static float BarDepth => VisualSettings.Current != null
+            ? VisualSettings.Current.gateBarDepth : 0.44f;
+        static float OutwardOffset => VisualSettings.Current != null
+            ? VisualSettings.Current.gateOutwardOffset : 0.16f;   // kabartma yüksekliği
 
         MeshRenderer _renderer;
         Material _colorMaterial;
@@ -87,38 +88,59 @@ namespace BlockOut.Runtime.View
             var go = new GameObject("Arrow");
             go.transform.SetParent(parent, worldPositionStays: false);
 
+            var cfg = VisualSettings.Current;
+            float size = cfg != null ? cfg.arrowSize : 0.20f;
+            float rise = cfg != null ? cfg.arrowRise : 0.055f;
+            float cornerRadius = cfg != null ? cfg.arrowCornerRadius : 0.3f;
+
             // Dışarı yönü: yatay kapılarda ±Z, dikey kapılarda ±X.
             Vector3 forward = model.EdgeHorizontal
                 ? new Vector3(0f, 0f, -model.OutwardSign)
                 : new Vector3(model.OutwardSign, 0f, 0f);
             Vector3 across = new Vector3(-forward.z, 0f, forward.x);
 
-            Vector3 tip = forward * ArrowSize;
-            Vector3 left = across * ArrowSize * 0.78f - forward * ArrowSize * 0.48f;
-            Vector3 right = -across * ArrowSize * 0.78f - forward * ArrowSize * 0.48f;
+            Vector3 tip = forward * size;
+            Vector3 left = across * size * 0.78f - forward * size * 0.48f;
+            Vector3 right = -across * size * 0.78f - forward * size * 0.48f;
+
+            // Referans oyunda okun köşeleri YUMUŞAK; keskin üçgen sert ve
+            // "vektör klibi" gibi duruyor. Her köşeyi küçük bir yay ile
+            // yuvarlıyoruz (köşe kesme + ara noktalar).
+            var outline = RoundedTriangle(tip, left, right, cornerRadius);
 
             var verts = new List<Vector3>();
             var normals = new List<Vector3>();
             var colors = new List<Color>();
             var tris = new List<int>();
 
-            float top = ArrowRise;
-            Vector3[] baseRing = { tip, left, right };
+            float top = rise;
 
-            // Üst yüz
-            for (int i = 0; i < 3; i++)
+            // Üst yüz: merkezden yelpaze.
+            Vector3 center = (tip + left + right) / 3f;
+            int capCenter = verts.Count;
+            verts.Add(center + Vector3.up * top);
+            normals.Add(Vector3.up);
+            colors.Add(Color.white);
+
+            int capStart = verts.Count;
+            foreach (var point in outline)
             {
-                verts.Add(baseRing[i] + Vector3.up * top);
+                verts.Add(point + Vector3.up * top);
                 normals.Add(Vector3.up);
                 colors.Add(Color.white);
             }
-            tris.Add(0); tris.Add(2); tris.Add(1);
-
-            // Yan yüzler (taban → üst)
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < outline.Count; i++)
             {
-                Vector3 a = baseRing[i];
-                Vector3 b = baseRing[(i + 1) % 3];
+                int a = capStart + i;
+                int b = capStart + (i + 1) % outline.Count;
+                tris.Add(capCenter); tris.Add(b); tris.Add(a);
+            }
+
+            // Yan yüzler: kabartma hissi (düz üçgen tek renk kalıyordu).
+            for (int i = 0; i < outline.Count; i++)
+            {
+                Vector3 a = outline[i];
+                Vector3 b = outline[(i + 1) % outline.Count];
                 Vector3 edge = (b - a).normalized;
                 Vector3 outward = Vector3.Cross(Vector3.up, edge).normalized;
 
@@ -126,8 +148,8 @@ namespace BlockOut.Runtime.View
                 verts.Add(a); verts.Add(b);
                 verts.Add(b + Vector3.up * top); verts.Add(a + Vector3.up * top);
                 for (int n = 0; n < 4; n++) normals.Add(outward);
-                colors.Add(new Color(0.72f, 0.72f, 0.72f));
-                colors.Add(new Color(0.72f, 0.72f, 0.72f));
+                colors.Add(new Color(0.66f, 0.66f, 0.66f));
+                colors.Add(new Color(0.66f, 0.66f, 0.66f));
                 colors.Add(Color.white); colors.Add(Color.white);
 
                 tris.Add(start); tris.Add(start + 2); tris.Add(start + 1);
@@ -148,6 +170,47 @@ namespace BlockOut.Runtime.View
 
             go.transform.position = barCenter + Vector3.up * (BarHeight * 0.5f + 0.005f);
             return go;
+        }
+
+        /// <summary>
+        /// Üçgenin köşelerini yuvarlatıp kapalı bir dış çizgi noktası listesi verir.
+        /// <paramref name="radius01"/> 0 = keskin üçgen, 1 = maksimum yumuşama.
+        /// </summary>
+        static List<Vector3> RoundedTriangle(Vector3 a, Vector3 b, Vector3 c, float radius01)
+        {
+            var corners = new[] { a, b, c };
+            var outline = new List<Vector3>();
+
+            if (radius01 <= 0.001f)
+            {
+                outline.AddRange(corners);
+                return outline;
+            }
+
+            const int arcSegments = 4;
+            for (int i = 0; i < 3; i++)
+            {
+                Vector3 prev = corners[(i + 2) % 3];
+                Vector3 corner = corners[i];
+                Vector3 next = corners[(i + 1) % 3];
+
+                // Köşeye komşu kenarlar boyunca içeri kaçış noktaları.
+                float cut = Mathf.Clamp01(radius01) * 0.42f;
+                Vector3 from = Vector3.Lerp(corner, prev, cut);
+                Vector3 to = Vector3.Lerp(corner, next, cut);
+
+                for (int s = 0; s <= arcSegments; s++)
+                {
+                    float t = s / (float)arcSegments;
+                    // Köşeyi kontrol noktası kabul eden ikinci derece Bézier:
+                    // yay gibi yumuşak bir geçiş verir, trigonometri gerekmez.
+                    Vector3 p = Vector3.Lerp(
+                        Vector3.Lerp(from, corner, t),
+                        Vector3.Lerp(corner, to, t), t);
+                    outline.Add(p);
+                }
+            }
+            return outline;
         }
 
         public void UpdateIceCount()

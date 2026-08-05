@@ -70,6 +70,8 @@ namespace BlockOut.Editor.ProjectSetup
             bool created = false;
 
             created |= CreateAssetIfMissing<GameConfigSO>($"{SoDir}/GameConfig.asset") != null;
+            created |= CreateAssetIfMissing<BlockVisualConfigSO>(
+                $"{SoDir}/BlockVisualConfig.asset") != null;
 
             created |= CreateAssetIfMissing<ColorPaletteSO>($"{SoDir}/ColorPalette.asset", palette =>
             {
@@ -161,14 +163,13 @@ namespace BlockOut.Editor.ProjectSetup
                     changed = true;
                 }
 
-                // Parlaklık ayarları kodda tek yerden yönetilir; mevcut
-                // materyallerde de güncellensin (shader varsayılanı yalnızca
+                // Parlaklık ayarları görsel ayar asset'inden gelir; mevcut
+                // materyallerde de güncellenir (shader varsayılanı yalnızca
                 // YENİ materyale uygulanır, eskiler serileşmiş değeri taşır).
-                if (mat.HasProperty("_Specular"))
+                var visuals = LoadVisualConfig();
+                if (visuals != null && mat.HasProperty("_Specular"))
                 {
-                    mat.SetFloat("_Specular", 0.5f);
-                    mat.SetFloat("_Gloss", 64f);
-                    mat.SetFloat("_Ambient", 0.6f);
+                    ApplyVisualsTo(mat, visuals);
                     EditorUtility.SetDirty(mat);
                 }
                 if (entry.blockMaterial != mat)
@@ -197,6 +198,10 @@ namespace BlockOut.Editor.ProjectSetup
         {
             if (AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) == null)
                 return false; // sahne henüz yok
+
+            // Play modunda sahne diske YAZILAMAZ (Unity yasaklar) ve zaten
+            // yazılmamalı: oynanış sırasındaki geçici durum kalıcı olmamalı.
+            if (EditorApplication.isPlayingOrWillChangePlaymode) return false;
 
             var scene = SceneManager.GetSceneByPath(ScenePath);
             bool wasOpen = scene.IsValid() && scene.isLoaded;
@@ -263,6 +268,7 @@ namespace BlockOut.Editor.ProjectSetup
                 AssetDatabase.LoadAssetAtPath<GameConfigSO>($"{SoDir}/GameConfig.asset"));
             changed |= SetReference(so, "palette",
                 AssetDatabase.LoadAssetAtPath<ColorPaletteSO>($"{SoDir}/ColorPalette.asset"));
+            changed |= SetReference(so, "visuals", LoadVisualConfig());
             changed |= SetReference(so, "levelJson",
                 AssetDatabase.LoadAssetAtPath<TextAsset>(LevelJsonPath));
             changed |= SetReference(so, "input", inputService);
@@ -320,6 +326,35 @@ namespace BlockOut.Editor.ProjectSetup
             if (prop.objectReferenceValue == value) return false;
             prop.objectReferenceValue = value;
             return true;
+        }
+
+        public static BlockVisualConfigSO LoadVisualConfig() =>
+            AssetDatabase.LoadAssetAtPath<BlockVisualConfigSO>($"{SoDir}/BlockVisualConfig.asset");
+
+        /// <summary>Görsel ayarları 8 blok materyaline yazar (ayar penceresi çağırır).</summary>
+        public static void PushVisualsToMaterials(BlockVisualConfigSO visuals)
+        {
+            if (visuals == null) return;
+            foreach (var guid in AssetDatabase.FindAssets("t:Material", new[] { MatDir }))
+            {
+                var mat = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(guid));
+                if (mat != null && mat.HasProperty("_Specular"))
+                {
+                    ApplyVisualsTo(mat, visuals);
+                    EditorUtility.SetDirty(mat);
+                }
+            }
+            AssetDatabase.SaveAssets();
+        }
+
+        static void ApplyVisualsTo(Material mat, BlockVisualConfigSO visuals)
+        {
+            mat.SetVector("_LightDir", visuals.lightDirection.normalized);
+            mat.SetFloat("_Ambient", visuals.ambient);
+            mat.SetFloat("_Specular", visuals.specular);
+            mat.SetFloat("_Gloss", visuals.gloss);
+            mat.SetFloat("_RimStrength", visuals.rim);
+            mat.SetFloat("_Saturation", visuals.saturation);
         }
 
         /// <summary>

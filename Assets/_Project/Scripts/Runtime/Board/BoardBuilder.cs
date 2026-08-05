@@ -16,8 +16,10 @@ namespace BlockOut.Runtime.Board
     /// </summary>
     public static class BoardBuilder
     {
-        const float WallHeight = 0.45f;
-        const float WallThickness = 0.16f;
+        static float WallHeight => VisualSettings.Current != null
+            ? VisualSettings.Current.wallHeight : 0.42f;
+        static float WallThickness => VisualSettings.Current != null
+            ? VisualSettings.Current.wallThickness : 0.18f;
 
         public static BoardViews Build(
             Transform root, LevelModel level, BoardSpace space, ColorPaletteSO palette)
@@ -32,12 +34,17 @@ namespace BlockOut.Runtime.Board
             var views = new BoardViews();
             var board = level.Board;
 
-            // Referans oyunun zemini KOYU lacivert, hücreler arası fark çok
-            // hafif; parlak tuğlalar bu koyu zeminde öne çıkar. Açık renkli
-            // satranç deseni tuğlaların doygunluğunu bastırıyordu.
-            Material floorLight = MakeMat("Floor_Light", new Color(0.17f, 0.15f, 0.31f));
-            Material floorDark = MakeMat("Floor_Dark", new Color(0.14f, 0.12f, 0.27f));
-            Material wallMat = MakeMat("Wall", new Color(0.36f, 0.32f, 0.62f));
+            // Renkler görsel ayar asset'inden gelir; Görünüm Ayarları penceresinden
+            // canlı değiştirilebilir.
+            var cfg = VisualSettings.Current;
+            Material floorLight = MakeMat("Floor_Light",
+                cfg != null ? cfg.floorColorA : new Color(0.17f, 0.15f, 0.31f));
+            Material floorDark = MakeMat("Floor_Dark",
+                cfg != null ? cfg.floorColorB : new Color(0.14f, 0.12f, 0.27f));
+            Material wallMat = MakeMat("Wall",
+                cfg != null ? cfg.wallColor : new Color(0.36f, 0.32f, 0.62f));
+            Material frameMat = MakeMat("Frame",
+                cfg != null ? cfg.frameColor : new Color(0.30f, 0.26f, 0.58f));
 
             // --- Zemin: her oynanabilir hücreye bir karo (satranç deseni) ---
             var floorRoot = new GameObject("Floor").transform;
@@ -57,6 +64,34 @@ namespace BlockOut.Runtime.Board
                     quad.GetComponent<MeshRenderer>().sharedMaterial =
                         (x + y) % 2 == 0 ? floorLight : floorDark;
                 }
+            }
+
+            // --- Dış çerçeve: tahtayı çevreleyen kalın bordür ---
+            // Referans oyunda tahta, kalın yuvarlatılmış bir çerçeve içinde
+            // oturur; bu hem sınırı netleştirir hem de tahtaya kalınlık hissi verir.
+            float frameThickness = cfg != null ? cfg.frameThickness : 0.55f;
+            float frameHeight = cfg != null ? cfg.frameHeight : 0.34f;
+            if (frameThickness > 0.01f)
+            {
+                var frameRoot = new GameObject("Frame").transform;
+                frameRoot.SetParent(root, false);
+
+                float halfW = board.Width * 0.5f, halfH = board.Height * 0.5f;
+                float outerW = board.Width + frameThickness * 2f;
+                float outerH = board.Height + frameThickness * 2f;
+
+                AddFrameBar(frameRoot, frameMat,
+                    new Vector3(0f, frameHeight * 0.5f, halfH + frameThickness * 0.5f),
+                    new Vector3(outerW, frameHeight, frameThickness));
+                AddFrameBar(frameRoot, frameMat,
+                    new Vector3(0f, frameHeight * 0.5f, -halfH - frameThickness * 0.5f),
+                    new Vector3(outerW, frameHeight, frameThickness));
+                AddFrameBar(frameRoot, frameMat,
+                    new Vector3(-halfW - frameThickness * 0.5f, frameHeight * 0.5f, 0f),
+                    new Vector3(frameThickness, frameHeight, board.Height));
+                AddFrameBar(frameRoot, frameMat,
+                    new Vector3(halfW + frameThickness * 0.5f, frameHeight * 0.5f, 0f),
+                    new Vector3(frameThickness, frameHeight, board.Height));
             }
 
             // --- Kapı kenarlarını topla: o kenarlara duvar örülmeyecek ---
@@ -148,6 +183,19 @@ namespace BlockOut.Runtime.Board
             // Kurulum aracı materyalleri henüz üretmediyse görünür kal: geçici materyal.
             Debug.LogWarning($"[BoardBuilder] '{color}' için palet materyali yok — geçici materyal üretildi.");
             return MakeMat($"Fallback_{color}", entry?.uiColor ?? Color.magenta);
+        }
+
+        static void AddFrameBar(Transform parent, Material material, Vector3 center, Vector3 size)
+        {
+            var bar = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            bar.name = "FrameBar";
+            bar.transform.SetParent(parent, false);
+            Object.Destroy(bar.GetComponent<Collider>());
+            var renderer = bar.GetComponent<MeshRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            bar.transform.localPosition = center;
+            bar.transform.localScale = size;
         }
 
         static Material MakeMat(string name, Color color)
