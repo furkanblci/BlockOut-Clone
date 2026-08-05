@@ -3,7 +3,8 @@
     "rootNamespace": "BlockOut.Editor",
     "references": [
         "BlockOut.Core",
-        "BlockOut.Runtime"
+        "BlockOut.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime"
     ],
     "includePlatforms": [
         "Editor"

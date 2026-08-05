@@ -16,6 +16,27 @@ namespace BlockOut.Runtime.Flow
         GUIStyle _buttonStyle;
         bool _levelPickerOpen;
 
+        // ---- çöp üretmeyen metin yolu ----
+        // DERS (IMGUI sessizce ayırır): `GUI.Label(rect, "metin")` her çağrıda
+        // geçici bir GUIContent üretir; OnGUI kare başına birkaç kez koştuğu için
+        // bu, saniyede yüzlerce küçük ayırma demektir. M6 ölçümünde HUD tek başına
+        // kare başına ~1.7 KB üretiyordu ve 120 karede 35 GC toplamasına yol
+        // açıyordu. Çözüm: GUIContent'i BİR KEZ yaratıp yalnızca .text alanını,
+        // o da yalnızca değer değiştiğinde güncellemek.
+        readonly GUIContent _timerText = new GUIContent();
+        readonly GUIContent _livesText = new GUIContent();
+        readonly GUIContent _coinText = new GUIContent();
+        readonly System.Text.StringBuilder _scratch = new System.Text.StringBuilder(48);
+
+        int _shownSeconds = -1, _shownLevel = -1, _shownLives = -1, _shownCoins = -1;
+        int _shownRefillSeconds = -1;
+
+        static System.Text.StringBuilder Build(System.Text.StringBuilder sb)
+        {
+            sb.Clear();
+            return sb;
+        }
+
         public void Init(GameSession session) => _session = session;
 
         void OnGUI()
@@ -43,10 +64,22 @@ namespace BlockOut.Runtime.Flow
             int total = Mathf.CeilToInt(_session.Timer.Remaining);
             bool warning = total <= _session.WarningSeconds;
             _timerStyle.normal.textColor = warning ? new Color(1f, 0.3f, 0.25f) : Color.white;
-            GUI.Label(new Rect(0, 8 * s, Screen.width, 40 * s),
-                $"Bölüm {_session.DisplayNumber}   {total / 60}:{total % 60:00}", _timerStyle);
+
+            // Metin yalnızca SANİYE ya da bölüm değişince kuruluyor; kalan ~59
+            // karede hazır dize yeniden kullanılıyor.
+            if (total != _shownSeconds || _session.DisplayNumber != _shownLevel)
+            {
+                _shownSeconds = total;
+                _shownLevel = _session.DisplayNumber;
+                _timerText.text = Build(_scratch)
+                    .Append("Bölüm ").Append(_shownLevel).Append("   ")
+                    .Append(total / 60).Append(':').Append((total % 60) / 10).Append(total % 10)
+                    .ToString();
+            }
+            GUI.Label(new Rect(0, 8 * s, Screen.width, 40 * s), _timerText, _timerStyle);
 
             DrawMetaBar(s);
+            DrawPerfToggle(s);
             DrawLevelPicker(s);
             if (_levelPickerOpen) return; // seçici açıkken altındaki ekranı çizme
 
@@ -108,21 +141,54 @@ namespace BlockOut.Runtime.Flow
                 lives.Refresh();
             }
 
-            string livesText = lives.IsFull
-                ? $"♥ {lives.Current}/{Services.MetaServices.MaxLives}"
-                : $"♥ {lives.Current}/{Services.MetaServices.MaxLives}  " +
-                  $"{lives.TimeToNextLife.Minutes:00}:{lives.TimeToNextLife.Seconds:00}";
+            // Can metni: sayı ya da geri sayımın SANİYESİ değiştiğinde kurulur.
+            var refill = lives.TimeToNextLife;
+            int refillSeconds = lives.IsFull ? -1 : Mathf.CeilToInt((float)refill.TotalSeconds);
+            if (lives.Current != _shownLives || refillSeconds != _shownRefillSeconds)
+            {
+                _shownLives = lives.Current;
+                _shownRefillSeconds = refillSeconds;
+
+                var sb = Build(_scratch)
+                    .Append("♥ ").Append(_shownLives).Append('/')
+                    .Append(Services.MetaServices.MaxLives);
+                if (refillSeconds >= 0)
+                    sb.Append("  ").Append(refill.Minutes / 10).Append(refill.Minutes % 10)
+                      .Append(':').Append(refill.Seconds / 10).Append(refill.Seconds % 10);
+                _livesText.text = sb.ToString();
+            }
+
+            if (progress.Coins != _shownCoins)
+            {
+                _shownCoins = progress.Coins;
+                _coinText.text = Build(_scratch).Append("◉ ").Append(_shownCoins).ToString();
+            }
 
             _timerStyle.fontSize = Mathf.RoundToInt(22 * s);
             _timerStyle.normal.textColor = new Color(1f, 0.75f, 0.8f);
-            GUI.Label(new Rect(0, 52 * s, Screen.width * 0.5f, 30 * s), livesText, _timerStyle);
+            GUI.Label(new Rect(0, 52 * s, Screen.width * 0.5f, 30 * s), _livesText, _timerStyle);
 
             _timerStyle.normal.textColor = new Color(1f, 0.85f, 0.35f);
             GUI.Label(new Rect(Screen.width * 0.5f, 52 * s, Screen.width * 0.5f, 30 * s),
-                $"◉ {progress.Coins}", _timerStyle);
+                _coinText, _timerStyle);
         }
 
         float _lastLivesRefresh;
+
+        /// <summary>
+        /// Performans sondasını açıp kapatan küçük düğme. Cihazda profiler
+        /// bağlamadan kare hızını ve çöp üretimini görmenin en hızlı yolu.
+        /// </summary>
+        static readonly GUIContent PerfOn = new GUIContent("fps ✓");
+        static readonly GUIContent PerfOff = new GUIContent("fps");
+
+        void DrawPerfToggle(float s)
+        {
+            var rect = new Rect(Screen.width - 74 * s, 8 * s, 66 * s, 34 * s);
+            _buttonStyle.fontSize = Mathf.RoundToInt(18 * s);
+            if (GUI.Button(rect, Services.PerfProbe.Visible ? PerfOn : PerfOff, _buttonStyle))
+                Services.PerfProbe.Visible = !Services.PerfProbe.Visible;
+        }
 
         /// <summary>
         /// Bölüm seçici — cihazda test ederken herhangi bir bölüme atlamak için.
