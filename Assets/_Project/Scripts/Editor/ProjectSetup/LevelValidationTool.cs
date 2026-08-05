@@ -247,6 +247,8 @@ namespace BlockOut.Editor.ProjectSetup
                 if (!report.BlockCounts.ContainsKey(pair.Key))
                     report.Warnings.Add($"'{pair.Key}' kapısı var ama o renkte blok yok (kapı baştan ghost olur).");
 
+            WarnUnreachableIce(data, report);
+
             var solution = report.Solution;
             report.EstimatedSeconds = Mathf.CeilToInt(ReadSeconds + solution.Moves.Count * SecondsPerMove);
 
@@ -270,6 +272,81 @@ namespace BlockOut.Editor.ProjectSetup
             if (solution.AverageOptions > 4.5f)
                 report.Warnings.Add($"Bölüm çok serbest (ort. {solution.AverageOptions:0.0} seçenek) — " +
                                     "bulmaca hissi zayıf olabilir.");
+        }
+
+        /// <summary>
+        /// BUZ BÜTÇESİ: her buz sayacı "şu kadar blok çıksın" der, ama çıkışları
+        /// besleyecek blok havuzu sınırlıdır. Sayaç, kendisinden ÖNCE çözülebilecek
+        /// çıkış sayısını aşarsa buz asla kırılmaz ve bölüm ölü kilitlenir.
+        ///
+        /// DERS (ucuz sayma vs. pahalı arama): Bu tuzağı çözücü de bulur ama
+        /// saniyeler sürer ve "çözemedim" der — nedenini söylemez. Basit bir sayma
+        /// kuralı aynı hatayı milisaniyede ve GEREKÇESİYLE yakalıyor. Ucuz denetimi
+        /// pahalı olandan önce koymak, hata mesajının kalitesini de yükseltiyor.
+        ///
+        /// Simülasyon: baştan açık kapılar + buzu karşılanmış olanlar sırayla
+        /// açılır; her açılan kapı kendi renginin bloklarını çıkış havuzuna ekler.
+        /// </summary>
+        static void WarnUnreachableIce(LevelData data, LevelReport report)
+        {
+            // Renk -> o renkte kaç blok (perde içerikleri dahil, katmanlar hariç:
+            // yalnız DIŞ katman bir çıkış üretir).
+            var pool = new Dictionary<BlockColor, int>();
+            void Add(BlockData block)
+            {
+                if (block.Layers.Count == 0) return;
+                if (!BlockColorUtil.TryParse(block.Layers[block.Layers.Count - 1], out var color)) return;
+                pool.TryGetValue(color, out int n);
+                pool[color] = n + 1;
+            }
+
+            foreach (var block in data.Blocks) Add(block);
+            foreach (var obstacle in data.Obstacles)
+            {
+                if (obstacle.Type != "curtain" || obstacle.Extra == null) continue;
+                if (!obstacle.Extra.TryGetValue("contents", out var token)) continue;
+                var hidden = token.ToObject<List<BlockData>>();
+                if (hidden == null) continue;
+                foreach (var block in hidden) Add(block);
+            }
+
+            var pending = new List<GateData>();
+            var open = new HashSet<BlockColor>();
+            int available = 0;
+
+            foreach (var gate in data.Gates)
+            {
+                if (gate.Colors.Count == 0) continue;
+                if (!BlockColorUtil.TryParse(gate.Colors[0], out var color)) continue;
+
+                if (gate.Ice <= 0)
+                {
+                    if (open.Add(color)) available += pool.TryGetValue(color, out int n) ? n : 0;
+                }
+                else pending.Add(gate);
+            }
+
+            // Açık kapılar yeni renkleri besledikçe daha yüksek buzlar da erir.
+            bool progressed = true;
+            while (progressed)
+            {
+                progressed = false;
+                for (int i = pending.Count - 1; i >= 0; i--)
+                {
+                    var gate = pending[i];
+                    if (gate.Ice > available) continue;
+
+                    pending.RemoveAt(i);
+                    progressed = true;
+                    if (BlockColorUtil.TryParse(gate.Colors[0], out var color) && open.Add(color))
+                        available += pool.TryGetValue(color, out int n) ? n : 0;
+                }
+            }
+
+            foreach (var gate in pending)
+                report.Warnings.Add(
+                    $"BUZ BÜTÇESİ: {gate.Side}({gate.X},{gate.Y}) kapısının buzu {gate.Ice}, " +
+                    $"ama ondan önce en fazla {available} blok çıkabilir — buz hiç kırılmaz.");
         }
     }
 }

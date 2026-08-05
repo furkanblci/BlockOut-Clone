@@ -35,10 +35,10 @@
     { "x": 5, "y": 6, "w": 1, "h": 3, "layers": ["yellow"] }
   ],
   "gates": [
-    { "x": 0, "y": 0, "side": "W", "length": 3, "colors": ["blue"], "ice": 4 },
+    { "x": 0, "y": 0, "side": "W", "length": 3, "colors": ["blue"], "ice": 2 },
     { "x": 5, "y": 0, "side": "E", "length": 3, "colors": ["red"] },
-    { "x": 0, "y": 6, "side": "W", "length": 3, "colors": ["yellow"], "ice": 4 },
-    { "x": 5, "y": 6, "side": "E", "length": 3, "colors": ["green"], "ice": 2 }
+    { "x": 0, "y": 6, "side": "W", "length": 3, "colors": ["yellow"], "ice": 2 },
+    { "x": 5, "y": 6, "side": "E", "length": 3, "colors": ["green"], "ice": 1 }
   ],
   "obstacles": []
 }
