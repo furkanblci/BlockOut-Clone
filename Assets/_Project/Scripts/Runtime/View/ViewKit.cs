@@ -22,8 +22,15 @@ namespace BlockOut.Runtime.View
         static readonly Dictionary<BlockColor, Material> _ghosts =
             new Dictionary<BlockColor, Material>();
 
-        /// <summary>Yarı saydam buz. Sprites/Default URP'de SRPDefaultUnlit yolundan çizilir —
-        /// kod tarafında güvenilir tek saydam yerleşik şu an bu (M4'te asset olacak).</summary>
+        /// <summary>
+        /// Yarı saydam buz kabuğu.
+        ///
+        /// DERS (saydam nesne sıralaması): Saydam malzemeler derinlik YAZMAZ,
+        /// yalnızca sıraya göre çizilir. Varsayılan sırada buz, bloğun ARKASINA
+        /// düşebiliyordu — blok buzun üstünde görünüyordu. renderQueue'yu
+        /// yukarı çekmek buzu her zaman bloktan SONRA çizdirir, yani üstte
+        /// kalır; bu da "blok buzun içinde" görüntüsünü verir.
+        /// </summary>
         public static Material Ice
         {
             get
@@ -31,7 +38,8 @@ namespace BlockOut.Runtime.View
                 if (_ice == null)
                 {
                     _ice = new Material(Shader.Find("Sprites/Default")) { name = "Ice_TEMP" };
-                    _ice.color = new Color(0.62f, 0.85f, 1f, 0.55f);
+                    _ice.color = new Color(0.66f, 0.88f, 1f, 0.62f);
+                    _ice.renderQueue = 3200; // saydamlarda bloklardan sonra
                 }
                 return _ice;
             }
@@ -273,15 +281,27 @@ namespace BlockOut.Runtime.View
             }
         }
 
-        /// <summary>Rengi tükenen kapının soluk hali — renk başına tek paylaşımlı materyal.</summary>
+        /// <summary>
+        /// Rengi tükenen kapının kapalı hali.
+        ///
+        /// Önceden renk açık griye doğru karıştırılıyordu ve pastel/solgun
+        /// görünüyordu — "bozuk" hissi veriyordu. Referansta kapı SÖNÜK
+        /// görünür: aynı renk ama koyu ve doygunluğu düşük. Karartmak
+        /// "devre dışı" mesajını çok daha net veriyor.
+        /// </summary>
         public static Material GhostFor(ColorPaletteSO palette, BlockColor color)
         {
             if (_ghosts.TryGetValue(color, out var mat)) return mat;
 
             var entry = palette.Get(color);
             Color baseColor = entry != null ? entry.uiColor : Color.gray;
-            Color faded = Color.Lerp(baseColor, new Color(0.35f, 0.33f, 0.45f), 0.65f);
-            mat = MakeLit($"Ghost_{color}", faded);
+
+            float grey = baseColor.r * 0.299f + baseColor.g * 0.587f + baseColor.b * 0.114f;
+            Color desaturated = Color.Lerp(new Color(grey, grey, grey), baseColor, 0.45f);
+            Color dimmed = desaturated * 0.38f;
+            dimmed.a = 1f;
+
+            mat = MakeLit($"Ghost_{color}", dimmed);
             _ghosts[color] = mat;
             return mat;
         }

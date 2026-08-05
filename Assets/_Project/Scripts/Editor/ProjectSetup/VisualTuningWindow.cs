@@ -90,10 +90,45 @@ namespace BlockOut.Editor.ProjectSetup
             }
 
             EditorGUILayout.Space(6);
+            DrawDiagnostics();
             EditorGUILayout.HelpBox(
                 "İpucu: 'Işık yönü'nün Y bileşenini düşürmek derinliği artırır. " +
                 "Saplamalar silik görünüyorsa 'Saplama dibi' tonunu koyulaştır, " +
                 "'Saplama tepesi' tonunu açık bırak.", MessageType.Info);
+        }
+
+        /// <summary>
+        /// Ayarlar arasındaki GEOMETRİK çelişkileri yakalar.
+        ///
+        /// DERS (aracın kendisi de kontrol etmeli): Kaydırıcılar birbirinden
+        /// bağımsız görünür ama fiziksel olarak ilişkilidir. Bloklar çerçeveden
+        /// yüksekse taşar; kullanıcı bunu "bug" sanır. Araç bu ilişkiyi
+        /// açıkça söylerse ayar yapan kişi neyi düzelteceğini bilir.
+        /// </summary>
+        void DrawDiagnostics()
+        {
+            float blockTop = _config.brickHeight + _config.studHeight + _config.dragLift;
+            if (blockTop > _config.frameHeight + 0.001f)
+            {
+                EditorGUILayout.HelpBox(
+                    $"Bloklar çerçeveden yüksek: blok tepesi {blockTop:0.00}, " +
+                    $"çerçeve {_config.frameHeight:0.00}. Bu yüzden sürüklenen blok " +
+                    "çerçevenin üstünden taşıyor ve içinden geçiyormuş gibi görünüyor.\n" +
+                    "Çözüm: 'Çerçeve yüksekliği'ni artır ya da 'Tuğla yüksekliği' / " +
+                    "'Sürükleme kalkma'yı azalt.", MessageType.Warning);
+
+                if (GUILayout.Button($"Çerçeveyi {blockTop + 0.06f:0.00} yap (otomatik düzelt)"))
+                {
+                    _config.frameHeight = blockTop + 0.06f;
+                    EditorUtility.SetDirty(_config);
+                    Apply();
+                }
+            }
+
+            if (_config.frameCornerRadius > _config.frameThickness * 2.5f)
+                EditorGUILayout.HelpBox(
+                    "Köşe yarıçapı kalınlığa göre büyük — köşeler aşırı yuvarlak görünür " +
+                    "ve kenardaki kapılar köşe kavisiyle çakışabilir.", MessageType.Info);
         }
 
         void Apply()
