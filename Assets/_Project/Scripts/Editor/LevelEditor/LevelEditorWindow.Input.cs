@@ -34,6 +34,7 @@ namespace BlockOut.Editor.LevelEditor
             if (e.keyCode == KeyCode.Delete || e.keyCode == KeyCode.Backspace)
             { DeleteSelection(); e.Use(); return; }
             if (e.keyCode == KeyCode.R) { RotateSelection(); e.Use(); return; }
+            if (e.keyCode == KeyCode.F) { FlipSelection(); e.Use(); return; }
             if (e.keyCode == KeyCode.Escape) { _selections.Clear(); Repaint(); e.Use(); return; }
 
             // Ok tuşlarıyla 1 hücre kaydırma — hassas hizalama için.
@@ -299,9 +300,9 @@ namespace BlockOut.Editor.LevelEditor
             return false;
         }
 
+        // Polyomino: L şeklinin boş köşesine tıklamak bloğu SEÇMEMELİ.
         static bool Covers(BlockData block, Vector2Int cell) =>
-            cell.x >= block.X && cell.x < block.X + block.W &&
-            cell.y >= block.Y && cell.y < block.Y + block.H;
+            BlockShape.Covers(block, cell.x, cell.y);
 
         bool CurtainCovers(ObstacleData curtain, Vector2Int cell)
         {
@@ -448,9 +449,27 @@ namespace BlockOut.Editor.LevelEditor
             {
                 var block = BlockOf(selection);
                 if (block == null) continue;
-                (block.W, block.H) = (block.H, block.W);
+                // Dikdörtgende döndürmek = w/h takası; maskeli blokta gerçek 90° dönüş.
+                BlockShape.RotateCw(block);
                 block.X = Mathf.Clamp(block.X, 0, _data.Board.Width - block.W);
                 block.Y = Mathf.Clamp(block.Y, 0, _data.Board.Height - block.H);
+                CommitContentEdit(selection, block);
+            }
+            AfterChange();
+        }
+
+        /// <summary>Seçili blokları yatay aynalar — L ile J arasında geçiş (F).</summary>
+        void FlipSelection()
+        {
+            var blocks = SelectedBlocks();
+            if (blocks.Count == 0) return;
+
+            Record();
+            foreach (var selection in _selections)
+            {
+                var block = BlockOf(selection);
+                if (block == null) continue;
+                BlockShape.FlipHorizontal(block);
                 CommitContentEdit(selection, block);
             }
             AfterChange();
@@ -521,6 +540,7 @@ namespace BlockOut.Editor.LevelEditor
                     X = Mathf.Clamp(source.X + (offset ? 1 : 0), 0, _data.Board.Width - source.W),
                     Y = Mathf.Clamp(source.Y + (offset ? 1 : 0), 0, _data.Board.Height - source.H),
                     W = source.W, H = source.H, Ice = source.Ice,
+                    Cells = source.Cells == null ? null : new List<string>(source.Cells),
                     Layers = new List<string>(source.Layers)
                 };
                 _data.Blocks.Add(copy);
@@ -603,7 +623,8 @@ namespace BlockOut.Editor.LevelEditor
             {
                 X = Mathf.Clamp(cell.x, 0, _data.Board.Width - _blockW),
                 Y = Mathf.Clamp(cell.y, 0, _data.Board.Height - _blockH),
-                W = _blockW, H = _blockH, Ice = _blockIce
+                W = _blockW, H = _blockH, Ice = _blockIce,
+                Cells = BrushMask()
             };
             foreach (var layer in _layers) block.Layers.Add(layer.ToId());
 

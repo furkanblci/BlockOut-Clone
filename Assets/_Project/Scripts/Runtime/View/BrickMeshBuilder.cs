@@ -44,17 +44,30 @@ namespace BlockOut.Runtime.View
             Cache.Clear();
         }
 
-        public static Mesh Get(int w, int h)
+        /// <summary>
+        /// Blok şekli için mesh. Anahtar, şeklin kendisinden üretilir; aynı
+        /// şekildeki tüm bloklar tek mesh paylaşır (dikdörtgenler dahil).
+        /// </summary>
+        public static Mesh Get(BlockOut.Core.BlockModel block)
         {
-            int key = w * 100 + h;
+            int key = ShapeKey(block);
             if (Cache.TryGetValue(key, out var cached) && cached != null) return cached;
 
-            var mesh = Build(w, h);
+            var mesh = Build(block.W, block.H, block.Cells);
             Cache[key] = mesh;
             return mesh;
         }
 
-        static Mesh Build(int w, int h)
+        /// <summary>Şeklin sayısal parmak izi — hücre maskesini bit bit toplar.</summary>
+        static int ShapeKey(BlockOut.Core.BlockModel block)
+        {
+            int key = block.W * 31 + block.H * 131;
+            foreach (var cell in block.Cells)
+                key = key * 17 + (cell.y * 8 + cell.x + 1);
+            return key;
+        }
+
+        static Mesh Build(int w, int h, List<Vector2Int> cells)
         {
             var cfg = VisualSettings.Current;
             float height = cfg != null ? cfg.brickHeight : 0.40f;
@@ -67,10 +80,7 @@ namespace BlockOut.Runtime.View
             var tris = new List<int>();
             var colors = new List<Color>();
 
-            float hx = w * 0.5f - inset;
-            float hz = h * 0.5f - inset;
             float shoulder = height - chamfer;
-            float ix = hx - chamfer, iz = hz - chamfer;
 
             Color bottom = Tone(cfg != null ? cfg.toneBodyBottom : 0.48f);
             Color side = Tone(cfg != null ? cfg.toneBodySide : 0.86f);
@@ -78,55 +88,89 @@ namespace BlockOut.Runtime.View
             Color studFoot = Tone(cfg != null ? cfg.toneStudFoot : 0.42f);
             Color studTop = Tone(cfg != null ? cfg.toneStudTop : 1f);
 
-            // --- yan duvarlar ---
-            Quad(verts, normals, tris, colors, Vector3.back,
-                new Vector3(-hx, 0, -hz), new Vector3(hx, 0, -hz),
-                new Vector3(hx, shoulder, -hz), new Vector3(-hx, shoulder, -hz), bottom, side);
-            Quad(verts, normals, tris, colors, Vector3.forward,
-                new Vector3(hx, 0, hz), new Vector3(-hx, 0, hz),
-                new Vector3(-hx, shoulder, hz), new Vector3(hx, shoulder, hz), bottom, side);
-            Quad(verts, normals, tris, colors, Vector3.right,
-                new Vector3(hx, 0, -hz), new Vector3(hx, 0, hz),
-                new Vector3(hx, shoulder, hz), new Vector3(hx, shoulder, -hz), bottom, side);
-            Quad(verts, normals, tris, colors, Vector3.left,
-                new Vector3(-hx, 0, hz), new Vector3(-hx, 0, -hz),
-                new Vector3(-hx, shoulder, -hz), new Vector3(-hx, shoulder, hz), bottom, side);
+            // Hücre kümesi: komşuluk sorgusu için.
+            var filled = new HashSet<Vector2Int>(cells);
+            bool Has(int x, int z) => filled.Contains(new Vector2Int(x, z));
 
-            // --- pah bandı: tepeden bakan kamerada bloğu komşusundan ayıran ana ipucu ---
-            Quad(verts, normals, tris, colors, new Vector3(0, 0.7f, -0.7f),
-                new Vector3(-hx, shoulder, -hz), new Vector3(hx, shoulder, -hz),
-                new Vector3(ix, height, -iz), new Vector3(-ix, height, -iz), side, face);
-            Quad(verts, normals, tris, colors, new Vector3(0, 0.7f, 0.7f),
-                new Vector3(hx, shoulder, hz), new Vector3(-hx, shoulder, hz),
-                new Vector3(-ix, height, iz), new Vector3(ix, height, iz), side, face);
-            Quad(verts, normals, tris, colors, new Vector3(0.7f, 0.7f, 0),
-                new Vector3(hx, shoulder, -hz), new Vector3(hx, shoulder, hz),
-                new Vector3(ix, height, iz), new Vector3(ix, height, -iz), side, face);
-            Quad(verts, normals, tris, colors, new Vector3(-0.7f, 0.7f, 0),
-                new Vector3(-hx, shoulder, hz), new Vector3(-hx, shoulder, -hz),
-                new Vector3(-ix, height, -iz), new Vector3(-ix, height, iz), side, face);
+            // DERS (polyomino gövdesi): Her hücre için kutu çizip birleştirmek
+            // iç yüzleri de üretir — hem israf hem de saydam olmayan yüzeylerde
+            // z-fighting kaynağı. Bunun yerine yalnızca KOMŞUSU OLMAYAN kenarlara
+            // duvar örülür; iç kenarlar hiç var olmaz. Boşluk payı (inset) da
+            // yalnızca dış kenarlara uygulanır ki bitişik hücreler kusursuz
+            // birleşsin, blok dışarıdan tek parça görünsün.
+            foreach (var cell in cells)
+            {
+                bool left = Has(cell.x - 1, cell.y);
+                bool right = Has(cell.x + 1, cell.y);
+                bool up = Has(cell.x, cell.y - 1);     // hücre uzayında y aşağı artar
+                bool down = Has(cell.x, cell.y + 1);
 
-            // --- üst yüz ---
-            Quad(verts, normals, tris, colors, Vector3.up,
-                new Vector3(-ix, height, -iz), new Vector3(ix, height, -iz),
-                new Vector3(ix, height, iz), new Vector3(-ix, height, iz), face, face);
+                float x0 = -w * 0.5f + cell.x + (left ? 0f : inset);
+                float x1 = -w * 0.5f + cell.x + 1f - (right ? 0f : inset);
+                // Hücre uzayı y aşağı, dünya Z yukarı: ters çevrilir.
+                float z1 = h * 0.5f - cell.y - (up ? 0f : inset);
+                float z0 = h * 0.5f - cell.y - 1f + (down ? 0f : inset);
 
-            // --- alt yüz ---
-            Quad(verts, normals, tris, colors, Vector3.down,
-                new Vector3(-hx, 0, iz), new Vector3(hx, 0, iz),
-                new Vector3(hx, 0, -iz), new Vector3(-hx, 0, -iz), bottom, bottom);
+                // Üst yüz (hücre başına; bitişik hücrelerde kusursuz döşenir)
+                Quad(verts, normals, tris, colors, Vector3.up,
+                    new Vector3(x0, height, z0), new Vector3(x1, height, z0),
+                    new Vector3(x1, height, z1), new Vector3(x0, height, z1), face, face);
 
-            // --- saplamalar ---
-            float step = 1f / perCell;
-            float first = step * 0.5f;
-            for (int cx = 0; cx < w; cx++)
-                for (int cz = 0; cz < h; cz++)
-                    for (int sx = 0; sx < perCell; sx++)
-                        for (int sz = 0; sz < perCell; sz++)
-                            AddStud(verts, normals, tris, colors, new Vector3(
-                                -w * 0.5f + cx + first + sx * step,
-                                height,
-                                -h * 0.5f + cz + first + sz * step), studFoot, studTop);
+                // Alt yüz
+                Quad(verts, normals, tris, colors, Vector3.down,
+                    new Vector3(x0, 0, z1), new Vector3(x1, 0, z1),
+                    new Vector3(x1, 0, z0), new Vector3(x0, 0, z0), bottom, bottom);
+
+                // Dış kenarlar: yan duvar + pah bandı (pah, eğik NORMAL ile
+                // taklit edilir; geometriyi içeri kaçırmak polyomino köşelerinde
+                // boşluk bırakırdı).
+                if (!down)
+                {
+                    Quad(verts, normals, tris, colors, Vector3.back,
+                        new Vector3(x0, 0, z0), new Vector3(x1, 0, z0),
+                        new Vector3(x1, shoulder, z0), new Vector3(x0, shoulder, z0), bottom, side);
+                    Quad(verts, normals, tris, colors, new Vector3(0, 0.7f, -0.7f),
+                        new Vector3(x0, shoulder, z0), new Vector3(x1, shoulder, z0),
+                        new Vector3(x1, height, z0), new Vector3(x0, height, z0), side, face);
+                }
+                if (!up)
+                {
+                    Quad(verts, normals, tris, colors, Vector3.forward,
+                        new Vector3(x1, 0, z1), new Vector3(x0, 0, z1),
+                        new Vector3(x0, shoulder, z1), new Vector3(x1, shoulder, z1), bottom, side);
+                    Quad(verts, normals, tris, colors, new Vector3(0, 0.7f, 0.7f),
+                        new Vector3(x1, shoulder, z1), new Vector3(x0, shoulder, z1),
+                        new Vector3(x0, height, z1), new Vector3(x1, height, z1), side, face);
+                }
+                if (!right)
+                {
+                    Quad(verts, normals, tris, colors, Vector3.right,
+                        new Vector3(x1, 0, z0), new Vector3(x1, 0, z1),
+                        new Vector3(x1, shoulder, z1), new Vector3(x1, shoulder, z0), bottom, side);
+                    Quad(verts, normals, tris, colors, new Vector3(0.7f, 0.7f, 0),
+                        new Vector3(x1, shoulder, z0), new Vector3(x1, shoulder, z1),
+                        new Vector3(x1, height, z1), new Vector3(x1, height, z0), side, face);
+                }
+                if (!left)
+                {
+                    Quad(verts, normals, tris, colors, Vector3.left,
+                        new Vector3(x0, 0, z1), new Vector3(x0, 0, z0),
+                        new Vector3(x0, shoulder, z0), new Vector3(x0, shoulder, z1), bottom, side);
+                    Quad(verts, normals, tris, colors, new Vector3(-0.7f, 0.7f, 0),
+                        new Vector3(x0, shoulder, z1), new Vector3(x0, shoulder, z0),
+                        new Vector3(x0, height, z0), new Vector3(x0, height, z1), side, face);
+                }
+
+                // Saplamalar — hücre başına perCell²
+                float step = 1f / perCell;
+                float first = step * 0.5f;
+                for (int sx = 0; sx < perCell; sx++)
+                    for (int sz = 0; sz < perCell; sz++)
+                        AddStud(verts, normals, tris, colors, new Vector3(
+                            -w * 0.5f + cell.x + first + sx * step,
+                            height,
+                            h * 0.5f - cell.y - first - sz * step), studFoot, studTop);
+            }
 
             var mesh = new Mesh { name = $"Brick_{w}x{h}" };
             if (verts.Count > 65000)

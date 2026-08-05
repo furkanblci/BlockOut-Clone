@@ -23,6 +23,24 @@ namespace BlockOut.Runtime.Level
             return data;
         }
 
+        /// <summary>
+        /// Bloğun kapladığı tahta hücrelerini verir: hücre maskesi varsa ondan,
+        /// yoksa w×h dikdörtgeninden. Doğrulama ve model kurulumu aynı kuralı
+        /// paylaşsın diye tek yerde.
+        /// </summary>
+        static IEnumerable<(int x, int y)> BlockCells(BlockData b, int index, List<string> errors)
+        {
+            var local = new List<Vector2Int>();
+            BlockShape.LocalCells(b, local);
+            if (local.Count == 0)
+            {
+                errors.Add($"blocks[{index}] hücre maskesi tamamen boş.");
+                yield break;
+            }
+            foreach (var cell in local)
+                yield return (b.X + cell.x, b.Y + cell.y);
+        }
+
         /// <summary>Kural hatalarını listeye toplar; hata yoksa true.</summary>
         public static bool Validate(LevelData d, List<string> errors)
         {
@@ -50,20 +68,18 @@ namespace BlockOut.Runtime.Level
                 var b = d.Blocks[i];
                 if (b.Layers.Count == 0)
                     errors.Add($"blocks[{i}] için layers boş.");
-                for (int x = b.X; x < b.X + b.W; x++)
+
+                foreach (var (x, y) in BlockCells(b, i, errors))
                 {
-                    for (int y = b.Y; y < b.Y + b.H; y++)
+                    if (!Playable(x, y))
                     {
-                        if (!Playable(x, y))
-                        {
-                            errors.Add($"blocks[{i}] oynanamaz hücreye taşıyor: ({x},{y}).");
-                            continue;
-                        }
-                        if (occupied.TryGetValue((x, y), out int other))
-                            errors.Add($"blocks[{i}] ile blocks[{other}] çakışıyor: ({x},{y}).");
-                        else
-                            occupied[(x, y)] = i;
+                        errors.Add($"blocks[{i}] oynanamaz hücreye taşıyor: ({x},{y}).");
+                        continue;
                     }
+                    if (occupied.TryGetValue((x, y), out int other))
+                        errors.Add($"blocks[{i}] ile blocks[{other}] çakışıyor: ({x},{y}).");
+                    else
+                        occupied[(x, y)] = i;
                 }
             }
 

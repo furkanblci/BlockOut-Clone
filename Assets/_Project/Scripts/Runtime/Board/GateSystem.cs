@@ -77,27 +77,49 @@ namespace BlockOut.Runtime.Board
             return GateContactResult.None;
         }
 
+        /// <summary>
+        /// Blok kapıya değiyor mu?
+        ///
+        /// İki koşul birlikte aranır:
+        /// 1) TEMAS — bloğun EN AZ BİR hücresinin dışa bakan kenarı kapı
+        ///    çizgisine yapışmış olmalı.
+        /// 2) SIĞMA — bloğun kenar boyunca TOPLAM genişliği kapı açıklığına
+        ///    sığmalı; 2 hücrelik kapıdan 3 hücre genişliğinde blok geçemez.
+        ///
+        /// DERS (polyomino): Dikdörtgende bu iki koşul aynı hesaptan çıkıyordu.
+        /// L şeklinde ayrışıyor: bloğun bir hücresi kapıya değiyor olabilir ama
+        /// başka bir hücresi açıklığın dışında kalabilir — o zaman blok geçemez.
+        /// Bu yüzden temas hücre hücre, sığma sınırlayıcı kutu üzerinden bakılır.
+        /// </summary>
         bool IsTouching(BlockModel block, GateModel gate)
         {
-            float blockEdge;
-            float spanStart;
-            float spanSize;
-            if (gate.EdgeHorizontal)
-            {
-                blockEdge = gate.OutwardSign < 0 ? block.Position.y : block.Position.y + block.H;
-                spanStart = block.Position.x;
-                spanSize = block.W;
-            }
-            else
-            {
-                blockEdge = gate.OutwardSign < 0 ? block.Position.x : block.Position.x + block.W;
-                spanStart = block.Position.y;
-                spanSize = block.H;
-            }
+            bool horizontal = gate.EdgeHorizontal;
+            bool towardNegative = gate.OutwardSign < 0;
 
-            if (Mathf.Abs(blockEdge - gate.EdgeCoord) > _config.gateContactGap)
-                return false;
+            bool anyCellTouches = false;
+            foreach (var cell in block.Cells)
+            {
+                float cellX = block.Position.x + cell.x;
+                float cellY = block.Position.y + cell.y;
 
+                float cellEdge = horizontal
+                    ? (towardNegative ? cellY : cellY + 1f)
+                    : (towardNegative ? cellX : cellX + 1f);
+
+                if (Mathf.Abs(cellEdge - gate.EdgeCoord) > _config.gateContactGap) continue;
+
+                // Değen hücrenin kendisi de açıklığın içinde olmalı.
+                float cellSpan = horizontal ? cellX : cellY;
+                if (cellSpan < gate.SpanMin - _config.gateSpanTolerance) continue;
+                if (cellSpan + 1f > gate.SpanMax + _config.gateSpanTolerance) continue;
+
+                anyCellTouches = true;
+                break;
+            }
+            if (!anyCellTouches) return false;
+
+            float spanStart = horizontal ? block.Position.x : block.Position.y;
+            float spanSize = horizontal ? block.W : block.H;
             return spanStart >= gate.SpanMin - _config.gateSpanTolerance &&
                    spanStart + spanSize <= gate.SpanMax + _config.gateSpanTolerance;
         }

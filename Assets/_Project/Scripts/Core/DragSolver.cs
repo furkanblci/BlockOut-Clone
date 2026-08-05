@@ -17,17 +17,21 @@ namespace BlockOut.Core
     ///    yapılır. Çapraz itilen blok duvara çarptığında serbest eksende
     ///    ilerlemeye devam eder = "duvar boyunca kayma" hissi bedavaya çıkar.
     /// 3) TAM KENETLENME: Süpürme, engelin yüzeyine olan mesafeyi TAM olarak
-    ///    hesaplar (binary search yok) — blok duvara mikron boşluksuz dayanır,
-    ///    kapı temas testi de bu sayede güvenilirdir.
+    ///    hesaplar (binary search yok) — blok duvara mikron boşluksuz dayanır.
+    ///
+    /// DERS (polyomino): Blok artık tek dikdörtgen değil, HÜCRE LİSTESİ.
+    /// Süpürme her hücre için ayrı yapılır ve en kısıtlayıcı sonuç alınır —
+    /// L şeklinin çıkıntısı bir yere takılırsa tüm blok orada durur. Mantık
+    /// değişmedi, yalnızca "tek kutu" yerine "kutular" üzerinde dönüyor.
     /// </summary>
     public static class DragSolver
     {
         /// <summary>
         /// Bloğu mevcut konumundan hedefe doğru, engellere çarpa çarpa taşır.
-        /// Dönen değer ulaşılabilen en ileri konumdur.
+        /// <paramref name="cells"/> bloğun yerel hücre konumlarıdır.
         /// </summary>
         public static Vector2 Solve(
-            Vector2 position, Vector2 target, int w, int h,
+            Vector2 position, Vector2 target, IReadOnlyList<Vector2Int> cells,
             IReadOnlyList<Aabb> obstacles, float substep, float eps)
         {
             Vector2 delta = target - position;
@@ -39,94 +43,103 @@ namespace BlockOut.Core
 
             for (int i = 0; i < steps; i++)
             {
-                position.x += SweepX(position, w, h, stepDelta.x, obstacles, eps);
-                position.y += SweepY(position, w, h, stepDelta.y, obstacles, eps);
+                position.x += SweepX(position, cells, stepDelta.x, obstacles, eps);
+                position.y += SweepY(position, cells, stepDelta.y, obstacles, eps);
             }
             return position;
         }
 
         /// <summary>X ekseninde izin verilen gerçek yer değiştirmeyi döndürür.</summary>
-        static float SweepX(Vector2 pos, int w, int h, float dx,
+        static float SweepX(Vector2 pos, IReadOnlyList<Vector2Int> cells, float dx,
             IReadOnlyList<Aabb> obstacles, float eps)
         {
             if (dx == 0f) return 0f;
+            float allowed = dx;
 
-            // Dikey örtüşme testi eps kadar küçültülmüş blokla yapılır:
-            // duvara/komşuya TAM bitişik blok, kenar boyunca takılmadan kayar.
-            float minY = pos.y + eps, maxY = pos.y + h - eps;
+            for (int c = 0; c < cells.Count; c++)
+            {
+                float cellX = pos.x + cells[c].x;
+                float cellY = pos.y + cells[c].y;
 
-            if (dx > 0f)
-            {
-                float lead = pos.x + w; // öndeki (sağ) kenar
-                float allowed = dx;
-                for (int i = 0; i < obstacles.Count; i++)
+                // Dikey örtüşme testi eps kadar küçültülmüş hücreyle yapılır:
+                // duvara TAM bitişik blok, kenar boyunca takılmadan kayar.
+                float minY = cellY + eps, maxY = cellY + 1f - eps;
+
+                if (dx > 0f)
                 {
-                    var o = obstacles[i];
-                    if (o.MinY >= maxY || o.MaxY <= minY) continue; // dikeyde kesişmiyor
-                    if (o.MinX >= lead - eps)                       // önümüzde
-                        allowed = Mathf.Min(allowed, o.MinX - lead);
+                    float lead = cellX + 1f;
+                    for (int i = 0; i < obstacles.Count; i++)
+                    {
+                        var o = obstacles[i];
+                        if (o.MinY >= maxY || o.MaxY <= minY) continue;
+                        if (o.MinX >= lead - eps)
+                            allowed = Mathf.Min(allowed, o.MinX - lead);
+                    }
                 }
-                return Mathf.Max(0f, allowed);
-            }
-            else
-            {
-                float lead = pos.x; // öndeki (sol) kenar
-                float allowed = dx;
-                for (int i = 0; i < obstacles.Count; i++)
+                else
                 {
-                    var o = obstacles[i];
-                    if (o.MinY >= maxY || o.MaxY <= minY) continue;
-                    if (o.MaxX <= lead + eps)
-                        allowed = Mathf.Max(allowed, o.MaxX - lead);
+                    float lead = cellX;
+                    for (int i = 0; i < obstacles.Count; i++)
+                    {
+                        var o = obstacles[i];
+                        if (o.MinY >= maxY || o.MaxY <= minY) continue;
+                        if (o.MaxX <= lead + eps)
+                            allowed = Mathf.Max(allowed, o.MaxX - lead);
+                    }
                 }
-                return Mathf.Min(0f, allowed);
             }
+
+            return dx > 0f ? Mathf.Max(0f, allowed) : Mathf.Min(0f, allowed);
         }
 
         /// <summary>Y ekseninde izin verilen gerçek yer değiştirmeyi döndürür (SweepX'in simetriği).</summary>
-        static float SweepY(Vector2 pos, int w, int h, float dy,
+        static float SweepY(Vector2 pos, IReadOnlyList<Vector2Int> cells, float dy,
             IReadOnlyList<Aabb> obstacles, float eps)
         {
             if (dy == 0f) return 0f;
+            float allowed = dy;
 
-            float minX = pos.x + eps, maxX = pos.x + w - eps;
+            for (int c = 0; c < cells.Count; c++)
+            {
+                float cellX = pos.x + cells[c].x;
+                float cellY = pos.y + cells[c].y;
+                float minX = cellX + eps, maxX = cellX + 1f - eps;
 
-            if (dy > 0f)
-            {
-                float lead = pos.y + h;
-                float allowed = dy;
-                for (int i = 0; i < obstacles.Count; i++)
+                if (dy > 0f)
                 {
-                    var o = obstacles[i];
-                    if (o.MinX >= maxX || o.MaxX <= minX) continue;
-                    if (o.MinY >= lead - eps)
-                        allowed = Mathf.Min(allowed, o.MinY - lead);
+                    float lead = cellY + 1f;
+                    for (int i = 0; i < obstacles.Count; i++)
+                    {
+                        var o = obstacles[i];
+                        if (o.MinX >= maxX || o.MaxX <= minX) continue;
+                        if (o.MinY >= lead - eps)
+                            allowed = Mathf.Min(allowed, o.MinY - lead);
+                    }
                 }
-                return Mathf.Max(0f, allowed);
-            }
-            else
-            {
-                float lead = pos.y;
-                float allowed = dy;
-                for (int i = 0; i < obstacles.Count; i++)
+                else
                 {
-                    var o = obstacles[i];
-                    if (o.MinX >= maxX || o.MaxX <= minX) continue;
-                    if (o.MaxY <= lead + eps)
-                        allowed = Mathf.Max(allowed, o.MaxY - lead);
+                    float lead = cellY;
+                    for (int i = 0; i < obstacles.Count; i++)
+                    {
+                        var o = obstacles[i];
+                        if (o.MinX >= maxX || o.MaxX <= minX) continue;
+                        if (o.MaxY <= lead + eps)
+                            allowed = Mathf.Max(allowed, o.MaxY - lead);
+                    }
                 }
-                return Mathf.Min(0f, allowed);
             }
+
+            return dy > 0f ? Mathf.Max(0f, allowed) : Mathf.Min(0f, allowed);
         }
 
         /// <summary>
         /// Bırakılan bloğu en yakın GEÇERLİ tam sayı hücreye oturtur.
         /// Adaylar: konumun floor/ceil kombinasyonları (en fazla 4), yakından
-        /// uzağa denenir; çarpışanlar elenir. Sürükleme çarpışmasız ilerlediği
-        /// için pratikte her zaman geçerli bir aday bulunur.
+        /// uzağa denenir; çarpışanlar elenir.
         /// </summary>
         public static Vector2 SnapToGrid(
-            Vector2 pos, int w, int h, IReadOnlyList<Aabb> obstacles, float eps)
+            Vector2 pos, IReadOnlyList<Vector2Int> cells,
+            IReadOnlyList<Aabb> obstacles, float eps)
         {
             int fx = Mathf.FloorToInt(pos.x);
             int fy = Mathf.FloorToInt(pos.y);
@@ -138,23 +151,27 @@ namespace BlockOut.Core
             {
                 for (int dy = 0; dy <= 1; dy++)
                 {
-                    var cand = new Vector2(fx + dx, fy + dy);
-                    float dist = (cand - pos).sqrMagnitude;
+                    var candidate = new Vector2(fx + dx, fy + dy);
+                    float dist = (candidate - pos).sqrMagnitude;
                     if (dist >= bestDist) continue;
-                    if (Collides(cand, w, h, obstacles, eps)) continue;
-                    best = cand;
+                    if (Collides(candidate, cells, obstacles, eps)) continue;
+                    best = candidate;
                     bestDist = dist;
                 }
             }
             return best;
         }
 
-        static bool Collides(Vector2 p, int w, int h, IReadOnlyList<Aabb> obstacles, float eps)
+        static bool Collides(Vector2 p, IReadOnlyList<Vector2Int> cells,
+            IReadOnlyList<Aabb> obstacles, float eps)
         {
-            var rect = Aabb.FromRect(p.x, p.y, w, h);
-            for (int i = 0; i < obstacles.Count; i++)
-                if (rect.Overlaps(obstacles[i], eps))
-                    return true;
+            for (int c = 0; c < cells.Count; c++)
+            {
+                var rect = Aabb.FromRect(p.x + cells[c].x, p.y + cells[c].y, 1, 1);
+                for (int i = 0; i < obstacles.Count; i++)
+                    if (rect.Overlaps(obstacles[i], eps))
+                        return true;
+            }
             return false;
         }
     }

@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using BlockOut.Core;
 using BlockOut.Runtime.Board;
 using UnityEngine;
@@ -47,7 +48,7 @@ namespace BlockOut.Runtime.View
             view._model = model;
             view._space = space;
             view._filter = go.AddComponent<MeshFilter>();
-            view._filter.sharedMesh = BrickMeshBuilder.Get(model.W, model.H);
+            view._filter.sharedMesh = BrickMeshBuilder.Get(model);
 
             view._renderer = go.AddComponent<MeshRenderer>();
             view._renderer.sharedMaterial = material;  // paylaşımlı — SRP Batcher dostu
@@ -127,27 +128,61 @@ namespace BlockOut.Runtime.View
             float opacity = cfg != null ? cfg.shadowOpacity : 0.42f;
             Vector2 offset = cfg != null ? cfg.shadowOffset : new Vector2(0.06f, -0.06f);
 
-            var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            quad.name = "Shadow";
+            var quad = new GameObject("Shadow");
             quad.transform.SetParent(transform, worldPositionStays: false);
-            Destroy(quad.GetComponent<Collider>());
+            // Gölge de bloğun ŞEKLİNİ izler: L bloğun altında dikdörtgen gölge
+            // olmaz. Hücre başına quad, tek mesh'te.
+            quad.AddComponent<MeshFilter>().sharedMesh = BuildShadowMesh();
 
-            var renderer = quad.GetComponent<MeshRenderer>();
+            var renderer = quad.AddComponent<MeshRenderer>();
             renderer.sharedMaterial = ViewKit.ShadowMaterial;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = false;
             // Gölge, zeminle blok arasında kalmalı: zeminden hemen sonra çizilir.
             renderer.sortingOrder = -1;
 
-            quad.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
             quad.transform.localPosition = new Vector3(offset.x, 0.012f, offset.y);
-            quad.transform.localScale = new Vector3(_model.W * scale, _model.H * scale, 1f);
+            quad.transform.localScale = new Vector3(scale, 1f, scale);
 
             var color = renderer.sharedMaterial.color;
             color.a = opacity;
             // Paylaşımlı materyalin alfası tek yerden gelir; blok başına
             // farklı opaklık gerekmediği için materyali kopyalamıyoruz.
             renderer.sharedMaterial.color = color;
+        }
+
+        /// <summary>Bloğun hücrelerini kaplayan yatay gölge mesh'i (yerel uzayda).</summary>
+        Mesh BuildShadowMesh()
+        {
+            var verts = new List<Vector3>();
+            var uvs = new List<Vector2>();
+            var normals = new List<Vector3>();
+            var tris = new List<int>();
+
+            float halfW = _model.W * 0.5f, halfH = _model.H * 0.5f;
+            foreach (var cell in _model.Cells)
+            {
+                float x0 = -halfW + cell.x, x1 = x0 + 1f;
+                float z1 = halfH - cell.y, z0 = z1 - 1f;
+
+                int start = verts.Count;
+                verts.Add(new Vector3(x0, 0f, z0)); verts.Add(new Vector3(x1, 0f, z0));
+                verts.Add(new Vector3(x1, 0f, z1)); verts.Add(new Vector3(x0, 0f, z1));
+                uvs.Add(new Vector2(0f, 0f)); uvs.Add(new Vector2(1f, 0f));
+                uvs.Add(new Vector2(1f, 1f)); uvs.Add(new Vector2(0f, 1f));
+                for (int n = 0; n < 4; n++) normals.Add(Vector3.up);
+
+                tris.Add(start); tris.Add(start + 2); tris.Add(start + 1);
+                tris.Add(start); tris.Add(start + 3); tris.Add(start + 2);
+            }
+
+            var mesh = new Mesh { name = "BlockShadow" };
+            mesh.SetVertices(verts);
+            mesh.SetUVs(0, uvs);
+            mesh.SetNormals(normals);
+            mesh.SetTriangles(tris, 0);
+            mesh.RecalculateBounds();
+            return mesh;
         }
 
         /// <summary>
