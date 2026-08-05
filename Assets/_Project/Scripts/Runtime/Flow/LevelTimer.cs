@@ -11,10 +11,14 @@ namespace BlockOut.Runtime.Flow
         public float Remaining { get; private set; }
         public bool Running { get; private set; }
 
+        /// <summary>Bölüme verilen toplam süre — "ne kadarı kaldı" oranı için.</summary>
+        public int Total { get; private set; }
+
         public event Action Expired;
 
         public void StartCountdown(int seconds)
         {
+            Total = seconds;
             Remaining = seconds;
             Running = seconds > 0;
         }
