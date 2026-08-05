@@ -82,6 +82,12 @@ namespace BlockOut.Runtime.Flow
                 if (advance) _session.NextLevel();
                 else _session.Restart();
             }
+
+            // Can bittiyse tekrar denemek anlamsız — oyuncuyu ana ekrana yollarız.
+            var homeRect = new Rect(
+                buttonRect.x, buttonRect.yMax + 14 * s, buttonRect.width, 48 * s);
+            if (GUI.Button(homeRect, "Ana Ekran", _buttonStyle))
+                AppRouter.GoHome();
         }
 
         /// <summary>

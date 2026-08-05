@@ -73,11 +73,19 @@ namespace BlockOut.Runtime.Flow
                 Services.SettingsBinder.Apply(
                     Services.MetaServices.Save.Data.Settings, _audio, _haptics);
 
-            // Oyuncu kaldığı yerden devam eder. Kayıt yoksa (ilk açılış ya da
-            // editörde Play Test) bu 0'dır, yani bölüm 1.
-            if (Services.MetaServices.Ready && LevelCount > 0)
-                _levelIndex = Mathf.Clamp(
-                    Services.MetaServices.Progress.HighestUnlockedIndex, 0, LevelCount - 1);
+            // Bölüm seçimi üç kaynaktan gelebilir, öncelik sırasıyla:
+            // 1) Home ekranının isteği, 2) oyuncunun kaldığı yer, 3) bölüm 1.
+            // (Gameplay sahnesi tek başına Play'e basılarak da açılabilmeli.)
+            int requested = AppRouter.ConsumeRequestedLevel();
+            if (LevelCount > 0)
+            {
+                int index = requested >= 0
+                    ? requested
+                    : Services.MetaServices.Ready
+                        ? Services.MetaServices.Progress.HighestUnlockedIndex
+                        : 0;
+                _levelIndex = Mathf.Clamp(index, 0, LevelCount - 1);
+            }
 
             Timer.Expired += OnTimeExpired;
             BuildAndStart();
@@ -121,16 +129,28 @@ namespace BlockOut.Runtime.Flow
 #endif
         }
 
-        TextAsset NormalLevelAsset =>
-            levelSequence != null && levelSequence.Length > 0
-                ? levelSequence[Mathf.Clamp(_levelIndex, 0, levelSequence.Length - 1)]
-                : levelJson;
+        TextAsset NormalLevelAsset
+        {
+            get
+            {
+                // Katalog M5'te tek doğruluk kaynağı oldu (Home ekranı da onu
+                // okuyor). Sahnedeki dizi yalnız katalog yoksa devreye girer.
+                var fromCatalog = Config.LevelCatalog.AssetAt(_levelIndex);
+                if (fromCatalog != null) return fromCatalog;
 
-        public bool HasNextLevel =>
-            levelSequence != null && _levelIndex + 1 < levelSequence.Length;
+                return levelSequence != null && levelSequence.Length > 0
+                    ? levelSequence[Mathf.Clamp(_levelIndex, 0, levelSequence.Length - 1)]
+                    : levelJson;
+            }
+        }
 
-        /// <summary>Dizideki bölüm sayısı (test seçicisi için).</summary>
-        public int LevelCount => levelSequence != null ? levelSequence.Length : 0;
+        public bool HasNextLevel => _levelIndex + 1 < LevelCount;
+
+        /// <summary>Sıradaki bölüm sayısı (Home ekranı ve test seçicisi için).</summary>
+        public int LevelCount =>
+            Config.LevelCatalog.Count > 0
+                ? Config.LevelCatalog.Count
+                : (levelSequence != null ? levelSequence.Length : 0);
 
         public int LevelIndex => _levelIndex;
 
