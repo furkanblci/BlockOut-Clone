@@ -1,0 +1,15 @@
+{
+  "name": "com.furkanblci.gamekit",
+  "version": "0.1.0",
+  "displayName": "GameKit",
+  "description": "Mobil casual oyunlar icin yeniden kullanilabilir cekirdek: kayit, can+dolum, ses, titresim, partikul havuzu, arayuz yardimcilari, performans sondasi ve mobil derleme araclari. Oyuna ozgu hicbir sey icermez.",
+  "unity": "6000.0",
+  "author": {
+    "name": "furkanblci"
+  },
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.2.1",
+    "com.unity.ugui": "2.0.0",
+    "com.unity.inputsystem": "1.18.0"
+  }
+}

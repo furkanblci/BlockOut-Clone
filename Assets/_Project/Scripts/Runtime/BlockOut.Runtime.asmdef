@@ -3,7 +3,9 @@
     "rootNamespace": "BlockOut.Runtime",
     "references": [
         "BlockOut.Core",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "GameKit.Runtime",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

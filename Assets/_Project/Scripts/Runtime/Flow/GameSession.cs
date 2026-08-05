@@ -51,7 +51,7 @@ namespace BlockOut.Runtime.Flow
         // Cila servisleri: bir kez kurulur, her bölümde yeni olay merkezine bağlanır.
         FX.FXService _fx;
         Services.AudioService _audio;
-        Services.HapticsService _haptics;
+        GameKit.Services.Haptics _haptics;
 
         /// <summary>
         /// Kamerayı tembel çözer. Restart/NextLevel dışarıdan (HUD, editör
@@ -66,7 +66,7 @@ namespace BlockOut.Runtime.Flow
 
             _fx = FX.FXService.Create(transform, palette);
             _audio = Services.AudioService.Create(transform);
-            _haptics = Services.HapticsService.Create(transform);
+            _haptics = GameKit.Services.Haptics.Create(transform);
 
             // Oyuncunun kayıtlı ses/titreşim tercihleri hemen geçerli olsun.
             if (Services.MetaServices.Ready)
@@ -228,7 +228,7 @@ namespace BlockOut.Runtime.Flow
             // Cila servisleri taze olay merkezine bağlanır.
             _fx?.Bind(_events, space);
             _audio?.Bind(_events);
-            _haptics?.Bind(_events);
+            BindHaptics(_events);
 
             PlayBoardIntro(views);
             Timer.StartCountdown(data.TimeSeconds);
@@ -339,6 +339,25 @@ namespace BlockOut.Runtime.Flow
         }
 
         /// <summary>
+        /// Hangi tahta olayının titreşim ürettiğine BU OYUN karar verir.
+        ///
+        /// DERS (kit oyunu tanımaz): GameKit'teki Haptics yalnızca "titret"
+        /// biliyor; "buz kırıldı" gibi kavramlar ona sızarsa başka bir projede
+        /// kullanılamaz hâle gelir. Eşleme oyunun tarafında, tek bir yerde durur.
+        ///
+        /// Her blok çıkışında titretmek yorucu olur; yalnızca "kazanım"
+        /// anlarında geri bildirim veriyoruz.
+        /// </summary>
+        void BindHaptics(BoardEvents events)
+        {
+            if (_haptics == null || events == null) return;
+            events.IceShattered     += _ => _haptics.Play(GameKit.Services.HapticStrength.Medium);
+            events.GateIceShattered += _ => _haptics.Play(GameKit.Services.HapticStrength.Medium);
+            events.CurtainOpened    += _ => _haptics.Play(GameKit.Services.HapticStrength.Medium);
+            events.BoardCleared     += () => _haptics.Play(GameKit.Services.HapticStrength.Heavy);
+        }
+
+        /// <summary>
         /// Denemeye bir can yazar. Can yoksa bölüm yine de açılır ama işaretlenir —
         /// "can bitti" kararını Home ekranı verecek (M5 sahne akışı); oyunun
         /// ortasında oyuncuyu kilitlemek kötü bir deneyim olurdu.
@@ -349,6 +368,9 @@ namespace BlockOut.Runtime.Flow
             _lifeSpent = true;
             Services.MetaServices.Lives.TrySpend();
             Services.MetaServices.Progress.NoteAttempt(LevelId);
+
+            GameKit.Services.Analytics.LevelStarted(
+                _levelIndex, Services.MetaServices.Progress.Record(LevelId).Attempts);
         }
 
         void OnBoardCleared()
@@ -371,6 +393,11 @@ namespace BlockOut.Runtime.Flow
                 // eksiliyor. Harcamayı girişte yapıp kazanınca iade etmek, "çıkıp
                 // geri girme" istismarını da kapatıyor.
                 Services.MetaServices.Lives.Grant(1);
+
+                var record = Services.MetaServices.Progress.Record(LevelId);
+                GameKit.Services.Analytics.LevelCompleted(
+                    _levelIndex, record.Attempts, remaining, perfect);
+                GameKit.Services.Analytics.CurrencyEarned("coin", LastReward, "level_clear");
             }
         }
 
@@ -379,7 +406,13 @@ namespace BlockOut.Runtime.Flow
             if (State != GameState.Playing) return;
             State = GameState.Lost;
             _audio?.PlayLose();
-            _haptics?.Pulse();
+            _haptics?.Play(GameKit.Services.HapticStrength.Heavy);
+
+            if (Services.MetaServices.Ready)
+                GameKit.Services.Analytics.LevelFailed(
+                    _levelIndex,
+                    Services.MetaServices.Progress.Record(LevelId).Attempts,
+                    "timeout");
         }
     }
 }

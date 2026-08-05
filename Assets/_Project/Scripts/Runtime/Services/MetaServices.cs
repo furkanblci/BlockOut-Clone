@@ -1,5 +1,7 @@
 using System;
 using BlockOut.Core.Save;
+using GameKit.Meta;
+using GameKit.Save;
 using UnityEngine;
 
 namespace BlockOut.Runtime.Services
@@ -8,22 +10,21 @@ namespace BlockOut.Runtime.Services
     /// Meta servislerinin tek erişim noktası: kayıt, ilerleme, can.
     ///
     /// DERS (neden statik bir erişim noktası?): Bu servisler oyunun TAMAMINDA
-    /// tek örnek olmalı — iki SaveService aynı dosyaya yazsaydı biri diğerini
-    /// ezerdi. Sahneler arası geçişte de yaşamalılar. Bunun Unity'deki üç yolu
-    /// var: (a) her sahneye koyulan MonoBehaviour singleton — sahne sırasına
-    /// bağımlı, kırılgan; (b) ScriptableObject — asset'e yazma riski;
-    /// (c) `[RuntimeInitializeOnLoadMethod]` ile ilk kareden önce kurulan saf
-    /// C# nesneleri. (c)'yi seçtik: sahneye bağlı değil, Play'e basıldığı anda
-    /// hazır, test edilebilir.
+    /// tek örnek olmalı — iki kayıt servisi aynı dosyaya yazsaydı biri diğerini
+    /// ezerdi. Sahneler arası geçişte de yaşamalılar. Unity'de üç yol var:
+    /// (a) her sahneye koyulan MonoBehaviour singleton — sahne sırasına bağımlı,
+    /// kırılgan; (b) ScriptableObject — asset'e yazma riski;
+    /// (c) `[RuntimeInitializeOnLoadMethod]` ile ilk kareden önce kurulan saf C#
+    /// nesneleri. (c) seçildi: sahneye bağlı değil, Play'e basıldığı anda hazır.
     ///
-    /// DERS (yine de statik = küresel durum): Kaçınılan şey servislerin
-    /// KENDİLERİNİN statik olması. Sınıflar normal, bağımlılıkları kurucudan
-    /// alıyor; yalnız bu BESTECİ statik. Böylece testte istediğin sahte depo ve
-    /// sahte saatle kendi örneğini kurabiliyorsun.
+    /// DERS (statik = küresel durum, dikkat): Kaçınılan şey servislerin
+    /// KENDİLERİNİN statik olması. Sınıflar normal, bağımlılıklarını kurucudan
+    /// alıyor; yalnız bu BESTECİ statik. Böylece testte sahte depo ve sahte
+    /// saatle kendi örneğini kurabiliyorsun (<see cref="Compose"/>).
     /// </summary>
     public static class MetaServices
     {
-        public static SaveService Save { get; private set; }
+        public static SaveService<SaveData> Save { get; private set; }
         public static ProgressService Progress { get; private set; }
         public static LivesService Lives { get; private set; }
 
@@ -54,10 +55,20 @@ namespace BlockOut.Runtime.Services
         /// <summary>Testlerin ve editör araçlarının kendi deposunu verebilmesi için.</summary>
         public static void Compose(ISaveStore store, Func<DateTime> utcNow = null)
         {
-            Save = new SaveService(store, utcNow);
+            Save = new SaveService<SaveData>(
+                store,
+                SaveData.CurrentVersion,
+                upgrade: SaveData.Upgrade,
+                normalize: SaveData.Normalize,
+                utcNow: utcNow);
             Save.Load();
+
             Progress = new ProgressService(Save);
-            Lives = new LivesService(Save, MaxLives, RefillInterval, utcNow);
+
+            // Can servisi kaydın İKİ alanını görüyor (ILivesState) ve yazma
+            // işini geri çağırıyla bize bırakıyor — kayıt formatını bilmiyor.
+            Lives = new LivesService(
+                Save.Data, () => Save.Save(), MaxLives, RefillInterval, utcNow);
             Lives.Refresh();
         }
     }

@@ -14,7 +14,7 @@ namespace BlockOut.Runtime.Services
     public static class SettingsBinder
     {
         /// <summary>Kayıttaki değerleri servislere basar (açılışta ve ayar değişince).</summary>
-        public static void Apply(SettingsData settings, AudioService audio, HapticsService haptics)
+        public static void Apply(SettingsData settings, AudioService audio, GameKit.Services.Haptics haptics)
         {
             if (settings == null) return;
             if (audio != null) audio.Muted = !settings.Sounds;
@@ -23,21 +23,21 @@ namespace BlockOut.Runtime.Services
         }
 
         /// <summary>Bir anahtarı değiştirir, diske yazar ve servislere uygular.</summary>
-        public static void SetSounds(bool on, AudioService audio, HapticsService haptics)
+        public static void SetSounds(bool on, AudioService audio, GameKit.Services.Haptics haptics)
         {
             if (!MetaServices.Ready) return;
             MetaServices.Save.Mutate(d => d.Settings.Sounds = on);
             Apply(MetaServices.Save.Data.Settings, audio, haptics);
         }
 
-        public static void SetMusic(bool on, AudioService audio, HapticsService haptics)
+        public static void SetMusic(bool on, AudioService audio, GameKit.Services.Haptics haptics)
         {
             if (!MetaServices.Ready) return;
             MetaServices.Save.Mutate(d => d.Settings.Music = on);
             Apply(MetaServices.Save.Data.Settings, audio, haptics);
         }
 
-        public static void SetHaptics(bool on, AudioService audio, HapticsService haptics)
+        public static void SetHaptics(bool on, AudioService audio, GameKit.Services.Haptics haptics)
         {
             if (!MetaServices.Ready) return;
             MetaServices.Save.Mutate(d => d.Settings.Haptics = on);

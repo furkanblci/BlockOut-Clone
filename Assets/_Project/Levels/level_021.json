@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "id": "level_021",
+  "displayNumber": 21,
+  "difficulty": "normal",
+  "timeSeconds": 180,
+  "board": {
+    "width": 6,
+    "height": 9,
+    "rows": [
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX"
+    ],
+    "walls": []
+  },
+  "blocks": [
+    { "x": 1, "y": 0, "w": 1, "h": 2, "layers": ["pink"] },
+    { "x": 4, "y": 0, "w": 2, "h": 1, "layers": ["green"] },
+
+    { "x": 0, "y": 2, "w": 1, "h": 2, "layers": ["pink"] },
+    { "x": 1, "y": 2, "w": 1, "h": 2, "layers": ["yellow", "red"] },
+    { "x": 2, "y": 2, "w": 1, "h": 2, "layers": ["blue"], "ice": 5 },
+    { "x": 4, "y": 3, "w": 2, "h": 1, "layers": ["green"] },
+
+    { "x": 0, "y": 4, "w": 2, "h": 1, "layers": ["green"] },
+    { "x": 2, "y": 4, "w": 2, "h": 1, "layers": ["pink"] }
+  ],
+  "gates": [
+    { "x": 0, "y": 0, "side": "N", "length": 2, "colors": ["green"] },
+    { "x": 2, "y": 0, "side": "N", "length": 2, "colors": ["yellow"] },
+    { "x": 4, "y": 0, "side": "N", "length": 2, "colors": ["pink"], "ice": 2 },
+    { "x": 0, "y": 4, "side": "W", "length": 2, "colors": ["blue"], "ice": 3 },
+    { "x": 4, "y": 8, "side": "S", "length": 2, "colors": ["red"], "ice": 4 }
+  ],
+  "obstacles": [
+    {
+      "type": "curtain",
+      "x": 0,
+      "y": 6,
+      "w": 4,
+      "h": 3,
+      "count": 6,
+      "contents": [
+        { "x": 0, "y": 6, "w": 2, "h": 1, "layers": ["pink"] },
+        { "x": 2, "y": 6, "w": 2, "h": 1, "layers": ["blue"] },
+        { "x": 0, "y": 7, "w": 2, "h": 1, "layers": ["green"] },
+        { "x": 2, "y": 7, "w": 2, "h": 1, "layers": ["yellow"] },
+        { "x": 0, "y": 8, "w": 2, "h": 1, "layers": ["blue"] },
+        { "x": 2, "y": 8, "w": 2, "h": 1, "layers": ["pink"] }
+      ]
+    },
+    {
+      "type": "curtain",
+      "x": 4,
+      "y": 6,
+      "w": 2,
+      "h": 3,
+      "count": 8,
+      "contents": [
+        { "x": 4, "y": 6, "w": 2, "h": 1, "layers": ["green"] },
+        { "x": 4, "y": 7, "w": 2, "h": 1, "layers": ["red"] },
+        { "x": 4, "y": 8, "w": 2, "h": 1, "layers": ["green"] }
+      ]
+    }
+  ]
+}

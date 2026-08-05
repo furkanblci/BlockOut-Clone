@@ -1,56 +1,81 @@
-using System;
 using System.Collections.Generic;
+using GameKit.Meta;
+using GameKit.Save;
 using Newtonsoft.Json;
 
 namespace BlockOut.Core.Save
 {
     /// <summary>
-    /// Oyuncunun diske yazılan tüm durumu.
+    /// Bu OYUNUN diske yazılan durumu.
     ///
     /// DERS (kayıt da bir şemadır): LevelData gibi bu da sürümlü bir DTO'dur.
     /// Level şeması bozulursa en fazla bir bölüm açılmaz; KAYIT şeması bozulursa
-    /// oyuncunun aylarca biriktirdiği ilerleme gider. Bu yüzden üç kural:
-    /// (1) her alanın makul bir varsayılanı olur — eksik alan çökme sebebi değil,
-    /// (2) sürüm numarası taşınır ve göç kodu tek yerdedir,
-    /// (3) gelecekten gelen kayıt ASLA ezilmez (oyuncu yeni sürümde oynayıp eski
-    ///     sürüme dönmüş olabilir).
+    /// oyuncunun aylarca biriktirdiği ilerleme gider. Bu yüzden her alanın makul
+    /// bir varsayılanı var — eksik alan çökme sebebi değil.
     ///
-    /// DERS (neden Newtonsoft, neden PlayerPrefs değil?): PlayerPrefs anahtar-değer
-    /// bir kutudur; iç içe veri (bölüm başına kayıt) tutamaz, atomik yazmaz ve
-    /// platforma göre registry/plist'e dağılır. Tek bir JSON dosyası hem
-    /// okunabilir hem yedeklenebilir hem de tek seferde atomik yazılabilir.
+    /// DERS (arayüzler neden burada?): <see cref="IVersionedSave"/> ve
+    /// <see cref="ILivesState"/> GameKit'ten geliyor. Kit "sürüm numarası" ve
+    /// "can + dolum anı" dışında bu sınıfın hiçbir alanını bilmiyor; bu yüzden
+    /// aynı kit Match-3'te de, koşu oyununda da çalışıyor. Bağımlılık oyundan
+    /// kite doğru akıyor.
     /// </summary>
-    public sealed class SaveData
+    public sealed class SaveData : IVersionedSave, ILivesState
     {
-        /// <summary>Şema sürümü; SaveMigration bunu okur.</summary>
-        [JsonProperty("version")] public int Version = SaveMigration.CurrentVersion;
+        public const int CurrentVersion = 1;
+
+        [JsonProperty("version")] public int VersionField = CurrentVersion;
+
+        [JsonIgnore]
+        public int Version { get => VersionField; set => VersionField = value; }
 
         /// <summary>Oyuncunun adı (videodaki "Enter Name" ekranı). Boşsa henüz sorulmadı.</summary>
         [JsonProperty("playerName")] public string PlayerName = "";
 
         [JsonProperty("coins")] public int Coins;
 
-        /// <summary>Kalan can. Dolum mantığı LivesService'te.</summary>
-        [JsonProperty("lives")] public int Lives = -1;   // -1 = "henüz kurulmadı", servis doldurur
+        /// <summary>-1 = henüz kurulmadı; LivesService ilk çalıştığında doldurur.</summary>
+        [JsonProperty("lives")] public int LivesField = -1;
 
-        /// <summary>
-        /// Bir sonraki canın dolacağı an (UTC, ISO-8601). Can dolu ise anlamsızdır.
-        /// DERS: Zamanı SÜRE olarak değil AN olarak saklıyoruz — oyun kapalıyken
-        /// geçen zamanı ancak "şu ana kadar ne kadar oldu" diye sorabiliriz.
-        /// </summary>
-        [JsonProperty("nextLifeAtUtc")] public string NextLifeAtUtc = "";
+        [JsonProperty("nextLifeAtUtc")] public string NextLifeAtUtcField = "";
+
+        [JsonIgnore]
+        public int Lives { get => LivesField; set => LivesField = value; }
+
+        [JsonIgnore]
+        public string NextLifeAtUtc { get => NextLifeAtUtcField; set => NextLifeAtUtcField = value; }
 
         /// <summary>Bölüm kayıtları; anahtar = bölüm id'si (level_003 gibi).</summary>
         [JsonProperty("levels")] public Dictionary<string, LevelRecord> Levels
             = new Dictionary<string, LevelRecord>();
 
-        /// <summary>Açılan en yüksek bölüm sırası (0 tabanlı). -1 = hiç oynanmadı.</summary>
+        /// <summary>Açılan en yüksek bölüm sırası (0 tabanlı).</summary>
         [JsonProperty("highestUnlockedIndex")] public int HighestUnlockedIndex;
 
         [JsonProperty("settings")] public SettingsData Settings = new SettingsData();
 
-        /// <summary>Son kaydın yazıldığı an — teşhis ve saat kurcalama tespiti için.</summary>
+        /// <summary>Son kaydın yazıldığı an — teşhis için.</summary>
         [JsonProperty("savedAtUtc")] public string SavedAtUtc = "";
+
+        /// <summary>
+        /// Eski kaydı güncel şemaya taşır. Şu an v1 tek sürüm olduğu için
+        /// yapacak bir şey yok; sonraki sürümler buraya adım ekleyecek.
+        /// </summary>
+        public static void Upgrade(SaveData data)
+        {
+            if (data.Version >= CurrentVersion) return;
+            data.Version = CurrentVersion;
+        }
+
+        /// <summary>Elle kurcalanmış ya da yarım kalmış kayıtları savunmaya alır.</summary>
+        public static void Normalize(SaveData data)
+        {
+            if (data.Levels == null) data.Levels = new Dictionary<string, LevelRecord>();
+            if (data.Settings == null) data.Settings = new SettingsData();
+            if (data.PlayerName == null) data.PlayerName = "";
+            if (data.NextLifeAtUtcField == null) data.NextLifeAtUtcField = "";
+            if (data.Coins < 0) data.Coins = 0;
+            if (data.HighestUnlockedIndex < 0) data.HighestUnlockedIndex = 0;
+        }
     }
 
     /// <summary>Tek bir bölümün oyuncu kaydı.</summary>
@@ -73,45 +98,5 @@ namespace BlockOut.Core.Save
         [JsonProperty("sounds")]  public bool Sounds = true;
         [JsonProperty("music")]   public bool Music = true;
         [JsonProperty("haptics")] public bool Haptics = true;
-    }
-
-    /// <summary>
-    /// Kayıt şeması göçü. LevelMigration ile aynı desen: sürüm sürüm yükselt,
-    /// gelecekten gelen kaydı reddet.
-    /// </summary>
-    public static class SaveMigration
-    {
-        public const int CurrentVersion = 1;
-
-        /// <summary>Kayıt bu yapımdan YENİ bir sürümle yazılmış mı?</summary>
-        public static bool IsFromFuture(SaveData data) => data.Version > CurrentVersion;
-
-        /// <summary>Eski kaydı güncel şemaya taşır; yapılan işleri döndürür.</summary>
-        public static List<string> Upgrade(SaveData data)
-        {
-            var steps = new List<string>();
-            if (data.Version >= CurrentVersion) return steps;
-
-            // v0 -> v1: ilk sürüm; alanların hepsi varsayılanlı olduğu için
-            // yapılacak bir şey yok. Sonraki sürümler buraya adım ekleyecek.
-            data.Version = CurrentVersion;
-            steps.Add("v1'e taşındı");
-            return steps;
-        }
-
-        /// <summary>ISO-8601 UTC metnini okur; bozuksa null.</summary>
-        public static DateTime? ParseUtc(string text)
-        {
-            if (string.IsNullOrEmpty(text)) return null;
-            if (!DateTime.TryParse(text, System.Globalization.CultureInfo.InvariantCulture,
-                    System.Globalization.DateTimeStyles.AdjustToUniversal |
-                    System.Globalization.DateTimeStyles.AssumeUniversal, out var parsed))
-                return null;
-            return parsed;
-        }
-
-        /// <summary>DateTime'ı kayıt formatına çevirir (UTC, ISO-8601, kültürden bağımsız).</summary>
-        public static string FormatUtc(DateTime utc) =>
-            utc.ToUniversalTime().ToString("O", System.Globalization.CultureInfo.InvariantCulture);
     }
 }
