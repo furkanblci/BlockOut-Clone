@@ -201,6 +201,16 @@ namespace BlockOut.Runtime.Flow
             var cam = Cam;
             if (cam == null) return;
 
+            // Arka plan: referanstaki koyu mor/lacivert. Kamera temizleme rengi
+            // + geniş gradyan quad; ayar penceresinden değiştirilebilir.
+            var visualCfg = View.VisualSettings.Current;
+            if (visualCfg != null)
+            {
+                cam.clearFlags = CameraClearFlags.SolidColor;
+                cam.backgroundColor = visualCfg.backgroundOuter;
+                View.BackgroundView.Ensure(cam, visualCfg);
+            }
+
             _fitWidth = boardWidth;
             _fitHeight = boardHeight;
             _lastAspect = cam.aspect;

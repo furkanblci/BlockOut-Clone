@@ -17,9 +17,16 @@ namespace BlockOut.Runtime.View
     /// </summary>
     public sealed class BlockView : MonoBehaviour
     {
-        const float DragLift = 0.14f;      // tutunca hafif kalkma
-        const float DragScale = 1.06f;
         const float SnapDuration = 0.09f;
+
+        // Kalkma yüksekliği ayardan gelir. YÜKSEK bir değer bloğu duvarın
+        // üstüne çıkarır ve "duvarın içinden geçiyor" görüntüsü doğurur —
+        // bu yüzden varsayılan neredeyse sıfır, his ölçekten geliyor.
+        static float DragLift => VisualSettings.Current != null
+            ? VisualSettings.Current.dragLift : 0.02f;
+
+        static float DragScale => VisualSettings.Current != null
+            ? VisualSettings.Current.dragScale : 1.05f;
 
         BlockModel _model;
         BoardSpace _space;

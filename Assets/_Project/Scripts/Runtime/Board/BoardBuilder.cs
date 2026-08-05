@@ -4,6 +4,9 @@ using BlockOut.Runtime.Config;
 using BlockOut.Runtime.View;
 using UnityEngine;
 
+// Not: zemin artık tek mesh; floorLight/floorDark materyalleri yalnızca
+// eski satranç deseni için vardı ve kaldırıldı.
+
 namespace BlockOut.Runtime.Board
 {
     /// <summary>
@@ -37,34 +40,23 @@ namespace BlockOut.Runtime.Board
             // Renkler görsel ayar asset'inden gelir; Görünüm Ayarları penceresinden
             // canlı değiştirilebilir.
             var cfg = VisualSettings.Current;
-            Material floorLight = MakeMat("Floor_Light",
-                cfg != null ? cfg.floorColorA : new Color(0.17f, 0.15f, 0.31f));
-            Material floorDark = MakeMat("Floor_Dark",
-                cfg != null ? cfg.floorColorB : new Color(0.14f, 0.12f, 0.27f));
             Material wallMat = MakeMat("Wall",
                 cfg != null ? cfg.wallColor : new Color(0.36f, 0.32f, 0.62f));
             Material frameMat = MakeMat("Frame",
                 cfg != null ? cfg.frameColor : new Color(0.30f, 0.26f, 0.58f));
 
-            // --- Zemin: her oynanabilir hücreye bir karo (satranç deseni) ---
-            var floorRoot = new GameObject("Floor").transform;
-            floorRoot.SetParent(root, false);
-            for (int y = 0; y < board.Height; y++)
-            {
-                for (int x = 0; x < board.Width; x++)
-                {
-                    if (!board.IsPlayable(x, y)) continue;
-                    var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
-                    quad.name = $"Floor_{x}_{y}";
-                    quad.transform.SetParent(floorRoot, false);
-                    Object.Destroy(quad.GetComponent<Collider>());
-                    quad.transform.SetPositionAndRotation(
-                        space.CornerToWorld(x + 0.5f, y + 0.5f, 0f),
-                        Quaternion.Euler(90f, 0f, 0f));
-                    quad.GetComponent<MeshRenderer>().sharedMaterial =
-                        (x + y) % 2 == 0 ? floorLight : floorDark;
-                }
-            }
+            // --- Zemin: TÜM oynanabilir hücreler TEK mesh ---
+            // Hücre başına ayrı quad, komşu kenarlarda z-fighting (titreyen
+            // çizgiler) üretiyordu ve her hücre ayrı çizim çağrısıydı. Tek
+            // mesh + döşenen doku ikisini de çözer; delikli tahtalar da çalışır
+            // çünkü yalnızca oynanabilir hücreler mesh'e giriyor.
+            var floorGo = new GameObject("Floor");
+            floorGo.transform.SetParent(root, false);
+            floorGo.AddComponent<MeshFilter>().sharedMesh = BuildFloorMesh(board, space);
+            var floorRenderer = floorGo.AddComponent<MeshRenderer>();
+            floorRenderer.sharedMaterial = ViewKit.FloorMaterial(cfg);
+            floorRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            floorRenderer.receiveShadows = false;
 
             // --- Dış çerçeve: tahtayı çevreleyen kalın bordür ---
             // Referans oyunda tahta, kalın yuvarlatılmış bir çerçeve içinde
@@ -73,25 +65,17 @@ namespace BlockOut.Runtime.Board
             float frameHeight = cfg != null ? cfg.frameHeight : 0.34f;
             if (frameThickness > 0.01f)
             {
-                var frameRoot = new GameObject("Frame").transform;
-                frameRoot.SetParent(root, false);
+                var frameGo = new GameObject("Frame");
+                frameGo.transform.SetParent(root, false);
+                frameGo.AddComponent<MeshFilter>().sharedMesh = BoardFrameMeshBuilder.Build(
+                    board.Width, board.Height, frameThickness, frameHeight,
+                    cfg != null ? cfg.frameCornerRadius : 0.6f,
+                    cfg != null ? cfg.frameBevel : 0.09f);
 
-                float halfW = board.Width * 0.5f, halfH = board.Height * 0.5f;
-                float outerW = board.Width + frameThickness * 2f;
-                float outerH = board.Height + frameThickness * 2f;
-
-                AddFrameBar(frameRoot, frameMat,
-                    new Vector3(0f, frameHeight * 0.5f, halfH + frameThickness * 0.5f),
-                    new Vector3(outerW, frameHeight, frameThickness));
-                AddFrameBar(frameRoot, frameMat,
-                    new Vector3(0f, frameHeight * 0.5f, -halfH - frameThickness * 0.5f),
-                    new Vector3(outerW, frameHeight, frameThickness));
-                AddFrameBar(frameRoot, frameMat,
-                    new Vector3(-halfW - frameThickness * 0.5f, frameHeight * 0.5f, 0f),
-                    new Vector3(frameThickness, frameHeight, board.Height));
-                AddFrameBar(frameRoot, frameMat,
-                    new Vector3(halfW + frameThickness * 0.5f, frameHeight * 0.5f, 0f),
-                    new Vector3(frameThickness, frameHeight, board.Height));
+                var frameRenderer = frameGo.AddComponent<MeshRenderer>();
+                frameRenderer.sharedMaterial = frameMat;
+                frameRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                frameRenderer.receiveShadows = false;
             }
 
             // --- Kapı kenarlarını topla: o kenarlara duvar örülmeyecek ---
@@ -185,17 +169,45 @@ namespace BlockOut.Runtime.Board
             return MakeMat($"Fallback_{color}", entry?.uiColor ?? Color.magenta);
         }
 
-        static void AddFrameBar(Transform parent, Material material, Vector3 center, Vector3 size)
+        /// <summary>Oynanabilir hücrelerin tamamını tek mesh'e örer; her hücre 0-1 UV alır.</summary>
+        static Mesh BuildFloorMesh(BoardModel board, BoardSpace space)
         {
-            var bar = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            bar.name = "FrameBar";
-            bar.transform.SetParent(parent, false);
-            Object.Destroy(bar.GetComponent<Collider>());
-            var renderer = bar.GetComponent<MeshRenderer>();
-            renderer.sharedMaterial = material;
-            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            bar.transform.localPosition = center;
-            bar.transform.localScale = size;
+            var verts = new List<Vector3>();
+            var uvs = new List<Vector2>();
+            var normals = new List<Vector3>();
+            var tris = new List<int>();
+
+            for (int y = 0; y < board.Height; y++)
+            {
+                for (int x = 0; x < board.Width; x++)
+                {
+                    if (!board.IsPlayable(x, y)) continue;
+
+                    int start = verts.Count;
+                    verts.Add(space.CornerToWorld(x, y));
+                    verts.Add(space.CornerToWorld(x + 1, y));
+                    verts.Add(space.CornerToWorld(x + 1, y + 1));
+                    verts.Add(space.CornerToWorld(x, y + 1));
+
+                    uvs.Add(new Vector2(0f, 1f)); uvs.Add(new Vector2(1f, 1f));
+                    uvs.Add(new Vector2(1f, 0f)); uvs.Add(new Vector2(0f, 0f));
+                    for (int n = 0; n < 4; n++) normals.Add(Vector3.up);
+
+                    tris.Add(start); tris.Add(start + 2); tris.Add(start + 1);
+                    tris.Add(start); tris.Add(start + 3); tris.Add(start + 2);
+                }
+            }
+
+            var mesh = new Mesh { name = "Floor" };
+            if (verts.Count > 65000)
+                mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+            mesh.SetVertices(verts);
+            mesh.SetUVs(0, uvs);
+            mesh.SetNormals(normals);
+            mesh.SetTriangles(tris, 0);
+            mesh.RecalculateBounds();
+            mesh.UploadMeshData(true);
+            return mesh;
         }
 
         static Material MakeMat(string name, Color color)

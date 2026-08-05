@@ -12,40 +12,40 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f722f500476b4994885c330c683a57da, type: 3}
   m_Name: BlockVisualConfig
   m_EditorClassIdentifier: BlockOut.Runtime::BlockOut.Runtime.Config.BlockVisualConfigSO
-  brickHeight: 0.4
-  brickInset: 0.055
+  brickHeight: 0.8
+  brickInset: 0
   brickChamfer: 0.06
   studsPerCell: 2
-  studRadius: 0.168
-  studHeight: 0.115
-  studBevel: 0.035
-  studSegments: 14
-  toneBodyBottom: 0.48
-  toneBodySide: 0.86
-  toneFaceTop: 0.72
-  toneStudFoot: 0.42
+  studRadius: 0.18
+  studHeight: 0.25
+  studBevel: 0.06
+  studSegments: 20
+  toneBodyBottom: 0.4
+  toneBodySide: 1
+  toneFaceTop: 0.8
+  toneStudFoot: 0.7
   toneStudTop: 1
-  lightDirection: {x: 0.45, y: 0.8, z: -0.4}
-  ambient: 0.5
-  specular: 0.5
+  lightDirection: {x: -1.8, y: 1, z: 1.13}
+  ambient: 0.49
+  specular: 2
   gloss: 64
-  rim: 0.12
-  saturation: 1.18
-  contactShadow: 1
-  shadowOpacity: 0.42
-  shadowScale: 1.02
-  shadowOffset: {x: 0.06, y: -0.06}
-  floorColorA: {r: 0.17, g: 0.15, b: 0.31, a: 1}
-  floorColorB: {r: 0.14, g: 0.12, b: 0.27, a: 1}
-  wallColor: {r: 0.36, g: 0.32, b: 0.62, a: 1}
-  frameColor: {r: 0.3, g: 0.26, b: 0.58, a: 1}
-  frameThickness: 0.55
-  frameHeight: 0.34
-  wallHeight: 0.42
-  wallThickness: 0.18
-  gateBarHeight: 0.4
-  gateBarDepth: 0.44
-  gateOutwardOffset: 0.16
-  arrowSize: 0.2
-  arrowRise: 0.055
-  arrowCornerRadius: 0.3
+  rim: 0
+  saturation: 2
+  contactShadow: 0
+  shadowOpacity: 1
+  shadowScale: 1.6
+  shadowOffset: {x: -0.15, y: -0.12}
+  floorColorA: {r: 0.11764707, g: 0.11764707, b: 0.32941177, a: 1}
+  floorColorB: {r: 0.14901961, g: 0.13333334, b: 0.3803922, a: 1}
+  wallColor: {r: 0.15294118, g: 0.12941177, b: 0.41960788, a: 1}
+  frameColor: {r: 0.25882354, g: 0.22352943, b: 0.6431373, a: 1}
+  frameThickness: 0.52
+  frameHeight: 0.8
+  wallHeight: 0.5
+  wallThickness: 0.05
+  gateBarHeight: 0.8
+  gateBarDepth: 0.524
+  gateOutwardOffset: 0.252
+  arrowSize: 0.24
+  arrowRise: 0.14
+  arrowCornerRadius: 0.5
