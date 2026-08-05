@@ -199,15 +199,39 @@ namespace BlockOut.Runtime.View
             var renderer = _iceShell.GetComponent<MeshRenderer>();
             renderer.sharedMaterial = ViewKit.Ice;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+
+            // HATA (bulundu: buz bloğun ALTINDA kalıyordu): kabuk yüksekliği
+            // `BrickMeshBuilder.Height` ile hesaplanıyordu, ama tuğlanın GERÇEK
+            // tepesi kabartmalar (stud) yüzünden daha yukarıda. Kabuk bloğun
+            // üstünü yalnızca ~0.04 birim aşıyordu; kamera bu oyunda çok geride
+            // durduğu için derinlik tamponunun hassasiyeti o farkı çözemiyor ve
+            // buz pikselleri bloğun ARKASINDA sayılıp eleniyordu.
+            //
+            // DERS (sabit yerine ölçülen değer): Mesh'in kendi sınırlayıcı
+            // kutusunu sormak, ayarlar değiştiğinde de doğru kalır. Görsel ayar
+            // penceresinden tuğla yüksekliği değiştirilince buz da uyar.
+            float brickTop = _filter != null && _filter.sharedMesh != null
+                ? _filter.sharedMesh.bounds.max.y
+                : BrickMeshBuilder.Height;
+
+            // Buz kalıbı tuğlanın yerine geçer: aynı ayak izi, aynı yükseklik.
+            const float SideInset = 0.09f;   // tuğladaki inset ile aynı his
+            float shellHeight = brickTop;
 
             Vector3 center = _space.RectCenterToWorld(
-                _model.Position, _model.W, _model.H, BrickMeshBuilder.Height * 0.5f + 0.05f);
+                _model.Position, _model.W, _model.H, shellHeight * 0.5f);
             _iceShell.transform.position = center;
             _iceShell.transform.localScale = new Vector3(
-                _model.W - 0.02f, BrickMeshBuilder.Height + 0.22f, _model.H - 0.02f);
+                _model.W - SideInset, shellHeight, _model.H - SideInset);
+
+            // Buz OPAK olduğu için tuğlayı çizmeye gerek yok: hem referanstaki
+            // gibi renk gizleniyor hem de bir çizim çağrısı tasarruf ediyoruz.
+            if (_renderer != null) _renderer.enabled = false;
 
             _iceCounter = ViewKit.CreateCounter(
-                parent, center + Vector3.up * (BrickMeshBuilder.Height * 0.5f + 0.2f),
+                parent,
+                center + Vector3.up * (shellHeight * 0.5f + 0.06f),
                 _model.IceCount);
         }
 
@@ -223,6 +247,9 @@ namespace BlockOut.Runtime.View
             if (_iceCounter != null) Destroy(_iceCounter.gameObject);
             _iceShell = null;
             _iceCounter = null;
+
+            // Gizlenen renk ortaya çıkar — video kuralı.
+            if (_renderer != null) _renderer.enabled = true;
         }
 
         /// <summary>Katman soyulunca dış rengin materyali değişir.</summary>

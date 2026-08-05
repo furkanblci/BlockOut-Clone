@@ -57,7 +57,13 @@ namespace BlockOut.Runtime.View
             go.transform.SetParent(parent, worldPositionStays: false);
             Destroy(go.GetComponent<Collider>());
 
-            float spanCenter = (model.SpanMin + model.SpanMax) * 0.5f;
+            // Kapı barının kenar boyunca kapladığı aralık. Tahtanın KÖŞESİNE
+            // dayanan uç, çerçevenin yuvarlatılmış köşesinin içine girip
+            // "içinden geçmiş" gibi görünüyordu — o ucu köşeden uzaklaştırıyoruz.
+            ResolveSpan(model, space, out float barMin, out float barMax);
+
+            float spanCenter = (barMin + barMax) * 0.5f;
+            float barLength = Mathf.Max(0.25f, barMax - barMin);
             float offCoord = model.EdgeCoord + model.OutwardSign * OutwardOffset;
 
             Vector3 center;
@@ -65,12 +71,12 @@ namespace BlockOut.Runtime.View
             if (model.EdgeHorizontal)
             {
                 center = space.CornerToWorld(spanCenter, offCoord, BarHeight * 0.5f);
-                scale = new Vector3(model.Length - EndInset, BarHeight, BarDepth);
+                scale = new Vector3(barLength, BarHeight, BarDepth);
             }
             else
             {
                 center = space.CornerToWorld(offCoord, spanCenter, BarHeight * 0.5f);
-                scale = new Vector3(BarDepth, BarHeight, model.Length - EndInset);
+                scale = new Vector3(BarDepth, BarHeight, barLength);
             }
             go.transform.position = center;
             go.transform.localScale = scale;
@@ -95,6 +101,41 @@ namespace BlockOut.Runtime.View
             }
 
             return view;
+        }
+
+        /// <summary>
+        /// Barın kenar boyunca kaplayacağı aralığı verir.
+        ///
+        /// SORUN: Kapı, tahtanın köşesine dayandığında (örneğin üst kenarın en
+        /// solundaki kapı) bar, çerçevenin YUVARLATILMIŞ köşesinin içine giriyor
+        /// ve tepeden bakınca "çerçevenin içinden geçmiş" gibi görünüyordu.
+        ///
+        /// ÇÖZÜM: Serbest uçlar eskisi gibi küçük bir payla kısalır; ama tahta
+        /// KÖŞESİNE dayanan uç, köşe yarıçapı kadar içeri çekilir. Kapı böylece
+        /// köşenin yuvarlak kısmına hiç girmez.
+        ///
+        /// DERS (neden kısaltmak yerine kaydırmıyoruz?): Barı olduğu gibi içeri
+        /// ötelemek onu kapının GERÇEK açıklığından kaydırırdı — oyuncu bloğu
+        /// barın hizasına getirir ama kapı orada değildir. Uzunluğu kısaltmak
+        /// görseli düzeltirken açıklığın konumunu bozmuyor.
+        /// </summary>
+        static void ResolveSpan(GateModel model, BoardSpace space, out float min, out float max)
+        {
+            min = model.SpanMin;
+            max = model.SpanMax;
+
+            float cfgRadius = VisualSettings.Current != null
+                ? VisualSettings.Current.frameCornerRadius : 0.6f;
+            // Köşeden kaçınma payı: yarıçapın biraz altı yeter, tamamı kadar
+            // çekmek kısa kapılarda barı gereksiz kırpıyor.
+            float clearance = Mathf.Min(cfgRadius * 0.75f, (max - min) * 0.35f);
+
+            float boardSpan = model.EdgeHorizontal ? space.Width : space.Height;
+
+            // Tahta köşesine dayanan uç: köşe payı kadar içeri.
+            // Serbest uç: yalnızca komşu kapıdan ayrışsın diye küçük pay.
+            min += min <= 0.001f ? clearance : EndInset * 0.5f;
+            max -= max >= boardSpan - 0.001f ? clearance : EndInset * 0.5f;
         }
 
         /// <summary>

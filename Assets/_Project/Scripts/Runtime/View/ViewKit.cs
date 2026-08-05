@@ -19,17 +19,23 @@ namespace BlockOut.Runtime.View
         static Material _curtainPanel;
         static Material _curtainFrame;
         static Font _counterFont;
+        static Material _counterMaterial;
         static readonly Dictionary<BlockColor, Material> _ghosts =
             new Dictionary<BlockColor, Material>();
 
         /// <summary>
-        /// Yarı saydam buz kabuğu.
+        /// Buz bloğu — OPAK.
         ///
-        /// DERS (saydam nesne sıralaması): Saydam malzemeler derinlik YAZMAZ,
-        /// yalnızca sıraya göre çizilir. Varsayılan sırada buz, bloğun ARKASINA
-        /// düşebiliyordu — blok buzun üstünde görünüyordu. renderQueue'yu
-        /// yukarı çekmek buzu her zaman bloktan SONRA çizdirir, yani üstte
-        /// kalır; bu da "blok buzun içinde" görüntüsünü verir.
+        /// DERS (referansı doğru okumak, yarı saydamlıkla boğuşmaktan iyidir):
+        /// Buz kabuğu önce yarı saydam yapılmıştı; blok buzun içinden görünsün
+        /// isteniyordu. Ama iki sorun çıktı: (1) saydam nesneler derinlik yazmaz
+        /// ve sıralamaya bağımlıdır, kamera bu oyunda çok geride durduğu için
+        /// buz sürekli bloğun arkasına düşüyordu; (2) referans oyunda zaten
+        /// ALTTAKİ RENK GÖRÜNMÜYOR — donmuş blok düz bir buz kalıbı, renk ancak
+        /// buz kırılınca ortaya çıkıyor (video kuralı: "buz rengi gizler").
+        ///
+        /// Opak yapmak hem referansa uyuyor hem de bütün sıralama problemini
+        /// ortadan kaldırıyor. Bazen doğru çözüm, yanlış soruyu sormayı bırakmak.
         /// </summary>
         public static Material Ice
         {
@@ -37,12 +43,56 @@ namespace BlockOut.Runtime.View
             {
                 if (_ice == null)
                 {
-                    _ice = new Material(Shader.Find("Sprites/Default")) { name = "Ice_TEMP" };
-                    _ice.color = new Color(0.66f, 0.88f, 1f, 0.62f);
-                    _ice.renderQueue = 3200; // saydamlarda bloklardan sonra
+                    var shader = Shader.Find("Universal Render Pipeline/Lit")
+                                 ?? Shader.Find("Universal Render Pipeline/Unlit");
+                    _ice = new Material(shader) { name = "Ice_TEMP" };
+
+                    var color = new Color(0.60f, 0.85f, 0.99f);
+                    if (_ice.HasProperty("_BaseColor")) _ice.SetColor("_BaseColor", color);
+                    _ice.color = color;
+                    // Buz parlak ve pürüzsüz: ışığı toplayınca "cam" hissi veriyor.
+                    if (_ice.HasProperty("_Smoothness")) _ice.SetFloat("_Smoothness", 0.75f);
+                    if (_ice.HasProperty("_Metallic")) _ice.SetFloat("_Metallic", 0f);
                 }
                 return _ice;
             }
+        }
+
+        /// <summary>
+        /// URP için doğru kurulmuş yarı saydam materyal.
+        ///
+        /// DERS (doğru hat, doğru shader): Buz eskiden `Sprites/Default` ile
+        /// çiziliyordu — o YERLEŞİK (built-in) render hattının shader'ı. URP'de
+        /// bir şeyler çiziyor ama saydamlık/derinlik davranışı garanti değil.
+        /// URP'de saydamlık, shader'ın kendisiyle değil ANAHTAR KELİMELERLE
+        /// açılır: `_Surface=1`, `_SURFACE_TYPE_TRANSPARENT` ve harmanlama
+        /// modu elle kurulmalı; yalnız `color.a` düşürmek yetmez, materyal
+        /// yine opak hattında çizilir.
+        /// </summary>
+        static Material CreateTransparent(string name, Color color, int queue)
+        {
+            var shader = Shader.Find("Universal Render Pipeline/Unlit");
+            if (shader == null) shader = Shader.Find("Sprites/Default"); // en kötü ihtimalde
+
+            var mat = new Material(shader) { name = name + "_TEMP" };
+
+            if (mat.HasProperty("_Surface"))
+            {
+                mat.SetFloat("_Surface", 1f);                 // 0 opak, 1 saydam
+                mat.SetFloat("_Blend", 0f);                   // alfa harmanlama
+                mat.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                mat.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                mat.SetFloat("_ZWrite", 0f);                  // saydam derinlik yazmaz
+                mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                mat.DisableKeyword("_ALPHATEST_ON");
+                mat.SetShaderPassEnabled("ShadowCaster", false);
+                mat.SetShaderPassEnabled("DepthOnly", false);
+            }
+
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
+            mat.color = color;
+            mat.renderQueue = queue;
+            return mat;
         }
 
         static Material _floor;
@@ -208,6 +258,7 @@ namespace BlockOut.Runtime.View
         public static void ClearCache()
         {
             _ice = null;
+            _counterMaterial = null;
             _curtainPanel = null;
             _curtainFrame = null;
             _arrow = null;
@@ -327,18 +378,36 @@ namespace BlockOut.Runtime.View
             var go = new GameObject("Counter");
             go.transform.SetParent(parent, worldPositionStays: false);
             go.transform.SetPositionAndRotation(worldPos, Quaternion.Euler(90f, 0f, 0f));
-            go.transform.localScale = Vector3.one * 0.35f;
+            go.transform.localScale = Vector3.one;
 
             var text = go.AddComponent<TextMesh>();
             text.font = CounterFont;
-            text.GetComponent<MeshRenderer>().sharedMaterial = CounterFont.material;
-            text.fontSize = 48;
-            text.characterSize = 0.1f;
+            // Yüksek fontSize + küçük characterSize = keskin kenar. Etkin boyut
+            // ikisinin çarpımıdır; hücre genişliği 1 birim olduğu için ~0.05
+            // referanstaki iriliği veriyor.
+            text.fontSize = 96;
+            text.characterSize = 0.05f;
             text.anchor = TextAnchor.MiddleCenter;
             text.alignment = TextAlignment.Center;
             text.fontStyle = FontStyle.Bold;
-            text.color = new Color(0.15f, 0.25f, 0.45f);
             text.text = value.ToString();
+
+            // DERS (yazı da derinlik testine girer): Sayaç buz kalıbının ÜSTÜNDE
+            // duruyor ama font materyali varsayılan sırada çizilince blok/buz
+            // yüzeyiyle çakışıp soluk kalıyordu. Materyali kopyalayıp sırasını
+            // yukarı çekmek sayacı her zaman en üstte tutar — yazı bir arayüz
+            // öğesi gibi davranmalı, sahnenin bir parçası gibi değil.
+            var renderer = go.GetComponent<MeshRenderer>();
+            if (_counterMaterial == null && CounterFont.material != null)
+            {
+                _counterMaterial = new Material(CounterFont.material) { name = "Counter_TEMP" };
+                _counterMaterial.renderQueue = 4000;
+            }
+            renderer.sharedMaterial = _counterMaterial != null ? _counterMaterial : CounterFont.material;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+
+            // Koyu lacivert zeminde krem: referanstaki sayaçlar da açık renk.
+            text.color = new Color(0.13f, 0.20f, 0.38f);
             return text;
         }
 
