@@ -2,7 +2,7 @@ using System.Text;
 using Unity.Profiling;
 using UnityEngine;
 
-namespace BlockOut.Runtime.Services
+namespace GameKit.Services
 {
     /// <summary>
     /// Cihazda kare hızını ve ÇÖP ÜRETİMİNİ ölçen ince bir sonda.

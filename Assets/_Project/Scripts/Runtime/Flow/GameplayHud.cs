@@ -1,4 +1,5 @@
 using UnityEngine;
+using GameKit.Services;
 
 namespace BlockOut.Runtime.Flow
 {
@@ -186,8 +187,8 @@ namespace BlockOut.Runtime.Flow
         {
             var rect = new Rect(Screen.width - 74 * s, 8 * s, 66 * s, 34 * s);
             _buttonStyle.fontSize = Mathf.RoundToInt(18 * s);
-            if (GUI.Button(rect, Services.PerfProbe.Visible ? PerfOn : PerfOff, _buttonStyle))
-                Services.PerfProbe.Visible = !Services.PerfProbe.Visible;
+            if (GUI.Button(rect, PerfProbe.Visible ? PerfOn : PerfOff, _buttonStyle))
+                PerfProbe.Visible = !PerfProbe.Visible;
         }
 
         /// <summary>

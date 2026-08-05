@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
-namespace BlockOut.Editor.ProjectSetup
+namespace GameKit.Editor
 {
     /// <summary>
     /// Plandaki mobil optimizasyon listesini URP asset'ine uygular.

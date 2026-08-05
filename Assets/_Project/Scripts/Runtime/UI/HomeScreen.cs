@@ -4,6 +4,7 @@ using BlockOut.Runtime.Flow;
 using BlockOut.Runtime.Services;
 using UnityEngine;
 using UnityEngine.UI;
+using UiKit = GameKit.UI.UiKit;
 
 namespace BlockOut.Runtime.UI
 {
