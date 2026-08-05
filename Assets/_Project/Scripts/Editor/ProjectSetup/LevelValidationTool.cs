@@ -176,10 +176,25 @@ namespace BlockOut.Editor.ProjectSetup
 
             if (!report.Solution.Solved)
             {
-                report.Errors.Add(
-                    $"ÇÖZÜLEMEZ — {report.Solution.RemainingBlocks} blok kaldı" +
+                // Bütçe dolduysa bu bir HATA değil UYARIDIR: çözücü pes etti,
+                // bölüm gerçekten kilitli olmayabilir. Yanlış alarmla tasarımı
+                // bozmaktansa "emin değilim" demek doğrusu.
+                string detail =
+                    $"{report.Solution.RemainingBlocks} blok kaldı" +
                     (report.Solution.PendingCurtainContent ? ", perde açılmadı" : "") +
-                    $" (yapılabilen hamle: {report.Solution.Moves.Count})");
+                    $" (yapılan hamle: {report.Solution.Moves.Count}, " +
+                    $"kaydırma: {report.Solution.ShuffleSteps})";
+
+                if (report.Solution.Inconclusive)
+                {
+                    report.Warnings.Add("ÇÖZÜCÜ PES ETTİ (arama bütçesi doldu) — " + detail +
+                                        ". Elle test gerekir.");
+                    AddDesignWarnings(data, report);
+                    report.Ok = true;
+                    return report;
+                }
+
+                report.Errors.Add("ÇÖZÜLEMEZ — " + detail);
                 return report;
             }
 

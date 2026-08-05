@@ -3,36 +3,46 @@
   "id": "level_007",
   "displayNumber": 7,
   "difficulty": "normal",
-  "timeSeconds": 150,
+  "timeSeconds": 180,
   "board": {
-    "width": 6,
-    "height": 7,
+    "width": 5,
+    "height": 8,
     "rows": [
-      "XXXXXX",
-      "XXXXXX",
-      "XXXXXX",
-      "XXXXXX",
-      "XXXXXX",
-      "XXXXXX",
-      "XXXXXX"
+      "XXXXX",
+      "XXXXX",
+      "XXXXX",
+      "XXXXX",
+      "XXXXX",
+      "XXXXX",
+      "XXXXX",
+      "XXXXX"
     ],
     "walls": []
   },
   "blocks": [
-    { "x": 1, "y": 1, "w": 2, "h": 1, "layers": ["red"] },
-    { "x": 4, "y": 3, "w": 1, "h": 2, "layers": ["red"] },
-    { "x": 2, "y": 2, "w": 2, "h": 2, "layers": ["green"] },
-    { "x": 0, "y": 5, "w": 2, "h": 1, "layers": ["green"] },
-    { "x": 1, "y": 3, "w": 1, "h": 1, "layers": ["yellow"] },
-    { "x": 3, "y": 6, "w": 2, "h": 1, "layers": ["yellow"] },
-    { "x": 4, "y": 0, "w": 2, "h": 1, "layers": ["blue"] },
-    { "x": 0, "y": 0, "w": 1, "h": 1, "layers": ["blue"] }
+    { "x": 0, "y": 0, "w": 2, "h": 2, "layers": ["red"] },
+    { "x": 2, "y": 0, "w": 1, "h": 2, "layers": ["white"] },
+    { "x": 3, "y": 0, "w": 1, "h": 2, "layers": ["black"] },
+    { "x": 4, "y": 0, "w": 1, "h": 2, "layers": ["white"] },
+
+    { "x": 0, "y": 2, "w": 1, "h": 2, "layers": ["black"] },
+    { "x": 1, "y": 2, "w": 1, "h": 2, "layers": ["white"] },
+    { "x": 2, "y": 2, "w": 1, "h": 2, "layers": ["black"] },
+    { "x": 3, "y": 2, "w": 1, "h": 2, "layers": ["white"] },
+
+    { "x": 0, "y": 4, "w": 1, "h": 2, "layers": ["white"] },
+    { "x": 1, "y": 4, "w": 1, "h": 2, "layers": ["black"] },
+    { "x": 2, "y": 4, "w": 1, "h": 2, "layers": ["white"] },
+    { "x": 3, "y": 4, "w": 1, "h": 2, "layers": ["black"] },
+
+    { "x": 0, "y": 6, "w": 2, "h": 2, "layers": ["red"] },
+    { "x": 2, "y": 6, "w": 1, "h": 2, "layers": ["black"] },
+    { "x": 3, "y": 6, "w": 2, "h": 2, "layers": ["red"] }
   ],
   "gates": [
-    { "x": 0, "y": 1, "side": "W", "length": 3, "colors": ["red"] },
-    { "x": 1, "y": 6, "side": "S", "length": 3, "colors": ["green"] },
-    { "x": 1, "y": 0, "side": "N", "length": 3, "colors": ["blue"], "ice": 2 },
-    { "x": 5, "y": 3, "side": "E", "length": 3, "colors": ["yellow"], "ice": 4 }
+    { "x": 0, "y": 0, "side": "N", "length": 2, "colors": ["white"], "ice": 9 },
+    { "x": 4, "y": 0, "side": "E", "length": 2, "colors": ["red"] },
+    { "x": 3, "y": 7, "side": "S", "length": 2, "colors": ["black"], "ice": 3 }
   ],
   "obstacles": []
 }
