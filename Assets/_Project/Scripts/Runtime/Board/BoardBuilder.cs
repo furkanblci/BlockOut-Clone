@@ -95,6 +95,16 @@ namespace BlockOut.Runtime.Board
             wallRoot.SetParent(root, false);
             var builtEdges = new HashSet<EdgeId>();
 
+            // İç duvarlar çerçeveyle aynı stilde: ince gri çizgi yerine tahtanın
+            // yapısal bir parçası gibi görünsün (referansta böyle).
+            // NOT: yerel fonksiyonlar bu değişkenleri yakaladığı için ÇAĞRIDAN
+            // ÖNCE atanmaları gerekir — aksi halde "unassigned local" hatası.
+            bool wallLikeFrame = cfg == null || cfg.wallMatchesFrame;
+            Material wallMaterial = wallLikeFrame ? frameMat : wallMat;
+            float wallH = wallLikeFrame ? frameHeight : WallHeight;
+            float wallT = wallLikeFrame
+                ? Mathf.Max(WallThickness, frameThickness * 0.6f) : WallThickness;
+
             for (int y = 0; y < board.Height; y++)
             {
                 for (int x = 0; x < board.Width; x++)
@@ -125,14 +135,16 @@ namespace BlockOut.Runtime.Board
                 seg.name = $"Wall_{edge.X}_{edge.Y}_{(edge.Horizontal ? "H" : "V")}";
                 seg.transform.SetParent(wallRoot, false);
                 Object.Destroy(seg.GetComponent<Collider>());
-                seg.GetComponent<MeshRenderer>().sharedMaterial = wallMat;
+                var wallRenderer = seg.GetComponent<MeshRenderer>();
+                wallRenderer.sharedMaterial = wallMaterial;
+                wallRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
                 seg.transform.position = edge.Horizontal
-                    ? space.CornerToWorld(edge.X + 0.5f, edge.Y, WallHeight * 0.5f)
-                    : space.CornerToWorld(edge.X, edge.Y + 0.5f, WallHeight * 0.5f);
+                    ? space.CornerToWorld(edge.X + 0.5f, edge.Y, wallH * 0.5f)
+                    : space.CornerToWorld(edge.X, edge.Y + 0.5f, wallH * 0.5f);
                 seg.transform.localScale = edge.Horizontal
-                    ? new Vector3(1f + WallThickness, WallHeight, WallThickness)
-                    : new Vector3(WallThickness, WallHeight, 1f + WallThickness);
+                    ? new Vector3(1f + wallT, wallH, wallT)
+                    : new Vector3(wallT, wallH, 1f + wallT);
             }
 
             // --- Bloklar, kapılar ve engeller ---

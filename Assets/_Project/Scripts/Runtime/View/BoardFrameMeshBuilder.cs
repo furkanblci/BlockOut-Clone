@@ -31,12 +31,15 @@ namespace BlockOut.Runtime.View
             float innerHalfW = innerW * 0.5f;
             float innerHalfH = innerH * 0.5f;
 
-            var outer = RoundedRect(outerHalfW, outerHalfH,
-                Mathf.Min(cornerRadius + thickness * 0.5f, Mathf.Min(outerHalfW, outerHalfH) * 0.9f),
-                cornerSegments);
+            // Dış yarıçap ayarın kendisidir; içeriye doğru kalınlık kadar
+            // küçülür. Önceden dışa +kalınlık/2 ekleniyordu ve köşeler
+            // referanstan çok daha yuvarlak çıkıyordu.
+            float outerRadius = Mathf.Min(cornerRadius, Mathf.Min(outerHalfW, outerHalfH) * 0.6f);
+            float innerRadius = Mathf.Max(0.02f, outerRadius - thickness * 0.7f);
+
+            var outer = RoundedRect(outerHalfW, outerHalfH, outerRadius, cornerSegments);
             var inner = RoundedRect(innerHalfW, innerHalfH,
-                Mathf.Min(cornerRadius * 0.55f, Mathf.Min(innerHalfW, innerHalfH) * 0.9f),
-                cornerSegments);
+                Mathf.Min(innerRadius, Mathf.Min(innerHalfW, innerHalfH) * 0.6f), cornerSegments);
 
             var verts = new List<Vector3>();
             var normals = new List<Vector3>();

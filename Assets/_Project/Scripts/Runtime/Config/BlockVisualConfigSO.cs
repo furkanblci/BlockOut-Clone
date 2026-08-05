@@ -114,8 +114,13 @@ namespace BlockOut.Runtime.Config
         [Tooltip("Çerçevenin üst kenar pahı — derinlik hissi verir.")]
         [Range(0f, 0.3f)] public float frameBevel = 0.09f;
 
-        [Range(0f, 0.5f)] public float wallHeight = 0.42f;
-        [Range(0.05f, 0.5f)] public float wallThickness = 0.18f;
+        [Header("İç duvarlar")]
+        [Tooltip("İç duvarlar çerçeveyle aynı stilde (renk, yükseklik) çizilir — " +
+                 "ince gri çizgi yerine tahtanın parçası gibi görünür.")]
+        public bool wallMatchesFrame = true;
+
+        [Range(0f, 0.8f)] public float wallHeight = 0.42f;
+        [Range(0.05f, 0.7f)] public float wallThickness = 0.34f;
 
         [Header("Kapılar")]
         [Tooltip("Açıkken kapı, ÇERÇEVE bandını birebir doldurur (yükseklik, " +
