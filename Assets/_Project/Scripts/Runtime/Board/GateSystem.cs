@@ -126,8 +126,13 @@ namespace BlockOut.Runtime.Board
 
         /// <summary>
         /// Katman soyma (video kuralı): dış katman kapıda "emilir", blok İÇ
-        /// rengiyle tahtada kalır ve sürükleme sona erer. Soyulma bir blok
-        /// ÇIKIŞI sayılmaz — buz/perde sayaçları ilerlemez.
+        /// rengiyle tahtada kalır ve sürükleme sona erer.
+        ///
+        /// DÜZELTME (bölüm 21 analizi): Sayaçlar blok ÇIKIŞINI değil, kapıdaki
+        /// EMİLİM olayını sayar — soyulma da sayar. Referansta bölüm 21'in
+        /// perde sayaçları (6/13/15) yalnız tam çıkışlarla asla dolmuyordu;
+        /// soyulmaları da sayınca birebir tutuyor. Katmanlı blokların bulunduğu
+        /// her bölümün buz/perde bütçesi bu kurala bağlı.
         /// </summary>
         void Peel(BlockModel block, GateModel gate)
         {
@@ -140,6 +145,7 @@ namespace BlockOut.Runtime.Board
             }
 
             _events.RaiseLayerPeeled(block, gate);
+            _obstacles.NotifyBlockExit();          // emilim sayılır: buz erir, perde sayar
             RecomputeGateStates(); // soyulan rengin son örneğiyse kapısı ghost olabilir
         }
 
