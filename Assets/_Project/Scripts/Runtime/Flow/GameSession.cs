@@ -368,6 +368,9 @@ namespace BlockOut.Runtime.Flow
             _lifeSpent = true;
             Services.MetaServices.Lives.TrySpend();
             Services.MetaServices.Progress.NoteAttempt(LevelId);
+
+            GameKit.Services.Analytics.LevelStarted(
+                _levelIndex, Services.MetaServices.Progress.Record(LevelId).Attempts);
         }
 
         void OnBoardCleared()
@@ -390,6 +393,11 @@ namespace BlockOut.Runtime.Flow
                 // eksiliyor. Harcamayı girişte yapıp kazanınca iade etmek, "çıkıp
                 // geri girme" istismarını da kapatıyor.
                 Services.MetaServices.Lives.Grant(1);
+
+                var record = Services.MetaServices.Progress.Record(LevelId);
+                GameKit.Services.Analytics.LevelCompleted(
+                    _levelIndex, record.Attempts, remaining, perfect);
+                GameKit.Services.Analytics.CurrencyEarned("coin", LastReward, "level_clear");
             }
         }
 
@@ -399,6 +407,12 @@ namespace BlockOut.Runtime.Flow
             State = GameState.Lost;
             _audio?.PlayLose();
             _haptics?.Play(GameKit.Services.HapticStrength.Heavy);
+
+            if (Services.MetaServices.Ready)
+                GameKit.Services.Analytics.LevelFailed(
+                    _levelIndex,
+                    Services.MetaServices.Progress.Record(LevelId).Attempts,
+                    "timeout");
         }
     }
 }

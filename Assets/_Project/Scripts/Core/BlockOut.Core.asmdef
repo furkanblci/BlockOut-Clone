@@ -1,7 +1,9 @@
 {
     "name": "BlockOut.Core",
     "rootNamespace": "BlockOut.Core",
-    "references": [],
+    "references": [
+        "GameKit.Runtime"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
