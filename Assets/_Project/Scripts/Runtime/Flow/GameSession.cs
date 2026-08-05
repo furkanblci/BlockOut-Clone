@@ -34,6 +34,15 @@ namespace BlockOut.Runtime.Flow
         public int DisplayNumber { get; private set; }
         public int WarningSeconds => config.warningSeconds;
 
+        /// <summary>Bu bölümün kayıt anahtarı (level_003 gibi). Meta servisleri kullanır.</summary>
+        public string LevelId { get; private set; } = "";
+
+        /// <summary>Son kazanışta verilen coin — bitiş ekranı gösterir.</summary>
+        public int LastReward { get; private set; }
+
+        /// <summary>Bu deneme için can harcandı mı? (Aynı bölümde iki kez düşmesin.)</summary>
+        bool _lifeSpent;
+
         LevelModel _level;
         BoardEvents _events;
         DragController _drag;
@@ -58,6 +67,17 @@ namespace BlockOut.Runtime.Flow
             _fx = FX.FXService.Create(transform, palette);
             _audio = Services.AudioService.Create(transform);
             _haptics = Services.HapticsService.Create(transform);
+
+            // Oyuncunun kayıtlı ses/titreşim tercihleri hemen geçerli olsun.
+            if (Services.MetaServices.Ready)
+                Services.SettingsBinder.Apply(
+                    Services.MetaServices.Save.Data.Settings, _audio, _haptics);
+
+            // Oyuncu kaldığı yerden devam eder. Kayıt yoksa (ilk açılış ya da
+            // editörde Play Test) bu 0'dır, yani bölüm 1.
+            if (Services.MetaServices.Ready && LevelCount > 0)
+                _levelIndex = Mathf.Clamp(
+                    Services.MetaServices.Progress.HighestUnlockedIndex, 0, LevelCount - 1);
 
             Timer.Expired += OnTimeExpired;
             BuildAndStart();
@@ -165,6 +185,12 @@ namespace BlockOut.Runtime.Flow
             }
 
             DisplayNumber = data.DisplayNumber;
+            LevelId = string.IsNullOrEmpty(data.Id) ? ActiveLevelAsset.name : data.Id;
+
+            // Can, bölüm KURULURKEN değil OYNANMAYA BAŞLARKEN harcanır; parse
+            // hatasında oyuncudan can almış olmayalım.
+            SpendLifeForAttempt();
+
             _level = LevelModel.Build(data);
             _events = new BoardEvents();
             _events.BoardCleared += OnBoardCleared;
@@ -268,6 +294,8 @@ namespace BlockOut.Runtime.Flow
             _drag?.Dispose();
             _drag = null;
             _events = null; // taze olay merkezi = bayat abone kalmaz
+            _lifeSpent = false;
+            LastReward = 0;
             State = GameState.Intro;
             BuildAndStart();
         }
@@ -290,10 +318,40 @@ namespace BlockOut.Runtime.Flow
             }
         }
 
+        /// <summary>
+        /// Denemeye bir can yazar. Can yoksa bölüm yine de açılır ama işaretlenir —
+        /// "can bitti" kararını Home ekranı verecek (M5 sahne akışı); oyunun
+        /// ortasında oyuncuyu kilitlemek kötü bir deneyim olurdu.
+        /// </summary>
+        void SpendLifeForAttempt()
+        {
+            if (_lifeSpent || !Services.MetaServices.Ready) return;
+            _lifeSpent = true;
+            Services.MetaServices.Lives.TrySpend();
+            Services.MetaServices.Progress.NoteAttempt(LevelId);
+        }
+
         void OnBoardCleared()
         {
             State = GameState.Won;
             Timer.Stop();
+
+            if (Services.MetaServices.Ready)
+            {
+                // PERFECT ölçüsü (videodan): süre dolmadan, sürenin yarısından
+                // fazlası kalmışken bitirmek. Kesin kriter L20+ kaydı gelince
+                // netleşecek; kural tek yerde durduğu için değiştirmesi kolay.
+                int remaining = Mathf.CeilToInt(Timer.Remaining);
+                bool perfect = remaining * 2 >= Timer.Total;
+
+                LastReward = Services.MetaServices.Progress.NoteCleared(
+                    LevelId, _levelIndex, remaining, perfect);
+
+                // Kazanan oyuncu canını geri alır — videoda can yalnız kaybedince
+                // eksiliyor. Harcamayı girişte yapıp kazanınca iade etmek, "çıkıp
+                // geri girme" istismarını da kapatıyor.
+                Services.MetaServices.Lives.Grant(1);
+            }
         }
 
         void OnTimeExpired()
