@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "id": "level_020",
+  "displayNumber": 20,
+  "difficulty": "superhard",
+  "timeSeconds": 180,
+  "board": {
+    "width": 5,
+    "height": 8,
+    "rows": [
+      "XXXXX",
+      "XXXXX",
+      "XXXXX",
+      "..X..",
+      "..X..",
+      "XXXXX",
+      "XXXXX",
+      "XXXXX"
+    ],
+    "walls": []
+  },
+  "blocks": [
+    { "x": 0, "y": 5, "w": 2, "h": 1, "layers": ["red"] },
+    { "x": 2, "y": 5, "w": 1, "h": 3, "layers": ["green"] },
+    { "x": 3, "y": 5, "w": 2, "h": 1, "layers": ["yellow"] },
+
+    { "x": 0, "y": 6, "w": 2, "h": 1, "layers": ["blue"] },
+    { "x": 3, "y": 6, "w": 2, "h": 1, "layers": ["red"] },
+
+    { "x": 0, "y": 7, "w": 2, "h": 1, "layers": ["pink"] },
+    { "x": 3, "y": 7, "w": 2, "h": 1, "layers": ["yellow"] }
+  ],
+  "gates": [
+    { "x": 1, "y": 0, "side": "N", "length": 2, "colors": ["pink"], "ice": 8 },
+    { "x": 3, "y": 0, "side": "N", "length": 2, "colors": ["blue"], "ice": 6 },
+    { "x": 4, "y": 0, "side": "E", "length": 1, "colors": ["green"], "ice": 7 },
+    { "x": 0, "y": 2, "side": "W", "length": 1, "colors": ["red"], "ice": 10 },
+    { "x": 0, "y": 6, "side": "W", "length": 1, "colors": ["blue"], "ice": 3 },
+    { "x": 4, "y": 7, "side": "E", "length": 1, "colors": ["red"], "ice": 1 },
+    { "x": 0, "y": 7, "side": "S", "length": 2, "colors": ["pink"], "ice": 2 },
+    { "x": 3, "y": 7, "side": "S", "length": 2, "colors": ["yellow"] },
+    { "x": 2, "y": 7, "side": "S", "length": 1, "colors": ["green"], "ice": 4 }
+  ],
+  "obstacles": [
+    {
+      "type": "curtain",
+      "x": 0,
+      "y": 0,
+      "w": 5,
+      "h": 3,
+      "count": 6,
+      "contents": [
+        { "x": 0, "y": 0, "w": 2, "h": 1, "layers": ["pink"] },
+        { "x": 2, "y": 0, "w": 1, "h": 3, "layers": ["green"] },
+        { "x": 3, "y": 0, "w": 2, "h": 1, "layers": ["blue"] },
+        { "x": 0, "y": 1, "w": 2, "h": 1, "layers": ["red"] },
+        { "x": 3, "y": 1, "w": 2, "h": 1, "layers": ["blue"] },
+        { "x": 0, "y": 2, "w": 2, "h": 1, "layers": ["red"] },
+        { "x": 3, "y": 2, "w": 2, "h": 1, "layers": ["pink"] }
+      ]
+    }
+  ]
+}
