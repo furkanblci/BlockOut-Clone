@@ -22,8 +22,15 @@ namespace BlockOut.Runtime.View
         static readonly Dictionary<BlockColor, Material> _ghosts =
             new Dictionary<BlockColor, Material>();
 
-        /// <summary>Yarı saydam buz. Sprites/Default URP'de SRPDefaultUnlit yolundan çizilir —
-        /// kod tarafında güvenilir tek saydam yerleşik şu an bu (M4'te asset olacak).</summary>
+        /// <summary>
+        /// Yarı saydam buz kabuğu.
+        ///
+        /// DERS (saydam nesne sıralaması): Saydam malzemeler derinlik YAZMAZ,
+        /// yalnızca sıraya göre çizilir. Varsayılan sırada buz, bloğun ARKASINA
+        /// düşebiliyordu — blok buzun üstünde görünüyordu. renderQueue'yu
+        /// yukarı çekmek buzu her zaman bloktan SONRA çizdirir, yani üstte
+        /// kalır; bu da "blok buzun içinde" görüntüsünü verir.
+        /// </summary>
         public static Material Ice
         {
             get
@@ -31,9 +38,226 @@ namespace BlockOut.Runtime.View
                 if (_ice == null)
                 {
                     _ice = new Material(Shader.Find("Sprites/Default")) { name = "Ice_TEMP" };
-                    _ice.color = new Color(0.62f, 0.85f, 1f, 0.55f);
+                    _ice.color = new Color(0.66f, 0.88f, 1f, 0.62f);
+                    _ice.renderQueue = 3200; // saydamlarda bloklardan sonra
                 }
                 return _ice;
+            }
+        }
+
+        static Material _floor;
+        static Texture2D _floorTexture;
+
+        /// <summary>
+        /// Zemin: TEK quad + döşenen prosedürel doku (hücre + ızgara çizgisi +
+        /// kesişim noktası).
+        ///
+        /// DERS (çizim çağrısı = maliyet): Önceden her hücre için ayrı quad
+        /// üretiyorduk — 6×8 tahtada 48 nesne, 48 çizim çağrısı ve komşu
+        /// quad'ların kenarlarında z-fighting (titreyen çizgiler). Tek quad
+        /// üstüne döşenen doku hem 1 çizim çağrısı hem de kusursuz kenar.
+        /// </summary>
+        public static Material FloorMaterial(BlockOut.Runtime.Config.BlockVisualConfigSO cfg)
+        {
+            if (_floor != null) return _floor;
+
+            _floor = new Material(Shader.Find("Universal Render Pipeline/Unlit"))
+            {
+                name = "Floor",
+                mainTexture = BuildFloorTexture(cfg)
+            };
+            _floor.SetColor("_BaseColor", Color.white);
+            _floor.mainTexture.wrapMode = TextureWrapMode.Repeat;
+            return _floor;
+        }
+
+        static Texture2D BuildFloorTexture(BlockOut.Runtime.Config.BlockVisualConfigSO cfg)
+        {
+            const int size = 128;
+            Color cell = cfg != null ? cfg.floorColorA : new Color(0.17f, 0.15f, 0.31f);
+            // Çizgi/nokta renkleri hücre renginden TÜRETİLİR: zemin rengini
+            // değiştirdiğinde kontrast kendiliğinden korunur.
+            float lineDarken = cfg != null ? cfg.floorLineDarken : 0.6f;
+            float dotDarken = cfg != null ? cfg.floorDotDarken : 0.4f;
+            Color line = new Color(cell.r * lineDarken, cell.g * lineDarken, cell.b * lineDarken, 1f);
+            Color dot = new Color(cell.r * dotDarken, cell.g * dotDarken, cell.b * dotDarken, 1f);
+            float lineWidth = cfg != null ? cfg.floorLineWidth : 0.045f;
+            float dotSize = cfg != null ? cfg.floorDotSize : 0.09f;
+
+            _floorTexture = new Texture2D(size, size, TextureFormat.RGBA32, true)
+            {
+                hideFlags = HideFlags.HideAndDontSave,
+                wrapMode = TextureWrapMode.Repeat,
+                filterMode = FilterMode.Bilinear,
+                anisoLevel = 4
+            };
+
+            var pixels = new Color32[size * size];
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float u = (x + 0.5f) / size;
+                    float v = (y + 0.5f) / size;
+
+                    // Kenara olan mesafe: hücre sınırında çizgi.
+                    float edge = Mathf.Min(Mathf.Min(u, 1f - u), Mathf.Min(v, 1f - v));
+
+                    // Hücrenin ORTASI hafif aydınlık: koyu zeminlerde bile
+                    // hücreler tek tek okunur (yalnızca çizgiye güvenmek,
+                    // karanlık renklerde yetersiz kalıyordu).
+                    float centerLift = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(edge / 0.35f));
+                    Color cellShade = Color.Lerp(
+                        new Color(cell.r * 0.86f, cell.g * 0.86f, cell.b * 0.86f, 1f),
+                        new Color(cell.r * 1.10f, cell.g * 1.10f, cell.b * 1.10f, 1f),
+                        centerLift);
+
+                    Color color = edge < lineWidth ? line : cellShade;
+
+                    // Köşelerdeki nokta (döşenince kesişimlerde birleşir).
+                    float dx = Mathf.Min(u, 1f - u);
+                    float dy = Mathf.Min(v, 1f - v);
+                    if (Mathf.Sqrt(dx * dx + dy * dy) < dotSize) color = dot;
+
+                    pixels[y * size + x] = color;
+                }
+            }
+            _floorTexture.SetPixels32(pixels);
+            _floorTexture.Apply(true, false);
+            return _floorTexture;
+        }
+
+        static Material _arrowGhost;
+
+        /// <summary>Rengi tükenmiş kapının soluk oku (kapı gizlenmez, solar).</summary>
+        public static Material ArrowGhostMaterial
+        {
+            get
+            {
+                if (_arrowGhost == null)
+                {
+                    var shader = Shader.Find("BlockOut/Brick")
+                                 ?? Shader.Find("Universal Render Pipeline/Unlit");
+                    _arrowGhost = new Material(shader) { name = "GateArrowGhost" };
+                    _arrowGhost.SetColor("_BaseColor", new Color(0.42f, 0.40f, 0.50f));
+                }
+                return _arrowGhost;
+            }
+        }
+
+        static Material _shadow;
+        static Texture2D _shadowTexture;
+
+        /// <summary>
+        /// Blokların altındaki yumuşak temas gölgesi.
+        ///
+        /// DERS (derinlik ipuçları): Tepeden bakan bir kamerada tüm üst yüzler
+        /// ışığa aynı açıyla durur, bu yüzden sahne DÜZ görünür. Gerçek gölge
+        /// hesaplamak mobilde pahalıdır; blokların altına yumuşak bir leke
+        /// koymak ise neredeyse bedavadır ve "nesne zeminin ÜSTÜNDE duruyor"
+        /// bilgisini tek başına verir. Oyun grafiklerinde buna blob shadow denir.
+        /// </summary>
+        public static Material ShadowMaterial
+        {
+            get
+            {
+                if (_shadow == null)
+                {
+                    _shadow = new Material(Shader.Find("Sprites/Default")) { name = "BlobShadow" };
+                    _shadow.mainTexture = ShadowTexture;
+                }
+                return _shadow;
+            }
+        }
+
+        static Texture2D ShadowTexture
+        {
+            get
+            {
+                if (_shadowTexture != null) return _shadowTexture;
+
+                // Kenarları yumuşak, köşeleri yuvarlatılmış dikdörtgen leke.
+                const int size = 64;
+                _shadowTexture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+                {
+                    hideFlags = HideFlags.HideAndDontSave,
+                    wrapMode = TextureWrapMode.Clamp
+                };
+
+                var pixels = new Color32[size * size];
+                for (int y = 0; y < size; y++)
+                {
+                    for (int x = 0; x < size; x++)
+                    {
+                        // Merkezden kenara doğru yumuşak düşüş (superellipse).
+                        float nx = (x + 0.5f) / size * 2f - 1f;
+                        float ny = (y + 0.5f) / size * 2f - 1f;
+                        float d = Mathf.Pow(Mathf.Abs(nx), 4f) + Mathf.Pow(Mathf.Abs(ny), 4f);
+                        float alpha = Mathf.Clamp01(1f - Mathf.Pow(d, 0.75f));
+                        alpha = alpha * alpha;
+                        pixels[y * size + x] = new Color32(0, 0, 0, (byte)(alpha * 255));
+                    }
+                }
+                _shadowTexture.SetPixels32(pixels);
+                _shadowTexture.Apply(false, true);
+                return _shadowTexture;
+            }
+        }
+
+        /// <summary>Ayar değişince üretilen materyaller yeniden kurulsun.</summary>
+        public static void ClearCache()
+        {
+            _ice = null;
+            _curtainPanel = null;
+            _curtainFrame = null;
+            _arrow = null;
+            _arrowGhost = null;
+            _particle = null;
+            _floor = null;
+            _floorTexture = null;
+            _ghosts.Clear();
+        }
+
+        static Material _arrow;
+
+        /// <summary>
+        /// Kapı okları: tuğla shader'ı kullanılır ki ok da speküler parlaklık
+        /// alsın ve kabartma kenarları belirginleşsin (unlit materyal düz
+        /// beyaz bir leke bırakıyordu).
+        /// </summary>
+        public static Material ArrowMaterial
+        {
+            get
+            {
+                if (_arrow == null)
+                {
+                    var shader = Shader.Find("BlockOut/Brick")
+                                 ?? Shader.Find("Universal Render Pipeline/Unlit");
+                    _arrow = new Material(shader) { name = "GateArrow" };
+                    _arrow.SetColor("_BaseColor", new Color(1f, 0.99f, 0.96f));
+                }
+                return _arrow;
+            }
+        }
+
+        static Material _particle;
+
+        /// <summary>
+        /// Parçacık materyali: vertex rengini olduğu gibi gösteren unlit yol.
+        /// ParticleSystem her parçacığın rengini vertex rengiyle taşıdığı için
+        /// tek materyal tüm renkler için yeterlidir.
+        /// </summary>
+        public static Material ParticleMaterial
+        {
+            get
+            {
+                if (_particle == null)
+                {
+                    var shader = Shader.Find("Universal Render Pipeline/Particles/Unlit")
+                                 ?? Shader.Find("Sprites/Default");
+                    _particle = new Material(shader) { name = "Crumb_TEMP" };
+                }
+                return _particle;
             }
         }
 
@@ -57,15 +281,27 @@ namespace BlockOut.Runtime.View
             }
         }
 
-        /// <summary>Rengi tükenen kapının soluk hali — renk başına tek paylaşımlı materyal.</summary>
+        /// <summary>
+        /// Rengi tükenen kapının kapalı hali.
+        ///
+        /// Önceden renk açık griye doğru karıştırılıyordu ve pastel/solgun
+        /// görünüyordu — "bozuk" hissi veriyordu. Referansta kapı SÖNÜK
+        /// görünür: aynı renk ama koyu ve doygunluğu düşük. Karartmak
+        /// "devre dışı" mesajını çok daha net veriyor.
+        /// </summary>
         public static Material GhostFor(ColorPaletteSO palette, BlockColor color)
         {
             if (_ghosts.TryGetValue(color, out var mat)) return mat;
 
             var entry = palette.Get(color);
             Color baseColor = entry != null ? entry.uiColor : Color.gray;
-            Color faded = Color.Lerp(baseColor, new Color(0.35f, 0.33f, 0.45f), 0.65f);
-            mat = MakeLit($"Ghost_{color}", faded);
+
+            float grey = baseColor.r * 0.299f + baseColor.g * 0.587f + baseColor.b * 0.114f;
+            Color desaturated = Color.Lerp(new Color(grey, grey, grey), baseColor, 0.45f);
+            Color dimmed = desaturated * 0.38f;
+            dimmed.a = 1f;
+
+            mat = MakeLit($"Ghost_{color}", dimmed);
             _ghosts[color] = mat;
             return mat;
         }

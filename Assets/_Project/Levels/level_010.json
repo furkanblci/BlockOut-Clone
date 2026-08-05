@@ -17,25 +17,41 @@
       "XXXXXX",
       "XXXXXX"
     ],
-    "walls": [
-      { "x": 3, "y": 2, "side": "W", "length": 4 }
-    ]
+    "walls": []
   },
   "blocks": [
-    { "x": 0, "y": 1, "w": 2, "h": 1, "layers": ["red"] },
-    { "x": 4, "y": 6, "w": 2, "h": 1, "layers": ["red"] },
-    { "x": 1, "y": 3, "w": 2, "h": 2, "layers": ["blue"], "ice": 2 },
-    { "x": 4, "y": 0, "w": 2, "h": 1, "layers": ["blue"] },
-    { "x": 0, "y": 6, "w": 2, "h": 2, "layers": ["yellow"] },
-    { "x": 3, "y": 3, "w": 1, "h": 2, "layers": ["yellow"], "ice": 3 },
-    { "x": 4, "y": 2, "w": 2, "h": 1, "layers": ["green"] },
-    { "x": 2, "y": 0, "w": 1, "h": 2, "layers": ["green"] }
+    { "x": 0, "y": 0, "w": 1, "h": 3, "layers": ["yellow"], "ice": 9 },
+    { "x": 1, "y": 0, "w": 1, "h": 3, "layers": ["black"], "ice": 9 },
+    { "x": 2, "y": 0, "w": 2, "h": 2, "layers": ["white"], "ice": 7 },
+    { "x": 2, "y": 2, "w": 2, "h": 2, "layers": ["black"], "ice": 4 },
+    { "x": 0, "y": 3, "w": 2, "h": 2, "layers": ["white"], "ice": 8 },
+    { "x": 2, "y": 4, "w": 2, "h": 2, "layers": ["yellow"], "ice": 3 },
+    { "x": 0, "y": 5, "w": 1, "h": 3, "layers": ["black"], "ice": 7 },
+    { "x": 1, "y": 5, "w": 1, "h": 3, "layers": ["yellow"], "ice": 7 },
+    { "x": 2, "y": 6, "w": 2, "h": 2, "layers": ["white"], "ice": 2 },
+
+    { "x": 4, "y": 0, "layers": ["black"] },
+    { "x": 5, "y": 0, "layers": ["black"] },
+    { "x": 4, "y": 1, "layers": ["black"] },
+    { "x": 5, "y": 2, "layers": ["white"] },
+    { "x": 4, "y": 3, "layers": ["yellow"] },
+    { "x": 5, "y": 3, "layers": ["white"] },
+    { "x": 4, "y": 4, "layers": ["black"] },
+    { "x": 5, "y": 4, "layers": ["yellow"] },
+    { "x": 4, "y": 5, "layers": ["yellow"] },
+    { "x": 5, "y": 5, "layers": ["black"] },
+    { "x": 4, "y": 6, "layers": ["black"] },
+    { "x": 5, "y": 6, "layers": ["yellow"] },
+    { "x": 4, "y": 7, "layers": ["yellow"] },
+    { "x": 5, "y": 7, "layers": ["black"] }
   ],
   "gates": [
-    { "x": 0, "y": 0, "side": "N", "length": 2, "colors": ["red"] },
-    { "x": 5, "y": 0, "side": "E", "length": 3, "colors": ["blue"], "ice": 3 },
-    { "x": 0, "y": 5, "side": "W", "length": 3, "colors": ["yellow"] },
-    { "x": 2, "y": 7, "side": "S", "length": 4, "colors": ["green"] }
+    { "x": 4, "y": 0, "side": "N", "length": 2, "colors": ["white"] },
+    { "x": 5, "y": 0, "side": "E", "length": 3, "colors": ["black"], "ice": 6 },
+    { "x": 5, "y": 3, "side": "E", "length": 2, "colors": ["yellow"], "ice": 1 },
+    { "x": 5, "y": 5, "side": "E", "length": 3, "colors": ["black"], "ice": 3 },
+    { "x": 0, "y": 7, "side": "S", "length": 2, "colors": ["yellow"], "ice": 8 },
+    { "x": 4, "y": 7, "side": "S", "length": 2, "colors": ["white"], "ice": 5 }
   ],
   "obstacles": []
 }

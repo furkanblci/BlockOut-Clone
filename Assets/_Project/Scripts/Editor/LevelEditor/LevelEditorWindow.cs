@@ -50,11 +50,31 @@ namespace BlockOut.Editor.LevelEditor
         };
 
         static readonly string[] Difficulties = { "normal", "hard", "superhard" };
-        static readonly Vector2Int[] CommonSizes =
+        /// <summary>
+        /// Şekil paleti. Her ön ayar bir hücre maskesidir ('X' dolu, '.' boş) —
+        /// dikdörtgenler maskenin tamamen dolu olduğu özel hâl. Referans oyunda
+        /// L ve T parçaları bol kullanıldığı için palette hazır dururlar.
+        /// </summary>
+        static readonly (string Label, string[] Rows)[] ShapePresets =
         {
-            new Vector2Int(1,1), new Vector2Int(2,1), new Vector2Int(1,2), new Vector2Int(2,2),
-            new Vector2Int(3,1), new Vector2Int(1,3), new Vector2Int(3,2), new Vector2Int(2,3),
-            new Vector2Int(3,3), new Vector2Int(4,1), new Vector2Int(1,4), new Vector2Int(4,2)
+            ("1×1",  new[] { "X" }),
+            ("2×1",  new[] { "XX" }),
+            ("1×2",  new[] { "X", "X" }),
+            ("2×2",  new[] { "XX", "XX" }),
+            ("3×1",  new[] { "XXX" }),
+            ("1×3",  new[] { "X", "X", "X" }),
+            ("3×2",  new[] { "XXX", "XXX" }),
+            ("2×3",  new[] { "XX", "XX", "XX" }),
+            ("3×3",  new[] { "XXX", "XXX", "XXX" }),
+            ("L",    new[] { "X.", "XX" }),
+            ("J",    new[] { ".X", "XX" }),
+            ("L uzun", new[] { "X.", "X.", "XX" }),
+            ("T",    new[] { "XXX", ".X." }),
+            ("T ters", new[] { ".X.", "XXX" }),
+            ("S",    new[] { ".XX", "XX." }),
+            ("Z",    new[] { "XX.", ".XX" }),
+            ("U",    new[] { "X.X", "XXX" }),
+            ("Artı", new[] { ".X.", "XXX", ".X." })
         };
 
         // ---- domain reload'ı aşan durum ----
@@ -69,6 +89,9 @@ namespace BlockOut.Editor.LevelEditor
         [SerializeField] List<Selection> _selections = new List<Selection>();
         [SerializeField] bool _autoValidate = true;
         [SerializeField] int _blockW = 1, _blockH = 1, _blockIce;
+
+        /// <summary>Fırçanın hücre maskesi; boş/null ise blok _blockW×_blockH dikdörtgen.</summary>
+        [SerializeField] List<string> _blockMask;
         [SerializeField] List<BlockColor> _layers = new List<BlockColor> { BlockColor.Red };
         [SerializeField] int _activeLayer;
         [SerializeField] BlockColor _gateColor = BlockColor.Red;
@@ -429,29 +452,50 @@ namespace BlockOut.Editor.LevelEditor
             foreach (var block in _data.Blocks) DrawBlock(block, 1f);
         }
 
+        // DrawBlock her karede çağrılır; her seferinde liste ayırmamak için paylaşılır.
+        static readonly List<Vector2Int> BlockCellBuffer = new List<Vector2Int>();
+
         void DrawBlock(BlockData block, float alpha)
         {
-            var rect = _canvas.RectFor(block.X, block.Y, block.W, block.H);
-            rect = new Rect(rect.x + 2, rect.y + 2, rect.width - 4, rect.height - 4);
+            BlockShape.LocalCells(block, BlockCellBuffer);
+            if (BlockCellBuffer.Count == 0) return;
 
             var color = ColorOf(block.Layers.Count > 0 ? block.Layers[0] : "red");
             color.a = alpha;
-            LevelCanvasDrawer.Fill(rect, color);
 
-            if (block.Layers.Count > 1)
+            // Polyomino: hücre hücre boyanır. Komşusu olan kenarda boşluk
+            // bırakılmaz, böylece L parçası tek gövde gibi görünür.
+            foreach (var cell in BlockCellBuffer)
             {
-                float inset = Mathf.Min(rect.width, rect.height) * 0.26f;
-                var inner = new Rect(rect.x + inset, rect.y + inset,
-                    rect.width - inset * 2f, rect.height - inset * 2f);
-                var innerColor = ColorOf(block.Layers[1]);
-                innerColor.a = alpha;
-                LevelCanvasDrawer.Fill(inner, innerColor);
+                var cellRect = _canvas.RectFor(block.X + cell.x, block.Y + cell.y, 1, 1);
+                float left   = BlockShape.Covers(block, block.X + cell.x - 1, block.Y + cell.y) ? 0f : 2f;
+                float right  = BlockShape.Covers(block, block.X + cell.x + 1, block.Y + cell.y) ? 0f : 2f;
+                float top    = BlockShape.Covers(block, block.X + cell.x, block.Y + cell.y - 1) ? 0f : 2f;
+                float bottom = BlockShape.Covers(block, block.X + cell.x, block.Y + cell.y + 1) ? 0f : 2f;
+
+                LevelCanvasDrawer.Fill(new Rect(
+                    cellRect.x + left, cellRect.y + top,
+                    cellRect.width - left - right, cellRect.height - top - bottom), color);
+
+                if (block.Layers.Count > 1)
+                {
+                    float inset = _canvas.CellSize * 0.26f;
+                    var innerColor = ColorOf(block.Layers[1]);
+                    innerColor.a = alpha;
+                    LevelCanvasDrawer.Fill(new Rect(
+                        cellRect.x + inset, cellRect.y + inset,
+                        cellRect.width - inset * 2f, cellRect.height - inset * 2f), innerColor);
+                }
+
+                if (block.Ice > 0)
+                    LevelCanvasDrawer.Fill(cellRect, new Color(0.62f, 0.85f, 1f, 0.55f * alpha));
             }
 
             if (block.Ice > 0)
             {
-                LevelCanvasDrawer.Fill(rect, new Color(0.62f, 0.85f, 1f, 0.55f * alpha));
-                LevelCanvasDrawer.Label(rect, block.Ice.ToString(),
+                var first = BlockCellBuffer[0];
+                LevelCanvasDrawer.Label(
+                    _canvas.RectFor(block.X + first.x, block.Y + first.y, 1, 1), block.Ice.ToString(),
                     new Color(0.1f, 0.2f, 0.4f, alpha), Mathf.RoundToInt(_canvas.CellSize * 0.32f));
             }
         }

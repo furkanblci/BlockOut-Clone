@@ -81,11 +81,18 @@ namespace BlockOut.Core
             var block = new BlockModel
             {
                 Id = _nextBlockId++,
-                W = b.W,
-                H = b.H,
                 IceCount = b.Ice,
                 Position = new Vector2(b.X, b.Y)
             };
+
+            // Şekil kuralı BlockShape'te tek yerde: maske varsa maskeden,
+            // yoksa w×h dikdörtgeninden.
+            var cells = new List<Vector2Int>();
+            BlockShape.LocalCells(b, cells);
+            if (cells.Count == 0)
+                throw new FormatException($"Blok hücre maskesi boş (x:{b.X}, y:{b.Y}).");
+            block.SetCells(cells);
+
             foreach (var layerId in b.Layers)
             {
                 if (!BlockColorUtil.TryParse(layerId, out var color))
@@ -136,7 +143,7 @@ namespace BlockOut.Core
             Board.CollectStaticColliders(output);
             foreach (var b in Blocks)
                 if (!ReferenceEquals(b, exclude))
-                    output.Add(b.Rect);
+                    b.CollectColliders(output);   // polyomino: hücre başına kutu
             foreach (var o in Obstacles)
                 o.CollectColliders(output);
         }

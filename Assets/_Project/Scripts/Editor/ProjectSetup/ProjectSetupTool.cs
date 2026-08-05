@@ -46,6 +46,11 @@ namespace BlockOut.Editor.ProjectSetup
             return paths.ToArray();
         }
         public const string ScenePath = "Assets/_Project/Scenes/Gameplay.unity";
+        public const string BootScenePath = "Assets/_Project/Scenes/Boot.unity";
+        public const string HomeScenePath = "Assets/_Project/Scenes/Home.unity";
+
+        /// <summary>Bölüm kataloğu burada durur; Resources = her sahneden erişilebilir.</summary>
+        const string ResourcesDir = "Assets/_Project/Resources";
 
         // ---------- Menü komutları (elle tetikleme) ----------
 
@@ -56,8 +61,10 @@ namespace BlockOut.Editor.ProjectSetup
             bool b = EnsureGameplayScene();
             bool c = EnsureBlockMaterials();
             bool d = EnsureGameplayWiring();
-            bool e = EnsureBuildScenes();
-            Debug.Log(a || b || c || d || e
+            bool e = EnsureLevelCatalog();
+            bool f = EnsureMetaScenes();
+            bool g = EnsureBuildScenes();
+            Debug.Log(a || b || c || d || e || f || g
                 ? "[Setup] Eksikler tamamlandı."
                 : "[Setup] Her şey zaten kuruluydu, değişiklik yok.");
         }
@@ -70,6 +77,8 @@ namespace BlockOut.Editor.ProjectSetup
             bool created = false;
 
             created |= CreateAssetIfMissing<GameConfigSO>($"{SoDir}/GameConfig.asset") != null;
+            created |= CreateAssetIfMissing<BlockVisualConfigSO>(
+                $"{SoDir}/BlockVisualConfig.asset") != null;
 
             created |= CreateAssetIfMissing<ColorPaletteSO>($"{SoDir}/ColorPalette.asset", palette =>
             {
@@ -135,7 +144,10 @@ namespace BlockOut.Editor.ProjectSetup
             if (palette == null) return false; // EnsureConfigAssets henüz koşmadı
 
             EnsureFolder(MatDir);
-            var shader = Shader.Find("Universal Render Pipeline/Lit");
+            // M4: bloklar artık prosedürel tuğla mesh'i + vertex AO kullanıyor;
+            // materyaller bunu okuyan özel shader'a taşınır.
+            var shader = Shader.Find("BlockOut/Brick") ??
+                         Shader.Find("Universal Render Pipeline/Lit");
             bool changed = false;
 
             foreach (var entry in palette.EditorEntries)
@@ -148,6 +160,24 @@ namespace BlockOut.Editor.ProjectSetup
                     mat.SetColor("_BaseColor", entry.uiColor);
                     AssetDatabase.CreateAsset(mat, path);
                     changed = true;
+                }
+                else if (mat.shader != shader && shader != null)
+                {
+                    // Shader değiştiyse mevcut asset'i taşı (renk korunur).
+                    mat.shader = shader;
+                    mat.SetColor("_BaseColor", entry.uiColor);
+                    EditorUtility.SetDirty(mat);
+                    changed = true;
+                }
+
+                // Parlaklık ayarları görsel ayar asset'inden gelir; mevcut
+                // materyallerde de güncellenir (shader varsayılanı yalnızca
+                // YENİ materyale uygulanır, eskiler serileşmiş değeri taşır).
+                var visuals = LoadVisualConfig();
+                if (visuals != null && mat.HasProperty("_Specular"))
+                {
+                    ApplyVisualsTo(mat, visuals);
+                    EditorUtility.SetDirty(mat);
                 }
                 if (entry.blockMaterial != mat)
                 {
@@ -175,6 +205,10 @@ namespace BlockOut.Editor.ProjectSetup
         {
             if (AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) == null)
                 return false; // sahne henüz yok
+
+            // Play modunda sahne diske YAZILAMAZ (Unity yasaklar) ve zaten
+            // yazılmamalı: oynanış sırasındaki geçici durum kalıcı olmamalı.
+            if (EditorApplication.isPlayingOrWillChangePlaymode) return false;
 
             var scene = SceneManager.GetSceneByPath(ScenePath);
             bool wasOpen = scene.IsValid() && scene.isLoaded;
@@ -241,6 +275,7 @@ namespace BlockOut.Editor.ProjectSetup
                 AssetDatabase.LoadAssetAtPath<GameConfigSO>($"{SoDir}/GameConfig.asset"));
             changed |= SetReference(so, "palette",
                 AssetDatabase.LoadAssetAtPath<ColorPaletteSO>($"{SoDir}/ColorPalette.asset"));
+            changed |= SetReference(so, "visuals", LoadVisualConfig());
             changed |= SetReference(so, "levelJson",
                 AssetDatabase.LoadAssetAtPath<TextAsset>(LevelJsonPath));
             changed |= SetReference(so, "input", inputService);
@@ -300,6 +335,35 @@ namespace BlockOut.Editor.ProjectSetup
             return true;
         }
 
+        public static BlockVisualConfigSO LoadVisualConfig() =>
+            AssetDatabase.LoadAssetAtPath<BlockVisualConfigSO>($"{SoDir}/BlockVisualConfig.asset");
+
+        /// <summary>Görsel ayarları 8 blok materyaline yazar (ayar penceresi çağırır).</summary>
+        public static void PushVisualsToMaterials(BlockVisualConfigSO visuals)
+        {
+            if (visuals == null) return;
+            foreach (var guid in AssetDatabase.FindAssets("t:Material", new[] { MatDir }))
+            {
+                var mat = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(guid));
+                if (mat != null && mat.HasProperty("_Specular"))
+                {
+                    ApplyVisualsTo(mat, visuals);
+                    EditorUtility.SetDirty(mat);
+                }
+            }
+            AssetDatabase.SaveAssets();
+        }
+
+        static void ApplyVisualsTo(Material mat, BlockVisualConfigSO visuals)
+        {
+            mat.SetVector("_LightDir", visuals.lightDirection.normalized);
+            mat.SetFloat("_Ambient", visuals.ambient);
+            mat.SetFloat("_Specular", visuals.specular);
+            mat.SetFloat("_Gloss", visuals.gloss);
+            mat.SetFloat("_RimStrength", visuals.rim);
+            mat.SetFloat("_Saturation", visuals.saturation);
+        }
+
         /// <summary>
         /// Build sahne listesini Gameplay sahnesine ayarlar. Unity'nin varsayılan
         /// SampleScene'i listede kalırsa cihazda BOŞ EKRAN gelir — bu, mobil
@@ -307,13 +371,118 @@ namespace BlockOut.Editor.ProjectSetup
         /// </summary>
         public static bool EnsureBuildScenes()
         {
-            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) == null) return false;
+            // Sıra ÖNEMLİ: derleme listesinin ilk sahnesi uygulamanın açılışıdır.
+            // Boot en başta olmalı; Home ve Gameplay ondan sonra gelir.
+            var wanted = new List<string>();
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(BootScenePath) != null) wanted.Add(BootScenePath);
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(HomeScenePath) != null) wanted.Add(HomeScenePath);
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) != null) wanted.Add(ScenePath);
+            if (wanted.Count == 0) return false;
 
             var scenes = EditorBuildSettings.scenes;
-            bool correct = scenes.Length == 1 && scenes[0].path == ScenePath && scenes[0].enabled;
-            if (correct) return false;
+            if (scenes.Length == wanted.Count)
+            {
+                bool same = true;
+                for (int i = 0; i < wanted.Count; i++)
+                    if (scenes[i].path != wanted[i] || !scenes[i].enabled) { same = false; break; }
+                if (same) return false;
+            }
 
-            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
+            var next = new EditorBuildSettingsScene[wanted.Count];
+            for (int i = 0; i < wanted.Count; i++)
+                next[i] = new EditorBuildSettingsScene(wanted[i], true);
+            EditorBuildSettings.scenes = next;
+            return true;
+        }
+
+        /// <summary>
+        /// Boot ve Home sahnelerini üretir. İkisi de neredeyse boştur — içerikleri
+        /// çalışma anında koddan kurulur (UiKit), böylece sahne dosyaları git'te
+        /// çakışma üretmez.
+        /// </summary>
+        public static bool EnsureMetaScenes()
+        {
+            bool created = false;
+            created |= CreateSceneIfMissing(BootScenePath, () =>
+            {
+                new GameObject("Boot", typeof(BlockOut.Runtime.Flow.BootLoader));
+                // Boş sahnede kamera yoksa Unity uyarı basar; ucuz bir tane koyalım.
+                var cam = new GameObject("Main Camera", typeof(Camera));
+                cam.tag = "MainCamera";
+                cam.GetComponent<Camera>().clearFlags = CameraClearFlags.SolidColor;
+                cam.GetComponent<Camera>().backgroundColor = new Color(0.13f, 0.10f, 0.28f);
+            });
+
+            created |= CreateSceneIfMissing(HomeScenePath, () =>
+            {
+                new GameObject("Home", typeof(BlockOut.Runtime.UI.HomeScreen));
+                var cam = new GameObject("Main Camera", typeof(Camera));
+                cam.tag = "MainCamera";
+                cam.GetComponent<Camera>().clearFlags = CameraClearFlags.SolidColor;
+                cam.GetComponent<Camera>().backgroundColor = new Color(0.13f, 0.10f, 0.28f);
+            });
+            return created;
+        }
+
+        static bool CreateSceneIfMissing(string path, System.Action populate)
+        {
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(path) != null) return false;
+
+            EnsureFolder(System.IO.Path.GetDirectoryName(path).Replace('\\', '/'));
+
+            var previousActive = SceneManager.GetActiveScene();
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+            SceneManager.SetActiveScene(scene);
+            try
+            {
+                populate();
+                EditorSceneManager.SaveScene(scene, path);
+            }
+            finally
+            {
+                if (previousActive.IsValid()) SceneManager.SetActiveScene(previousActive);
+                EditorSceneManager.CloseScene(scene, removeScene: true);
+            }
+
+            Debug.Log("[Setup] Sahne kuruldu: " + path);
+            return true;
+        }
+
+        /// <summary>
+        /// Bölüm kataloğunu Levels klasöründen tazeler. Home ekranı ve Gameplay
+        /// aynı listeyi buradan okur; yeni bölüm eklemek için kod düzenlemek
+        /// gerekmez.
+        /// </summary>
+        public static bool EnsureLevelCatalog()
+        {
+            EnsureFolder(ResourcesDir);
+            string path = $"{ResourcesDir}/LevelCatalog.asset";
+
+            var catalog = AssetDatabase.LoadAssetAtPath<LevelCatalogSO>(path);
+            bool created = false;
+            if (catalog == null)
+            {
+                catalog = ScriptableObject.CreateInstance<LevelCatalogSO>();
+                AssetDatabase.CreateAsset(catalog, path);
+                created = true;
+            }
+
+            var paths = LevelSequencePaths();
+            var assets = new TextAsset[paths.Length];
+            for (int i = 0; i < paths.Length; i++)
+                assets[i] = AssetDatabase.LoadAssetAtPath<TextAsset>(paths[i]);
+
+            bool changed = created || catalog.levels == null || catalog.levels.Length != assets.Length;
+            if (!changed)
+                for (int i = 0; i < assets.Length; i++)
+                    if (catalog.levels[i] != assets[i]) { changed = true; break; }
+
+            if (!changed) return false;
+
+            catalog.levels = assets;
+            EditorUtility.SetDirty(catalog);
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[Setup] Bölüm kataloğu tazelendi: {assets.Length} bölüm.");
             return true;
         }
 

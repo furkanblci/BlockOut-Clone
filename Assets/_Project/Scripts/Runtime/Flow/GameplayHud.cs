@@ -46,6 +46,7 @@ namespace BlockOut.Runtime.Flow
             GUI.Label(new Rect(0, 8 * s, Screen.width, 40 * s),
                 $"Bölüm {_session.DisplayNumber}   {total / 60}:{total % 60:00}", _timerStyle);
 
+            DrawMetaBar(s);
             DrawLevelPicker(s);
             if (_levelPickerOpen) return; // seçici açıkken altındaki ekranı çizme
 
@@ -65,6 +66,15 @@ namespace BlockOut.Runtime.Flow
             _buttonStyle.fontSize = Mathf.RoundToInt(26 * s);
             var buttonRect = new Rect(
                 Screen.width * 0.5f - 110 * s, Screen.height * 0.48f, 220 * s, 56 * s);
+            // Kazanç satırı — videodaki PERFECT ekranının coin'i.
+            if (won && _session.LastReward > 0)
+            {
+                _timerStyle.fontSize = Mathf.RoundToInt(28 * s);
+                _timerStyle.normal.textColor = new Color(1f, 0.85f, 0.35f);
+                GUI.Label(new Rect(0, Screen.height * 0.42f, Screen.width, 40 * s),
+                    $"+{_session.LastReward} coin", _timerStyle);
+            }
+
             bool advance = won && _session.HasNextLevel;
             string label = advance ? "Sonraki Bölüm" : won ? "Tekrar Oyna" : "Tekrar Dene";
             if (GUI.Button(buttonRect, label, _buttonStyle))
@@ -72,7 +82,47 @@ namespace BlockOut.Runtime.Flow
                 if (advance) _session.NextLevel();
                 else _session.Restart();
             }
+
+            // Can bittiyse tekrar denemek anlamsız — oyuncuyu ana ekrana yollarız.
+            var homeRect = new Rect(
+                buttonRect.x, buttonRect.yMax + 14 * s, buttonRect.width, 48 * s);
+            if (GUI.Button(homeRect, "Ana Ekran", _buttonStyle))
+                AppRouter.GoHome();
         }
+
+        /// <summary>
+        /// Can / coin şeridi. Videodaki üst bar bunun cilalı hâli olacak;
+        /// şimdilik meta servislerinin GERÇEKTEN işlediğini gözle görmek için.
+        /// </summary>
+        void DrawMetaBar(float s)
+        {
+            if (!Services.MetaServices.Ready) return;
+
+            var lives = Services.MetaServices.Lives;
+            var progress = Services.MetaServices.Progress;
+
+            // Geri sayım her karede yeniden hesaplanmaz; saniyede bir yeter.
+            if (Time.unscaledTime - _lastLivesRefresh > 1f)
+            {
+                _lastLivesRefresh = Time.unscaledTime;
+                lives.Refresh();
+            }
+
+            string livesText = lives.IsFull
+                ? $"♥ {lives.Current}/{Services.MetaServices.MaxLives}"
+                : $"♥ {lives.Current}/{Services.MetaServices.MaxLives}  " +
+                  $"{lives.TimeToNextLife.Minutes:00}:{lives.TimeToNextLife.Seconds:00}";
+
+            _timerStyle.fontSize = Mathf.RoundToInt(22 * s);
+            _timerStyle.normal.textColor = new Color(1f, 0.75f, 0.8f);
+            GUI.Label(new Rect(0, 52 * s, Screen.width * 0.5f, 30 * s), livesText, _timerStyle);
+
+            _timerStyle.normal.textColor = new Color(1f, 0.85f, 0.35f);
+            GUI.Label(new Rect(Screen.width * 0.5f, 52 * s, Screen.width * 0.5f, 30 * s),
+                $"◉ {progress.Coins}", _timerStyle);
+        }
+
+        float _lastLivesRefresh;
 
         /// <summary>
         /// Bölüm seçici — cihazda test ederken herhangi bir bölüme atlamak için.
