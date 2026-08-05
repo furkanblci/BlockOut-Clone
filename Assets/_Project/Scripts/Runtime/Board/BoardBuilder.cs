@@ -120,6 +120,14 @@ namespace BlockOut.Runtime.Board
             void TryBuildBoundaryWall(int cx, int cy, Side side, int nx, int ny)
             {
                 if (board.IsPlayable(nx, ny)) return; // sınır değil
+
+                // Tahtanın DIŞ çevresine duvar ÇİZİLMEZ: o işi çerçeve yapıyor.
+                // Ayrıca çizmek çerçevenin içinde ikinci bir halka ve yuvarlak
+                // köşelerde kare çentikler bırakıyordu. Yalnızca tahtanın
+                // İÇİNDEKİ oynanamaz bölgelerin (delik/girinti) kenarı örülür.
+                bool outsideBoard = nx < 0 || ny < 0 || nx >= board.Width || ny >= board.Height;
+                if (outsideBoard) return;
+
                 var edge = EdgeId.OfCellSide(cx, cy, side);
                 if (gateEdges.Contains(edge) || !builtEdges.Add(edge)) return;
                 BuildWallSegment(edge);
