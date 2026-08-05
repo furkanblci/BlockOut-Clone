@@ -1,16 +1,16 @@
 {
-    "name": "BlockOut.Runtime",
-    "rootNamespace": "BlockOut.Runtime",
+    "name": "GameKit.Runtime",
+    "rootNamespace": "GameKit",
     "references": [
-        "BlockOut.Core",
-        "Unity.InputSystem",
-        "GameKit.Runtime"
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "Newtonsoft.Json.dll"
+    ],
     "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],

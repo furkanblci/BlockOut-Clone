@@ -3,7 +3,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
-namespace BlockOut.Editor.ProjectSetup
+namespace GameKit.Editor
 {
     /// <summary>
     /// Game view'a 1080x1920 "Phone Portrait" boyutu ekleyip seçer.

@@ -59,7 +59,7 @@ namespace BlockOut.Editor.ProjectSetup
             PlayerSettings.Android.bundleVersionCode =
                 Mathf.Max(1, PlayerSettings.Android.bundleVersionCode + 1);
 
-            MobileQualityTool.Apply();
+            GameKit.Editor.MobileQualityTool.Apply();
             ProjectSetupTool.EnsureBuildScenes();
             AssetDatabase.SaveAssets();
 

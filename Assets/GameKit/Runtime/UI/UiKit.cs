@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace BlockOut.Runtime.UI
+namespace GameKit.UI
 {
     /// <summary>
     /// Arayüzü PREFAB'sız, kodla kuran yardımcılar — 3B tarafındaki ViewKit'in
