@@ -17,12 +17,31 @@ namespace BlockOut.Runtime.View
     {
         const float EndInset = 0.10f;
 
-        static float BarHeight => VisualSettings.Current != null
-            ? VisualSettings.Current.gateBarHeight : 0.40f;
-        static float BarDepth => VisualSettings.Current != null
-            ? VisualSettings.Current.gateBarDepth : 0.44f;
-        static float OutwardOffset => VisualSettings.Current != null
-            ? VisualSettings.Current.gateOutwardOffset : 0.16f;   // kabartma yüksekliği
+        // Kapı ölçüleri: "çerçeveyle aynı" seçiliyse kapı ÇERÇEVE BANDINI
+        // birebir doldurur — referans oyunda kapı, çerçevenin renkli bir
+        // parçası gibi görünür; ayrı bir çıkıntı yoktur.
+        //
+        // Konumlandırma: tahta kenarı ile çerçevenin dış kenarı arasındaki
+        // bandın ORTASINA oturur, yani dışa kaydırma = kalınlığın yarısı.
+        static bool MatchesFrame => VisualSettings.Current == null ||
+                                    VisualSettings.Current.gateMatchesWall;
+
+        // Z-FIGHTING: kapı ile çerçeve tam olarak aynı hacmi kaplarsa yüzeyler
+        // çakışır ve kamera açısına göre titreyen tırtıklı kenarlar oluşur.
+        // Kapıyı bir tık büyük yapmak çakışmayı kaldırır; fark gözle görülmez.
+        const float FrameOverlapBias = 0.02f;
+
+        static float BarHeight => VisualSettings.Current == null ? 0.34f
+            : MatchesFrame ? VisualSettings.Current.frameHeight + FrameOverlapBias
+                           : VisualSettings.Current.gateBarHeight;
+
+        static float BarDepth => VisualSettings.Current == null ? 0.55f
+            : MatchesFrame ? VisualSettings.Current.frameThickness + FrameOverlapBias
+                           : VisualSettings.Current.gateBarDepth;
+
+        static float OutwardOffset => VisualSettings.Current == null ? 0.275f
+            : MatchesFrame ? VisualSettings.Current.frameThickness * 0.5f
+                           : VisualSettings.Current.gateOutwardOffset;   // kabartma yüksekliği
 
         MeshRenderer _renderer;
         Material _colorMaterial;
@@ -234,11 +253,19 @@ namespace BlockOut.Runtime.View
             if (!_model.IsIced) _renderer.sharedMaterial = material;
         }
 
-        /// <summary>Rengi tükendi: soluk (ghost) hal, ok da söner.</summary>
+        /// <summary>
+        /// Rengi tükendi: bar soluklaşır, ok da soluk materyale geçer.
+        ///
+        /// Kapı GİZLENMEZ — referans oyunda da kapı yerinde durup solar.
+        /// Gizlemek duvarda boşluk bırakıyordu (kapı kenarına duvar örülmez).
+        /// </summary>
         public void SetGhost(Material ghostMaterial)
         {
             _renderer.sharedMaterial = ghostMaterial;
-            if (_arrow != null) _arrow.SetActive(false);
+            if (_arrow == null) return;
+
+            var arrowRenderer = _arrow.GetComponent<MeshRenderer>();
+            if (arrowRenderer != null) arrowRenderer.sharedMaterial = ViewKit.ArrowGhostMaterial;
         }
     }
 }

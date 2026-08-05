@@ -65,6 +65,13 @@ namespace BlockOut.Runtime.Config
         [Range(0f, 1f)] public float rim = 0.12f;
         [Range(1f, 2f)] public float saturation = 1.18f;
 
+        [Header("Sürükleme hissi")]
+        [Tooltip("Tutulan bloğun kalkma yüksekliği. Duvardan YÜKSEK olursa blok " +
+                 "duvarın içinden geçiyormuş gibi görünür — 0 güvenlidir.")]
+        [Range(0f, 0.3f)] public float dragLift = 0.02f;
+
+        [Range(1f, 1.2f)] public float dragScale = 1.05f;
+
         [Header("Temas gölgesi")]
         [Tooltip("Blokların altına yumuşak gölge — 'havada duruyor' hissini kırar.")]
         public bool contactShadow = true;
@@ -78,15 +85,44 @@ namespace BlockOut.Runtime.Config
         public Color floorColorB = new Color(0.14f, 0.12f, 0.27f);
         public Color wallColor = new Color(0.36f, 0.32f, 0.62f);
 
+        [Tooltip("Izgara çizgisi, hücre renginin bu oranı kadar koyultulur. " +
+                 "Çarpan kullanmak, hücre rengini değiştirsen de kontrastın korunmasını sağlar.")]
+        [Range(0.2f, 1f)] public float floorLineDarken = 0.6f;
+
+        [Tooltip("Kesişim noktaları için koyultma oranı.")]
+        [Range(0.1f, 1f)] public float floorDotDarken = 0.4f;
+
+        [Range(0f, 0.25f)] public float floorLineWidth = 0.045f;
+        [Range(0f, 0.3f)] public float floorDotSize = 0.09f;
+
+        [Header("Arka plan")]
+        [Tooltip("Ekran merkezindeki renk (referansta tahtanın çevresi daha açık).")]
+        public Color backgroundInner = new Color(0.16f, 0.12f, 0.32f);
+
+        public Color backgroundOuter = new Color(0.08f, 0.06f, 0.18f);
+
+        [Header("Çerçeve")]
         [Tooltip("Tahtanın dış çerçevesi.")]
         public Color frameColor = new Color(0.30f, 0.26f, 0.58f);
 
         [Range(0f, 1.2f)] public float frameThickness = 0.55f;
         [Range(0.05f, 0.8f)] public float frameHeight = 0.34f;
+
+        [Tooltip("Çerçeve köşelerinin yarıçapı (hücre biriminde).")]
+        [Range(0f, 1.5f)] public float frameCornerRadius = 0.6f;
+
+        [Tooltip("Çerçevenin üst kenar pahı — derinlik hissi verir.")]
+        [Range(0f, 0.3f)] public float frameBevel = 0.09f;
+
         [Range(0f, 0.5f)] public float wallHeight = 0.42f;
         [Range(0.05f, 0.5f)] public float wallThickness = 0.18f;
 
         [Header("Kapılar")]
+        [Tooltip("Açıkken kapı, ÇERÇEVE bandını birebir doldurur (yükseklik, " +
+                 "kalınlık, hiza). Referans oyunda kapı çerçevenin renkli bir " +
+                 "parçası gibi görünür. Kapalıysa aşağıdaki kapı ölçüleri kullanılır.")]
+        public bool gateMatchesWall = true;
+
         [Range(0.1f, 0.8f)] public float gateBarHeight = 0.40f;
         [Range(0.1f, 0.8f)] public float gateBarDepth = 0.44f;
         [Range(0f, 0.4f)] public float gateOutwardOffset = 0.16f;
