@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "id": "level_022",
+  "displayNumber": 22,
+  "difficulty": "normal",
+  "timeSeconds": 180,
+  "board": {
+    "width": 6,
+    "height": 8,
+    "rows": [
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX"
+    ],
+    "walls": []
+  },
+  "blocks": [
+    { "x": 4, "y": 0, "w": 2, "h": 2, "layers": ["blue"] },
+
+    { "x": 0, "y": 3, "w": 2, "h": 2, "layers": ["pink"] },
+    { "x": 2, "y": 3, "w": 1, "h": 2, "layers": ["blue"], "ice": 3 },
+    { "x": 5, "y": 3, "w": 1, "h": 2, "layers": ["pink"], "ice": 3 },
+
+    { "x": 0, "y": 5, "w": 2, "h": 1, "layers": ["blue"] },
+    { "x": 3, "y": 4, "w": 2, "h": 2, "layers": ["pink"] },
+
+    { "x": 0, "y": 6, "w": 2, "h": 2, "layers": ["pink"] },
+    { "x": 2, "y": 6, "w": 1, "h": 2, "layers": ["blue"], "ice": 3 },
+    { "x": 3, "y": 6, "w": 2, "h": 2, "layers": ["blue"] },
+    { "x": 5, "y": 6, "w": 1, "h": 2, "layers": ["blue"], "ice": 3 }
+  ],
+  "gates": [
+    { "x": 0, "y": 0, "side": "N", "length": 2, "colors": ["blue"], "ice": 4 },
+    { "x": 4, "y": 0, "side": "N", "length": 2, "colors": ["pink"], "ice": 6 },
+    { "x": 0, "y": 7, "side": "S", "length": 2, "colors": ["pink"] },
+    { "x": 3, "y": 7, "side": "S", "length": 2, "colors": ["blue"] }
+  ],
+  "obstacles": []
+}

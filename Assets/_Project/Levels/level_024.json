@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "id": "level_024",
+  "displayNumber": 24,
+  "difficulty": "hard",
+  "timeSeconds": 180,
+  "board": {
+    "width": 6,
+    "height": 10,
+    "rows": [
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX",
+      "XXXXXX"
+    ],
+    "walls": []
+  },
+  "blocks": [
+    { "x": 0, "y": 0, "w": 1, "h": 4, "layers": ["pink"] },
+    { "x": 1, "y": 0, "w": 1, "h": 3, "layers": ["blue"] },
+    { "x": 2, "y": 0, "w": 1, "h": 2, "layers": ["blue"] },
+    { "x": 4, "y": 0, "w": 1, "h": 3, "layers": ["red"] },
+
+    { "x": 2, "y": 2, "w": 1, "h": 1, "layers": ["yellow"] },
+    { "x": 4, "y": 3, "w": 1, "h": 1, "layers": ["yellow"] },
+
+    { "x": 0, "y": 5, "w": 1, "h": 1, "layers": ["red"] },
+    { "x": 1, "y": 5, "w": 1, "h": 2, "layers": ["blue"] },
+    { "x": 4, "y": 5, "w": 1, "h": 1, "layers": ["red"] },
+
+    { "x": 0, "y": 6, "w": 1, "h": 1, "layers": ["yellow"] },
+    { "x": 4, "y": 6, "w": 1, "h": 2, "layers": ["green"] },
+
+    { "x": 0, "y": 7, "w": 1, "h": 2, "layers": ["pink"] },
+    { "x": 2, "y": 8, "w": 1, "h": 2, "layers": ["green"] },
+    { "x": 4, "y": 8, "w": 1, "h": 2, "layers": ["green"] }
+  ],
+  "gates": [
+    { "x": 0, "y": 0, "side": "N", "length": 2, "colors": ["pink"], "ice": 6 },
+    { "x": 2, "y": 0, "side": "N", "length": 2, "colors": ["blue"], "ice": 4 },
+    { "x": 4, "y": 0, "side": "N", "length": 2, "colors": ["yellow"] },
+    { "x": 0, "y": 9, "side": "S", "length": 2, "colors": ["blue"] },
+    { "x": 2, "y": 9, "side": "S", "length": 2, "colors": ["green"], "ice": 4 },
+    { "x": 4, "y": 9, "side": "S", "length": 2, "colors": ["red"], "ice": 6 }
+  ],
+  "obstacles": []
+}
