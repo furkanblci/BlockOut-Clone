@@ -1,10 +1,25 @@
 using System.IO;
 using System.Text;
-using BlockOut.Core.Save;
 using UnityEngine;
 
-namespace BlockOut.Runtime.Services
+namespace GameKit.Save
 {
+    /// <summary>
+    /// Kaydın nereye yazıldığını soyutlar.
+    ///
+    /// DERS (neden arayüz?): Dosya sistemi yavaş, platforma bağlı ve testte yan
+    /// etkilidir. Servisi "bir metin oku / bir metin yaz" seviyesinde soyutlayınca
+    /// aynı kod hem cihazda dosyaya hem testte belleğe çalışır — ve "bozuk kayıt"
+    /// senaryosunu test etmek tek satır olur.
+    /// </summary>
+    public interface ISaveStore
+    {
+        bool TryRead(out string text);
+        bool TryReadBackup(out string text);
+        void Write(string text);
+        void Delete();
+    }
+
     /// <summary>
     /// Kaydı diske ATOMİK yazar.
     ///
@@ -19,8 +34,8 @@ namespace BlockOut.Runtime.Services
     ///   3) Geçici dosyayı asıl adına taşı — taşıma işletim sisteminde tek adımdır.
     /// Hangi adımda ölürsek ölelim, elimizde ya eski ya yeni TAM bir kayıt kalır.
     ///
-    /// DERS (persistentDataPath): Android'de uygulamaya özel, kaldırılınca silinen,
-    /// yedeklenebilen dizin. `Application.dataPath` salt okunurdur; `streamingAssets`
+    /// DERS (persistentDataPath): Uygulamaya özel, kaldırılınca silinen,
+    /// yedeklenebilen dizin. `Application.dataPath` salt okunurdur, streamingAssets
     /// paketin içidir. Oyuncu verisi için tek doğru yer burasıdır.
     /// </summary>
     public sealed class FileSaveStore : ISaveStore
@@ -31,17 +46,15 @@ namespace BlockOut.Runtime.Services
 
         public FileSaveStore(string fileName = "save.json")
         {
-            _path = Path.Combine(Application.persistentDataPath, fileName);
+            _path = System.IO.Path.Combine(Application.persistentDataPath, fileName);
             _backupPath = _path + ".bak";
             _tempPath = _path + ".tmp";
         }
 
-        /// <summary>Teşhis için: kaydın tam yolu (konsola basılır).
-        /// NOT: "Path" adı System.IO.Path'i gölgeleyeceği için FullPath.</summary>
+        /// <summary>Teşhis için tam yol. "Path" adı System.IO.Path'i gölgelerdi.</summary>
         public string FullPath => _path;
 
         public bool TryRead(out string text) => TryReadFile(_path, out text);
-
         public bool TryReadBackup(out string text) => TryReadFile(_backupPath, out text);
 
         static bool TryReadFile(string path, out string text)
@@ -69,7 +82,6 @@ namespace BlockOut.Runtime.Services
         {
             try
             {
-                // 1) Geçici dosyaya yaz ve diske indiğinden emin ol.
                 using (var stream = new FileStream(_tempPath, FileMode.Create, FileAccess.Write))
                 using (var writer = new StreamWriter(stream, new UTF8Encoding(false)))
                 {
@@ -78,14 +90,12 @@ namespace BlockOut.Runtime.Services
                     stream.Flush(true);
                 }
 
-                // 2) Mevcut kaydı yedekle.
                 if (File.Exists(_path))
                 {
                     if (File.Exists(_backupPath)) File.Delete(_backupPath);
                     File.Move(_path, _backupPath);
                 }
 
-                // 3) Geçiciyi asıl ada taşı — bu adım atomiktir.
                 File.Move(_tempPath, _path);
             }
             catch (IOException e)
@@ -110,5 +120,19 @@ namespace BlockOut.Runtime.Services
             try { if (File.Exists(path)) File.Delete(path); }
             catch (IOException e) { Debug.LogWarning($"[Save] Silinemedi ({path}): {e.Message}"); }
         }
+    }
+
+    /// <summary>Test ve editör araçları için bellekte duran depo.</summary>
+    public sealed class MemorySaveStore : ISaveStore
+    {
+        string _main, _backup;
+
+        public bool TryRead(out string text) { text = _main; return _main != null; }
+        public bool TryReadBackup(out string text) { text = _backup; return _backup != null; }
+        public void Write(string text) { _backup = _main; _main = text; }
+        public void Delete() { _main = null; _backup = null; }
+
+        /// <summary>Testte bozuk kayıt senaryosu kurmak için.</summary>
+        public void Corrupt(string garbage = "{ bozuk ") => _main = garbage;
     }
 }

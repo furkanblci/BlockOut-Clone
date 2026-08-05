@@ -1,18 +1,24 @@
 using System;
+using GameKit.Save;
 
 namespace BlockOut.Core.Save
 {
     /// <summary>
-    /// Bölüm ilerlemesi ve coin.
+    /// Bölüm ilerlemesi ve coin — bu oyunun kuralları.
     ///
     /// DERS (kural nerede yaşar?): "Bölüm bitince ne kadar coin verilir",
     /// "sonraki bölüm ne zaman açılır" gibi kurallar UI'da ya da GameSession'da
-    /// dağınık durursa, ikinci bir giriş noktası (ör. Journey haritasından
-    /// tekrar oynama) eklendiğinde sessizce ayrışırlar. Tek servis = tek kural.
+    /// dağınık durursa, ikinci bir giriş noktası (Journey haritasından tekrar
+    /// oynama, bölüm sonu ekranı) eklendiğinde sessizce ayrışırlar. Tek servis =
+    /// tek kural.
+    ///
+    /// Bu sınıf KİTE TAŞINMADI: ödül kademeleri ve "PERFECT" kavramı bu oyuna
+    /// ait tasarım kararları. Kite yalnızca kayıt yönetimi ve can dolumu gibi
+    /// her oyunda AYNI olan şeyler gidiyor.
     /// </summary>
     public sealed class ProgressService
     {
-        readonly SaveService _save;
+        readonly SaveService<SaveData> _save;
 
         /// <summary>Bölüm bitirme ödülü — videodaki PERFECT ekranında görülen değerler.</summary>
         public int CoinsPerClear = 20;
@@ -22,7 +28,7 @@ namespace BlockOut.Core.Save
         public event Action<int> CoinsChanged;
         public event Action<int> UnlockedChanged;
 
-        public ProgressService(SaveService save) => _save = save;
+        public ProgressService(SaveService<SaveData> save) => _save = save;
 
         public int Coins => _save.Data.Coins;
 
@@ -31,12 +37,20 @@ namespace BlockOut.Core.Save
 
         public bool IsUnlocked(int levelIndex) => levelIndex <= _save.Data.HighestUnlockedIndex;
 
-        public LevelRecord Record(string levelId) => _save.RecordFor(levelId);
+        public LevelRecord Record(string levelId)
+        {
+            if (!_save.Data.Levels.TryGetValue(levelId, out var record))
+            {
+                record = new LevelRecord();
+                _save.Data.Levels[levelId] = record;
+            }
+            return record;
+        }
 
         /// <summary>Bölüme girildiğinde — deneme sayacı istatistik ve zorluk ayarı için.</summary>
         public void NoteAttempt(string levelId)
         {
-            _save.RecordFor(levelId).Attempts++;
+            Record(levelId).Attempts++;
             _save.Save();
         }
 
@@ -46,7 +60,7 @@ namespace BlockOut.Core.Save
         /// </summary>
         public int NoteCleared(string levelId, int levelIndex, int remainingSeconds, bool perfect)
         {
-            var record = _save.RecordFor(levelId);
+            var record = Record(levelId);
             bool firstClear = !record.Cleared;
 
             record.Cleared = true;
