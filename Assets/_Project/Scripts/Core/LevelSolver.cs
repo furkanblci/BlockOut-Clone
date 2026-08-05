@@ -145,9 +145,9 @@ namespace BlockOut.Core
                 }
 
                 TryStep(block, pos, Vector2.right, obstacles, reachable, queue, substep, epsilon);
-                TryStep(block, pos, Vector2.left,  obstacles, reachable, queue, substep, epsilon);
-                TryStep(block, pos, Vector2.up,    obstacles, reachable, queue, substep, epsilon);
-                TryStep(block, pos, Vector2.down,  obstacles, reachable, queue, substep, epsilon);
+                TryStep(block, pos, Vector2.left, obstacles, reachable, queue, substep, epsilon);
+                TryStep(block, pos, Vector2.up, obstacles, reachable, queue, substep, epsilon);
+                TryStep(block, pos, Vector2.down, obstacles, reachable, queue, substep, epsilon);
             }
 
             block.Position = start;
@@ -158,7 +158,7 @@ namespace BlockOut.Core
             BlockModel block, Vector2 from, Vector2 dir, List<Aabb> obstacles,
             HashSet<Vector2> reachable, Queue<Vector2> queue, float substep, float epsilon)
         {
-            var solved = DragSolver.Solve(from, from + dir, block.W, block.H,
+            var solved = DragSolver.Solve(from, from + dir, block.Cells,
                 obstacles, substep, epsilon);
             var cell = new Vector2(Mathf.Round(solved.x), Mathf.Round(solved.y));
             if (cell != from && reachable.Add(cell))

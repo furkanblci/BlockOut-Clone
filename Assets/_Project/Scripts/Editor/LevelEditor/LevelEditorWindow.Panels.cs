@@ -190,9 +190,14 @@ namespace BlockOut.Editor.LevelEditor
                     using (new EditorGUILayout.HorizontalScope())
                     {
                         EditorGUILayout.LabelField("Özel", GUILayout.Width(34));
-                        _blockW = Mathf.Clamp(EditorGUILayout.IntField(_blockW, GUILayout.Width(34)), 1, 6);
-                        EditorGUILayout.LabelField("×", GUILayout.Width(12));
-                        _blockH = Mathf.Clamp(EditorGUILayout.IntField(_blockH, GUILayout.Width(34)), 1, 6);
+                        // Elle boyut girmek "düz dikdörtgen" demektir — maske düşer.
+                        using (var check = new EditorGUI.ChangeCheckScope())
+                        {
+                            _blockW = Mathf.Clamp(EditorGUILayout.IntField(_blockW, GUILayout.Width(34)), 1, 6);
+                            EditorGUILayout.LabelField("×", GUILayout.Width(12));
+                            _blockH = Mathf.Clamp(EditorGUILayout.IntField(_blockH, GUILayout.Width(34)), 1, 6);
+                            if (check.changed) _blockMask = null;
+                        }
                         GUILayout.FlexibleSpace();
                         EditorGUILayout.LabelField("Buz", GUILayout.Width(26));
                         _blockIce = Mathf.Max(0, EditorGUILayout.IntField(_blockIce, GUILayout.Width(34)));
@@ -229,34 +234,90 @@ namespace BlockOut.Editor.LevelEditor
             }
         }
 
+        /// <summary>Fırçanın maskesi; dikdörtgense null (JSON'a "cells" yazılmaz).</summary>
+        List<string> BrushMask()
+        {
+            if (_blockMask == null || _blockMask.Count == 0) return null;
+            return new List<string>(_blockMask);
+        }
+
+        /// <summary>Fırçayı bir ön ayara ayarlar; dolu maske dikdörtgene indirgenir.</summary>
+        void SetBrushShape(string[] rows)
+        {
+            int w = 0, filled = 0;
+            foreach (var row in rows)
+            {
+                w = Mathf.Max(w, row.Length);
+                foreach (char c in row) if (char.ToUpperInvariant(c) == 'X') filled++;
+            }
+            _blockW = w;
+            _blockH = rows.Length;
+            _blockMask = filled == w * rows.Length ? null : new List<string>(rows);
+        }
+
+        static bool BrushMatches(List<string> mask, int w, int h, string[] rows)
+        {
+            bool presetIsRect = true;
+            int presetW = 0;
+            foreach (var row in rows)
+            {
+                presetW = Mathf.Max(presetW, row.Length);
+                foreach (char c in row) if (char.ToUpperInvariant(c) != 'X') presetIsRect = false;
+            }
+
+            if (presetIsRect)
+                return (mask == null || mask.Count == 0) && w == presetW && h == rows.Length;
+
+            if (mask == null || mask.Count != rows.Length) return false;
+            for (int i = 0; i < rows.Length; i++)
+                if (!string.Equals(mask[i], rows[i], System.StringComparison.OrdinalIgnoreCase))
+                    return false;
+            return true;
+        }
+
         /// <summary>Görsel şekil paleti — sayı girmek yerine şekle tıklanır.</summary>
         void DrawSizePalette()
         {
             const int perRow = 6;
-            for (int i = 0; i < CommonSizes.Length; i++)
+            var brushColor = ColorOf(_layers[0]);
+
+            for (int i = 0; i < ShapePresets.Length; i++)
             {
                 if (i % perRow == 0) EditorGUILayout.BeginHorizontal();
 
-                var size = CommonSizes[i];
-                bool selected = _blockW == size.x && _blockH == size.y;
+                var preset = ShapePresets[i];
+                bool selected = BrushMatches(_blockMask, _blockW, _blockH, preset.Rows);
                 var rect = GUILayoutUtility.GetRect(42, 42, GUILayout.Width(42), GUILayout.Height(42));
 
-                if (GUI.Button(rect, new GUIContent("", $"{size.x}×{size.y}")))
-                {
-                    _blockW = size.x; _blockH = size.y;
-                }
+                if (GUI.Button(rect, new GUIContent("", preset.Label)))
+                    SetBrushShape(preset.Rows);
 
-                float unit = Mathf.Min(30f / Mathf.Max(size.x, size.y), 9f);
-                var shape = new Rect(
-                    rect.center.x - size.x * unit * 0.5f,
-                    rect.center.y - size.y * unit * 0.5f,
-                    size.x * unit, size.y * unit);
-                LevelCanvasDrawer.Fill(shape, ColorOf(_layers[0]));
+                DrawShapeIcon(rect, preset.Rows, brushColor);
                 if (selected) LevelCanvasDrawer.Outline(rect, Color.white, 2f);
 
-                if (i % perRow == perRow - 1 || i == CommonSizes.Length - 1)
+                if (i % perRow == perRow - 1 || i == ShapePresets.Length - 1)
                     EditorGUILayout.EndHorizontal();
             }
+        }
+
+        /// <summary>Maskeyi küçük hücre kareleri olarak çizer (palet ikonu).</summary>
+        static void DrawShapeIcon(Rect box, IReadOnlyList<string> rows, Color color)
+        {
+            int w = 0;
+            for (int y = 0; y < rows.Count; y++) w = Mathf.Max(w, rows[y].Length);
+            if (w == 0) return;
+
+            float unit = Mathf.Min(30f / Mathf.Max(w, rows.Count), 9f);
+            float originX = box.center.x - w * unit * 0.5f;
+            float originY = box.center.y - rows.Count * unit * 0.5f;
+
+            for (int y = 0; y < rows.Count; y++)
+                for (int x = 0; x < rows[y].Length; x++)
+                {
+                    if (char.ToUpperInvariant(rows[y][x]) != 'X') continue;
+                    LevelCanvasDrawer.Fill(
+                        new Rect(originX + x * unit, originY + y * unit, unit - 1f, unit - 1f), color);
+                }
         }
 
         void DrawLayerChips()
@@ -368,12 +429,27 @@ namespace BlockOut.Editor.LevelEditor
 
                     using (new EditorGUILayout.HorizontalScope())
                     {
-                        EditorGUILayout.LabelField("Boyut", GUILayout.Width(42));
-                        block.W = Mathf.Clamp(EditorGUILayout.IntField(block.W, GUILayout.Width(34)), 1, 6);
-                        EditorGUILayout.LabelField("×", GUILayout.Width(12));
-                        block.H = Mathf.Clamp(EditorGUILayout.IntField(block.H, GUILayout.Width(34)), 1, 6);
+                        bool shaped = block.Cells != null && block.Cells.Count > 0;
+                        EditorGUILayout.LabelField(shaped ? "Şekil" : "Boyut", GUILayout.Width(42));
+                        if (shaped)
+                        {
+                            // Maskeli blokta w×h yazmak anlamsız — şekli göster,
+                            // değişiklik döndür/aynala ile yapılsın.
+                            var icon = GUILayoutUtility.GetRect(28, 28, GUILayout.Width(28), GUILayout.Height(28));
+                            DrawShapeIcon(icon, block.Cells, ColorOf(block.Layers.Count > 0 ? block.Layers[0] : "red"));
+                            if (GUILayout.Button(new GUIContent("□", "Dikdörtgene çevir"), GUILayout.Width(24)))
+                                block.Cells = null;
+                        }
+                        else
+                        {
+                            block.W = Mathf.Clamp(EditorGUILayout.IntField(block.W, GUILayout.Width(34)), 1, 6);
+                            EditorGUILayout.LabelField("×", GUILayout.Width(12));
+                            block.H = Mathf.Clamp(EditorGUILayout.IntField(block.H, GUILayout.Width(34)), 1, 6);
+                        }
                         if (GUILayout.Button(new GUIContent("⟳", "Döndür (R)"), GUILayout.Width(26)))
                             RotateSelection();
+                        if (GUILayout.Button(new GUIContent("⇄", "Aynala (F)"), GUILayout.Width(26)))
+                            FlipSelection();
                         GUILayout.FlexibleSpace();
                         EditorGUILayout.LabelField("Buz", GUILayout.Width(26));
                         block.Ice = Mathf.Max(0, EditorGUILayout.IntField(block.Ice, GUILayout.Width(34)));

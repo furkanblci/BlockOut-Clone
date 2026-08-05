@@ -82,8 +82,12 @@ namespace BlockOut.Runtime.Board
 
             foreach (var block in _level.Blocks)
             {
-                var r = block.Rect;
-                if (cell.x < r.MinX || cell.x > r.MaxX || cell.y < r.MinY || cell.y > r.MaxY)
+                // Polyomino: sınırlayıcı kutu kabaca eler, sonra GERÇEK hücreye
+                // bakılır — L şeklinin boş köşesine dokunmak bloğu tutmamalı.
+                var bounds = block.Bounds;
+                if (cell.x < bounds.MinX || cell.x > bounds.MaxX ||
+                    cell.y < bounds.MinY || cell.y > bounds.MaxY) continue;
+                if (!block.CoversCell(Mathf.FloorToInt(cell.x), Mathf.FloorToInt(cell.y)))
                     continue;
 
                 if (block.IsFrozen) return; // buzlu blok kilitli — sallanma efekti M4'te
@@ -105,7 +109,7 @@ namespace BlockOut.Runtime.Board
             if (!TryPointerToCell(screenPos, out var cell)) return;
 
             _dragged.Position = DragSolver.Solve(
-                _dragged.Position, cell + _grabOffset, _dragged.W, _dragged.H,
+                _dragged.Position, cell + _grabOffset, _dragged.Cells,
                 _obstacles, _config.dragSubstep, _config.collisionEpsilon);
             _views.Blocks[_dragged].SyncFromModel();
 
@@ -126,7 +130,7 @@ namespace BlockOut.Runtime.Board
             _dragged = null;
 
             block.Position = DragSolver.SnapToGrid(
-                block.Position, block.W, block.H, _obstacles, _config.collisionEpsilon);
+                block.Position, block.Cells, _obstacles, _config.collisionEpsilon);
 
             if (_views.Blocks.TryGetValue(block, out var view))
             {

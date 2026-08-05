@@ -60,6 +60,13 @@ namespace BlockOut.Core
         [JsonProperty("w")]      public int W = 1;
         [JsonProperty("h")]      public int H = 1;
 
+        /// <summary>
+        /// Dikdörtgen olmayan bloklar için hücre maskesi — tahtanın "rows"u gibi
+        /// yazılır: 'X' dolu, '.' boş. Örnek L şekli: ["XX", "X."].
+        /// Verilmezse blok w×h dikdörtgendir (eski dosyalar aynen çalışır).
+        /// </summary>
+        [JsonProperty("cells")]  public List<string> Cells;
+
         /// <summary>Renk katmanları; index 0 = dış katman. Tek katman = normal blok.</summary>
         [JsonProperty("layers")] public List<string> Layers = new List<string>();
 
