@@ -4,6 +4,23 @@ using UnityEngine;
 namespace BlockOut.Core
 {
     /// <summary>
+    /// Bloğun hareket edebildiği eksen.
+    ///
+    /// Referans oyunda (ileri bölümlerde) bazı blokların üstünde ÇİFT YÖNLÜ
+    /// OK bulunur: o blok yalnızca okun gösterdiği eksende sürüklenebilir.
+    /// Bulmaca açısından güçlü bir kısıt — bloğu "ray"a oturtur.
+    /// </summary>
+    public enum MoveAxis
+    {
+        /// <summary>Serbest — dört yöne de gider (varsayılan).</summary>
+        Free,
+        /// <summary>Yalnız yatay (↔).</summary>
+        Horizontal,
+        /// <summary>Yalnız dikey (↕).</summary>
+        Vertical
+    }
+
+    /// <summary>
     /// Bir bloğun OYUN DURUMU — görseli değil (o BlockView'ın işi).
     ///
     /// DERS (model/view ayrımı): Model saf veridir ve hücre uzayında yaşar;
@@ -21,6 +38,9 @@ namespace BlockOut.Core
     public sealed class BlockModel
     {
         public int Id;
+
+        /// <summary>Hareket kısıtı; üstündeki ok bunu gösterir.</summary>
+        public MoveAxis Axis = MoveAxis.Free;
 
         /// <summary>Sınırlayıcı kutu genişliği (hücre).</summary>
         public int W = 1;

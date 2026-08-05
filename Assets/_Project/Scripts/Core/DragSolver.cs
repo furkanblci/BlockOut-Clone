@@ -32,9 +32,16 @@ namespace BlockOut.Core
         /// </summary>
         public static Vector2 Solve(
             Vector2 position, Vector2 target, IReadOnlyList<Vector2Int> cells,
-            IReadOnlyList<Aabb> obstacles, float substep, float eps)
+            IReadOnlyList<Aabb> obstacles, float substep, float eps,
+            MoveAxis axis = MoveAxis.Free)
         {
             Vector2 delta = target - position;
+
+            // Eksen kısıtı EN BAŞTA uygulanır: yasak eksendeki istek hiç
+            // doğmasın. Süpürmeden sonra kırpsaydık, blok önce o yöne gidip
+            // sonra geri sıçrar gibi görünürdü.
+            if (axis == MoveAxis.Horizontal) delta.y = 0f;
+            else if (axis == MoveAxis.Vertical) delta.x = 0f;
             float maxAxis = Mathf.Max(Mathf.Abs(delta.x), Mathf.Abs(delta.y));
             if (maxAxis < 1e-6f) return position;
 

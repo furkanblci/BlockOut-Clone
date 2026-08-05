@@ -541,6 +541,7 @@ namespace BlockOut.Editor.LevelEditor
                     Y = Mathf.Clamp(source.Y + (offset ? 1 : 0), 0, _data.Board.Height - source.H),
                     W = source.W, H = source.H, Ice = source.Ice,
                     Cells = source.Cells == null ? null : new List<string>(source.Cells),
+                    Axis = source.Axis,
                     Layers = new List<string>(source.Layers)
                 };
                 _data.Blocks.Add(copy);
@@ -624,7 +625,8 @@ namespace BlockOut.Editor.LevelEditor
                 X = Mathf.Clamp(cell.x, 0, _data.Board.Width - _blockW),
                 Y = Mathf.Clamp(cell.y, 0, _data.Board.Height - _blockH),
                 W = _blockW, H = _blockH, Ice = _blockIce,
-                Cells = BrushMask()
+                Cells = BrushMask(),
+                Axis = string.IsNullOrEmpty(_blockAxis) ? null : _blockAxis
             };
             foreach (var layer in _layers) block.Layers.Add(layer.ToId());
 

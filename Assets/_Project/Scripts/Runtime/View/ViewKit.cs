@@ -262,6 +262,7 @@ namespace BlockOut.Runtime.View
             _curtainPanel = null;
             _curtainFrame = null;
             _arrow = null;
+            _axisArrow = null;
             _arrowGhost = null;
             _particle = null;
             _floor = null;
@@ -288,6 +289,28 @@ namespace BlockOut.Runtime.View
                     _arrow.SetColor("_BaseColor", new Color(1f, 0.99f, 0.96f));
                 }
                 return _arrow;
+            }
+        }
+
+        static Material _axisArrow;
+
+        /// <summary>
+        /// Yönlü blokların üstündeki ok. Kapı okundan AYRI bir materyal, çünkü
+        /// bu ok bloğun üstünde durur: bembeyaz olursa rengi bastırır. Hafif
+        /// koyu ve saydamsız bir ton, "aynı parçanın kabartması" gibi okunur.
+        /// </summary>
+        public static Material AxisArrowMaterial
+        {
+            get
+            {
+                if (_axisArrow == null)
+                {
+                    var shader = Shader.Find("BlockOut/Brick")
+                                 ?? Shader.Find("Universal Render Pipeline/Unlit");
+                    _axisArrow = new Material(shader) { name = "AxisArrow" };
+                    _axisArrow.SetColor("_BaseColor", new Color(1f, 1f, 1f, 1f));
+                }
+                return _axisArrow;
             }
         }
 

@@ -405,8 +405,10 @@ namespace BlockOut.Core
             BlockModel block, Vector2 from, Vector2 dir, List<Aabb> obstacles,
             HashSet<Vector2> reachable, Queue<Vector2> queue, float substep, float epsilon)
         {
+            // Eksen kısıtı çözücüde de geçerli; yoksa çözücü oyuncunun
+            // yapamayacağı hamlelerle bölümü "çözülebilir" sanırdı.
             var solved = DragSolver.Solve(from, from + dir, block.Cells,
-                obstacles, substep, epsilon);
+                obstacles, substep, epsilon, block.Axis);
             var cell = new Vector2(Mathf.Round(solved.x), Mathf.Round(solved.y));
             if (cell != from && reachable.Add(cell))
                 queue.Enqueue(cell);

@@ -34,6 +34,7 @@ namespace BlockOut.Runtime.View
         MeshRenderer _renderer;
         MeshFilter _filter;
         GameObject _iceShell;
+        GameObject _axisArrow;
         TextMesh _iceCounter;
         Coroutine _tween;
         bool _highlighted;
@@ -56,9 +57,157 @@ namespace BlockOut.Runtime.View
             view._renderer.receiveShadows = false;
 
             view.BuildContactShadow();
+            if (model.Axis != MoveAxis.Free) view.BuildAxisArrow();
             view.SyncFromModel();
             if (model.IsFrozen) view.BuildIceShell(parent);
             return view;
+        }
+
+        /// <summary>
+        /// Yönlü blokların üstündeki çift başlı ok.
+        ///
+        /// DERS (kuralı GÖRÜNÜR kılmak): Eksen kısıtı görünmezse oyuncu bloğu
+        /// çekmeye çalışır, olmaz, oyunu bozuk sanır. Bulmacada her kısıt
+        /// ekranda okunabilir olmalı — referans oyun da bu yüzden oku bloğun
+        /// tam ortasına, iri ve kabartmalı basıyor.
+        ///
+        /// Ok bloğun ÇOCUĞU: blok sürüklenirken onunla birlikte gitsin ve
+        /// tutma animasyonundaki ölçeği paylaşsın.
+        /// </summary>
+        void BuildAxisArrow()
+        {
+            var go = new GameObject("AxisArrow");
+            go.transform.SetParent(transform, worldPositionStays: false);
+            _axisArrow = go;
+
+            bool horizontal = _model.Axis == MoveAxis.Horizontal;
+            var center = ArrowAnchor();
+            // Ok, bloğun kısa kenarına göre ölçeklenir ki taşmasın.
+            float span = Mathf.Min(_model.W, _model.H);
+            float length = Mathf.Min(horizontal ? _model.W : _model.H, span * 1.6f) * 0.34f;
+            float thickness = span * 0.10f;
+            float head = span * 0.17f;
+
+            var mesh = BuildDoubleArrow(horizontal, length, thickness, head);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+
+            var renderer = go.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = ViewKit.AxisArrowMaterial;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+
+            float top = _filter != null && _filter.sharedMesh != null
+                ? _filter.sharedMesh.bounds.max.y
+                : BrickMeshBuilder.Height;
+            go.transform.localPosition = new Vector3(center.x, top + 0.005f, center.y);
+        }
+
+        /// <summary>
+        /// Okun oturacağı yer: hücrelerin AĞIRLIK MERKEZİ. Dikdörtgende bu tam
+        /// olarak bloğun ortasıdır; L gibi şekillerde ise gövdenin dolu tarafına
+        /// kayar. Ağırlık merkezi boş bir hücreye düşerse (U, artı gibi kimi
+        /// şekiller) en yakın DOLU hücrenin ortasına çekilir — ok asla boşlukta
+        /// asılı kalmaz.
+        ///
+        /// Mesh yerel uzayı: x = -W/2 + cx + 0.5, z = +H/2 - cy - 0.5
+        /// (hücre uzayında y aşağı artar, dünyada Z yukarı).
+        /// </summary>
+        Vector2 ArrowAnchor()
+        {
+            var cells = _model.Cells;
+            if (cells.Count == 0) return Vector2.zero;
+
+            float cx = 0f, cy = 0f;
+            foreach (var cell in cells) { cx += cell.x + 0.5f; cy += cell.y + 0.5f; }
+            cx /= cells.Count;
+            cy /= cells.Count;
+
+            if (!_model.Cells.Contains(new Vector2Int(Mathf.FloorToInt(cx), Mathf.FloorToInt(cy))))
+            {
+                var best = cells[0];
+                float bestDistance = float.MaxValue;
+                foreach (var cell in cells)
+                {
+                    float dx = cell.x + 0.5f - cx, dy = cell.y + 0.5f - cy;
+                    float distance = dx * dx + dy * dy;
+                    if (distance >= bestDistance) continue;
+                    bestDistance = distance;
+                    best = cell;
+                }
+                cx = best.x + 0.5f;
+                cy = best.y + 0.5f;
+            }
+
+            return new Vector2(-_model.W * 0.5f + cx, _model.H * 0.5f - cy);
+        }
+
+        /// <summary>
+        /// Çift başlı ok: ortada gövde, iki uçta üçgen baş. Düz bir quad yerine
+        /// alçak prizma olarak kurulur — yan yüzler ışığı farklı açıyla alınca
+        /// ok "kabartma" gibi okunur, çıkartma gibi değil.
+        ///
+        /// DERS (sarım yönü / winding): Üçgenin köşe SIRASI hangi yüzün "ön"
+        /// olduğunu belirler; ters sıralı üçgen backface culling ile tamamen
+        /// kaybolur. Bu yüzden ok HER ZAMAN yatay kurulur, dikey isteniyorsa
+        /// mesh 90° DÖNDÜRÜLÜR — eksenleri (right ↔ forward) takas etmek
+        /// el yönünü tersine çevirir ve okun görünmemesine yol açardı.
+        /// </summary>
+        static Mesh BuildDoubleArrow(bool horizontal, float length, float thickness, float head)
+        {
+            var verts = new List<Vector3>();
+            var normals = new List<Vector3>();
+            var tris = new List<int>();
+            const float rise = 0.035f;
+
+            Vector3 along = Vector3.right;
+            Vector3 across = Vector3.forward;
+
+            void Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 d)
+            {
+                int s = verts.Count;
+                verts.Add(a); verts.Add(b); verts.Add(c); verts.Add(d);
+                for (int i = 0; i < 4; i++) normals.Add(Vector3.up);
+                tris.Add(s); tris.Add(s + 2); tris.Add(s + 1);
+                tris.Add(s); tris.Add(s + 3); tris.Add(s + 2);
+            }
+
+            void Triangle(Vector3 a, Vector3 b, Vector3 c)
+            {
+                int s = verts.Count;
+                verts.Add(a); verts.Add(b); verts.Add(c);
+                for (int i = 0; i < 3; i++) normals.Add(Vector3.up);
+                tris.Add(s); tris.Add(s + 2); tris.Add(s + 1);
+            }
+
+            Vector3 up = Vector3.up * rise;
+            float body = length - head;
+
+            Quad(-along * body - across * thickness + up,
+                  along * body - across * thickness + up,
+                  along * body + across * thickness + up,
+                 -along * body + across * thickness + up);
+
+            Triangle(along * length + up,
+                     along * body + across * head + up,
+                     along * body - across * head + up);
+            Triangle(-along * length + up,
+                     -along * body - across * head + up,
+                     -along * body + across * head + up);
+
+            // Dikey ok: sarımı bozmayan gerçek bir 90° dönüş (x,z) → (z,-x).
+            if (!horizontal)
+                for (int i = 0; i < verts.Count; i++)
+                {
+                    var v = verts[i];
+                    verts[i] = new Vector3(v.z, v.y, -v.x);
+                }
+
+            var mesh = new Mesh { name = "AxisArrow" };
+            mesh.SetVertices(verts);
+            mesh.SetNormals(normals);
+            mesh.SetTriangles(tris, 0);
+            mesh.RecalculateBounds();
+            return mesh;
         }
 
         /// <summary>Modelin hücre konumunu dünyaya yansıtır. Sürükleme sırasında her kare çağrılır.</summary>
@@ -228,6 +377,8 @@ namespace BlockOut.Runtime.View
             // Buz OPAK olduğu için tuğlayı çizmeye gerek yok: hem referanstaki
             // gibi renk gizleniyor hem de bir çizim çağrısı tasarruf ediyoruz.
             if (_renderer != null) _renderer.enabled = false;
+            // Ok da buzun içinde kalmalı; kabuğun tepesinden dışarı taşmasın.
+            if (_axisArrow != null) _axisArrow.SetActive(false);
 
             _iceCounter = ViewKit.CreateCounter(
                 parent,
@@ -250,6 +401,7 @@ namespace BlockOut.Runtime.View
 
             // Gizlenen renk ortaya çıkar — video kuralı.
             if (_renderer != null) _renderer.enabled = true;
+            if (_axisArrow != null) _axisArrow.SetActive(true);
         }
 
         /// <summary>Katman soyulunca dış rengin materyali değişir.</summary>

@@ -92,6 +92,9 @@ namespace BlockOut.Editor.LevelEditor
 
         /// <summary>Fırçanın hücre maskesi; boş/null ise blok _blockW×_blockH dikdörtgen.</summary>
         [SerializeField] List<string> _blockMask;
+
+        /// <summary>Fırçanın hareket kısıtı: "" serbest, "h" yatay, "v" dikey.</summary>
+        [SerializeField] string _blockAxis = "";
         [SerializeField] List<BlockColor> _layers = new List<BlockColor> { BlockColor.Red };
         [SerializeField] int _activeLayer;
         [SerializeField] BlockColor _gateColor = BlockColor.Red;
@@ -497,6 +500,16 @@ namespace BlockOut.Editor.LevelEditor
                 LevelCanvasDrawer.Label(
                     _canvas.RectFor(block.X + first.x, block.Y + first.y, 1, 1), block.Ice.ToString(),
                     new Color(0.1f, 0.2f, 0.4f, alpha), Mathf.RoundToInt(_canvas.CellSize * 0.32f));
+            }
+
+            // Hareket kısıtı: oyundaki kabartma ok yerine tuvalde ↔ / ↕ işareti.
+            if (!string.IsNullOrEmpty(block.Axis))
+            {
+                var center = BlockCellBuffer[0];
+                LevelCanvasDrawer.Label(
+                    _canvas.RectFor(block.X + center.x, block.Y + center.y, 1, 1),
+                    block.Axis == "v" ? "↕" : "↔",
+                    new Color(1f, 1f, 1f, alpha), Mathf.RoundToInt(_canvas.CellSize * 0.5f));
             }
         }
 

@@ -203,6 +203,8 @@ namespace BlockOut.Editor.LevelEditor
                         _blockIce = Mathf.Max(0, EditorGUILayout.IntField(_blockIce, GUILayout.Width(34)));
                     }
 
+                    DrawAxisPicker();
+
                     EditorGUILayout.Space(4);
                     EditorGUILayout.LabelField("Katmanlar (dıştan içe)", EditorStyles.boldLabel);
                     DrawLayerChips();
@@ -232,6 +234,46 @@ namespace BlockOut.Editor.LevelEditor
                     DrawStampSection();
                     break;
             }
+        }
+
+        /// <summary>
+        /// Hareket kısıtı seçici. Referans oyunda bloğun üstündeki çift yönlü
+        /// ok bunu gösterir: blok yalnızca o eksende sürüklenebilir.
+        /// </summary>
+        void DrawAxisPicker()
+        {
+            EditorGUILayout.Space(2);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                EditorGUILayout.LabelField("Hareket", GUILayout.Width(52));
+                DrawAxisButton("Serbest", "");
+                DrawAxisButton("↔ yatay", "h");
+                DrawAxisButton("↕ dikey", "v");
+            }
+        }
+
+        /// <summary>Seçili bloğun eksenini değiştirir (fırçadan bağımsız).</summary>
+        void DrawBlockAxisButton(BlockData block, string label, string value)
+        {
+            bool on = string.IsNullOrEmpty(block.Axis) ? value == null : block.Axis == value;
+            var previous = GUI.backgroundColor;
+            if (on) GUI.backgroundColor = new Color(0.55f, 0.85f, 1f);
+            if (GUILayout.Button(label, GUILayout.Height(22)) && !on)
+            {
+                Record();
+                block.Axis = value;
+                AfterChange();
+            }
+            GUI.backgroundColor = previous;
+        }
+
+        void DrawAxisButton(string label, string value)
+        {
+            bool on = _blockAxis == value;
+            var previous = GUI.backgroundColor;
+            if (on) GUI.backgroundColor = new Color(0.55f, 0.85f, 1f);
+            if (GUILayout.Button(label, GUILayout.Height(24))) _blockAxis = value;
+            GUI.backgroundColor = previous;
         }
 
         /// <summary>Fırçanın maskesi; dikdörtgense null (JSON'a "cells" yazılmaz).</summary>
@@ -453,6 +495,14 @@ namespace BlockOut.Editor.LevelEditor
                         GUILayout.FlexibleSpace();
                         EditorGUILayout.LabelField("Buz", GUILayout.Width(26));
                         block.Ice = Mathf.Max(0, EditorGUILayout.IntField(block.Ice, GUILayout.Width(34)));
+                    }
+
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        EditorGUILayout.LabelField("Hareket", GUILayout.Width(52));
+                        DrawBlockAxisButton(block, "Serbest", null);
+                        DrawBlockAxisButton(block, "↔ yatay", "h");
+                        DrawBlockAxisButton(block, "↕ dikey", "v");
                     }
 
                     EditorGUILayout.LabelField("Katmanlar", EditorStyles.miniLabel);

@@ -82,7 +82,8 @@ namespace BlockOut.Core
             {
                 Id = _nextBlockId++,
                 IceCount = b.Ice,
-                Position = new Vector2(b.X, b.Y)
+                Position = new Vector2(b.X, b.Y),
+                Axis = ParseAxis(b.Axis)
             };
 
             // Şekil kuralı BlockShape'te tek yerde: maske varsa maskeden,
@@ -100,6 +101,21 @@ namespace BlockOut.Core
                 block.Layers.Add(color);
             }
             return block;
+        }
+
+        /// <summary>
+        /// "h"/"x"/"horizontal" → yatay, "v"/"y"/"vertical" → dikey, gerisi serbest.
+        /// Birden çok yazımı kabul etmek elle yazılan JSON'da hata payını düşürür.
+        /// </summary>
+        static MoveAxis ParseAxis(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return MoveAxis.Free;
+            switch (text.Trim().ToLowerInvariant())
+            {
+                case "h": case "x": case "horizontal": return MoveAxis.Horizontal;
+                case "v": case "y": case "vertical":   return MoveAxis.Vertical;
+                default: return MoveAxis.Free;
+            }
         }
 
         /// <summary>

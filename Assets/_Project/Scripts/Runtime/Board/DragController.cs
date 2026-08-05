@@ -110,7 +110,7 @@ namespace BlockOut.Runtime.Board
 
             _dragged.Position = DragSolver.Solve(
                 _dragged.Position, cell + _grabOffset, _dragged.Cells,
-                _obstacles, _config.dragSubstep, _config.collisionEpsilon);
+                _obstacles, _config.dragSubstep, _config.collisionEpsilon, _dragged.Axis);
             _views.Blocks[_dragged].SyncFromModel();
 
             // Emilme VE katman soyulması sürükleme sırasında gerçekleşir;

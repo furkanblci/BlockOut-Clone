@@ -70,6 +70,12 @@ namespace BlockOut.Core
         /// <summary>Renk katmanları; index 0 = dış katman. Tek katman = normal blok.</summary>
         [JsonProperty("layers")] public List<string> Layers = new List<string>();
 
+        /// <summary>
+        /// Hareket kısıtı: "h" yalnız yatay, "v" yalnız dikey, boş = serbest.
+        /// Referans oyunda bloğun üstündeki çift yönlü ok bunu gösterir.
+        /// </summary>
+        [JsonProperty("axis")] public string Axis;
+
         /// <summary>Buz sayacı; 0 = buz yok. DERS (şema evrimi): buz ayrı bir engel
         /// değil BLOĞUN ÖZELLİĞİ olarak modellendi — videoda buzun altından hep
         /// normal blok çıkıyor. Eski JSON'lar alansız kalabilir; Newtonsoft

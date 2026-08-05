@@ -89,6 +89,7 @@ namespace BlockOut.Editor.LevelEditor
                     X = block.X - minX, Y = block.Y - minY,
                     W = block.W, H = block.H, Ice = block.Ice,
                     Cells = block.Cells == null ? null : new List<string>(block.Cells),
+                    Axis = block.Axis,
                     Layers = new List<string>(block.Layers)
                 });
 
