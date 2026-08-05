@@ -19,6 +19,8 @@ namespace BlockOut.Runtime.Flow
     {
         [SerializeField] GameConfigSO config;
         [SerializeField] ColorPaletteSO palette;
+        [SerializeField, Tooltip("Görsel ayarlar — Tools > Block Out > Görünüm Ayarları'ndan canlı düzenlenir.")]
+        BlockVisualConfigSO visuals;
         [SerializeField] TextAsset levelJson;
         [SerializeField, Tooltip("Doluysa levelJson yerine bu sıra oynanır; kazanınca sonrakine geçilir. M5'te LevelDatabaseSO'ya evrilecek.")]
         TextAsset[] levelSequence;
@@ -32,10 +34,24 @@ namespace BlockOut.Runtime.Flow
         public int DisplayNumber { get; private set; }
         public int WarningSeconds => config.warningSeconds;
 
+        /// <summary>Bu bölümün kayıt anahtarı (level_003 gibi). Meta servisleri kullanır.</summary>
+        public string LevelId { get; private set; } = "";
+
+        /// <summary>Son kazanışta verilen coin — bitiş ekranı gösterir.</summary>
+        public int LastReward { get; private set; }
+
+        /// <summary>Bu deneme için can harcandı mı? (Aynı bölümde iki kez düşmesin.)</summary>
+        bool _lifeSpent;
+
         LevelModel _level;
         BoardEvents _events;
         DragController _drag;
         Camera _camera;
+
+        // Cila servisleri: bir kez kurulur, her bölümde yeni olay merkezine bağlanır.
+        FX.FXService _fx;
+        Services.AudioService _audio;
+        Services.HapticsService _haptics;
 
         /// <summary>
         /// Kamerayı tembel çözer. Restart/NextLevel dışarıdan (HUD, editör
@@ -47,6 +63,30 @@ namespace BlockOut.Runtime.Flow
         {
             _camera = Camera.main;
             gameObject.AddComponent<GameplayHud>().Init(this);
+
+            _fx = FX.FXService.Create(transform, palette);
+            _audio = Services.AudioService.Create(transform);
+            _haptics = Services.HapticsService.Create(transform);
+
+            // Oyuncunun kayıtlı ses/titreşim tercihleri hemen geçerli olsun.
+            if (Services.MetaServices.Ready)
+                Services.SettingsBinder.Apply(
+                    Services.MetaServices.Save.Data.Settings, _audio, _haptics);
+
+            // Bölüm seçimi üç kaynaktan gelebilir, öncelik sırasıyla:
+            // 1) Home ekranının isteği, 2) oyuncunun kaldığı yer, 3) bölüm 1.
+            // (Gameplay sahnesi tek başına Play'e basılarak da açılabilmeli.)
+            int requested = AppRouter.ConsumeRequestedLevel();
+            if (LevelCount > 0)
+            {
+                int index = requested >= 0
+                    ? requested
+                    : Services.MetaServices.Ready
+                        ? Services.MetaServices.Progress.HighestUnlockedIndex
+                        : 0;
+                _levelIndex = Mathf.Clamp(index, 0, LevelCount - 1);
+            }
+
             Timer.Expired += OnTimeExpired;
             BuildAndStart();
         }
@@ -89,16 +129,28 @@ namespace BlockOut.Runtime.Flow
 #endif
         }
 
-        TextAsset NormalLevelAsset =>
-            levelSequence != null && levelSequence.Length > 0
-                ? levelSequence[Mathf.Clamp(_levelIndex, 0, levelSequence.Length - 1)]
-                : levelJson;
+        TextAsset NormalLevelAsset
+        {
+            get
+            {
+                // Katalog M5'te tek doğruluk kaynağı oldu (Home ekranı da onu
+                // okuyor). Sahnedeki dizi yalnız katalog yoksa devreye girer.
+                var fromCatalog = Config.LevelCatalog.AssetAt(_levelIndex);
+                if (fromCatalog != null) return fromCatalog;
 
-        public bool HasNextLevel =>
-            levelSequence != null && _levelIndex + 1 < levelSequence.Length;
+                return levelSequence != null && levelSequence.Length > 0
+                    ? levelSequence[Mathf.Clamp(_levelIndex, 0, levelSequence.Length - 1)]
+                    : levelJson;
+            }
+        }
 
-        /// <summary>Dizideki bölüm sayısı (test seçicisi için).</summary>
-        public int LevelCount => levelSequence != null ? levelSequence.Length : 0;
+        public bool HasNextLevel => _levelIndex + 1 < LevelCount;
+
+        /// <summary>Sıradaki bölüm sayısı (Home ekranı ve test seçicisi için).</summary>
+        public int LevelCount =>
+            Config.LevelCatalog.Count > 0
+                ? Config.LevelCatalog.Count
+                : (levelSequence != null ? levelSequence.Length : 0);
 
         public int LevelIndex => _levelIndex;
 
@@ -119,8 +171,20 @@ namespace BlockOut.Runtime.Flow
             Restart();
         }
 
+        /// <summary>
+        /// Görsel ayarlar değiştiğinde tahtayı yeniden kurar (ayar penceresi çağırır).
+        /// Bölüm baştan başlar — ayar denerken istenen davranış budur.
+        /// </summary>
+        public void RefreshVisuals()
+        {
+            if (visuals != null) View.VisualSettings.Apply(visuals);
+            if (State != GameState.Intro) Restart();
+        }
+
         void BuildAndStart()
         {
+            if (visuals != null) View.VisualSettings.Apply(visuals);
+
             LevelData data;
             try
             {
@@ -141,6 +205,12 @@ namespace BlockOut.Runtime.Flow
             }
 
             DisplayNumber = data.DisplayNumber;
+            LevelId = string.IsNullOrEmpty(data.Id) ? ActiveLevelAsset.name : data.Id;
+
+            // Can, bölüm KURULURKEN değil OYNANMAYA BAŞLARKEN harcanır; parse
+            // hatasında oyuncudan can almış olmayalım.
+            SpendLifeForAttempt();
+
             _level = LevelModel.Build(data);
             _events = new BoardEvents();
             _events.BoardCleared += OnBoardCleared;
@@ -155,6 +225,12 @@ namespace BlockOut.Runtime.Flow
                 input, Cam, _level, views, space, config, gates,
                 () => State == GameState.Playing);
 
+            // Cila servisleri taze olay merkezine bağlanır.
+            _fx?.Bind(_events, space);
+            _audio?.Bind(_events);
+            _haptics?.Bind(_events);
+
+            PlayBoardIntro(views);
             Timer.StartCountdown(data.TimeSeconds);
             State = GameState.Playing;
         }
@@ -171,13 +247,28 @@ namespace BlockOut.Runtime.Flow
             var cam = Cam;
             if (cam == null) return;
 
+            // Arka plan: referanstaki koyu mor/lacivert. Kamera temizleme rengi
+            // + geniş gradyan quad; ayar penceresinden değiştirilebilir.
+            var visualCfg = View.VisualSettings.Current;
+            if (visualCfg != null)
+            {
+                cam.clearFlags = CameraClearFlags.SolidColor;
+                cam.backgroundColor = visualCfg.backgroundOuter;
+                View.BackgroundView.Ensure(cam, visualCfg);
+            }
+
             _fitWidth = boardWidth;
             _fitHeight = boardHeight;
             _lastAspect = cam.aspect;
 
-            var rotation = Quaternion.Euler(68f, 0f, 0f);
+            // Referans oyun tahtaya NEREDEYSE TEPEDEN bakar: blokların yalnızca
+            // üst yüzü ve ince bir yan bandı görünür. 68° fazla yatıktı, yan
+            // yüzler baskın çıkıyordu. Dar FOV perspektifi yassılaştırır —
+            // uzaktaki hücreler yakındakilerle aynı boyutta görünür, bulmaca
+            // okunaklı olur (bulmaca oyunlarının standart kamera dili).
+            var rotation = Quaternion.Euler(80f, 0f, 0f);
             Vector3 forward = rotation * Vector3.forward;
-            cam.fieldOfView = 33f;
+            cam.fieldOfView = 27f;
 
             // Kapı barları ve duvarlar tahta sınırının dışına taşar → kenar payı.
             float hw = boardWidth * 0.5f + 0.9f;
@@ -223,20 +314,72 @@ namespace BlockOut.Runtime.Flow
             _drag?.Dispose();
             _drag = null;
             _events = null; // taze olay merkezi = bayat abone kalmaz
+            _lifeSpent = false;
+            LastReward = 0;
             State = GameState.Intro;
             BuildAndStart();
+        }
+
+        /// <summary>
+        /// Bloklar yukarıdan sırayla düşerek tahtayı kurar. Gecikme köşegen
+        /// sırayla artar (sol-üstten sağ-alta doğru dalga) — hepsi aynı anda
+        /// düşerse kaotik görünür, dalga halinde düşerse tahta "kuruluyor" hissi verir.
+        /// </summary>
+        void PlayBoardIntro(BoardViews views)
+        {
+            const float step = 0.045f;
+            const float duration = 0.34f;
+
+            foreach (var pair in views.Blocks)
+            {
+                var model = pair.Key;
+                float delay = (model.Position.x + model.Position.y) * step;
+                pair.Value.PlayIntro(delay, duration);
+            }
+        }
+
+        /// <summary>
+        /// Denemeye bir can yazar. Can yoksa bölüm yine de açılır ama işaretlenir —
+        /// "can bitti" kararını Home ekranı verecek (M5 sahne akışı); oyunun
+        /// ortasında oyuncuyu kilitlemek kötü bir deneyim olurdu.
+        /// </summary>
+        void SpendLifeForAttempt()
+        {
+            if (_lifeSpent || !Services.MetaServices.Ready) return;
+            _lifeSpent = true;
+            Services.MetaServices.Lives.TrySpend();
+            Services.MetaServices.Progress.NoteAttempt(LevelId);
         }
 
         void OnBoardCleared()
         {
             State = GameState.Won;
             Timer.Stop();
+
+            if (Services.MetaServices.Ready)
+            {
+                // PERFECT ölçüsü (videodan): süre dolmadan, sürenin yarısından
+                // fazlası kalmışken bitirmek. Kesin kriter L20+ kaydı gelince
+                // netleşecek; kural tek yerde durduğu için değiştirmesi kolay.
+                int remaining = Mathf.CeilToInt(Timer.Remaining);
+                bool perfect = remaining * 2 >= Timer.Total;
+
+                LastReward = Services.MetaServices.Progress.NoteCleared(
+                    LevelId, _levelIndex, remaining, perfect);
+
+                // Kazanan oyuncu canını geri alır — videoda can yalnız kaybedince
+                // eksiliyor. Harcamayı girişte yapıp kazanınca iade etmek, "çıkıp
+                // geri girme" istismarını da kapatıyor.
+                Services.MetaServices.Lives.Grant(1);
+            }
         }
 
         void OnTimeExpired()
         {
-            if (State == GameState.Playing)
-                State = GameState.Lost;
+            if (State != GameState.Playing) return;
+            State = GameState.Lost;
+            _audio?.PlayLose();
+            _haptics?.Pulse();
         }
     }
 }

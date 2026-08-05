@@ -150,6 +150,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: BlockOut.Runtime::BlockOut.Runtime.Flow.GameSession
   config: {fileID: 11400000, guid: 4ed6afe1772506e4187a5747aeeca131, type: 2}
   palette: {fileID: 11400000, guid: f39f5753d454eba4789e0523c188cf38, type: 2}
+  visuals: {fileID: 11400000, guid: 08c5eff6c4b05ae46a1c6a26afafad75, type: 2}
   levelJson: {fileID: 4900000, guid: 722939382ce688a48b04fa2fc5b13e21, type: 3}
   levelSequence:
   - {fileID: 4900000, guid: 722939382ce688a48b04fa2fc5b13e21, type: 3}
@@ -164,6 +165,14 @@ MonoBehaviour:
   - {fileID: 4900000, guid: d8f5b6f565786554eb635722d1bd5373, type: 3}
   - {fileID: 4900000, guid: 59736388ab77a0843933a4dd6059c52c, type: 3}
   - {fileID: 4900000, guid: f59b793bf77b35d48b671020ac8cff86, type: 3}
+  - {fileID: 4900000, guid: 7049d1a45f532af4b815985cc43abe70, type: 3}
+  - {fileID: 4900000, guid: 0655a5e3324be8a4ab5c96db6d6a4f3f, type: 3}
+  - {fileID: 4900000, guid: f932033a492042d428b12c06a239057e, type: 3}
+  - {fileID: 4900000, guid: 71bf692db3fa8f947a0b437496faf22f, type: 3}
+  - {fileID: 4900000, guid: a77a67d0dc8ef12488eacf713fada4cf, type: 3}
+  - {fileID: 4900000, guid: d41bde50d0b8a1c4e977cc4df02e46c3, type: 3}
+  - {fileID: 4900000, guid: b81eeedea063e8049811473a7f00159c, type: 3}
+  - {fileID: 4900000, guid: 09b81c3042478d74481ada8991b42481, type: 3}
   input: {fileID: 2057508983}
   boardRoot: {fileID: 1909012938}
 --- !u!4 &722943016

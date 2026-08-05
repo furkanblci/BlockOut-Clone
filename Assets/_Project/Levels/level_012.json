@@ -3,16 +3,17 @@
   "id": "level_012",
   "displayNumber": 12,
   "difficulty": "hard",
-  "timeSeconds": 190,
+  "timeSeconds": 180,
   "board": {
     "width": 6,
-    "height": 8,
+    "height": 9,
     "rows": [
       "XXXXXX",
       "XXXXXX",
       "XXXXXX",
-      "XXXXXX",
-      "XXXXXX",
+      "..XX..",
+      "..XX..",
+      "..XX..",
       "XXXXXX",
       "XXXXXX",
       "XXXXXX"
@@ -20,26 +21,24 @@
     "walls": []
   },
   "blocks": [
-    { "x": 1, "y": 1, "w": 2, "h": 2, "layers": ["blue", "pink"] },
-    { "x": 3, "y": 2, "w": 2, "h": 2, "layers": ["green", "red"] },
-    { "x": 2, "y": 4, "w": 2, "h": 1, "layers": ["pink"] },
-    { "x": 0, "y": 4, "w": 1, "h": 2, "layers": ["blue"] }
+    { "x": 0, "y": 0, "w": 1, "h": 3, "layers": ["blue"] },
+    { "x": 1, "y": 0, "w": 1, "h": 3, "layers": ["red"] },
+    { "x": 2, "y": 0, "w": 1, "h": 3, "layers": ["green"] },
+    { "x": 3, "y": 0, "w": 1, "h": 3, "layers": ["blue"] },
+    { "x": 4, "y": 0, "w": 1, "h": 3, "layers": ["yellow"] },
+
+    { "x": 0, "y": 6, "w": 1, "h": 3, "layers": ["yellow"] },
+    { "x": 1, "y": 6, "w": 1, "h": 3, "layers": ["red"] },
+    { "x": 2, "y": 6, "w": 1, "h": 3, "layers": ["blue"], "ice": 1 },
+    { "x": 3, "y": 6, "w": 1, "h": 3, "layers": ["green"], "ice": 1 },
+    { "x": 4, "y": 6, "w": 1, "h": 3, "layers": ["red"] },
+    { "x": 5, "y": 6, "w": 1, "h": 3, "layers": ["yellow"] }
   ],
   "gates": [
-    { "x": 1, "y": 0, "side": "N", "length": 3, "colors": ["blue"] },
-    { "x": 0, "y": 1, "side": "W", "length": 3, "colors": ["pink"] },
-    { "x": 5, "y": 2, "side": "E", "length": 3, "colors": ["green"] },
-    { "x": 2, "y": 7, "side": "S", "length": 4, "colors": ["red"] },
-    { "x": 0, "y": 7, "side": "S", "length": 2, "colors": ["yellow"] }
+    { "x": 0, "y": 0, "side": "W", "length": 3, "colors": ["blue"], "ice": 2 },
+    { "x": 5, "y": 0, "side": "E", "length": 3, "colors": ["red"] },
+    { "x": 0, "y": 6, "side": "W", "length": 3, "colors": ["yellow"], "ice": 2 },
+    { "x": 5, "y": 6, "side": "E", "length": 3, "colors": ["green"], "ice": 1 }
   ],
-  "obstacles": [
-    {
-      "type": "curtain",
-      "x": 1, "y": 6, "w": 3, "h": 2, "count": 3,
-      "contents": [
-        { "x": 1, "y": 6, "w": 2, "h": 1, "layers": ["yellow"] },
-        { "x": 3, "y": 6, "w": 1, "h": 2, "layers": ["red"] }
-      ]
-    }
-  ]
+  "obstacles": []
 }

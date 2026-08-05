@@ -56,6 +56,17 @@ namespace BlockOut.Editor.LevelEditor
                 throw new JsonException($"Bu bölüm sürüm {data.Version} ile yazılmış; " +
                                         $"araç en fazla {LevelMigration.CurrentVersion} destekliyor.");
             LevelMigration.Upgrade(data, null);
+
+            // Elle yazılmış dosyalarda "cells" ile w/h çelişebilir; şeklin tek
+            // gerçeği maske, w/h ondan tazelenir.
+            foreach (var block in data.Blocks) BlockShape.Normalize(block);
+            foreach (var obstacle in data.Obstacles)
+            {
+                var contents = GetContents(obstacle);
+                if (contents.Count == 0) continue;
+                foreach (var block in contents) BlockShape.Normalize(block);
+                SetContents(obstacle, contents);
+            }
             return data;
         }
 
