@@ -47,6 +47,7 @@ namespace BlockOut.Runtime.View
             view._renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             view._renderer.receiveShadows = false;
 
+            view.BuildContactShadow();
             view.SyncFromModel();
             if (model.IsFrozen) view.BuildIceShell(parent);
             return view;
@@ -103,6 +104,43 @@ namespace BlockOut.Runtime.View
         {
             if (_tween != null) StopCoroutine(_tween);
             _tween = null;
+        }
+
+        /// <summary>
+        /// Bloğun altına yumuşak temas gölgesi. Bloğun ÇOCUĞU olduğu için
+        /// blokla birlikte hareket eder; ölçek animasyonlarında da doğal
+        /// biçimde büzülür.
+        /// </summary>
+        void BuildContactShadow()
+        {
+            var cfg = VisualSettings.Current;
+            if (cfg != null && !cfg.contactShadow) return;
+
+            float scale = cfg != null ? cfg.shadowScale : 1.02f;
+            float opacity = cfg != null ? cfg.shadowOpacity : 0.42f;
+            Vector2 offset = cfg != null ? cfg.shadowOffset : new Vector2(0.06f, -0.06f);
+
+            var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            quad.name = "Shadow";
+            quad.transform.SetParent(transform, worldPositionStays: false);
+            Destroy(quad.GetComponent<Collider>());
+
+            var renderer = quad.GetComponent<MeshRenderer>();
+            renderer.sharedMaterial = ViewKit.ShadowMaterial;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            // Gölge, zeminle blok arasında kalmalı: zeminden hemen sonra çizilir.
+            renderer.sortingOrder = -1;
+
+            quad.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            quad.transform.localPosition = new Vector3(offset.x, 0.012f, offset.y);
+            quad.transform.localScale = new Vector3(_model.W * scale, _model.H * scale, 1f);
+
+            var color = renderer.sharedMaterial.color;
+            color.a = opacity;
+            // Paylaşımlı materyalin alfası tek yerden gelir; blok başına
+            // farklı opaklık gerekmediği için materyali kopyalamıyoruz.
+            renderer.sharedMaterial.color = color;
         }
 
         /// <summary>

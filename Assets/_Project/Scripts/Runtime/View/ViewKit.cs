@@ -37,6 +37,76 @@ namespace BlockOut.Runtime.View
             }
         }
 
+        static Material _shadow;
+        static Texture2D _shadowTexture;
+
+        /// <summary>
+        /// Blokların altındaki yumuşak temas gölgesi.
+        ///
+        /// DERS (derinlik ipuçları): Tepeden bakan bir kamerada tüm üst yüzler
+        /// ışığa aynı açıyla durur, bu yüzden sahne DÜZ görünür. Gerçek gölge
+        /// hesaplamak mobilde pahalıdır; blokların altına yumuşak bir leke
+        /// koymak ise neredeyse bedavadır ve "nesne zeminin ÜSTÜNDE duruyor"
+        /// bilgisini tek başına verir. Oyun grafiklerinde buna blob shadow denir.
+        /// </summary>
+        public static Material ShadowMaterial
+        {
+            get
+            {
+                if (_shadow == null)
+                {
+                    _shadow = new Material(Shader.Find("Sprites/Default")) { name = "BlobShadow" };
+                    _shadow.mainTexture = ShadowTexture;
+                }
+                return _shadow;
+            }
+        }
+
+        static Texture2D ShadowTexture
+        {
+            get
+            {
+                if (_shadowTexture != null) return _shadowTexture;
+
+                // Kenarları yumuşak, köşeleri yuvarlatılmış dikdörtgen leke.
+                const int size = 64;
+                _shadowTexture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+                {
+                    hideFlags = HideFlags.HideAndDontSave,
+                    wrapMode = TextureWrapMode.Clamp
+                };
+
+                var pixels = new Color32[size * size];
+                for (int y = 0; y < size; y++)
+                {
+                    for (int x = 0; x < size; x++)
+                    {
+                        // Merkezden kenara doğru yumuşak düşüş (superellipse).
+                        float nx = (x + 0.5f) / size * 2f - 1f;
+                        float ny = (y + 0.5f) / size * 2f - 1f;
+                        float d = Mathf.Pow(Mathf.Abs(nx), 4f) + Mathf.Pow(Mathf.Abs(ny), 4f);
+                        float alpha = Mathf.Clamp01(1f - Mathf.Pow(d, 0.75f));
+                        alpha = alpha * alpha;
+                        pixels[y * size + x] = new Color32(0, 0, 0, (byte)(alpha * 255));
+                    }
+                }
+                _shadowTexture.SetPixels32(pixels);
+                _shadowTexture.Apply(false, true);
+                return _shadowTexture;
+            }
+        }
+
+        /// <summary>Ayar değişince üretilen materyaller yeniden kurulsun.</summary>
+        public static void ClearCache()
+        {
+            _ice = null;
+            _curtainPanel = null;
+            _curtainFrame = null;
+            _arrow = null;
+            _particle = null;
+            _ghosts.Clear();
+        }
+
         static Material _arrow;
 
         /// <summary>

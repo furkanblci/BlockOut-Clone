@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f722f500476b4994885c330c683a57da, type: 3}
+  m_Name: BlockVisualConfig
+  m_EditorClassIdentifier: BlockOut.Runtime::BlockOut.Runtime.Config.BlockVisualConfigSO
+  brickHeight: 0.4
+  brickInset: 0.055
+  brickChamfer: 0.06
+  studsPerCell: 2
+  studRadius: 0.168
+  studHeight: 0.115
+  studBevel: 0.035
+  studSegments: 14
+  toneBodyBottom: 0.48
+  toneBodySide: 0.86
+  toneFaceTop: 0.72
+  toneStudFoot: 0.42
+  toneStudTop: 1
+  lightDirection: {x: 0.45, y: 0.8, z: -0.4}
+  ambient: 0.5
+  specular: 0.5
+  gloss: 64
+  rim: 0.12
+  saturation: 1.18
+  contactShadow: 1
+  shadowOpacity: 0.42
+  shadowScale: 1.02
+  shadowOffset: {x: 0.06, y: -0.06}
+  floorColorA: {r: 0.17, g: 0.15, b: 0.31, a: 1}
+  floorColorB: {r: 0.14, g: 0.12, b: 0.27, a: 1}
+  wallColor: {r: 0.36, g: 0.32, b: 0.62, a: 1}
+  frameColor: {r: 0.3, g: 0.26, b: 0.58, a: 1}
+  frameThickness: 0.55
+  frameHeight: 0.34
+  wallHeight: 0.42
+  wallThickness: 0.18
+  gateBarHeight: 0.4
+  gateBarDepth: 0.44
+  gateOutwardOffset: 0.16
+  arrowSize: 0.2
+  arrowRise: 0.055
+  arrowCornerRadius: 0.3
