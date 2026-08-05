@@ -52,8 +52,8 @@
   ],
   "gates": [
     { "x": 0, "y": 0, "side": "W", "length": 3, "colors": ["red"] },
-    { "x": 4, "y": 0, "side": "N", "length": 2, "colors": ["black"], "ice": 16 },
-    { "x": 5, "y": 0, "side": "E", "length": 2, "colors": ["green"], "ice": 8 },
+    { "x": 4, "y": 0, "side": "N", "length": 2, "colors": ["black"], "ice": 5 },
+    { "x": 5, "y": 0, "side": "E", "length": 2, "colors": ["green"], "ice": 3 },
     { "x": 5, "y": 3, "side": "E", "length": 2, "colors": ["white"] }
   ],
   "obstacles": []

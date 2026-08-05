@@ -20,15 +20,15 @@
     "walls": []
   },
   "blocks": [
-    { "x": 0, "y": 0, "w": 1, "h": 3, "layers": ["yellow"], "ice": 20 },
-    { "x": 1, "y": 0, "w": 1, "h": 3, "layers": ["black"], "ice": 20 },
-    { "x": 2, "y": 0, "w": 2, "h": 2, "layers": ["white"], "ice": 17 },
-    { "x": 2, "y": 2, "w": 2, "h": 2, "layers": ["black"], "ice": 11 },
-    { "x": 0, "y": 3, "w": 2, "h": 2, "layers": ["white"], "ice": 19 },
-    { "x": 2, "y": 4, "w": 2, "h": 2, "layers": ["yellow"], "ice": 10 },
-    { "x": 0, "y": 5, "w": 1, "h": 3, "layers": ["black"], "ice": 17 },
-    { "x": 1, "y": 5, "w": 1, "h": 3, "layers": ["yellow"], "ice": 17 },
-    { "x": 2, "y": 6, "w": 2, "h": 2, "layers": ["white"], "ice": 9 },
+    { "x": 0, "y": 0, "w": 1, "h": 3, "layers": ["yellow"], "ice": 9 },
+    { "x": 1, "y": 0, "w": 1, "h": 3, "layers": ["black"], "ice": 9 },
+    { "x": 2, "y": 0, "w": 2, "h": 2, "layers": ["white"], "ice": 7 },
+    { "x": 2, "y": 2, "w": 2, "h": 2, "layers": ["black"], "ice": 4 },
+    { "x": 0, "y": 3, "w": 2, "h": 2, "layers": ["white"], "ice": 8 },
+    { "x": 2, "y": 4, "w": 2, "h": 2, "layers": ["yellow"], "ice": 3 },
+    { "x": 0, "y": 5, "w": 1, "h": 3, "layers": ["black"], "ice": 7 },
+    { "x": 1, "y": 5, "w": 1, "h": 3, "layers": ["yellow"], "ice": 7 },
+    { "x": 2, "y": 6, "w": 2, "h": 2, "layers": ["white"], "ice": 2 },
 
     { "x": 4, "y": 0, "layers": ["black"] },
     { "x": 5, "y": 0, "layers": ["black"] },
@@ -47,11 +47,11 @@
   ],
   "gates": [
     { "x": 4, "y": 0, "side": "N", "length": 2, "colors": ["white"] },
-    { "x": 5, "y": 0, "side": "E", "length": 3, "colors": ["black"], "ice": 18 },
-    { "x": 5, "y": 3, "side": "E", "length": 2, "colors": ["yellow"], "ice": 2 },
-    { "x": 5, "y": 5, "side": "E", "length": 3, "colors": ["black"], "ice": 9 },
-    { "x": 0, "y": 7, "side": "S", "length": 2, "colors": ["yellow"], "ice": 17 },
-    { "x": 4, "y": 7, "side": "S", "length": 2, "colors": ["white"], "ice": 11 }
+    { "x": 5, "y": 0, "side": "E", "length": 3, "colors": ["black"], "ice": 6 },
+    { "x": 5, "y": 3, "side": "E", "length": 2, "colors": ["yellow"], "ice": 1 },
+    { "x": 5, "y": 5, "side": "E", "length": 3, "colors": ["black"], "ice": 3 },
+    { "x": 0, "y": 7, "side": "S", "length": 2, "colors": ["yellow"], "ice": 8 },
+    { "x": 4, "y": 7, "side": "S", "length": 2, "colors": ["white"], "ice": 5 }
   ],
   "obstacles": []
 }

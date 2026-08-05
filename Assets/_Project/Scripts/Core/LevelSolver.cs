@@ -208,8 +208,8 @@ namespace BlockOut.Core
 
             var startState = Capture(movers);
             var visited = new HashSet<string> { Key(startState) };
-            var frontier = new Queue<Vector2[]>();
-            frontier.Enqueue(startState);
+            var frontier = new MinHeap();
+            frontier.Push(startState, Heuristic(level, movers, startState));
 
             var stepReachable = new HashSet<Vector2>();
             var stepQueue = new Queue<Vector2>();
@@ -217,7 +217,7 @@ namespace BlockOut.Core
 
             while (frontier.Count > 0)
             {
-                var state = frontier.Dequeue();
+                var state = frontier.Pop();
                 Restore(movers, state);
 
                 for (int i = 0; i < movers.Count; i++)
@@ -254,7 +254,7 @@ namespace BlockOut.Core
                             next[i] = pos;
                             if (visited.Add(Key(next)))
                             {
-                                frontier.Enqueue(next);
+                                frontier.Push(next, Heuristic(level, movers, next));
                                 if (++expanded >= nodeBudget)
                                 {
                                     block.Position = origin;
@@ -277,6 +277,106 @@ namespace BlockOut.Core
 
             Restore(movers, startState);
             return false;
+        }
+
+        /// <summary>
+        /// "Bu düzen hedefe ne kadar yakın?" — herhangi bir bloğun kendi kapısına
+        /// olan en kısa mesafesi. Arama kör BFS yerine bunu izleyince (best-first)
+        /// gereken kaydırma dizisini onlarca kat daha az düğümde buluyor.
+        ///
+        /// DERS (sezgisel = ucuz tahmin): Değerin DOĞRU olması gerekmiyor, sadece
+        /// "daha iyi düzen daha küçük sayı" sıralamasını kabaca vermesi yeterli.
+        /// Duvarları ve diğer blokları yok sayıyoruz; hesap birkaç çıkarma işlemi.
+        /// </summary>
+        static float Heuristic(LevelModel level, List<BlockModel> movers, Vector2[] state)
+        {
+            float best = float.MaxValue;
+
+            for (int i = 0; i < movers.Count; i++)
+            {
+                var block = movers[i];
+                if (block.IsFrozen) continue;
+                var pos = state[i];
+
+                foreach (var gate in level.Gates)
+                {
+                    if (gate.IsIced || gate.IsGhost) continue;
+                    if (block.CurrentColor != gate.ActiveColor) continue;
+
+                    // Kapıya dik uzaklık: bloğun kapıya bakan kenarı ile kapı çizgisi.
+                    float lead = gate.EdgeHorizontal
+                        ? (gate.OutwardSign < 0 ? pos.y : pos.y + block.H)
+                        : (gate.OutwardSign < 0 ? pos.x : pos.x + block.W);
+                    float perpendicular = Mathf.Abs(lead - gate.EdgeCoord);
+
+                    // Kenar boyunca kayma: bloğun açıklığa oturması için gereken kayma.
+                    float spanStart = gate.EdgeHorizontal ? pos.x : pos.y;
+                    float spanSize = gate.EdgeHorizontal ? block.W : block.H;
+                    float slide = 0f;
+                    if (spanStart < gate.SpanMin) slide = gate.SpanMin - spanStart;
+                    else if (spanStart + spanSize > gate.SpanMax) slide = spanStart + spanSize - gate.SpanMax;
+
+                    float total = perpendicular + slide;
+                    if (total < best) best = total;
+                }
+            }
+
+            return best == float.MaxValue ? 0f : best;
+        }
+
+        /// <summary>
+        /// En küçük öncelikli ikili yığın. Sıralı bir liste yerine yığın kullanmak,
+        /// on binlerce düğümde ekleme/çıkarmayı O(log n)'de tutuyor.
+        /// </summary>
+        sealed class MinHeap
+        {
+            readonly List<Vector2[]> _items = new List<Vector2[]>();
+            readonly List<float> _keys = new List<float>();
+
+            public int Count => _items.Count;
+
+            public void Push(Vector2[] item, float key)
+            {
+                _items.Add(item);
+                _keys.Add(key);
+
+                int child = _items.Count - 1;
+                while (child > 0)
+                {
+                    int parent = (child - 1) / 2;
+                    if (_keys[parent] <= _keys[child]) break;
+                    Swap(parent, child);
+                    child = parent;
+                }
+            }
+
+            public Vector2[] Pop()
+            {
+                var top = _items[0];
+                int last = _items.Count - 1;
+                _items[0] = _items[last];
+                _keys[0] = _keys[last];
+                _items.RemoveAt(last);
+                _keys.RemoveAt(last);
+
+                int parent = 0;
+                while (true)
+                {
+                    int left = parent * 2 + 1, right = left + 1, smallest = parent;
+                    if (left < _items.Count && _keys[left] < _keys[smallest]) smallest = left;
+                    if (right < _items.Count && _keys[right] < _keys[smallest]) smallest = right;
+                    if (smallest == parent) break;
+                    Swap(parent, smallest);
+                    parent = smallest;
+                }
+                return top;
+            }
+
+            void Swap(int a, int b)
+            {
+                (_items[a], _items[b]) = (_items[b], _items[a]);
+                (_keys[a], _keys[b]) = (_keys[b], _keys[a]);
+            }
         }
 
         static Vector2[] Capture(List<BlockModel> blocks)

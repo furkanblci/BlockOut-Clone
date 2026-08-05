@@ -40,7 +40,7 @@
     { "x": 3, "y": 6, "w": 2, "h": 2, "layers": ["red"] }
   ],
   "gates": [
-    { "x": 0, "y": 0, "side": "N", "length": 2, "colors": ["white"], "ice": 9 },
+    { "x": 0, "y": 0, "side": "N", "length": 2, "colors": ["white"], "ice": 3 },
     { "x": 4, "y": 0, "side": "E", "length": 2, "colors": ["red"] },
     { "x": 3, "y": 7, "side": "S", "length": 2, "colors": ["black"], "ice": 3 }
   ],
