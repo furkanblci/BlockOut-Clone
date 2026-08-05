@@ -4,7 +4,8 @@
     "references": [
         "BlockOut.Core",
         "Unity.InputSystem",
-        "GameKit.Runtime"
+        "GameKit.Runtime",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
