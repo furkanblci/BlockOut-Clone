@@ -1,0 +1,179 @@
+using System;
+using System.Collections.Generic;
+using BlockOut.Core;
+using BlockOut.Core.Save;
+using BlockOut.Runtime.Board;
+using UnityEngine;
+
+namespace BlockOut.Runtime.Flow
+{
+    /// <summary>
+    /// Yardımcıların (çalar saat / roket / UFO) satın alınması, hedef seçilmesi
+    /// ve etkilerinin uygulanması.
+    ///
+    /// DERS (iki aşamalı yardımcı): Roket ve UFO hedef ister. Jeton düğmeye
+    /// basınca harcanır ama karşılığı ENVANTERE girer; yardımcı ancak hedef
+    /// seçilince TÜKENİR. Böylece yanlışlıkla dokunan oyuncu iptal edip
+    /// hakkını geri alır — jetonun buhar olması, oyunu bıraktıran türden bir
+    /// haksızlık hissi yaratırdı.
+    ///
+    /// DERS (zincir tekrar kullanımı): Roket/UFO bloğu SİLERKEN kapıdan çıkmış
+    /// gibi davranır — buz ve perde sayaçları ilerler. Ayrı bir "silme" yolu
+    /// yazmak, bu sayaçların bir gün unutulacağı ikinci bir kod yolu demekti.
+    /// </summary>
+    public sealed class PowerUpSystem
+    {
+        readonly LevelModel _level;
+        readonly BoardViews _views;
+        readonly GateSystem _gates;
+        readonly ObstacleSystem _obstacles;
+        readonly ProgressService _progress;
+        readonly Dictionary<PowerUpKind, int> _local = new Dictionary<PowerUpKind, int>();
+
+        /// <summary>Hedef bekleyen yardımcı; yoksa null.</summary>
+        public PowerUpKind? Pending { get; private set; }
+
+        /// <summary>Süre dondurma bitene kadar kalan saniye (0 ise donmuş değil).</summary>
+        public float FreezeRemaining { get; private set; }
+
+        public bool IsTimeFrozen => FreezeRemaining > 0f;
+
+        public event Action Changed;
+        public event Action<string> Message;
+
+        public PowerUpSystem(
+            LevelModel level, BoardViews views, GateSystem gates,
+            ObstacleSystem obstacles, ProgressService progress)
+        {
+            _level = level;
+            _views = views;
+            _gates = gates;
+            _obstacles = obstacles;
+            _progress = progress;
+        }
+
+        /// <summary>
+        /// Envanter KAYITTA yaşar; kayıt servisi yoksa (testler, görselsiz
+        /// doğrulama) oturum içi sözlüğe düşer. İki yol da aynı API'den
+        /// okunur ki çağıran taraf hangisinin geçerli olduğunu bilmek
+        /// zorunda kalmasın.
+        /// </summary>
+        public int Owned(PowerUpKind kind) =>
+            _progress != null ? _progress.PowerUpCount(Id(kind))
+                              : (_local.TryGetValue(kind, out int n) ? n : 0);
+
+        public void Grant(PowerUpKind kind, int count = 1) => SetOwned(kind, Owned(kind) + count);
+
+        void SetOwned(PowerUpKind kind, int count)
+        {
+            if (_progress != null) _progress.SetPowerUpCount(Id(kind), count);
+            else _local[kind] = Mathf.Max(0, count);
+        }
+
+        static string Id(PowerUpKind kind) => kind.ToString().ToLowerInvariant();
+
+        public void Tick(float deltaTime)
+        {
+            if (FreezeRemaining <= 0f) return;
+            FreezeRemaining = Mathf.Max(0f, FreezeRemaining - deltaTime);
+            if (FreezeRemaining <= 0f) Changed?.Invoke();
+        }
+
+        /// <summary>
+        /// Alt çubuktaki düğmeye basıldı. Elde varsa doğrudan, yoksa jetonla
+        /// satın alarak kullanır. Hedef isteyen yardımcılarda seçim moduna geçer.
+        /// </summary>
+        public bool Use(PowerUpKind kind)
+        {
+            if (Pending == kind) { Cancel(); return false; }   // aynı düğme = iptal
+
+            if (Owned(kind) <= 0)
+            {
+                int price = PowerUpInfo.Price(kind);
+                if (_progress == null || !_progress.TrySpendCoins(price))
+                {
+                    Message?.Invoke("Yeterli jeton yok.");
+                    return false;
+                }
+                Grant(kind);
+            }
+
+            if (kind == PowerUpKind.Clock)
+            {
+                Consume(kind);
+                FreezeRemaining = PowerUpInfo.ClockFreezeSeconds;
+                Message?.Invoke("Süre donduruldu!");
+                Changed?.Invoke();
+                return true;
+            }
+
+            // Hedef bekleniyor. Jeton harcandıysa karşılığı ENVANTERE girdi;
+            // iptal edilirse yardımcı elde kalır, yalnız kullanım geri alınır.
+            Pending = kind;
+            Message?.Invoke(PowerUpInfo.Prompt(kind));
+            Changed?.Invoke();
+            return true;
+        }
+
+        /// <summary>Seçim modundan çıkar; yardımcı harcanmadığı için elde kalır.</summary>
+        public void Cancel()
+        {
+            if (Pending == null) return;
+            Message?.Invoke("");
+            Pending = null;
+            Changed?.Invoke();
+        }
+
+        /// <summary>
+        /// Oyuncu tahtada bir bloğa dokundu. Bekleyen yardımcı varsa uygulanır
+        /// ve true döner (dokunuş sürüklemeye dönüşmez).
+        /// </summary>
+        public bool HandleBlockTap(BlockModel block)
+        {
+            if (Pending == null || block == null) return false;
+
+            var kind = Pending.Value;
+            Pending = null;
+            Consume(kind);
+            Message?.Invoke("");
+
+            if (kind == PowerUpKind.Rocket)
+                Remove(block);
+            else
+                RemoveColor(block.CurrentColor);
+
+            Changed?.Invoke();
+            return true;
+        }
+
+        void Consume(PowerUpKind kind) => SetOwned(kind, Owned(kind) - 1);
+
+        /// <summary>Rengi eşleşen TÜM blokları siler (UFO). Donmuşlar dahil.</summary>
+        void RemoveColor(BlockColor color)
+        {
+            var doomed = new List<BlockModel>();
+            foreach (var b in _level.Blocks)
+                if (b.CurrentColor == color) doomed.Add(b);
+
+            foreach (var b in doomed) Remove(b);
+        }
+
+        /// <summary>
+        /// Bloğu tahtadan siler ve ÇIKIŞ ZİNCİRİNİ tetikler: buzlar erir,
+        /// perdeler sayar, üreteçler yer bulursa blok iter, kapılar tazelenir.
+        /// </summary>
+        void Remove(BlockModel block)
+        {
+            _level.RemoveBlock(block);
+
+            if (_views.Blocks.TryGetValue(block, out var view))
+            {
+                _views.Blocks.Remove(block);
+                view.PlayVanish();
+            }
+
+            _obstacles.NotifyBlockExit();
+            _gates.RecomputeGateStates();
+        }
+    }
+}

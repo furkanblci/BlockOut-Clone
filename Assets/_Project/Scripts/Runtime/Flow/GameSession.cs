@@ -31,6 +31,9 @@ namespace BlockOut.Runtime.Flow
 
         public GameState State { get; private set; } = GameState.Intro;
         public LevelTimer Timer { get; } = new LevelTimer();
+
+        /// <summary>Bölüm içi yardımcılar (çalar saat / roket / UFO).</summary>
+        public PowerUpSystem PowerUps { get; private set; }
         public int DisplayNumber { get; private set; }
         public int WarningSeconds => config.warningSeconds;
 
@@ -94,7 +97,12 @@ namespace BlockOut.Runtime.Flow
         void Update()
         {
             if (State == GameState.Playing)
-                Timer.Tick(Time.deltaTime);
+            {
+                PowerUps?.Tick(Time.deltaTime);
+                // Çalar saat açıkken sayaç durur — süre baskısı geçici olarak kalkar.
+                if (PowerUps == null || !PowerUps.IsTimeFrozen)
+                    Timer.Tick(Time.deltaTime);
+            }
 
             // Game view boyutu / cihaz yönü değişirse kadrajı tazele.
             if (_fitWidth > 0 && !Mathf.Approximately(_camera.aspect, _lastAspect))
@@ -225,6 +233,10 @@ namespace BlockOut.Runtime.Flow
             _drag = new DragController(
                 input, Cam, _level, views, space, config, gates,
                 () => State == GameState.Playing);
+
+            PowerUps = new PowerUpSystem(
+                _level, views, gates, obstacles, Services.MetaServices.Progress);
+            _drag.BlockTapped = PowerUps.HandleBlockTap;
 
             // Cila servisleri taze olay merkezine bağlanır.
             _fx?.Bind(_events, space);

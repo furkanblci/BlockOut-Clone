@@ -93,6 +93,17 @@ namespace BlockOut.Core.Save
             return true;
         }
 
+        /// <summary>Elde kaç adet var? (Yardımcı envanteri kayıtta yaşar.)</summary>
+        public int PowerUpCount(string id) =>
+            _save.Data.PowerUps.TryGetValue(id, out int n) ? n : 0;
+
+        /// <summary>Envanteri yazar ve kaydeder; negatif değer sıfıra kırpılır.</summary>
+        public void SetPowerUpCount(string id, int count)
+        {
+            _save.Data.PowerUps[id] = Math.Max(0, count);
+            _save.Save();
+        }
+
         public void GrantCoins(int amount)
         {
             if (amount <= 0) return;

@@ -1,4 +1,5 @@
 using UnityEngine;
+using BlockOut.Core;
 using GameKit.Services;
 
 namespace BlockOut.Runtime.Flow
@@ -15,6 +16,7 @@ namespace BlockOut.Runtime.Flow
         GUIStyle _timerStyle;
         GUIStyle _bannerStyle;
         GUIStyle _buttonStyle;
+        GUIStyle _hintStyle;
         bool _levelPickerOpen;
 
         // ---- çöp üretmeyen metin yolu ----
@@ -38,7 +40,14 @@ namespace BlockOut.Runtime.Flow
             return sb;
         }
 
-        public void Init(GameSession session) => _session = session;
+        string _powerMessage = "";
+
+        public void Init(GameSession session)
+        {
+            _session = session;
+            if (_session.PowerUps != null)
+                _session.PowerUps.Message += text => _powerMessage = text;
+        }
 
         void OnGUI()
         {
@@ -54,6 +63,7 @@ namespace BlockOut.Runtime.Flow
                 };
                 _bannerStyle = new GUIStyle(_timerStyle);
                 _buttonStyle = new GUIStyle(GUI.skin.button) { fontStyle = FontStyle.Bold };
+                _hintStyle = new GUIStyle(_timerStyle) { fontStyle = FontStyle.Normal };
             }
 
             // Ölçek DAR kenara bağlı: yalnızca yüksekliğe bakmak dikey telefonda
@@ -80,6 +90,7 @@ namespace BlockOut.Runtime.Flow
             GUI.Label(new Rect(0, 8 * s, Screen.width, 40 * s), _timerText, _timerStyle);
 
             DrawMetaBar(s);
+            DrawPowerUpBar(s);
             DrawPerfToggle(s);
             DrawLevelPicker(s);
             if (_levelPickerOpen) return; // seçici açıkken altındaki ekranı çizme
@@ -128,6 +139,49 @@ namespace BlockOut.Runtime.Flow
         /// Can / coin şeridi. Videodaki üst bar bunun cilalı hâli olacak;
         /// şimdilik meta servislerinin GERÇEKTEN işlediğini gözle görmek için.
         /// </summary>
+        /// <summary>
+        /// Alt yardımcı çubuğu: çalar saat / roket / UFO. Elde varsa adet,
+        /// yoksa jeton fiyatı yazar — referans oyunun rozet mantığı.
+        ///
+        /// DERS (durumu düğmenin üstünde göster): Oyuncu "bu bana kaça mal
+        /// olacak" sorusunu düğmeye basmadan görebilmeli; fiyatı gizleyip
+        /// basınca almak, oyuncunun kendini kandırılmış hissetmesinin en kısa
+        /// yolu.
+        /// </summary>
+        void DrawPowerUpBar(float s)
+        {
+            var power = _session.PowerUps;
+            if (power == null) return;
+
+            float w = 92f * s, h = 56f * s, gap = 12f * s;
+            float total = w * 3f + gap * 2f;
+            float x = (Screen.width - total) * 0.5f;
+            float y = Screen.height - h - 16f * s;
+
+            _hintStyle.fontSize = Mathf.RoundToInt(15 * s);
+
+            // Yönerge ve donmuş süre uyarısı düğmelerin üstünde durur.
+            if (!string.IsNullOrEmpty(_powerMessage))
+                GUI.Label(new Rect(0, y - 26f * s, Screen.width, 22f * s), _powerMessage, _hintStyle);
+            else if (power.IsTimeFrozen)
+                GUI.Label(new Rect(0, y - 26f * s, Screen.width, 22f * s),
+                    "Süre donduruldu: " + Mathf.CeilToInt(power.FreezeRemaining) + " sn", _hintStyle);
+
+            for (int i = 0; i < 3; i++)
+            {
+                var kind = (PowerUpKind)i;
+                int owned = power.Owned(kind);
+                string caption = PowerUpInfo.Label(kind) + "\n" +
+                                 (owned > 0 ? "x" + owned : PowerUpInfo.Price(kind) + " ◉");
+
+                var rect = new Rect(x + i * (w + gap), y, w, h);
+                var previous = GUI.backgroundColor;
+                if (power.Pending == kind) GUI.backgroundColor = new Color(0.55f, 0.95f, 0.6f);
+                if (GUI.Button(rect, caption)) power.Use(kind);
+                GUI.backgroundColor = previous;
+            }
+        }
+
         void DrawMetaBar(float s)
         {
             if (!Services.MetaServices.Ready) return;

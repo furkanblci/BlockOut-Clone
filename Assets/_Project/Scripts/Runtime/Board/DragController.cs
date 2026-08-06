@@ -31,6 +31,12 @@ namespace BlockOut.Runtime.Board
         readonly List<Aabb> _obstacles = new List<Aabb>(64);
 
         BlockModel _dragged;
+
+        /// <summary>
+        /// Bloğa dokunulduğunda önce buna sorulur; true dönerse dokunuş
+        /// TÜKETİLMİŞ sayılır (yardımcı hedef seçimi) ve sürükleme başlamaz.
+        /// </summary>
+        public Func<BlockModel, bool> BlockTapped;
         Vector2 _grabOffset; // blok köşesi ile tutma noktası arasındaki fark
 
         public DragController(
@@ -89,6 +95,10 @@ namespace BlockOut.Runtime.Board
                     cell.y < bounds.MinY || cell.y > bounds.MaxY) continue;
                 if (!block.CoversCell(Mathf.FloorToInt(cell.x), Mathf.FloorToInt(cell.y)))
                     continue;
+
+                // Yardımcı hedef bekliyorsa dokunuş SÜRÜKLEME değil SEÇİMDİR;
+                // donmuş blok bile roketle/UFO ile silinebilir.
+                if (BlockTapped != null && BlockTapped(block)) return;
 
                 if (block.IsFrozen) return; // buzlu blok kilitli — sallanma efekti M4'te
 

@@ -445,6 +445,35 @@ namespace BlockOut.Runtime.View
         /// mesafesi. Sabit bir mesafe kullanmak (eski hali) bloğun duvarın
         /// ÜSTÜNDEN geçmesine yol açıyordu; artık tam yuvada duruyor.
         /// </summary>
+        /// <summary>
+        /// Yardımcıyla (roket/UFO) silinme: kapıya gitmediği için yön yok —
+        /// yerinde küçülüp kaybolur. Emilme animasyonundan AYRI tutuluyor
+        /// çünkü ikisi farklı şey anlatır: biri "kapıdan çıktı", öbürü "yok
+        /// edildi".
+        /// </summary>
+        public void PlayVanish()
+        {
+            StopTween();
+            if (_iceShell != null) { Destroy(_iceShell); _iceShell = null; }
+            if (_iceCounter != null) { Destroy(_iceCounter.gameObject); _iceCounter = null; }
+            StartCoroutine(VanishRoutine());
+        }
+
+        IEnumerator VanishRoutine()
+        {
+            const float duration = 0.18f;
+            Vector3 startScale = transform.localScale;
+
+            for (float t = 0f; t < duration; t += Time.deltaTime)
+            {
+                float k = Mathf.Clamp01(t / duration);
+                transform.localScale = startScale * (1f + 0.25f * k) * (1f - k);
+                yield return null;
+            }
+
+            Destroy(gameObject);
+        }
+
         public void PlayAbsorb(Vector3 outwardWorldDir, float travel, float duration)
         {
             StopTween();

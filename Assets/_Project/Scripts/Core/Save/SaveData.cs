@@ -51,6 +51,10 @@ namespace BlockOut.Core.Save
         /// <summary>Açılan en yüksek bölüm sırası (0 tabanlı).</summary>
         [JsonProperty("highestUnlockedIndex")] public int HighestUnlockedIndex;
 
+        /// <summary>Yardımcı envanteri: "clock"/"rocket"/"ufo" -> adet.</summary>
+        [JsonProperty("powerUps")] public Dictionary<string, int> PowerUps
+            = new Dictionary<string, int>();
+
         [JsonProperty("settings")] public SettingsData Settings = new SettingsData();
 
         /// <summary>Son kaydın yazıldığı an — teşhis için.</summary>
@@ -71,6 +75,7 @@ namespace BlockOut.Core.Save
         {
             if (data.Levels == null) data.Levels = new Dictionary<string, LevelRecord>();
             if (data.Settings == null) data.Settings = new SettingsData();
+            if (data.PowerUps == null) data.PowerUps = new Dictionary<string, int>();
             if (data.PlayerName == null) data.PlayerName = "";
             if (data.NextLifeAtUtcField == null) data.NextLifeAtUtcField = "";
             if (data.Coins < 0) data.Coins = 0;
