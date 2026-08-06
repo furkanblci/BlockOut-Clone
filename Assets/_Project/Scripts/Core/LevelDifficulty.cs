@@ -25,8 +25,17 @@ namespace BlockOut.Core
     /// </summary>
     public static class LevelDifficultyRule
     {
-        public const int HardThreshold = 9;
-        public const int SuperHardThreshold = 15;
+        // Eşikler GÖZ KARARI DEĞİL, mevcut 50 bölümün puan dağılımından seçildi:
+        // min 5, %25 → 14, medyan 20, %70 → 23, %88 → 27, max 32.
+        // İlk denemede 9 ve 15 verilmişti; sonuç 50 bölümün 37'sinin "Çok Zor"
+        // çıkması oldu. Her şey zorsa etiket bilgi taşımaz — zorluk etiketi
+        // ancak AZINLIKTA olduğunda bir şey söyler. Bu değerler kabaca
+        // %70 normal / %18 zor / %12 çok zor veriyor.
+        //
+        // Bölüm seti karakter değiştirirse (ör. üretici makinesi yaygınlaşırsa)
+        // dağılım yeniden ölçülüp bu iki sayı güncellenmeli.
+        public const int HardThreshold = 23;
+        public const int SuperHardThreshold = 28;
 
         public static LevelDifficulty Of(LevelModel level)
         {

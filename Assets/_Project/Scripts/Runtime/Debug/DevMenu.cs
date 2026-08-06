@@ -60,6 +60,14 @@ namespace BlockOut.Runtime.DevTools
             if (_session == null)
                 _session = FindFirstObjectByType<GameSession>();
 
+#if UNITY_EDITOR
+            // Editörde tek tuş: köşeye beş kez tıklamak fare ile zahmetli.
+            // Cihazda dokunuş dizisi tek yol olduğu için o da kalıyor.
+            if (UnityEngine.InputSystem.Keyboard.current != null &&
+                UnityEngine.InputSystem.Keyboard.current.f8Key.wasPressedThisFrame)
+                _open = !_open;
+#endif
+
             DetectSecretTap();
         }
 

@@ -132,6 +132,58 @@ Hepsi aynı ortak son ekle. Her biri tek başına, saydam zeminde.
 
 ---
 
+## 2.5. YENİ İSTEK — arayüz kurulurken eksik çıkanlar
+
+Bunlar ekranları kurarken fiilen gerekti; yerlerine geçici çözüm kondu ama
+gerçek görsel gelince belirgin fark yaratacak.
+
+### `avatar_player.png` — üst bardaki profil resmi
+Şu anda oyuncunun baş harfi yazıyor. Referansta çerçevenin içinde bir karakter
+portresi var.
+```
+A friendly cartoon creature portrait bust, centered, facing the camera,
+glossy toy plastic style, big round eyes, cheerful expression, teal and
+orange color scheme, shoulders visible at the bottom edge, no background
+elements, no hat
+```
++ ortak son ek. **Kare, 512×512.** Karakteri referanstan kopyalama — kendi
+karakterimiz olsun.
+
+### `region_1.png` … `region_4.png` — Yolculuk bölge daireleri
+Yolculuk ekranındaki büyük yuvarlak bölge kartları. Şu an menü zemini kırpılıp
+kullanılıyor ve kare duruyor; **dairesel çizilmiş** bir görsel gelirse maskeye
+hiç gerek kalmaz.
+```
+A circular vignette illustration of <SAHNE>, painted 3D toy diorama style,
+content fully inside a circle with soft edges fading to transparent at the
+circle boundary, viewed from a slight high angle, no text
+```
+`<SAHNE>` yerine sırayla:
+1. `a candy colored village square at sunset` (Görev Hazırlığı)
+2. `a purple night sky with glowing stars and floating platforms` (Yıldız Yolculuğu)
+3. `a snowy icy hill with igloos and frozen ponds` (Penguen Kovalamacası)
+4. `a golden mountain peak above the clouds with a trophy on top` (Zafer Tırmanışı)
+
+**1024×1024, dairesel, kenarları saydama açılsın.**
+
+### `check_green.png` — yeşil onay işareti
+Yolculukta alınmış ödüllerin yanındaki tik. Şimdilik yeşile boyanmış yıldız
+kullanılıyor.
+```
+A thick rounded green checkmark, glossy plastic, slight 3/4 tilt,
+bright grass green with a darker green bottom edge
+```
+
+### `ribbon_reward.png` — "Ödüller x3" şeridi (9-slice)
+Ana ekrandaki oyna düğmesinin üstüne binen turuncu etiket. Şimdilik koyu panel
+turuncuya boyanıyor.
+```
+A small horizontal ribbon banner label, glossy orange plastic with a darker
+orange bottom rim, rounded ends, hollow center for text, front view
+```
+
+---
+
 ## 3. Öncelik C — süsleme
 
 ### 3.1 `bg_menu.png` — menü arka planı (1024×2048, saydam DEĞİL)
