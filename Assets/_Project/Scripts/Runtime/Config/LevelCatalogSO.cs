@@ -53,5 +53,34 @@ namespace BlockOut.Runtime.Config
         public static int Count => Asset != null ? Asset.Count : 0;
         public static TextAsset AssetAt(int index) => Asset != null ? Asset.AssetAt(index) : null;
         public static string IdAt(int index) => Asset != null ? Asset.IdAt(index) : "";
+
+        // Zorluk, bölümün JSON'undan hesaplanır; ana ekran her karede sorabilsin
+        // diye sonuç önbelleğe alınır. Aksi hâlde saniyede bir tam bölüm
+        // ayrıştırmak gerekirdi.
+        static readonly System.Collections.Generic.Dictionary<int, BlockOut.Core.LevelDifficulty>
+            _difficulty = new System.Collections.Generic.Dictionary<int, BlockOut.Core.LevelDifficulty>();
+
+        public static BlockOut.Core.LevelDifficulty DifficultyAt(int index)
+        {
+            if (_difficulty.TryGetValue(index, out var cached)) return cached;
+
+            var result = BlockOut.Core.LevelDifficulty.Normal;
+            var text = AssetAt(index);
+            if (text != null)
+            {
+                try
+                {
+                    var data = BlockOut.Runtime.Level.LevelLoader.Parse(text.text);
+                    result = BlockOut.Core.LevelDifficultyRule.Of(BlockOut.Core.LevelModel.Build(data));
+                }
+                catch (System.Exception error)
+                {
+                    Debug.LogWarning($"[LevelCatalog] {index + 1}. bölümün zorluğu okunamadı: {error.Message}");
+                }
+            }
+
+            _difficulty[index] = result;
+            return result;
+        }
     }
 }

@@ -17,7 +17,6 @@ namespace BlockOut.Runtime.Flow
         GUIStyle _bannerStyle;
         GUIStyle _buttonStyle;
         GUIStyle _hintStyle;
-        bool _levelPickerOpen;
 
         // ---- çöp üretmeyen metin yolu ----
         // DERS (IMGUI sessizce ayırır): `GUI.Label(rect, "metin")` her çağrıda
@@ -92,8 +91,6 @@ namespace BlockOut.Runtime.Flow
             DrawMetaBar(s);
             DrawPowerUpBar(s);
             DrawPerfToggle(s);
-            DrawLevelPicker(s);
-            if (_levelPickerOpen) return; // seçici açıkken altındaki ekranı çizme
 
             if (_session.State != GameState.Won && _session.State != GameState.Lost)
                 return;
@@ -245,54 +242,5 @@ namespace BlockOut.Runtime.Flow
                 PerfProbe.Visible = !PerfProbe.Visible;
         }
 
-        /// <summary>
-        /// Bölüm seçici — cihazda test ederken herhangi bir bölüme atlamak için.
-        /// Editörde de, telefonda da aynı şekilde çalışır (dokunmatik dostu
-        /// büyük düğmeler). M5'te gerçek Journey haritası bunun yerini alacak.
-        /// </summary>
-        void DrawLevelPicker(float s)
-        {
-            if (_session.LevelCount <= 1) return;
-
-            var toggleRect = new Rect(8 * s, 8 * s, 48 * s, 40 * s);
-            _buttonStyle.fontSize = Mathf.RoundToInt(24 * s);
-            if (GUI.Button(toggleRect, _levelPickerOpen ? "×" : "☰", _buttonStyle))
-                _levelPickerOpen = !_levelPickerOpen;
-
-            if (!_levelPickerOpen) return;
-
-            // Yarı saydam perde: altındaki oyuna dokunma geçmesin.
-            GUI.Box(new Rect(0, 0, Screen.width, Screen.height), GUIContent.none);
-
-            const int perRow = 4;
-            float cell = Mathf.Min(Screen.width / (perRow + 1f), 90f * s);
-            float gridWidth = perRow * cell;
-            int rows = Mathf.CeilToInt(_session.LevelCount / (float)perRow);
-            float originX = (Screen.width - gridWidth) * 0.5f;
-            float originY = Screen.height * 0.5f - rows * cell * 0.5f;
-
-            _timerStyle.fontSize = Mathf.RoundToInt(26 * s);
-            _timerStyle.normal.textColor = Color.white;
-            GUI.Label(new Rect(0, originY - 46 * s, Screen.width, 40 * s), "Bölüm Seç", _timerStyle);
-
-            _buttonStyle.fontSize = Mathf.RoundToInt(28 * s);
-            for (int i = 0; i < _session.LevelCount; i++)
-            {
-                var rect = new Rect(
-                    originX + (i % perRow) * cell + 4f,
-                    originY + (i / perRow) * cell + 4f,
-                    cell - 8f, cell - 8f);
-
-                bool current = i == _session.LevelIndex;
-                var previous = GUI.color;
-                if (current) GUI.color = new Color(0.5f, 1f, 0.6f);
-                if (GUI.Button(rect, (i + 1).ToString(), _buttonStyle))
-                {
-                    _levelPickerOpen = false;
-                    _session.GoToLevel(i);
-                }
-                GUI.color = previous;
-            }
-        }
     }
 }

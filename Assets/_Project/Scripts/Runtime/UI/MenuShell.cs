@@ -33,8 +33,8 @@ namespace BlockOut.Runtime.UI
         };
 
         readonly Dictionary<string, RectTransform> _screens = new Dictionary<string, RectTransform>();
-        readonly List<(Button button, RectTransform icon, TextMeshProUGUI label, string key)> _tabButtons =
-            new List<(Button, RectTransform, TextMeshProUGUI, string)>();
+        readonly List<(Button button, Image card, RectTransform icon, TextMeshProUGUI label, string key)>
+            _tabButtons = new List<(Button, Image, RectTransform, TextMeshProUGUI, string)>();
 
         string _active = "home";
 
@@ -66,42 +66,60 @@ namespace BlockOut.Runtime.UI
         }
 
         /// <summary>
-        /// Alt sekme çubuğu: her sekme bir ikon + altında etiketi.
+        /// Alt sekme çubuğu.
         ///
-        /// DERS (seçili sekme nasıl anlaşılır): Yalnız rengi değiştirmek mobilde
-        /// zayıf bir işaret — güneşte ya da renk körlüğünde okunmaz. Referans
-        /// oyun seçili sekmenin ikonunu BÜYÜTÜR. Boyut farkı renkten bağımsız
-        /// çalışır; ikisini birlikte kullanmak en sağlamı.
+        /// DERS (seçili sekme nasıl anlaşılır): İlk hâlde beş sekmenin de altında
+        /// yazı vardı ve seçili olan yalnız biraz büyüyordu — beş etiket yan yana
+        /// çubuğu kalabalıklaştırıyor, hangisinin seçili olduğu da zayıf kalıyordu.
+        /// Referans oyun tek bir şey yapıyor: SEÇİLİ sekme çubuğun üstüne çıkan
+        /// kendi kartına oturuyor ve YAZI YALNIZ ONDA görünüyor. Diğerleri sade
+        /// ikon. Böylece hem çubuk sakinleşiyor hem de seçim tek bakışta okunuyor
+        /// — üstelik renk değil KONUM ve YÜKSEKLİK farkıyla, yani renk körlüğünde
+        /// de çalışır.
         /// </summary>
         void BuildTabBar(Transform root)
         {
+            // Çubuk güvenli alanda kalır (düğmeler parmakla erişilebilir olmalı)
+            // ama BOYASI aşağı taşar: güvenli alan ekranın altından içeri
+            // girdiği için zemin orada bitiyor ve altında manzara görünüyordu.
+            // Kanvasa taşımayı denedim; kanvasın çocuğu olarak güvenli alandan
+            // SONRA çizilip düğmelerin üstünü kapattı.
             var bar = UiKit.CreateSlicedPanel("TabBar", root, UiSkin.Get(Art.PanelDark));
-            UiKit.Place(bar, 0f, 0f, 1f, 0.105f);
+            UiKit.Place(bar, 0f, 0f, 1f, 0.082f);
+            bar.rectTransform.offsetMin = new Vector2(0f, -220f);
 
+            // Seçili kartın taşacağı alan çubuğun üstünde; bu yüzden kartlar
+            // çubuğun DEĞİL kökün çocuğu, yoksa çubuk onları kırpar.
             float slot = 1f / Tabs.Length;
             for (int i = 0; i < Tabs.Length; i++)
             {
                 var (label, key, icon) = Tabs[i];
 
-                var button = UiKit.CreateSpriteButton($"Tab_{key}", bar.transform, null,
+                var button = UiKit.CreateSpriteButton($"Tab_{key}", root, null,
                     null, 0, UiKit.Ink);
-                UiKit.Place(button, i * slot, 0f, (i + 1) * slot, 1f);
+                UiKit.Place(button, i * slot, 0f, (i + 1) * slot, 0.082f);
+
+                // Seçiliyken görünen kart: normalde saydam.
+                // Kart, çubuktan AÇIK bir tonda: koyu zemin üstünde koyu bir
+                // kart seçimi göstermiyordu.
+                var card = UiKit.CreateSlicedPanel("Card", button.transform,
+                    UiSkin.Get(Art.PanelDark), Periwinkle);
+                UiKit.Place(card, 0.04f, 0.04f, 0.96f, 1.70f);
 
                 // Görünmez ama dokunulabilir yüzey: sekmenin tamamı tıklanabilsin.
                 if (button.targetGraphic is Image face) face.color = new Color(1f, 1f, 1f, 0f);
 
                 var glyph = UiKit.CreateIcon("Icon", button.transform, UiSkin.Get(icon));
-                UiKit.Place(glyph, 0.20f, 0.34f, 0.80f, 0.94f);
 
-                var caption = UiKit.CreateLabel("Label", button.transform, label, 24,
-                    new Color(1f, 1f, 1f, 0.7f));
-                UiKit.Place(caption, 0f, 0.12f, 1f, 0.34f);
+                var caption = UiKit.CreateLabel("Label", button.transform, label, 24, UiKit.Ink);
 
                 string captured = key;
                 button.onClick.AddListener(() => Show(captured));
-                _tabButtons.Add((button, glyph.rectTransform, caption, key));
+                _tabButtons.Add((button, card, glyph.rectTransform, caption, key));
             }
         }
+
+        static readonly Color Periwinkle = new Color(0.353f, 0.322f, 0.784f);
 
         /// <summary>Sekmeyi değiştirir; aynı sekmeye basmak ana ekrana döner.</summary>
         public void Show(string key)
@@ -112,12 +130,20 @@ namespace BlockOut.Runtime.UI
             foreach (var pair in _screens)
                 pair.Value.gameObject.SetActive(pair.Key == key);
 
-            foreach (var (_, icon, caption, tabKey) in _tabButtons)
+            foreach (var (_, card, icon, caption, tabKey) in _tabButtons)
             {
                 bool selected = tabKey == key;
-                if (icon != null) icon.localScale = Vector3.one * (selected ? 1.18f : 0.92f);
-                if (caption != null)
-                    caption.color = selected ? UiKit.Ink : new Color(1f, 1f, 1f, 0.55f);
+
+                // Kart yalnız seçilide görünür ve çubuğun üstüne taşar.
+                if (card != null) card.enabled = selected;
+
+                // İkon seçiliyken kartın üst yarısına çıkar, yazıya yer açar.
+                if (icon != null)
+                    UiKit.Place(icon, selected ? 0.16f : 0.22f, selected ? 0.58f : 0.16f,
+                                      selected ? 0.84f : 0.78f, selected ? 1.50f : 0.86f);
+
+                if (caption != null) caption.gameObject.SetActive(selected);
+                if (selected && caption != null) UiKit.Place(caption, 0f, 0.10f, 1f, 0.52f);
             }
 
             if (key == "journey" && _screens.TryGetValue(key, out var journey))

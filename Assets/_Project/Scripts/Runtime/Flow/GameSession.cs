@@ -79,6 +79,10 @@ namespace BlockOut.Runtime.Flow
             _camera = Camera.main;
             gameObject.AddComponent<GameplayHud>().Init(this);
 
+            // Geliştirici menüsü: yayın yapısında hiç derlenmez, geliştirme
+            // yapısında sol üst köşeye beş dokunuşla açılır.
+            DevTools.DevMenu.Ensure();
+
             // Cila servisleri KALICI kökte yaşar: menüye dönünce ses kesilmesin,
             // ayarlar ekranı ses servisini bulabilsin.
             var host = AppRoot.Current != null ? AppRoot.Current.PersistentRoot : transform;
