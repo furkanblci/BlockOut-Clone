@@ -92,13 +92,20 @@ namespace BlockOut.Runtime.UI
                 screen._regionLabels.Add((label, from));
             }
 
+            screen._built = true;
             return root;
         }
+
+        // AddComponent, Build() alanları doldurmadan ÖNCE OnEnable'ı tetikler;
+        // bu bayrak olmadan ilk tazeleme null referansa çarpıyor.
+        bool _built;
 
         void OnEnable() => Refresh();
 
         public void Refresh()
         {
+            if (!_built) return;
+
             if (!MetaServices.Ready) return;
 
             // Kayıt 0 tabanlı dizin tutar; ekranda 1 tabanlı "Seviye" gösterilir.

@@ -55,6 +55,8 @@ namespace BlockOut.Runtime.UI
         void BuildUi()
         {
             var canvas = UiKit.CreateCanvas("HomeCanvas");
+            // Kanvası sahibinin altına al: menü kökü kapatılınca ekrandan da gitsin.
+            canvas.transform.SetParent(transform, worldPositionStays: false);
             var root = UiKit.CreateSafeArea(canvas);
 
             UiKit.CreatePanel("Background", root, UiKit.Background);

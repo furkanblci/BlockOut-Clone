@@ -66,6 +66,7 @@ namespace BlockOut.Runtime.UI
                 UiKit.Place(button, 0.08f, y1 - 0.07f, 0.92f, y1);
             }
 
+            screen._built = true;
             return screen;
         }
 
@@ -90,10 +91,16 @@ namespace BlockOut.Runtime.UI
             _rows.Add((state, title, get));
         }
 
+        // AddComponent, Build() alanları doldurmadan ÖNCE OnEnable'ı tetikler;
+        // bu bayrak olmadan ilk tazeleme null referansa çarpıyor.
+        bool _built;
+
         void OnEnable() => Refresh();
 
         public void Refresh()
         {
+            if (!_built) return;
+
             foreach (var (label, _, get) in _rows)
             {
                 bool on = get();

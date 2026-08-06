@@ -87,8 +87,13 @@ namespace BlockOut.Runtime.UI
                 screen._rowLabels.Add(label);
             }
 
+            screen._built = true;
             return root;
         }
+
+        // AddComponent, Build() alanları doldurmadan ÖNCE OnEnable'ı tetikler;
+        // bu bayrak olmadan ilk tazeleme null referansa çarpıyor.
+        bool _built;
 
         void OnEnable() => Refresh();
 
@@ -102,6 +107,8 @@ namespace BlockOut.Runtime.UI
 
         void Refresh()
         {
+            if (!_built) return;
+
             // Oyuncu kendi seviyesiyle listeye katılır; sekme yalnız puanı ölçekler
             // (haftalık < ülke < dünya) — sunucu gelene kadar yerleşimi denemek için.
             int myLevel = MetaServices.Ready ? MetaServices.Progress.HighestUnlockedIndex + 1 : 1;

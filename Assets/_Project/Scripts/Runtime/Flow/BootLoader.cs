@@ -15,6 +15,10 @@ namespace BlockOut.Runtime.Flow
     /// NOT: Servislerin kendisi [RuntimeInitializeOnLoadMethod] ile ilk kareden
     /// ÖNCE kurulur (MetaServices). Boot sahnesi onların kurulmasını beklemez;
     /// yalnızca doğrulayıp yönlendirir.
+    ///
+    /// GÜNCEL YAPI: Boot'tan sonra TEK bir <c>Main</c> sahnesi yüklenir; menü
+    /// ve oynanış orada panel/kök açıp kapatarak değişir. Sahne yükleme yalnız
+    /// burada, uygulama ömründe bir kez olur.
     /// </summary>
     public sealed class BootLoader : MonoBehaviour
     {
@@ -23,15 +27,15 @@ namespace BlockOut.Runtime.Flow
             if (MetaServices.Ready)
                 MetaServices.Lives.Refresh();   // kapalı geçen süre hemen cana dönsün
 
-            if (!AppRouter.SceneExists(AppRouter.HomeScene))
+            if (!AppRouter.SceneExists(AppRouter.MainScene))
             {
                 Debug.LogError(
-                    $"[Boot] '{AppRouter.HomeScene}' sahnesi derleme listesinde yok. " +
+                    $"[Boot] '{AppRouter.MainScene}' sahnesi derleme listesinde yok. " +
                     "Tools > Block Out > Kurulumu Şimdi Çalıştır komutunu koştur.");
                 return;
             }
 
-            AppRouter.GoHome();
+            GameKit.Flow.SceneRouter.Load(AppRouter.MainScene);
         }
     }
 }

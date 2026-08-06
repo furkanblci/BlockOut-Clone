@@ -45,7 +45,7 @@ namespace BlockOut.Editor.ProjectSetup
             paths.Sort(System.StringComparer.Ordinal);
             return paths.ToArray();
         }
-        public const string ScenePath = "Assets/_Project/Scenes/Gameplay.unity";
+        public const string ScenePath = "Assets/_Project/Scenes/Main.unity";
         public const string BootScenePath = "Assets/_Project/Scenes/Boot.unity";
         public const string HomeScenePath = "Assets/_Project/Scenes/Home.unity";
 
@@ -257,6 +257,31 @@ namespace BlockOut.Editor.ProjectSetup
             if (servicesGo == null) servicesGo = NewRoot("Services");
             if (gameGo == null) gameGo = NewRoot("Game");
 
+            // --- Tek sahnelik iskelet: App / Menu / Gameplay ---
+            // Oynanışa ait üç nesne tek bir kökün altına toplanır ki menüye
+            // dönerken kökü kapatmak yetsin.
+            GameObject appGo = null, menuGo = null, playGo = null;
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                if (root.name == "App") appGo = root;
+                else if (root.name == "Menu") menuGo = root;
+                else if (root.name == "Gameplay") playGo = root;
+            }
+
+            if (appGo == null) appGo = NewRoot("App");
+            if (menuGo == null) menuGo = NewRoot("Menu");
+            if (playGo == null) playGo = NewRoot("Gameplay");
+
+            foreach (var child in new[] { boardGo, servicesGo, gameGo })
+                if (child.transform.parent != playGo.transform)
+                {
+                    child.transform.SetParent(playGo.transform, worldPositionStays: true);
+                    changed = true;
+                }
+
+            changed |= EnsureChild<BlockOut.Runtime.UI.HomeScreen>(menuGo, "Home");
+            changed |= EnsureChild<BlockOut.Runtime.UI.MenuShell>(menuGo, "MenuShell");
+
             var inputService = servicesGo.GetComponent<PointerInputService>();
             if (inputService == null)
             {
@@ -282,6 +307,19 @@ namespace BlockOut.Editor.ProjectSetup
                 AssetDatabase.LoadAssetAtPath<TextAsset>(LevelJsonPath));
             changed |= SetReference(so, "input", inputService);
             changed |= SetReference(so, "boardRoot", boardGo.transform);
+
+            // AppRoot: menü ve oynanış köklerini tanısın.
+            var appRoot = appGo.GetComponent<BlockOut.Runtime.Flow.AppRoot>();
+            if (appRoot == null)
+            {
+                appRoot = appGo.AddComponent<BlockOut.Runtime.Flow.AppRoot>();
+                changed = true;
+            }
+            var appSo = new SerializedObject(appRoot);
+            bool appChanged = SetReference(appSo, "menuRoot", menuGo);
+            appChanged |= SetReference(appSo, "gameRoot", playGo);
+            appChanged |= SetReference(appSo, "session", session);
+            if (appChanged) { appSo.ApplyModifiedPropertiesWithoutUndo(); changed = true; }
 
             // Level sırası (M2): dizi elemanları SerializedProperty ile bağlanır.
             var seq = so.FindProperty("levelSequence");
@@ -374,10 +412,9 @@ namespace BlockOut.Editor.ProjectSetup
         public static bool EnsureBuildScenes()
         {
             // Sıra ÖNEMLİ: derleme listesinin ilk sahnesi uygulamanın açılışıdır.
-            // Boot en başta olmalı; Home ve Gameplay ondan sonra gelir.
+            // Boot en başta, Main hemen ardından — tek sahnelik yapıda hepsi bu.
             var wanted = new List<string>();
             if (AssetDatabase.LoadAssetAtPath<SceneAsset>(BootScenePath) != null) wanted.Add(BootScenePath);
-            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(HomeScenePath) != null) wanted.Add(HomeScenePath);
             if (AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenePath) != null) wanted.Add(ScenePath);
             if (wanted.Count == 0) return false;
 
@@ -415,14 +452,12 @@ namespace BlockOut.Editor.ProjectSetup
                 cam.GetComponent<Camera>().backgroundColor = new Color(0.13f, 0.10f, 0.28f);
             });
 
-            created |= CreateSceneIfMissing(HomeScenePath, () =>
-            {
-                new GameObject("Home", typeof(BlockOut.Runtime.UI.HomeScreen));
-                var cam = new GameObject("Main Camera", typeof(Camera));
-                cam.tag = "MainCamera";
-                cam.GetComponent<Camera>().clearFlags = CameraClearFlags.SolidColor;
-                cam.GetComponent<Camera>().backgroundColor = new Color(0.13f, 0.10f, 0.28f);
-            });
+            // Home artık ayrı bir sahne DEĞİL: menü de oynanış da Main içinde
+            // yaşıyor (bkz. AppRoot). Eski Home.unity varsa kurulum silmez —
+            // kullanıcı dosyasını silmek aracın işi değil, uyarı yeter.
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(HomeScenePath) != null)
+                Debug.LogWarning("[Setup] Artık kullanılmayan Home.unity duruyor; silebilirsin.");
+
             return created;
         }
 
@@ -535,6 +570,22 @@ namespace BlockOut.Editor.ProjectSetup
             Object.DestroyImmediate(plane.GetComponent<Collider>()); // fizik kullanmıyoruz!
             plane.transform.SetPositionAndRotation(Vector3.zero, Quaternion.Euler(90f, 0f, 0f));
             plane.transform.localScale = new Vector3(6f, 8f, 1f);    // ~6x8 hücrelik alan hissi
+        }
+
+        /// <summary>Verilen kökün altında adı geçen çocuğu (bileşeniyle) garanti eder.</summary>
+        static bool EnsureChild<T>(GameObject parent, string childName) where T : Component
+        {
+            foreach (Transform existing in parent.transform)
+                if (existing.name == childName)
+                {
+                    if (existing.GetComponent<T>() != null) return false;
+                    existing.gameObject.AddComponent<T>();
+                    return true;
+                }
+
+            var go = new GameObject(childName, typeof(T));
+            go.transform.SetParent(parent.transform, worldPositionStays: false);
+            return true;
         }
 
         // ---------- Yardımcılar ----------

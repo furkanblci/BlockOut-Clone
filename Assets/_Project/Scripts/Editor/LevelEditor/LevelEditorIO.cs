@@ -23,7 +23,7 @@ namespace BlockOut.Editor.LevelEditor
         public const string LevelDir = "Assets/_Project/Levels";
         public const string PlaytestPath = LevelDir + "/__playtest.json";
         public const string PlaytestKey = "BlockOut.PlaytestLevel";
-        const string GameplayScene = "Assets/_Project/Scenes/Gameplay.unity";
+        const string GameplayScene = "Assets/_Project/Scenes/Main.unity";
 
         public static LevelData NewLevel(int width = 6, int height = 8)
         {

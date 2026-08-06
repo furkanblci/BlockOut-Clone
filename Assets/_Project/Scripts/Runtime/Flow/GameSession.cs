@@ -62,36 +62,65 @@ namespace BlockOut.Runtime.Flow
         /// </summary>
         Camera Cam => _camera != null ? _camera : (_camera = Camera.main);
 
-        void Start()
+        bool _servicesReady;
+
+        void Start() => EnsureServices();
+
+        /// <summary>
+        /// Bir kereye mahsus kurulum. Tek sahnelik yapıda oynanış kökü açılıp
+        /// kapandığı için Start güvenilmez bir kancadır — kurulum buraya alındı
+        /// ve her giriş noktası (PlayLevel, Restart) önce bunu çağırır.
+        /// </summary>
+        void EnsureServices()
         {
+            if (_servicesReady) return;
+            _servicesReady = true;
+
             _camera = Camera.main;
             gameObject.AddComponent<GameplayHud>().Init(this);
 
-            _fx = FX.FXService.Create(transform, palette);
-            _audio = Services.AudioService.Create(transform);
-            _haptics = GameKit.Services.Haptics.Create(transform);
+            // Cila servisleri KALICI kökte yaşar: menüye dönünce ses kesilmesin,
+            // ayarlar ekranı ses servisini bulabilsin.
+            var host = AppRoot.Current != null ? AppRoot.Current.PersistentRoot : transform;
+            _fx = FX.FXService.Create(host, palette);
+            _audio = Services.AudioService.Create(host);
+            _haptics = GameKit.Services.Haptics.Create(host);
 
             // Oyuncunun kayıtlı ses/titreşim tercihleri hemen geçerli olsun.
             if (Services.MetaServices.Ready)
                 Services.SettingsBinder.Apply(
                     Services.MetaServices.Save.Data.Settings, _audio, _haptics);
 
-            // Bölüm seçimi üç kaynaktan gelebilir, öncelik sırasıyla:
-            // 1) Home ekranının isteği, 2) oyuncunun kaldığı yer, 3) bölüm 1.
-            // (Gameplay sahnesi tek başına Play'e basılarak da açılabilmeli.)
-            int requested = AppRouter.ConsumeRequestedLevel();
-            if (LevelCount > 0)
-            {
-                int index = requested >= 0
-                    ? requested
-                    : Services.MetaServices.Ready
-                        ? Services.MetaServices.Progress.HighestUnlockedIndex
-                        : 0;
-                _levelIndex = Mathf.Clamp(index, 0, LevelCount - 1);
-            }
-
             Timer.Expired += OnTimeExpired;
-            BuildAndStart();
+        }
+
+        /// <summary>Menüden gelen "Oyna": istenen bölümü kurar ve başlatır.</summary>
+        public void PlayLevel(int levelIndex)
+        {
+            EnsureServices();
+
+            if (LevelCount > 0)
+                _levelIndex = Mathf.Clamp(levelIndex, 0, LevelCount - 1);
+
+            Restart();
+        }
+
+        /// <summary>
+        /// Menüye dönerken tahtayı söker. Sahne yüklemediğimiz için temizliği
+        /// artık biz yapmak zorundayız — bırakılan bir tahta, bir sonraki
+        /// bölümde hayalet bloklar demek.
+        /// </summary>
+        public void StopLevel()
+        {
+            _drag?.Dispose();
+            _drag = null;
+            _events = null;
+            Timer.Stop();
+            State = GameState.Intro;
+
+            if (boardRoot != null)
+                for (int i = boardRoot.childCount - 1; i >= 0; i--)
+                    Destroy(boardRoot.GetChild(i).gameObject);
         }
 
         void Update()
@@ -324,6 +353,7 @@ namespace BlockOut.Runtime.Flow
         /// tüm durum bu sınıfın altında olduğu için yıkıp yeniden kurmak yeterli.</summary>
         public void Restart()
         {
+            EnsureServices();
             _drag?.Dispose();
             _drag = null;
             _events = null; // taze olay merkezi = bayat abone kalmaz

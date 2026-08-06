@@ -1,32 +1,41 @@
-using GameKit.Flow;
+using UnityEngine;
 
 namespace BlockOut.Runtime.Flow
 {
     /// <summary>
-    /// Bu oyunun sahne adları ve geçişleri.
+    /// Ekranlar arası geçişin tek adresi. Artık sahne YÜKLEMEZ — tek sahnelik
+    /// yapıda <see cref="AppRoot"/>'a devreder.
     ///
-    /// DERS (kit ne bilir, oyun ne bilir?): Sahne yükleme ve niyet taşıma
-    /// mekaniği her oyunda aynı → <see cref="SceneRouter"/>. Sahnelerin ADI ve
-    /// "niyet = bölüm sırası" yorumu bu oyuna ait → burası. İnce bir katman ama
-    /// kiti oyunun isimlendirmesinden temiz tutuyor.
+    /// DERS (statik cephe, örnek gövde): Çağıran taraflar (ana ekran düğmesi,
+    /// HUD, bölüm sonu ekranı) bir referans taşımak zorunda kalmasın diye giriş
+    /// noktası statik. Ama işi yapan, sahnedeki gerçek nesne. Böylece hem
+    /// çağırmak kolay hem de mantık test edilebilir bir bileşende duruyor.
     /// </summary>
     public static class AppRouter
     {
         public const string BootScene = "Boot";
-        public const string HomeScene = "Home";
-        public const string GameplayScene = "Gameplay";
+        public const string MainScene = "Main";
 
-        /// <summary>Home'un istediği bölüm; Gameplay bunu okuyup tüketir.</summary>
-        public static int ConsumeRequestedLevel() => SceneRouter.ConsumeIntent();
+        /// <summary>Kaç numaralı bölüm oynanıyor (bitiş ekranı için).</summary>
+        public static int LastPlayedLevelIndex { get; private set; } = -1;
 
-        /// <summary>Son oynanan bölüm (bitiş ekranı için).</summary>
-        public static int LastPlayedLevelIndex => SceneRouter.LastIntent;
+        public static void GoHome()
+        {
+            if (AppRoot.Current == null) { Missing(); return; }
+            AppRoot.Current.ShowMenu();
+        }
 
-        public static void GoHome() => SceneRouter.Load(HomeScene);
+        public static void PlayLevel(int levelIndex)
+        {
+            if (AppRoot.Current == null) { Missing(); return; }
+            LastPlayedLevelIndex = Mathf.Max(0, levelIndex);
+            AppRoot.Current.PlayLevel(LastPlayedLevelIndex);
+        }
 
-        public static void PlayLevel(int levelIndex) =>
-            SceneRouter.Load(GameplayScene, UnityEngine.Mathf.Max(0, levelIndex));
+        public static bool SceneExists(string sceneName) =>
+            GameKit.Flow.SceneRouter.SceneExists(sceneName);
 
-        public static bool SceneExists(string sceneName) => SceneRouter.SceneExists(sceneName);
+        static void Missing() => Debug.LogError(
+            "[AppRouter] Sahnede AppRoot yok. Tools > Block Out > Kurulumu Şimdi Çalıştır.");
     }
 }
