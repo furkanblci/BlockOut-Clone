@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using UnityEngine;
 using BlockOut.Core;
 using BlockOut.Runtime.Config;
 using BlockOut.Runtime.View;
@@ -27,6 +29,12 @@ namespace BlockOut.Runtime.Board
             _events = events;
             _space = space;
         }
+
+        /// <summary>
+        /// Bölüm başında bir kez çağrılır: üreteçler ilk bloklarını iter.
+        /// (Görselli kurulumda BoardBuilder, görselsiz doğrulamada araç çağırır.)
+        /// </summary>
+        public void Start() => PumpGenerators();
 
         public void NotifyBlockExit()
         {
@@ -88,7 +96,84 @@ namespace BlockOut.Runtime.Board
                     _events.RaiseCurtainDecremented(curtain);
                 }
             }
+
+            // Yer açıldı: üreteçler sıradaki bloklarını itebilir.
+            PumpGenerators();
         }
+
+        /// <summary>
+        /// Yeri olan her üretece sıradaki bloğu ittirir. Bir blok doğunca
+        /// başka bir üretecin girişi de açılmış olabileceği için değişiklik
+        /// kalmayana kadar döner (küçük sayıda üreteç, ucuz döngü).
+        /// </summary>
+        public void PumpGenerators()
+        {
+            bool changed;
+            int guard = 0;
+            do
+            {
+                changed = false;
+                foreach (var obstacle in _level.Obstacles)
+                    if (obstacle is GeneratorModel generator && TrySpawn(generator))
+                        changed = true;
+            }
+            while (changed && ++guard < 64);
+        }
+
+        bool TrySpawn(GeneratorModel generator)
+        {
+            if (generator.IsEmpty) return false;
+
+            var block = generator.Queue[0];
+            block.Position = EntryPosition(generator, block);
+            if (!IsAreaFree(block)) return false;
+
+            generator.Queue.RemoveAt(0);
+            _level.Blocks.Add(block);
+
+            if (_views.BlockRoot != null)
+            {
+                _views.Blocks[block] = BlockView.Create(
+                    _views.BlockRoot, block, _space,
+                    BoardBuilder.GetBlockMaterial(_palette, block.CurrentColor));
+                if (_views.Generators.TryGetValue(generator, out var view))
+                    view.UpdateQueue();
+            }
+
+            _events.RaiseBlockSpawned(block);
+            return true;
+        }
+
+        /// <summary>Bloğun kenardan girdiği ilk konum — makinenin hizasına oturur.</summary>
+        Vector2 EntryPosition(GeneratorModel generator, BlockModel block)
+        {
+            switch (generator.Side)
+            {
+                case Side.West:  return new Vector2(0, generator.Y);
+                case Side.East:  return new Vector2(_level.Board.Width - block.W, generator.Y);
+                case Side.North: return new Vector2(generator.X, 0);
+                default:         return new Vector2(generator.X, _level.Board.Height - block.H);
+            }
+        }
+
+        /// <summary>Bloğun hücrelerinin hepsi boş ve oynanabilir mi?</summary>
+        bool IsAreaFree(BlockModel block)
+        {
+            _spawnProbe.Clear();
+            _level.CollectObstacles(_spawnProbe, block);
+
+            _spawnCells.Clear();
+            block.CollectColliders(_spawnCells);
+
+            foreach (var cell in _spawnCells)
+                foreach (var other in _spawnProbe)
+                    if (cell.Overlaps(other, 0.001f)) return false;
+
+            return true;
+        }
+
+        readonly List<Aabb> _spawnProbe = new List<Aabb>();
+        readonly List<Aabb> _spawnCells = new List<Aabb>();
 
         void OpenCurtain(CurtainModel curtain)
         {

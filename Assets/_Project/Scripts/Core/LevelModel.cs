@@ -130,10 +130,19 @@ namespace BlockOut.Core
                     return true;
 
             foreach (var o in Obstacles)
+            {
+                // Perdedeki gizli bloklar da "oyunda" sayılır; kapı ghost olmamalı.
                 if (o is CurtainModel curtain && !curtain.IsOpen)
                     foreach (var b in curtain.Contents)
                         if (b.Layers.Contains(color))
                             return true;
+
+                // Üreteç kuyruğundakiler de öyle — makine hâlâ o rengi basacak.
+                if (o is GeneratorModel generator)
+                    foreach (var b in generator.Queue)
+                        if (b.Layers.Contains(color))
+                            return true;
+            }
 
             return false;
         }
@@ -142,8 +151,12 @@ namespace BlockOut.Core
         public bool HasPendingContent()
         {
             foreach (var o in Obstacles)
+            {
                 if (o is CurtainModel curtain && !curtain.IsOpen && curtain.Contents.Count > 0)
                     return true;
+                if (o is GeneratorModel generator && !generator.IsEmpty)
+                    return true;
+            }
             return false;
         }
 

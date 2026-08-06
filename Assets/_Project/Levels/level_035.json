@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "id": "level_035",
+  "displayNumber": 35,
+  "difficulty": "normal",
+  "timeSeconds": 180,
+  "board": {
+    "width": 5,
+    "height": 7,
+    "rows": [
+      "XXXXX",
+      "XXXXX",
+      "XXXXX",
+      "XXXXX",
+      "XXXXX",
+      "XXXXX",
+      "XXXXX"
+    ],
+    "walls": []
+  },
+  "blocks": [
+    { "x": 0, "y": 1, "w": 1, "h": 4, "layers": ["blue"] },
+    { "x": 1, "y": 3, "w": 3, "h": 3, "cells": [".X.", "XXX", ".X."], "layers": ["red"] }
+  ],
+  "gates": [
+    { "x": 4, "y": 0, "side": "E", "length": 3, "colors": ["red"] },
+    { "x": 0, "y": 3, "side": "W", "length": 4, "colors": ["yellow"] },
+    { "x": 1, "y": 6, "side": "S", "length": 3, "colors": ["blue"] }
+  ],
+  "obstacles": [
+    {
+      "type": "generator",
+      "side": "W",
+      "x": 0,
+      "y": 1,
+      "queue": [
+        { "x": 0, "y": 0, "w": 2, "h": 2, "layers": ["red"] },
+        { "x": 0, "y": 0, "w": 3, "h": 1, "layers": ["yellow"] },
+        { "x": 0, "y": 0, "w": 1, "h": 3, "layers": ["blue"] },
+        { "x": 0, "y": 0, "w": 2, "h": 2, "cells": ["X.", "XX"], "layers": ["red"] },
+        { "x": 0, "y": 0, "w": 2, "h": 2, "layers": ["yellow"] },
+        { "x": 0, "y": 0, "w": 2, "h": 1, "layers": ["blue"] },
+        { "x": 0, "y": 0, "w": 3, "h": 1, "layers": ["red"] },
+        { "x": 0, "y": 0, "w": 1, "h": 2, "layers": ["yellow"] }
+      ]
+    },
+    {
+      "type": "generator",
+      "side": "E",
+      "x": 0,
+      "y": 4,
+      "queue": [
+        { "x": 0, "y": 0, "w": 2, "h": 2, "cells": ["XX", ".X"], "layers": ["yellow"] },
+        { "x": 0, "y": 0, "w": 2, "h": 2, "layers": ["blue"] },
+        { "x": 0, "y": 0, "w": 1, "h": 3, "layers": ["red"] },
+        { "x": 0, "y": 0, "w": 2, "h": 1, "layers": ["yellow"] },
+        { "x": 0, "y": 0, "w": 3, "h": 2, "cells": ["XXX", ".X."], "layers": ["blue"] },
+        { "x": 0, "y": 0, "w": 2, "h": 2, "layers": ["red"] },
+        { "x": 0, "y": 0, "w": 3, "h": 1, "layers": ["blue"] }
+      ]
+    }
+  ]
+}

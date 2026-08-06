@@ -52,6 +52,39 @@ namespace BlockOut.Core
         }
     }
 
+
+    /// <summary>
+    /// BLOK ÜRETECİ (bölüm 35'te ilk kez görülür): tahtanın kenarına bağlı,
+    /// sıraya dizilmiş blokları tek tek tahtaya iten makine. Üstündeki sayaç
+    /// sırada kaç blok kaldığını, penceresi ise SIRADAKİ bloğun şeklini ve
+    /// rengini gösterir.
+    ///
+    /// DERS (üretim tetiği): Üreteç zamanla değil YER AÇILINCA çalışır —
+    /// giriş hücreleri boşaldığı anda bir sonraki blok doğar. Bu, oyuncuya
+    /// "önce yer aç" hedefi verir ve tahtanın tıkanmasını kuralın kendisi
+    /// engeller. Perde gibi çıkış SAYMAZ; sayacı üretim azaltır.
+    /// </summary>
+    public sealed class GeneratorModel : IObstacle
+    {
+        /// <summary>Makinenin bağlı olduğu kenar; bloklar bu kenardan girer.</summary>
+        public Side Side;
+
+        /// <summary>Girişin kenar boyunca konumu (hücre).</summary>
+        public int X, Y;
+
+        /// <summary>Sırada bekleyen bloklar; ilk eleman "sıradaki"dir.</summary>
+        public readonly List<BlockModel> Queue = new List<BlockModel>();
+
+        public int Remaining => Queue.Count;
+        public bool IsEmpty => Queue.Count == 0;
+
+        /// <summary>Makine tahtanın DIŞINDA durur; hiçbir hücreyi kapatmaz.</summary>
+        public void CollectColliders(List<Aabb> output) { }
+
+        /// <summary>Çıkışlar üreteci etkilemez — sayacı üretim azaltır.</summary>
+        public bool OnBlockExit() => false;
+    }
+
     /// <summary>
     /// JSON "type" alanı → engel modeli. Tür-özel alanlar ObstacleData.Extra
     /// içinde ham JToken olarak gelir; her tür kendi alanlarını buradan okur.
@@ -77,10 +110,31 @@ namespace BlockOut.Core
                             curtain.Contents.Add(buildBlock(blockData));
                     return curtain;
                 }
+                case "generator":
+                {
+                    if (!SideUtil.TryParse(ReadString(data, "side"), out var side))
+                        throw new FormatException($"Üreteç kenarı çözümlenemedi: '{ReadString(data, "side")}'");
+
+                    var generator = new GeneratorModel
+                    {
+                        Side = side,
+                        X = ReadInt(data, "x"),
+                        Y = ReadInt(data, "y")
+                    };
+                    if (data.Extra != null && data.Extra.TryGetValue("queue", out var queue))
+                        foreach (var blockData in queue.ToObject<List<BlockData>>())
+                            generator.Queue.Add(buildBlock(blockData));
+                    return generator;
+                }
                 default:
                     throw new FormatException($"Bilinmeyen engel türü: '{data.Type}'");
             }
         }
+
+        static string ReadString(ObstacleData data, string key, string fallback = "") =>
+            data.Extra != null && data.Extra.TryGetValue(key, out var token)
+                ? token.Value<string>()
+                : fallback;
 
         static int ReadInt(ObstacleData data, string key, int fallback = 0) =>
             data.Extra != null && data.Extra.TryGetValue(key, out var token)

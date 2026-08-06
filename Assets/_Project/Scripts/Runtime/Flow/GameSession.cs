@@ -221,6 +221,7 @@ namespace BlockOut.Runtime.Flow
             var obstacles = new ObstacleSystem(_level, views, palette, _events, space);
             var gates = new GateSystem(_level, views, config, _events, obstacles, palette);
             gates.RecomputeGateStates(); // baştan rengi olmayan kapı hemen ghost görünsün
+            obstacles.Start();           // üreteçler ilk bloklarını tahtaya itsin
             _drag = new DragController(
                 input, Cam, _level, views, space, config, gates,
                 () => State == GameState.Playing);

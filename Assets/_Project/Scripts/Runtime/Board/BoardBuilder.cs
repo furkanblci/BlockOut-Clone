@@ -172,8 +172,14 @@ namespace BlockOut.Runtime.Board
             var obstacleRoot = new GameObject("Obstacles").transform;
             obstacleRoot.SetParent(root, false);
             foreach (var obstacle in level.Obstacles)
+            {
                 if (obstacle is CurtainModel curtain)
                     views.Curtains[curtain] = CurtainView.Create(obstacleRoot, curtain, space);
+                else if (obstacle is GeneratorModel generator && !generator.IsEmpty)
+                    views.Generators[generator] = GeneratorView.Create(
+                        obstacleRoot, generator, space,
+                        GetBlockMaterial(palette, generator.Queue[0].CurrentColor));
+            }
 
             return views;
         }

@@ -17,6 +17,9 @@ namespace BlockOut.Runtime.Board
         public readonly Dictionary<CurtainModel, CurtainView> Curtains =
             new Dictionary<CurtainModel, CurtainView>();
 
+        public readonly Dictionary<GeneratorModel, GeneratorView> Generators =
+            new Dictionary<GeneratorModel, GeneratorView>();
+
         /// <summary>Perde açılınca doğan blok view'ları da buraya eklenir.</summary>
         public Transform BlockRoot;
     }

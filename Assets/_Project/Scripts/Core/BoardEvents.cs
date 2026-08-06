@@ -51,6 +51,11 @@ namespace BlockOut.Core
 
         public void RaiseCurtainOpened(CurtainModel curtain) => CurtainOpened?.Invoke(curtain);
 
+        /// <summary>Üreteç tahtaya yeni bir blok itti.</summary>
+        public event System.Action<BlockModel> BlockSpawned;
+
+        public void RaiseBlockSpawned(BlockModel block) => BlockSpawned?.Invoke(block);
+
         public void RaiseBoardCleared() => BoardCleared?.Invoke();
     }
 }

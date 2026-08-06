@@ -261,6 +261,7 @@ namespace BlockOut.Runtime.View
             _counterMaterial = null;
             _curtainPanel = null;
             _curtainFrame = null;
+            _generatorBody = null;
             _arrow = null;
             _axisArrow = null;
             _arrowGhost = null;
@@ -352,6 +353,19 @@ namespace BlockOut.Runtime.View
                 if (_curtainFrame == null)
                     _curtainFrame = MakeLit("CurtainFrame_TEMP", new Color(0.85f, 0.65f, 0.2f));
                 return _curtainFrame;
+            }
+        }
+
+        static Material _generatorBody;
+
+        /// <summary>Blok üretecinin mor makine gövdesi.</summary>
+        public static Material GeneratorBody
+        {
+            get
+            {
+                if (_generatorBody == null)
+                    _generatorBody = MakeLit("GeneratorBody_TEMP", new Color(0.55f, 0.24f, 0.72f));
+                return _generatorBody;
             }
         }
 

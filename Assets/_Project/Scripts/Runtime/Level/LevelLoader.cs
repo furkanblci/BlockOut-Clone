@@ -112,8 +112,11 @@ namespace BlockOut.Runtime.Level
                 if (d.Gates[i].Ice < 0)
                     errors.Add($"gates[{i}].ice negatif olamaz.");
             for (int i = 0; i < d.Obstacles.Count; i++)
-                if (string.IsNullOrEmpty(d.Obstacles[i].Type) || d.Obstacles[i].Type != "curtain")
-                    errors.Add($"obstacles[{i}] türü tanınmıyor: '{d.Obstacles[i].Type}' (M2: yalnızca curtain).");
+            {
+                string type = d.Obstacles[i].Type;
+                if (type != "curtain" && type != "generator")
+                    errors.Add($"obstacles[{i}] türü tanınmıyor: '{type}' (bilinen: curtain, generator).");
+            }
             // Perde içeriği/bölge derin doğrulaması M3 level editörünün işi.
 
             // Kapısı olmayan renk: hata değil, tasarım uyarısı.

@@ -167,6 +167,7 @@ namespace BlockOut.Editor.ProjectSetup
             var obstacles = new ObstacleSystem(level, views, palette, events, space);
             var gates = new GateSystem(level, views, config, events, obstacles, palette);
             gates.RecomputeGateStates();
+            obstacles.Start();   // üreteçler ilk bloklarını itsin (görselsiz de çalışır)
 
             report.Solution = LevelSolver.Solve(
                 level,
@@ -217,11 +218,14 @@ namespace BlockOut.Editor.ProjectSetup
 
             foreach (var block in data.Blocks) CountBlock(block);
 
-            // Perde içindeki gizli bloklar da renk bütçesine dahildir.
+            // Perdedeki gizli bloklar ve ÜRETEÇ kuyruğundakiler de renk
+            // bütçesine dahildir; yoksa "bu rengin kapısı boşuna" gibi yanlış
+            // uyarılar çıkar.
             foreach (var obstacle in data.Obstacles)
             {
-                if (obstacle.Type != "curtain" || obstacle.Extra == null) continue;
-                if (!obstacle.Extra.TryGetValue("contents", out var token)) continue;
+                if (obstacle.Extra == null) continue;
+                string key = obstacle.Type == "generator" ? "queue" : "contents";
+                if (!obstacle.Extra.TryGetValue(key, out var token)) continue;
                 var hidden = token.ToObject<List<BlockData>>();
                 if (hidden == null) continue;
                 foreach (var block in hidden) CountBlock(block);
