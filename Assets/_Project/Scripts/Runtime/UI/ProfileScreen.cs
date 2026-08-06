@@ -31,7 +31,7 @@ namespace BlockOut.Runtime.UI
         };
 
         readonly List<TextMeshProUGUI> _statValues = new List<TextMeshProUGUI>();
-        TextMeshProUGUI _nameLabel, _levelLabel;
+        TextMeshProUGUI _nameLabel, _levelLabel, _avatarInitial;
 
         public static RectTransform Build(Transform parent)
         {
@@ -40,13 +40,15 @@ namespace BlockOut.Runtime.UI
             MenuShell.Header(root, "Profil");
 
             // Kimlik kartı: avatar + ad + seviye.
-            var card = UiKit.CreateRoundedPanel("Identity", root, UiKit.PanelDark);
+            var card = UiKit.CreateSlicedPanel("Identity", root, UiSkin.Get(Art.PanelDark));
             UiKit.Place(card, 0.05f, 0.78f, 0.95f, 0.915f);
 
-            var avatar = UiKit.CreateRoundedPanel("Avatar", card.transform, UiKit.Panel);
+            var avatar = UiKit.CreateSlicedPanel("Avatar", card.transform,
+                UiSkin.Get(Art.PanelDark), new Color(0.353f, 0.322f, 0.784f));
             UiKit.Place(avatar, 0.03f, 0.12f, 0.24f, 0.88f);
-            var face = UiKit.CreateLabel("Face", avatar.transform, ":)", 54, UiKit.Ink);
-            UiKit.Place(face, 0f, 0f, 1f, 1f);
+            screen._avatarInitial = UiKit.CreateTitle("Face", avatar.transform, "?", 56,
+                UiKit.Ink, new Color(0.12f, 0.09f, 0.28f));
+            UiKit.Place(screen._avatarInitial, 0f, 0f, 1f, 1f);
 
             screen._nameLabel = UiKit.CreateTitle("Name", card.transform, "", 40, UiKit.Ink, UiKit.PanelDark);
             UiKit.Place(screen._nameLabel, 0.27f, 0.45f, 0.72f, 0.9f);
@@ -64,7 +66,7 @@ namespace BlockOut.Runtime.UI
                 float x0 = 0.05f + col * 0.46f, x1 = x0 + 0.44f;
                 float y1 = 0.71f - row * 0.16f, y0 = y1 - 0.14f;
 
-                var cell = UiKit.CreateRoundedPanel($"Stat_{i}", root, UiKit.PanelDark);
+                var cell = UiKit.CreateSlicedPanel($"Stat_{i}", root, UiSkin.Get(Art.PanelDark));
                 UiKit.Place(cell, x0, y0, x1, y1);
 
                 var name = UiKit.CreateLabel("Name", cell.transform, StatNames[i], 22, UiKit.Ink);
@@ -95,6 +97,8 @@ namespace BlockOut.Runtime.UI
             _nameLabel.text = string.IsNullOrEmpty(MetaServices.PlayerName)
                 ? "Oyuncu" : MetaServices.PlayerName;
             _levelLabel.text = "Seviye " + (progress.HighestUnlockedIndex + 1);
+            _avatarInitial.text = string.IsNullOrEmpty(MetaServices.PlayerName)
+                ? "?" : MetaServices.PlayerName.Substring(0, 1).ToUpperInvariant();
 
             // Şimdilik yalnız ilk sayaç gerçek veriden besleniyor: ilk denemede
             // bitirilen bölüm sayısı. Diğerleri ilgili etkinlik geldiğinde bağlanır.

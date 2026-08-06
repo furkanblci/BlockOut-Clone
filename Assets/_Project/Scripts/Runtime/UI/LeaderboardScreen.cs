@@ -49,8 +49,9 @@ namespace BlockOut.Runtime.UI
             for (int i = 0; i < TabNames.Length; i++)
             {
                 float x0 = 0.05f + i * 0.31f;
-                var button = UiKit.CreateButton($"Tab_{i}", root, TabNames[i], 28,
-                    i == 0 ? UiKit.Accent : UiKit.Panel, UiKit.Ink);
+                var button = UiKit.CreateTintedButton($"Tab_{i}", root,
+                    UiSkin.Get(Art.PanelCard), i == 0 ? new Color(0.176f, 0.800f, 0.047f) : new Color(0.420f, 0.310f, 0.878f),
+                    TabNames[i], 26, UiKit.Ink);
                 UiKit.Place(button, x0, 0.855f, x0 + 0.29f, 0.915f);
 
                 int captured = i;
@@ -64,7 +65,7 @@ namespace BlockOut.Runtime.UI
             for (int i = 0; i < 3; i++)
             {
                 float x0 = 0.08f + i * 0.29f;
-                var card = UiKit.CreateRoundedPanel($"Podium_{i}", root, UiKit.PanelDark);
+                var card = UiKit.CreateSlicedPanel($"Podium_{i}", root, UiSkin.Get(Art.PanelDark));
                 UiKit.Place(card, x0, 0.66f, x0 + 0.26f, 0.66f + podiumHeight[i]);
 
                 var label = UiKit.CreateTitle($"P{i}", card.transform, podiumRank[i], 44, UiKit.Coin, UiKit.PanelDark);
@@ -79,7 +80,7 @@ namespace BlockOut.Runtime.UI
             for (int i = 0; i < 7; i++)
             {
                 float y1 = 0.63f - i * 0.085f, y0 = y1 - 0.072f;
-                var row = UiKit.CreateRoundedPanel($"Row_{i}", root, UiKit.PanelDark);
+                var row = UiKit.CreateSlicedPanel($"Row_{i}", root, UiSkin.Get(Art.PanelDark));
                 UiKit.Place(row, 0.05f, y0, 0.95f, y1);
 
                 var label = UiKit.CreateLabel($"L{i}", row.transform, "", 26, UiKit.Ink);
@@ -101,7 +102,8 @@ namespace BlockOut.Runtime.UI
         {
             _activeTab = index;
             foreach (var (_, face, i) in _tabs)
-                if (face != null) face.color = i == index ? UiKit.Accent : UiKit.Panel;
+                if (face != null)
+                    face.color = i == index ? new Color(0.176f, 0.800f, 0.047f) : new Color(0.420f, 0.310f, 0.878f);
             Refresh();
         }
 

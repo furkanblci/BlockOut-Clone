@@ -244,7 +244,7 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(range, 0.04f, 0.06f, 0.96f, 0.94f);
 
             var state = UiKit.CreateSlicedPanel("State", disc.transform,
-                UiSkin.Get(Art.ButtonGreen));
+                UiSkin.Get(Art.PanelCard), new Color(0.176f, 0.800f, 0.047f));
             UiKit.Place(state, 0.28f, 0.07f, 0.72f, 0.24f);
 
             var stateLabel = UiKit.CreateTitle("StateText", state.transform, "", 28,
@@ -256,14 +256,14 @@ namespace BlockOut.Runtime.UI
         /// <summary>Rayın iki ucuna atlayan düğmeler — referanstaki "Üst"/"Alt".</summary>
         void BuildJumpButtons(Transform root)
         {
-            var up = UiKit.CreateSpriteButton("Up", root, UiSkin.Get(Art.PanelDark),
-                "Üst", 28, UiKit.Ink);
+            var up = UiKit.CreateTintedButton("Up", root, UiSkin.Get(Art.PanelCard),
+                Periwinkle, "Üst", 28, UiKit.Ink);
             UiKit.Place(up, 0.40f, 0.812f, 0.60f, 0.866f);
             up.onClick.AddListener(() =>
             { if (_scroll != null) _scroll.verticalNormalizedPosition = 1f; });
 
-            var down = UiKit.CreateSpriteButton("Down", root, UiSkin.Get(Art.PanelDark),
-                "Alt", 28, UiKit.Ink);
+            var down = UiKit.CreateTintedButton("Down", root, UiSkin.Get(Art.PanelCard),
+                Periwinkle, "Alt", 28, UiKit.Ink);
             UiKit.Place(down, 0.40f, 0.014f, 0.60f, 0.068f);
             down.onClick.AddListener(() =>
             { if (_scroll != null) _scroll.verticalNormalizedPosition = 0f; });

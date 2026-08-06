@@ -44,22 +44,30 @@ namespace BlockOut.Runtime.UI
 
             // --- Yardımcı paketleri: jetonla, ANINDA çalışır ---
             var helpersTitle = UiKit.CreateLabel("HelpersTitle", root, "Yardımcılar", 32, UiKit.Ink);
-            UiKit.Place(helpersTitle, 0.05f, 0.80f, 0.95f, 0.85f);
+            UiKit.Place(helpersTitle, 0.05f, 0.825f, 0.95f, 0.872f);
 
+            // Yardımcı kartları: krem kart + ürünün kendi ikonu + yeşil satın al.
+            string[] helperIcons = { Art.Clock, Art.Rocket, Art.Ufo };
             for (int i = 0; i < 3; i++)
             {
                 var kind = (PowerUpKind)i;
                 float x0 = 0.05f + i * 0.315f;
-                var card = UiKit.CreateRoundedPanel($"Helper_{i}", root, UiKit.PanelDark);
-                UiKit.Place(card, x0, 0.66f, x0 + 0.29f, 0.79f);
 
+                var card = UiKit.CreateSlicedPanel($"Helper_{i}", root, UiSkin.Get(Art.PanelCard));
+                UiKit.Place(card, x0, 0.615f, x0 + 0.29f, 0.815f);
+
+                var icon = UiKit.CreateIcon("Icon", card.transform, UiSkin.Get(helperIcons[i]));
+                UiKit.Place(icon, 0.16f, 0.42f, 0.84f, 0.94f);
+
+                // Krem kartın üstünde beyaz yazı okunmaz; koyu kahve kullanılıyor.
                 var name = UiKit.CreateLabel("Name", card.transform,
-                    PowerUpInfo.Label(kind), 24, UiKit.Ink);
-                UiKit.Place(name, 0.05f, 0.62f, 0.95f, 0.95f);
+                    PowerUpInfo.Label(kind), 22, new Color(0.32f, 0.17f, 0.05f));
+                UiKit.Place(name, 0.04f, 0.28f, 0.96f, 0.44f);
 
-                var buy = UiKit.CreateButton($"Buy_{i}", card.transform,
-                    PowerUpInfo.Price(kind) + " J", 26, UiKit.Accent, UiKit.Ink);
-                UiKit.Place(buy, 0.08f, 0.08f, 0.92f, 0.58f);
+                var buy = UiKit.CreateTintedButton($"Buy_{i}", card.transform,
+                    UiSkin.Get(Art.PanelCard), new Color(0.176f, 0.800f, 0.047f),
+                    PowerUpInfo.Price(kind) + " J", 24, UiKit.Ink);
+                UiKit.Place(buy, 0.06f, 0.05f, 0.94f, 0.27f);
 
                 var captured = kind;
                 buy.onClick.AddListener(() => screen.BuyHelper(captured));
@@ -67,31 +75,40 @@ namespace BlockOut.Runtime.UI
 
             // --- Jeton paketleri: gerçek para, SDK bekliyor ---
             var coinsTitle = UiKit.CreateLabel("CoinsTitle", root, "Jetonlar", 32, UiKit.Ink);
-            UiKit.Place(coinsTitle, 0.05f, 0.60f, 0.95f, 0.65f);
+            UiKit.Place(coinsTitle, 0.05f, 0.560f, 0.95f, 0.605f);
 
             for (int i = 0; i < CoinPacks.Length; i++)
             {
                 var (coins, price) = CoinPacks[i];
                 int col = i % 2, row = i / 2;
                 float x0 = 0.05f + col * 0.46f;
-                float y1 = 0.58f - row * 0.145f, y0 = y1 - 0.125f;
+                float y1 = 0.555f - row * 0.155f, y0 = y1 - 0.140f;
 
-                var card = UiKit.CreateRoundedPanel($"Pack_{i}", root, UiKit.PanelDark);
+                var card = UiKit.CreateSlicedPanel($"Pack_{i}", root, UiSkin.Get(Art.PanelCard));
                 UiKit.Place(card, x0, y0, x0 + 0.44f, y1);
 
-                var amount = UiKit.CreateTitle("Amount", card.transform,
-                    coins.ToString("N0") + " J", 34, UiKit.Coin, UiKit.PanelDark);
-                UiKit.Place(amount, 0.05f, 0.5f, 0.95f, 0.95f);
+                // Paket büyüdükçe jeton yığını da büyür: fiyat farkını okumadan
+                // önce göz hangisinin daha çok verdiğini görsün.
+                var stack = UiKit.CreateIcon("Coins", card.transform, UiSkin.Get(Art.Coin));
+                float grow = 0.30f + i * 0.025f;
+                UiKit.Place(stack, 0.5f - grow * 0.5f, 0.46f, 0.5f + grow * 0.5f, 0.46f + grow * 1.45f);
 
-                var buy = UiKit.CreateButton($"Pay_{i}", card.transform, price, 24, UiKit.Panel, UiKit.Ink);
-                UiKit.Place(buy, 0.08f, 0.08f, 0.92f, 0.48f);
+                var amount = UiKit.CreateTitle("Amount", card.transform,
+                    coins.ToString("N0"), 30, new Color(0.36f, 0.19f, 0.02f),
+                    new Color(1f, 0.93f, 0.80f));
+                UiKit.Place(amount, 0.05f, 0.30f, 0.95f, 0.48f);
+
+                var buy = UiKit.CreateTintedButton($"Pay_{i}", card.transform,
+                    UiSkin.Get(Art.PanelCard), new Color(0.420f, 0.310f, 0.878f), price, 22, UiKit.Ink);
+                UiKit.Place(buy, 0.07f, 0.05f, 0.93f, 0.28f);
 
                 int capturedCoins = coins;
                 string capturedPrice = price;
                 buy.onClick.AddListener(() => screen.RequestPurchase(capturedCoins, capturedPrice));
             }
 
-            var restore = UiKit.CreateButton("Restore", root, "Satın Alımları Geri Yükle", 26, UiKit.Panel, UiKit.Ink);
+            var restore = UiKit.CreateTintedButton("Restore", root, UiSkin.Get(Art.PanelCard),
+                new Color(0.420f, 0.310f, 0.878f), "Satın Alımları Geri Yükle", 24, UiKit.Ink);
             UiKit.Place(restore, 0.15f, 0.015f, 0.85f, 0.075f);
             restore.onClick.AddListener(() =>
                 screen._status.text = "Geri yükleme için mağaza bağlantısı gerekli.");

@@ -262,6 +262,53 @@ namespace GameKit.UI
         }
 
         /// <summary>
+        /// KISA düğmeler için: verilen sprite RENGE BOYANARAK kullanılır.
+        ///
+        /// DERS (9-dilim payı düğmenin boyunu belirler): Buton görselleri
+        /// 3:1 orana göre çizildi ve 9-dilim payları büyük (üstte 88, altta 68
+        /// piksel). Yüksekliği 140 pikselin altına inen bir düğmede bu iki pay
+        /// toplamı alanın tamamını yiyor; Unity payları orantılı kırpıyor ve
+        /// plastik yüzey eziliyor. Mağazadaki "300 J" ve ayarlardaki "Değiştir"
+        /// düğmeleri böyle bozulmuştu. Payları her kenarda eşit ve küçük olan
+        /// panel görselini boyamak, aynı dilde kalıp bu sorunu ortadan kaldırır.
+        ///
+        /// DERS (boyama ÇARPMADIR): Taban görsel koyu olursa boyanmış renk de
+        /// koyu çıkar — koyu lacivert bir paneli yeşile boyamak "yeşil" değil
+        /// "koyu yeşil" verir. Bu yüzden taban KREM kart görselidir: krem ≈ beyaz
+        /// olduğu için çarpım rengin kendisini bırakır, kartın alt bandı da
+        /// koyulaşarak bedava bir 3B kalınlık verir.
+        /// </summary>
+        public static Button CreateTintedButton(string name, Transform parent, Sprite sprite,
+            Color tint, string text, int fontSize, Color ink)
+        {
+            var root = CreateRect(name, parent);
+
+            var face = CreateSlicedPanel("Face", root, sprite, tint);
+            Place(face, 0f, 0f, 1f, 1f);
+
+            var button = root.gameObject.AddComponent<Button>();
+            button.targetGraphic = face;
+            button.transition = Selectable.Transition.ColorTint;
+
+            var colors = button.colors;
+            colors.highlightedColor = Color.Lerp(Color.white, Color.black, 0.06f);
+            colors.pressedColor = Color.Lerp(Color.white, Color.black, 0.18f);
+            colors.disabledColor = new Color(0.6f, 0.6f, 0.65f);
+            colors.fadeDuration = 0.06f;
+            button.colors = colors;
+
+            if (!string.IsNullOrEmpty(text))
+            {
+                var label = CreateLabel("Label", face.transform, text, fontSize, ink);
+                Place(label, 0.05f, 0.06f, 0.95f, 0.94f);
+                label.fontStyle = FontStyles.Bold;
+            }
+
+            root.gameObject.AddComponent<UiButtonFeel>();
+            return button;
+        }
+
+        /// <summary>
         /// Yazı.
         ///
         /// DERS (neden TMP?): Yerleşik `Text`, harfleri bir bitmap atlasına
