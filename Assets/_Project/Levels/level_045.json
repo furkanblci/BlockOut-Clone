@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "id": "level_045",
+  "displayNumber": 45,
+  "difficulty": "normal",
+  "timeSeconds": 180,
+  "board": {
+    "width": 5,
+    "height": 9,
+    "rows": [
+      "XXXXX",
+      "XXXXX",
+      "XXXXX",
+      "XXXXX",
+      "XXXXX",
+      "XXXXX",
+      "XXXXX",
+      "XXXXX",
+      "XXXXX"
+    ],
+    "walls": []
+  },
+  "blocks": [
+    { "x": 0, "y": 0, "w": 2, "h": 2, "layers": ["pink"] },
+    { "x": 2, "y": 0, "w": 1, "h": 2, "layers": ["purple"] },
+    { "x": 3, "y": 0, "w": 2, "h": 2, "cells": ["XX", ".X"], "layers": ["red"] },
+    { "x": 3, "y": 1, "w": 2, "h": 2, "cells": ["X.", "XX"], "layers": ["blue"] },
+    { "x": 0, "y": 2, "w": 2, "h": 2, "layers": ["yellow"] },
+    { "x": 3, "y": 3, "w": 2, "h": 1, "layers": ["green"] },
+    { "x": 0, "y": 4, "w": 2, "h": 2, "layers": ["green"] },
+    { "x": 2, "y": 4, "w": 1, "h": 2, "layers": ["red"] },
+    { "x": 3, "y": 4, "w": 2, "h": 1, "layers": ["pink"] },
+    { "x": 3, "y": 5, "w": 2, "h": 2, "layers": ["blue", "purple"] },
+    { "x": 0, "y": 6, "w": 2, "h": 2, "layers": ["pink", "green"] },
+    { "x": 3, "y": 7, "w": 2, "h": 1, "layers": ["red"] },
+    { "x": 0, "y": 8, "w": 1, "h": 1, "layers": ["purple"] }
+  ],
+  "gates": [
+    { "x": 0, "y": 2, "side": "W", "length": 2, "colors": ["green"], "ice": 7 },
+    { "x": 0, "y": 4, "side": "W", "length": 2, "colors": ["blue"] },
+    { "x": 0, "y": 6, "side": "W", "length": 2, "colors": ["pink"], "ice": 9 },
+    { "x": 4, "y": 6, "side": "E", "length": 2, "colors": ["purple"] },
+    { "x": 0, "y": 8, "side": "S", "length": 2, "colors": ["red"] },
+    { "x": 2, "y": 8, "side": "S", "length": 2, "colors": ["yellow"] }
+  ],
+  "obstacles": []
+}
