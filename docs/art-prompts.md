@@ -54,10 +54,15 @@ square 1024x1024, clean edges for game asset cutout
 
 ### Teknik çıktı şartları
 
-- **1024×1024**, PNG, **saydam arka plan**
-- Tek nesne, ortalanmış, kenarlara ~%8 boşluk
+- **1024×1024**, PNG
+- Tek nesne, ortalanmış, kenarlara ~%8 boşluk — **nesne kenara değmesin**
 - Üstüne **yazı/rakam bastırma** — sayılar oyunda TMP ile yazılıyor
 - Gölgeyi arka plana bastırma (kod kendi gölgesini koyuyor)
+
+> **Saydamlık artık şart değil.** Gemini saydam veremiyorsa uğraşma: düz bir
+> zeminle üret, dosyayı `art_raw/` klasörüne olduğu gibi at, arka planı
+> `tools/cutout.py` temizliyor. Ayrıntı: [art_raw/README.md](../art_raw/README.md).
+> Tek şart, nesnenin görüntünün kenarına değmemesi.
 
 ---
 

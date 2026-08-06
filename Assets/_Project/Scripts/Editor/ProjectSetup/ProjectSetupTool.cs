@@ -232,18 +232,10 @@ namespace BlockOut.Editor.ProjectSetup
         static bool WireGameplayScene(Scene scene)
         {
             bool changed = false;
-            GameObject boardGo = null, servicesGo = null, gameGo = null, tempPlane = null;
+            GameObject tempPlane = null;
 
             foreach (var root in scene.GetRootGameObjects())
-            {
-                switch (root.name)
-                {
-                    case "Board": boardGo = root; break;
-                    case "Services": servicesGo = root; break;
-                    case "Game": gameGo = root; break;
-                    case "BoardPlane_TEMP": tempPlane = root; break;
-                }
-            }
+                if (root.name == "BoardPlane_TEMP") tempPlane = root;
 
             GameObject NewRoot(string rootName)
             {
@@ -253,13 +245,8 @@ namespace BlockOut.Editor.ProjectSetup
                 return go;
             }
 
-            if (boardGo == null) boardGo = NewRoot("Board");
-            if (servicesGo == null) servicesGo = NewRoot("Services");
-            if (gameGo == null) gameGo = NewRoot("Game");
-
             // --- Tek sahnelik iskelet: App / Menu / Gameplay ---
-            // Oynanışa ait üç nesne tek bir kökün altına toplanır ki menüye
-            // dönerken kökü kapatmak yetsin.
+            // Bunlar her zaman kök kalır, kök taraması yeterli.
             GameObject appGo = null, menuGo = null, playGo = null;
             foreach (var root in scene.GetRootGameObjects())
             {
@@ -272,12 +259,11 @@ namespace BlockOut.Editor.ProjectSetup
             if (menuGo == null) menuGo = NewRoot("Menu");
             if (playGo == null) playGo = NewRoot("Gameplay");
 
-            foreach (var child in new[] { boardGo, servicesGo, gameGo })
-                if (child.transform.parent != playGo.transform)
-                {
-                    child.transform.SetParent(playGo.transform, worldPositionStays: true);
-                    changed = true;
-                }
+            // Oynanışa ait üç nesne Gameplay'in altına toplanır ki menüye
+            // dönerken tek kökü kapatmak yetsin.
+            var boardGo = Adopt(scene, playGo, "Board", ref changed);
+            var servicesGo = Adopt(scene, playGo, "Services", ref changed);
+            var gameGo = Adopt(scene, playGo, "Game", ref changed);
 
             changed |= EnsureChild<BlockOut.Runtime.UI.HomeScreen>(menuGo, "Home");
             changed |= EnsureChild<BlockOut.Runtime.UI.MenuShell>(menuGo, "MenuShell");
@@ -570,6 +556,57 @@ namespace BlockOut.Editor.ProjectSetup
             Object.DestroyImmediate(plane.GetComponent<Collider>()); // fizik kullanmıyoruz!
             plane.transform.SetPositionAndRotation(Vector3.zero, Quaternion.Euler(90f, 0f, 0f));
             plane.transform.localScale = new Vector3(6f, 8f, 1f);    // ~6x8 hücrelik alan hissi
+        }
+
+        /// <summary>
+        /// Adı geçen nesneyi SAHNENİN TAMAMINDA arar, tekini bırakıp gerisini siler
+        /// ve kalanı verilen kökün altına taşır. Yoksa yeni oluşturur.
+        ///
+        /// DERS (kurulum aracı yeniden çalıştırılabilir olmalı): Bu arama önce
+        /// yalnız KÖKLERE bakıyordu. İlk çalıştırma Board/Services/Game'i
+        /// Gameplay altına taşıdığı için ikinci çalıştırma onları "yok" sanıp
+        /// yenilerini yaratıyordu — sahnede üç Board, üç Services birikti ve
+        /// AppRoot en sonuncuya bağlandığı için oyun boş bir tahtayla açıldı.
+        /// Bir kurulum aracı her zaman KENDİ ÇIKTISININ ÜSTÜNE tekrar
+        /// çalıştırılabilmeli; aksi hâlde yalnız bir kez doğrudur.
+        /// </summary>
+        static GameObject Adopt(Scene scene, GameObject parent, string name, ref bool changed)
+        {
+            var found = new List<GameObject>();
+            foreach (var root in scene.GetRootGameObjects())
+                foreach (var t in root.GetComponentsInChildren<Transform>(includeInactive: true))
+                    if (t.name == name) found.Add(t.gameObject);
+
+            if (found.Count == 0)
+            {
+                var created = new GameObject(name);
+                SceneManager.MoveGameObjectToScene(created, scene);
+                created.transform.SetParent(parent.transform, worldPositionStays: false);
+                changed = true;
+                return created;
+            }
+
+            // Hangisi asıl? En çok bileşeni olan — kopyalar boş kabuk oluyor.
+            var keep = found[0];
+            foreach (var candidate in found)
+                if (candidate.GetComponents<Component>().Length > keep.GetComponents<Component>().Length ||
+                    candidate.transform.childCount > keep.transform.childCount)
+                    keep = candidate;
+
+            foreach (var duplicate in found)
+                if (duplicate != keep)
+                {
+                    Debug.LogWarning($"[Setup] Yinelenen '{name}' silindi.");
+                    Object.DestroyImmediate(duplicate);
+                    changed = true;
+                }
+
+            if (keep.transform.parent != parent.transform)
+            {
+                keep.transform.SetParent(parent.transform, worldPositionStays: true);
+                changed = true;
+            }
+            return keep;
         }
 
         /// <summary>Verilen kökün altında adı geçen çocuğu (bileşeniyle) garanti eder.</summary>
