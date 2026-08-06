@@ -183,6 +183,10 @@ MonoBehaviour:
   - {fileID: 4900000, guid: 42fef1d1536dbee448a505dd54411451, type: 3}
   - {fileID: 4900000, guid: a2d815eb599172b429d876d00b508969, type: 3}
   - {fileID: 4900000, guid: 63675b336b99418478cc479a3170ec43, type: 3}
+  - {fileID: 4900000, guid: 5b09f058bd97962459e0cc31959d19de, type: 3}
+  - {fileID: 4900000, guid: 6c16cc9e94a0e244cbf30638a2c15a52, type: 3}
+  - {fileID: 4900000, guid: 83c7ba7bcaf8f9548a8cf9c268ea99bb, type: 3}
+  - {fileID: 4900000, guid: f4b29349ccb0fd649b31f5340860a873, type: 3}
   input: {fileID: 2057508983}
   boardRoot: {fileID: 1909012938}
 --- !u!4 &722943016
