@@ -76,16 +76,26 @@ namespace BlockOut.Runtime.DevTools
         ///
         /// Sayaç PENCEREYLE sıfırlanır; oyuncu o köşeye zaman içinde beş kez
         /// dokunsa bile menü açılmaz, yalnız arka arkaya dokunuşlar sayılır.
+        ///
+        /// DERS (bu projede ESKİ Input sınıfı YOK): Player Settings'te girdi
+        /// işleme yalnızca Input System paketine ayarlı. `UnityEngine.Input`
+        /// okumak derlenir ama ÇALIŞMA ANINDA her karede
+        /// InvalidOperationException atar — ve hata yığını girdi paketini
+        /// gösterdiği için sebebi geç anlaşılır. Doğrusu `Pointer.current`:
+        /// hem fareyi hem dokunmatiği tek arayüzle verir, yani aynı kod hem
+        /// editörde hem telefonda çalışır.
         /// </summary>
         void DetectSecretTap()
         {
-            // UnityEngine.Input tam nitelenmeli: projede BlockOut.Runtime.Input
-            // ad alanı var ve kısa ad ona çözülüyor.
-            if (!UnityEngine.Input.GetMouseButtonDown(0)) return;
+            var pointer = UnityEngine.InputSystem.Pointer.current;
+            if (pointer == null || !pointer.press.wasPressedThisFrame) return;
 
-            var point = (Vector2)UnityEngine.Input.mousePosition;
-            bool inCorner = point.x < Screen.width * CornerRatio &&
-                            point.y > Screen.height * (1f - CornerRatio * Screen.width / Screen.height);
+            // Köşe KARE bir alan: kenarı ekran genişliğinin bir oranı kadar.
+            // Ekran koordinatlarında y aşağıdan yukarı arttığı için sol ÜST
+            // köşe, y'nin yüksekliğe yakın olduğu yerdir.
+            var point = pointer.position.ReadValue();
+            float corner = Screen.width * CornerRatio;
+            bool inCorner = point.x < corner && point.y > Screen.height - corner;
             if (!inCorner) { _tapCount = 0; return; }
 
             if (Time.unscaledTime - _firstTapTime > TapWindow) { _tapCount = 0; }
