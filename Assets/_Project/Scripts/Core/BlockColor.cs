@@ -4,7 +4,9 @@ using System.Collections.Generic;
 namespace BlockOut.Core
 {
     /// <summary>
-    /// Oyundaki 8 blok/kapı rengi. Video analizinde doğrulanan palet.
+    /// Oyundaki 10 blok/kapı rengi. Video analizinde doğrulanan palet.
+    /// (Mor bölüm 23'te, açık mavi bölüm 24'te ilk kez görünür;
+    /// açık mavi koyu maviden AYRI bir renktir, ikisi aynı bölümde bulunur.)
     /// JSON dosyalarında küçük harfli isimler kullanılır ("red", "blue"...);
     /// dönüşüm için <see cref="BlockColorUtil"/> kullan.
     /// </summary>
@@ -17,7 +19,9 @@ namespace BlockOut.Core
         White,
         Black,
         Pink,
-        Orange
+        Orange,
+        Purple,
+        Cyan
     }
 
     public static class BlockColorUtil
@@ -34,7 +38,9 @@ namespace BlockOut.Core
                 { "white", BlockColor.White },
                 { "black", BlockColor.Black },
                 { "pink", BlockColor.Pink },
-                { "orange", BlockColor.Orange }
+                { "orange", BlockColor.Orange },
+                { "purple", BlockColor.Purple },
+                { "cyan", BlockColor.Cyan }
             };
 
         public static bool TryParse(string id, out BlockColor color) =>

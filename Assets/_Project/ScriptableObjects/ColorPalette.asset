@@ -45,3 +45,11 @@ MonoBehaviour:
     blockMaterial: {fileID: 2100000, guid: 6462ad73b1b5360428580e82ab4edae8, type: 2}
     uiColor: {r: 1, g: 0.55, b: 0.1, a: 1}
     particleColor: {r: 1, g: 0.55, b: 0.1, a: 1}
+  - color: 8
+    blockMaterial: {fileID: 2100000, guid: 68251af6180f0454aa4922f6089d1747, type: 2}
+    uiColor: {r: 0.6, g: 0.28, b: 0.9, a: 1}
+    particleColor: {r: 0.6, g: 0.28, b: 0.9, a: 1}
+  - color: 9
+    blockMaterial: {fileID: 2100000, guid: dc9f8dc87379836468c3896f032a3bfa, type: 2}
+    uiColor: {r: 0.3, g: 0.78, b: 0.95, a: 1}
+    particleColor: {r: 0.3, g: 0.78, b: 0.95, a: 1}

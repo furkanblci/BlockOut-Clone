@@ -93,7 +93,9 @@ namespace BlockOut.Editor.ProjectSetup
                     Entry(BlockColor.White,  new Color(0.93f, 0.91f, 0.88f)),
                     Entry(BlockColor.Black,  new Color(0.16f, 0.16f, 0.18f)),
                     Entry(BlockColor.Pink,   new Color(0.95f, 0.25f, 0.65f)),
-                    Entry(BlockColor.Orange, new Color(1.00f, 0.55f, 0.10f))
+                    Entry(BlockColor.Orange, new Color(1.00f, 0.55f, 0.10f)),
+                    Entry(BlockColor.Purple, new Color(0.60f, 0.28f, 0.90f)),
+                    Entry(BlockColor.Cyan,   new Color(0.30f, 0.78f, 0.95f))
                 });
                 EditorUtility.SetDirty(palette);
             }) != null;
