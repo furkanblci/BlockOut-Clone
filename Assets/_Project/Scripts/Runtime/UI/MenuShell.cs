@@ -23,18 +23,18 @@ namespace BlockOut.Runtime.UI
     /// </summary>
     public sealed class MenuShell : MonoBehaviour
     {
-        static readonly (string label, string key)[] Tabs =
+        static readonly (string label, string key, string icon)[] Tabs =
         {
-            ("Mağaza",   "store"),
-            ("Liderlik", "board"),
-            ("Ana Ekran", "home"),
-            ("Yolculuk", "journey"),
-            ("Profil",   "profile")
+            ("Mağaza",    "store",   Art.Shop),
+            ("Liderlik",  "board",   Art.Trophy),
+            ("Ana Ekran", "home",    Art.Home),
+            ("Yolculuk",  "journey", Art.Globe),
+            ("Profil",    "profile", Art.Star)
         };
 
         readonly Dictionary<string, RectTransform> _screens = new Dictionary<string, RectTransform>();
-        readonly List<(Button button, Image face, string key)> _tabButtons =
-            new List<(Button, Image, string)>();
+        readonly List<(Button button, RectTransform icon, TextMeshProUGUI label, string key)> _tabButtons =
+            new List<(Button, RectTransform, TextMeshProUGUI, string)>();
 
         string _active = "home";
 
@@ -53,7 +53,7 @@ namespace BlockOut.Runtime.UI
 
             // İçerik alanı: sekme çubuğunun üstünde kalan her şey.
             var content = UiKit.CreateRect("Content", root);
-            UiKit.Place(content, 0f, 0.085f, 1f, 1f);
+            UiKit.Place(content, 0f, 0.105f, 1f, 1f);
 
             _screens["store"]   = StoreScreen.Build(content);
             _screens["board"]   = LeaderboardScreen.Build(content);
@@ -65,25 +65,41 @@ namespace BlockOut.Runtime.UI
             Show("home");
         }
 
+        /// <summary>
+        /// Alt sekme çubuğu: her sekme bir ikon + altında etiketi.
+        ///
+        /// DERS (seçili sekme nasıl anlaşılır): Yalnız rengi değiştirmek mobilde
+        /// zayıf bir işaret — güneşte ya da renk körlüğünde okunmaz. Referans
+        /// oyun seçili sekmenin ikonunu BÜYÜTÜR. Boyut farkı renkten bağımsız
+        /// çalışır; ikisini birlikte kullanmak en sağlamı.
+        /// </summary>
         void BuildTabBar(Transform root)
         {
-            var bar = UiKit.CreateRoundedPanel("TabBar", root, UiKit.PanelDark);
-            UiKit.Place(bar, 0f, 0f, 1f, 0.085f);
+            var bar = UiKit.CreateSlicedPanel("TabBar", root, UiSkin.Get(Art.PanelDark));
+            UiKit.Place(bar, 0f, 0f, 1f, 0.105f);
 
             float slot = 1f / Tabs.Length;
             for (int i = 0; i < Tabs.Length; i++)
             {
-                var (label, key) = Tabs[i];
-                var button = UiKit.CreateButton($"Tab_{key}", bar.transform, label, 30,
-                    key == "home" ? UiKit.Accent : UiKit.Panel, UiKit.Ink);
-                UiKit.Place(button, i * slot + 0.008f, 0.12f, (i + 1) * slot - 0.008f, 0.88f);
+                var (label, key, icon) = Tabs[i];
+
+                var button = UiKit.CreateSpriteButton($"Tab_{key}", bar.transform, null,
+                    null, 0, UiKit.Ink);
+                UiKit.Place(button, i * slot, 0f, (i + 1) * slot, 1f);
+
+                // Görünmez ama dokunulabilir yüzey: sekmenin tamamı tıklanabilsin.
+                if (button.targetGraphic is Image face) face.color = new Color(1f, 1f, 1f, 0f);
+
+                var glyph = UiKit.CreateIcon("Icon", button.transform, UiSkin.Get(icon));
+                UiKit.Place(glyph, 0.20f, 0.34f, 0.80f, 0.94f);
+
+                var caption = UiKit.CreateLabel("Label", button.transform, label, 24,
+                    new Color(1f, 1f, 1f, 0.7f));
+                UiKit.Place(caption, 0f, 0.12f, 1f, 0.34f);
 
                 string captured = key;
                 button.onClick.AddListener(() => Show(captured));
-
-                // Düğmenin yüzü (renk değişimi için) gövdenin ikinci çocuğu.
-                var face = button.targetGraphic as Image;
-                _tabButtons.Add((button, face, key));
+                _tabButtons.Add((button, glyph.rectTransform, caption, key));
             }
         }
 
@@ -96,8 +112,13 @@ namespace BlockOut.Runtime.UI
             foreach (var pair in _screens)
                 pair.Value.gameObject.SetActive(pair.Key == key);
 
-            foreach (var (_, face, tabKey) in _tabButtons)
-                if (face != null) face.color = tabKey == key ? UiKit.Accent : UiKit.Panel;
+            foreach (var (_, icon, caption, tabKey) in _tabButtons)
+            {
+                bool selected = tabKey == key;
+                if (icon != null) icon.localScale = Vector3.one * (selected ? 1.18f : 0.92f);
+                if (caption != null)
+                    caption.color = selected ? UiKit.Ink : new Color(1f, 1f, 1f, 0.55f);
+            }
 
             if (key == "journey" && _screens.TryGetValue(key, out var journey))
                 journey.GetComponent<JourneyScreen>()?.Refresh();
@@ -110,7 +131,7 @@ namespace BlockOut.Runtime.UI
         /// <summary>Ekranların ortak başlık şeridi.</summary>
         public static TextMeshProUGUI Header(Transform parent, string title)
         {
-            var bar = UiKit.CreateRoundedPanel("Header", parent, UiKit.PanelDark);
+            var bar = UiKit.CreateSlicedPanel("Header", parent, UiSkin.Get(Art.PanelDark));
             UiKit.Place(bar, 0.04f, 0.925f, 0.96f, 0.99f);
             var label = UiKit.CreateTitle("Title", bar.transform, title, 52, UiKit.Ink, UiKit.PanelDark);
             UiKit.Place(label, 0f, 0f, 1f, 1f);
@@ -122,7 +143,12 @@ namespace BlockOut.Runtime.UI
         {
             var root = UiKit.CreateRect(name, parent);
             UiKit.Place(root, 0f, 0f, 1f, 1f);
-            UiKit.CreatePanel("Bg", root, UiKit.Background);
+
+            // Menü zemini burada da görünsün, üstüne okunurluk için koyu bir
+            // perde çekilsin: manzara tamamen kaybolursa ekranlar arası geçiş
+            // "başka bir oyuna girdim" hissi veriyor.
+            UiKit.CreateCover("Bg", root, UiSkin.Get(Art.MenuBack), UiKit.Background);
+            UiKit.CreatePanel("Scrim", root, new Color(0.09f, 0.06f, 0.20f, 0.88f));
             return root;
         }
     }

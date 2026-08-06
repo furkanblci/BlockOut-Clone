@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Text;
 using BlockOut.Runtime.Config;
 using BlockOut.Runtime.Flow;
@@ -11,24 +10,27 @@ using UiKit = GameKit.UI.UiKit;
 namespace BlockOut.Runtime.UI
 {
     /// <summary>
-    /// Ana ekran: üst barda can ve coin, ortada "Oyna", altında bölüm haritası.
+    /// Ana ekran: köy manzarası, üstte can/coin şeridi, altta tek büyük "OYNA".
+    ///
+    /// DERS (ana ekran BİR şey söyler): Önceki hâlinde burada 50 bölümlük bir
+    /// ızgara vardı. Oyuncuya elli seçenek sunmak, hiçbir şey sunmamakla aynı
+    /// kapıya çıkıyor: ekran kalabalık, asıl eylem (oynamaya devam et)
+    /// kayboluyordu. Referans oyunda ana ekranda TEK bir yeşil düğme var; bölüm
+    /// seçimi Yolculuk sekmesine ait. Izgarayı silmek özellik kaybı değil,
+    /// özelliğin ait olduğu yere taşınması.
     ///
     /// DERS (ekran = durum + yansıtma): Bu sınıf hiçbir KURAL bilmiyor. Kaç can
     /// var, bölüm açık mı, coin kaç — hepsini meta servislerine soruyor ve
-    /// yalnızca ekrana çiziyor. Kuralı da UI'ı da aynı yere yazmak kısa vadede
-    /// hızlıdır ama ikinci bir ekran (bölüm sonu, mağaza) eklendiğinde kural
-    /// kopyalanır ve ikisi sessizce ayrışır.
+    /// yalnızca ekrana çiziyor.
     /// </summary>
     public sealed class HomeScreen : MonoBehaviour
     {
-        const int PerRow = 5;
-
         TextMeshProUGUI _coinLabel;
         TextMeshProUGUI _livesLabel;
+        TextMeshProUGUI _timerLabel;
         TextMeshProUGUI _playLabel;
+        TextMeshProUGUI _playSubLabel;
         Button _playButton;
-        readonly List<(Button button, TextMeshProUGUI label, int index)> _levelButtons
-            = new List<(Button, TextMeshProUGUI, int)>();
 
         // Çöp üretmeyen metin: değer değişmedikçe yeni dize kurulmaz.
         readonly StringBuilder _scratch = new StringBuilder(32);
@@ -59,94 +61,80 @@ namespace BlockOut.Runtime.UI
             canvas.transform.SetParent(transform, worldPositionStays: false);
             var root = UiKit.CreateSafeArea(canvas);
 
-            UiKit.CreatePanel("Background", root, UiKit.Background);
+            // Manzara, GÜVENLİ ALANIN değil ekranın tamamını kaplamalı; çentiğin
+            // altında zemin rengi görünmesin diye kanvasa doğrudan bağlanıyor.
+            var cover = UiKit.CreateCover("Background", canvas.transform,
+                UiSkin.Get(Art.MenuBack), UiKit.Background);
+            cover.transform.SetAsFirstSibling();
 
-            // --- üst bar: can | coin ---
-            var topBar = UiKit.CreateRoundedPanel("TopBar", root, UiKit.PanelDark);
-            UiKit.Place(topBar, 0.04f, 0.905f, 0.96f, 0.975f);
+            BuildTopBar(root);
 
-            var livesChip = UiKit.CreateRoundedPanel("LivesChip", topBar.transform, UiKit.Life);
-            UiKit.Place(livesChip, 0.03f, 0.16f, 0.47f, 0.84f);
-            _livesLabel = UiKit.CreateLabel("Lives", livesChip.transform, "", 42, UiKit.Ink);
-            UiKit.Place(_livesLabel, 0f, 0f, 1f, 1f);
-
-            var coinChip = UiKit.CreateRoundedPanel("CoinChip", topBar.transform, UiKit.Coin);
-            UiKit.Place(coinChip, 0.53f, 0.16f, 0.86f, 0.84f);
-
-            // Dişli: ayarlar penceresini menü kabuğundan açar.
-            var gear = UiKit.CreateButton("Gear", topBar.transform, "Ayar", 34,
-                UiKit.Panel, UiKit.Ink);
-            UiKit.Place(gear, 0.875f, 0.12f, 0.985f, 0.88f);
-            gear.onClick.AddListener(() => MenuShell.Instance?.Show("settings"));
-            _coinLabel = UiKit.CreateLabel("Coins", coinChip.transform, "", 42,
-                new Color(0.32f, 0.20f, 0.02f));
-            UiKit.Place(_coinLabel, 0f, 0f, 1f, 1f);
-
-            // --- başlık ---
-            var title = UiKit.CreateTitle("Title", root, "BLOCK OUT!", 110,
+            var title = UiKit.CreateTitle("Title", root, "BLOCK OUT!", 120,
                 UiKit.Ink, new Color(0.18f, 0.12f, 0.42f));
-            UiKit.Place(title, 0f, 0.775f, 1f, 0.885f);
+            UiKit.Place(title, 0f, 0.80f, 1f, 0.90f);
 
-            // --- oyna ---
-            _playButton = UiKit.CreateButton("Play", root, "", 54, UiKit.Accent, UiKit.Ink);
-            UiKit.Place(_playButton, 0.20f, 0.655f, 0.80f, 0.745f);
-            _playLabel = _playButton.GetComponentInChildren<TextMeshProUGUI>();
-            _playButton.onClick.AddListener(PlayCurrent);
-
-            // --- bölüm haritası ---
-            var mapPanel = UiKit.CreateRoundedPanel("MapPanel", root,
-                new Color(0.17f, 0.14f, 0.38f));
-            UiKit.Place(mapPanel, 0.04f, 0.085f, 0.96f, 0.615f);
-
-            var mapTitle = UiKit.CreateLabel("MapTitle", mapPanel.transform, "Bölümler", 44,
-                new Color(1f, 1f, 1f, 0.7f));
-            UiKit.Place(mapTitle, 0f, 0.90f, 1f, 0.99f);
-
-            var grid = UiKit.CreateRect("Levels", mapPanel.transform);
-            UiKit.Place(grid, 0.03f, 0.02f, 0.97f, 0.88f);
-            BuildLevelGrid(grid);
-
-            // --- teşhis şeridi: kaydın nereden geldiği ---
-            if (MetaServices.Ready)
-            {
-                var state = UiKit.CreateLabel("SaveState", root,
-                    $"kayıt: {MetaServices.Save.Outcome}", 24,
-                    new Color(1f, 1f, 1f, 0.3f));
-                UiKit.Place(state, 0f, 0.02f, 1f, 0.06f);
-            }
+            BuildPlayButton(root);
         }
 
-        void BuildLevelGrid(RectTransform grid)
+        void BuildTopBar(Transform root)
         {
-            int count = LevelCatalog.Count;
-            if (count == 0)
-            {
-                UiKit.CreateLabel("Empty", grid, "Bölüm bulunamadı", 36, UiKit.Ink);
-                return;
-            }
+            var lives = Chip("LivesChip", root, 0.03f, 0.395f, Art.Heart);
+            _livesLabel = UiKit.CreateTitle("Lives", lives, "", 46, UiKit.Ink, UiKit.PanelDark);
+            UiKit.Place(_livesLabel, 0.30f, 0.34f, 0.98f, 1f);
+            _timerLabel = UiKit.CreateLabel("Timer", lives, "", 26,
+                new Color(1f, 1f, 1f, 0.75f));
+            UiKit.Place(_timerLabel, 0.30f, 0.02f, 0.98f, 0.36f);
 
-            int rows = Mathf.CeilToInt(count / (float)PerRow);
-            float cellW = 1f / PerRow;
-            float cellH = 1f / rows;
+            // Kapsül 0.76'da bitiyor: artı düğmesi kapsülün sağından TAŞTIĞI için
+            // daha geniş bırakılırsa dişliyle üst üste biniyor.
+            var coins = Chip("CoinChip", root, 0.425f, 0.755f, Art.Coin);
+            _coinLabel = UiKit.CreateTitle("Coins", coins, "", 46, UiKit.Ink, UiKit.PanelDark);
+            UiKit.Place(_coinLabel, 0.28f, 0.05f, 0.80f, 0.95f);
 
-            for (int i = 0; i < count; i++)
-            {
-                int column = i % PerRow;
-                int row = i / PerRow;
+            // Artı: mağazanın coin sekmesine götürür.
+            var plus = UiKit.CreateSpriteButton("Plus", coins, UiSkin.Get(Art.Plus),
+                null, 0, UiKit.Ink);
+            UiKit.Place(plus, 0.78f, 0.02f, 1.16f, 0.98f);
+            plus.onClick.AddListener(() => MenuShell.Instance?.Show("store"));
 
-                var button = UiKit.CreateButton($"Level{i + 1}", grid, (i + 1).ToString(),
-                    38, UiKit.Panel, UiKit.Ink);
-                // Izgara yukarıdan aşağı dolar; UI'da y ekseni yukarı baktığı için
-                // satırı tersine çeviriyoruz.
-                UiKit.Place(button,
-                    column * cellW, 1f - (row + 1) * cellH,
-                    (column + 1) * cellW, 1f - row * cellH,
-                    padding: 7f);
+            var gear = UiKit.CreateSpriteButton("Gear", root, UiSkin.Get(Art.Gear),
+                null, 0, UiKit.Ink);
+            UiKit.Place(gear, 0.845f, 0.917f, 0.985f, 0.987f);
+            gear.onClick.AddListener(() => MenuShell.Instance?.Show("settings"));
+        }
 
-                int index = i;
-                button.onClick.AddListener(() => Play(index));
-                _levelButtons.Add((button, button.GetComponentInChildren<TextMeshProUGUI>(), index));
-            }
+        /// <summary>Üst bardaki kapsül: koyu panel + solda ikon.</summary>
+        static Transform Chip(string name, Transform parent, float x0, float x1, string icon)
+        {
+            var chip = UiKit.CreateSlicedPanel(name, parent, UiSkin.Get(Art.PanelDark));
+            UiKit.Place(chip, x0, 0.917f, x1, 0.987f);
+
+            // İkon kapsülün SOL KENARINDAN taşar — referanstaki gibi, kapsüle
+            // takılmış bir madalyon hissi verir.
+            var badge = UiKit.CreateIcon("Icon", chip.transform, UiSkin.Get(icon));
+            UiKit.Place(badge, -0.06f, -0.12f, 0.30f, 1.12f);
+
+            return chip.transform;
+        }
+
+        void BuildPlayButton(Transform root)
+        {
+            _playButton = UiKit.CreateSpriteButton("Play", root, UiSkin.Get(Art.ButtonGreen),
+                null, 0, UiKit.Ink);
+            UiKit.Place(_playButton, 0.14f, 0.115f, 0.86f, 0.235f);
+            _playButton.onClick.AddListener(PlayCurrent);
+
+            // Yazılar butonun YÜZÜNE oturmalı. Sprite'ın alt kalınlığı yüksekliğin
+            // ~%27'si; oradan aşağısı gölge sayılır ve yazı oraya taşarsa
+            // "düğmeden düşmüş" görünür.
+            var face = _playButton.transform.GetChild(0);
+            _playLabel = UiKit.CreateTitle("PlayLabel", face, "OYNA", 62, UiKit.Ink,
+                new Color(0.05f, 0.30f, 0.03f));
+            UiKit.Place(_playLabel, 0.06f, 0.50f, 0.94f, 0.95f);
+
+            _playSubLabel = UiKit.CreateLabel("PlaySub", face, "", 32,
+                new Color(1f, 1f, 1f, 0.85f));
+            UiKit.Place(_playSubLabel, 0.06f, 0.28f, 0.94f, 0.52f);
         }
 
         void Refresh()
@@ -173,11 +161,12 @@ namespace BlockOut.Runtime.UI
                 _shownLives = lives.Current;
                 _shownRefill = refillSeconds;
 
-                var sb = _scratch.Clear().Append(_shownLives).Append(" / ").Append(MetaServices.MaxLives);
-                if (refillSeconds >= 0)
-                    sb.Append("  ").Append(refill.Minutes / 10).Append(refill.Minutes % 10)
-                      .Append(':').Append(refill.Seconds / 10).Append(refill.Seconds % 10);
-                _livesLabel.text = sb.ToString();
+                _livesLabel.text = _scratch.Clear().Append(_shownLives).ToString();
+                _timerLabel.text = refillSeconds < 0
+                    ? "dolu"
+                    : _scratch.Clear()
+                        .Append(refill.Minutes / 10).Append(refill.Minutes % 10).Append(':')
+                        .Append(refill.Seconds / 10).Append(refill.Seconds % 10).ToString();
             }
 
             int next = Mathf.Clamp(progress.HighestUnlockedIndex, 0,
@@ -186,28 +175,17 @@ namespace BlockOut.Runtime.UI
             if (next != _shownNext || canPlay != _playButton.interactable)
             {
                 _shownNext = next;
-                _playLabel.text = lives.HasLife
-                    ? _scratch.Clear().Append("OYNA  •  Bölüm ").Append(next + 1).ToString()
-                    : "CAN BEKLENİYOR";
+                _playLabel.text = lives.HasLife ? "OYNA" : "CAN YOK";
+                _playSubLabel.text = lives.HasLife
+                    ? _scratch.Clear().Append("Bölüm ").Append(next + 1).ToString()
+                    : "canın dolmasını bekle";
             }
+
             _playButton.interactable = canPlay;
-
-            foreach (var (button, label, index) in _levelButtons)
-            {
-                bool unlocked = progress.IsUnlocked(index);
-                var record = progress.Record(LevelCatalog.IdAt(index));
-
-                button.interactable = unlocked && lives.HasLife;
-                var image = button.targetGraphic as Image;
-                if (image != null)
-                    image.color = !unlocked ? UiKit.Locked
-                        : record.Perfect ? UiKit.Coin
-                        : record.Cleared ? UiKit.Accent
-                        : UiKit.Panel;
-
-                if (label != null)
-                    label.color = unlocked ? UiKit.Ink : new Color(1f, 1f, 1f, 0.35f);
-            }
+            // Düğme kapalıyken sprite'ı soldur: renk geçişi kapalı olduğu için
+            // etkileşimsizlik başka türlü anlaşılmıyor.
+            if (_playButton.targetGraphic is Image face)
+                face.color = canPlay ? Color.white : new Color(0.62f, 0.62f, 0.66f);
         }
 
         void PlayCurrent()

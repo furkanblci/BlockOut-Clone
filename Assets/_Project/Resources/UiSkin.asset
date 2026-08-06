@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67fd3dcba21f9264fbdb631b82c9fb0f, type: 3}
+  m_Name: UiSkin
+  m_EditorClassIdentifier: BlockOut.Runtime::BlockOut.Runtime.UI.UiSkin
+  entries:
+  - name: banner_region
+    sprite: {fileID: 21300000, guid: a44ef7d353e822d44be079d4903bb66a, type: 3}
+  - name: bg_menu
+    sprite: {fileID: 21300000, guid: 6d90d003216f2a44b94174419c553a4f, type: 3}
+  - name: btn_green
+    sprite: {fileID: 21300000, guid: 854c6c437ec15d94c899516478ca3485, type: 3}
+  - name: btn_purple
+    sprite: {fileID: 21300000, guid: ab8dd844776115846a9e6caff01700a7, type: 3}
+  - name: btn_red
+    sprite: {fileID: 21300000, guid: 228613ff5f3148d44bb05b49b4863844, type: 3}
+  - name: confetti_sheet
+    sprite: {fileID: 21300000, guid: 29a5d3bc96f626c4c894abc04d06ddf6, type: 3}
+  - name: frame_board
+    sprite: {fileID: 21300000, guid: e071130c96de5b847b8dbb75529a4b5d, type: 3}
+  - name: icon_chest
+    sprite: {fileID: 21300000, guid: 4c0cd0f8d3c31bd4e9398065ce0ed976, type: 3}
+  - name: icon_clock
+    sprite: {fileID: 21300000, guid: 96cbe445043182c4fac6f5422e91f03d, type: 3}
+  - name: icon_coin
+    sprite: {fileID: 21300000, guid: e593ff9b0d078fd449ab1a2229613953, type: 3}
+  - name: icon_gear
+    sprite: {fileID: 21300000, guid: 5c37f275326bfc54a8d2fcc32335b9a1, type: 3}
+  - name: icon_globe
+    sprite: {fileID: 21300000, guid: e9adb171ec9de07489791207153526c0, type: 3}
+  - name: icon_heart
+    sprite: {fileID: 21300000, guid: c6e28f9f64295fb418ce77ce8c65c5a8, type: 3}
+  - name: icon_home
+    sprite: {fileID: 21300000, guid: 011c2d64827db414bb105aebef535391, type: 3}
+  - name: icon_lock
+    sprite: {fileID: 21300000, guid: 07732edba91e5ab419f1d76ab7620509, type: 3}
+  - name: icon_plus
+    sprite: {fileID: 21300000, guid: 6f1b3dd2db02e744fbd60c7348b913e4, type: 3}
+  - name: icon_rocket
+    sprite: {fileID: 21300000, guid: 6cf2baa78159469418178a639e8067b3, type: 3}
+  - name: icon_shop
+    sprite: {fileID: 21300000, guid: efc8f430903e13a409597ad859d6bc87, type: 3}
+  - name: icon_star
+    sprite: {fileID: 21300000, guid: c72bc81066d9bcf4fad1a4c9648f692a, type: 3}
+  - name: icon_trophy
+    sprite: {fileID: 21300000, guid: 9825628e5a1f50346b482390ba5fc3cb, type: 3}
+  - name: icon_ufo
+    sprite: {fileID: 21300000, guid: 7407bc207dbed814b9fb8882a6039604, type: 3}
+  - name: node_level
+    sprite: {fileID: 21300000, guid: abf0e23ee5f5f964a99539b7786dbe3e, type: 3}
+  - name: panel_card
+    sprite: {fileID: 21300000, guid: 7b88331eeb28f1344ac90649014dc2fb, type: 3}
+  - name: panel_dark
+    sprite: {fileID: 21300000, guid: 0ddf8f4a66fa66749b20c966f67fefeb, type: 3}

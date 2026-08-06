@@ -1,0 +1,105 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace BlockOut.Runtime.UI
+{
+    /// <summary>
+    /// Arayüz sprite'larının tek kayıt yeri.
+    ///
+    /// DERS (Resources tuzağı): Sprite'lar `Art/UI/` altında duruyor ve orası bir
+    /// Resources klasörü DEĞİL — yani çalışma anında `Resources.Load` ile
+    /// bulunamazlar. İlk akla gelen çözüm hepsini Resources'a taşımak; ama
+    /// Resources klasöründeki her şey, kullanılsın kullanılmasın, derlemeye
+    /// girer ve açılışta indekslenir. Bunun yerine Resources'a YALNIZCA bu küçük
+    /// asset konuyor; sprite'lara referans verdiği için hepsi derlemeye
+    /// girer, klasör düzeni bozulmaz ve neyin kullanıldığı tek yerden görünür.
+    ///
+    /// Asset'i elle doldurmuyoruz: kurulum aracı klasörü tarayıp dosya adına
+    /// göre yazıyor. Yeni bir sprite atmak, onu kullanılabilir kılmaya yeter.
+    /// </summary>
+    public sealed class UiSkin : ScriptableObject
+    {
+        [System.Serializable]
+        public struct Entry
+        {
+            public string name;
+            public Sprite sprite;
+        }
+
+        [SerializeField] Entry[] entries = new Entry[0];
+
+        public Entry[] Entries => entries;
+        public void SetEntries(Entry[] value) => entries = value;   // yalnız kurulum aracı çağırır
+
+        static UiSkin _current;
+        static bool _searched;
+        Dictionary<string, Sprite> _lookup;
+
+        /// <summary>Resources'taki tek skin asset'i; yoksa null (kod yine çalışır).</summary>
+        public static UiSkin Current
+        {
+            get
+            {
+                if (!_searched)
+                {
+                    _searched = true;
+                    _current = Resources.Load<UiSkin>("UiSkin");
+                    if (_current == null)
+                        Debug.LogWarning("[UiSkin] Resources/UiSkin.asset yok — arayüz " +
+                                         "prosedürel sprite'lara düşecek.");
+                }
+                return _current;
+            }
+        }
+
+        /// <summary>Adıyla sprite getirir; bulunamazsa null döner, patlamaz.</summary>
+        public static Sprite Get(string spriteName)
+        {
+            var skin = Current;
+            if (skin == null) return null;
+
+            if (skin._lookup == null)
+            {
+                skin._lookup = new Dictionary<string, Sprite>(skin.entries.Length);
+                foreach (var entry in skin.entries)
+                    if (!string.IsNullOrEmpty(entry.name) && entry.sprite != null)
+                        skin._lookup[entry.name] = entry.sprite;
+            }
+
+            return skin._lookup.TryGetValue(spriteName, out var sprite) ? sprite : null;
+        }
+    }
+
+    /// <summary>
+    /// Sprite adları. Dizeyi çağrı yerine yazmak yerine buradan kullan:
+    /// yazım hatası derleme hatasına dönüşür, çalışma anında sessiz boşluğa değil.
+    /// </summary>
+    public static class Art
+    {
+        public const string ButtonGreen  = "btn_green";
+        public const string ButtonPurple = "btn_purple";
+        public const string ButtonRed    = "btn_red";
+        public const string PanelCard    = "panel_card";
+        public const string PanelDark    = "panel_dark";
+        public const string FrameBoard   = "frame_board";
+        public const string MenuBack     = "bg_menu";
+        public const string LevelNode    = "node_level";
+        public const string RegionBanner = "banner_region";
+        public const string Confetti     = "confetti_sheet";
+
+        public const string Coin    = "icon_coin";
+        public const string Heart   = "icon_heart";
+        public const string Gear    = "icon_gear";
+        public const string Star    = "icon_star";
+        public const string Lock    = "icon_lock";
+        public const string Chest   = "icon_chest";
+        public const string Clock   = "icon_clock";
+        public const string Rocket  = "icon_rocket";
+        public const string Ufo     = "icon_ufo";
+        public const string Plus    = "icon_plus";
+        public const string Trophy  = "icon_trophy";
+        public const string Shop    = "icon_shop";
+        public const string Home    = "icon_home";
+        public const string Globe   = "icon_globe";
+    }
+}

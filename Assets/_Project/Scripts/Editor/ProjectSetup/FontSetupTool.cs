@@ -88,7 +88,12 @@ namespace BlockOut.Editor.ProjectSetup
         {
             var fallback = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(
                 "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset");
-            if (fallback == null || asset.fallbackFontAssetTable == null) return false;
+            if (fallback == null) return false;
+
+            // Yeni üretilen bir font asset'inde bu tablo NULL gelir, boş liste
+            // değil. Sadece null kontrolü yapıp çıkmak, yedeğin hiç eklenmemesi
+            // demekti — eksik glif yine kutu çizerdi.
+            asset.fallbackFontAssetTable ??= new System.Collections.Generic.List<TMP_FontAsset>();
             if (asset.fallbackFontAssetTable.Contains(fallback)) return false;
 
             asset.fallbackFontAssetTable.Add(fallback);

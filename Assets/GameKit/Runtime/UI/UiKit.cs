@@ -165,6 +165,103 @@ namespace GameKit.UI
         }
 
         /// <summary>
+        /// Tam ekran arka plan görseli — ekranı KAPLAR, gerekirse taşar.
+        ///
+        /// DERS (kapla, esnetme): Arka planı dört köşeye yapıştırmak en kolayı
+        /// ama telefon oranı görselin oranından farklı olduğu anda görüntü ezilir
+        /// — 20:9 bir ekranda evler incelir. AspectRatioFitter'ın EnvelopeParent
+        /// kipi görseli oranını koruyarak ebeveyni ÖRTECEK kadar büyütür; fazlası
+        /// ekran dışında kalır. Fotoğraftaki "cover" davranışının aynısı.
+        /// </summary>
+        public static Image CreateCover(string name, Transform parent, Sprite sprite, Color fallback)
+        {
+            if (sprite == null) return CreatePanel(name, parent, fallback);
+
+            var rect = CreateRect(name, parent);
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+
+            var image = rect.gameObject.AddComponent<Image>();
+            image.sprite = sprite;
+            image.raycastTarget = false;
+
+            var fitter = rect.gameObject.AddComponent<AspectRatioFitter>();
+            fitter.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+            fitter.aspectRatio = sprite.rect.width / sprite.rect.height;
+            return image;
+        }
+
+        /// <summary>
+        /// Üretilmiş bir sprite'la 9-dilim panel. Sprite null ise prosedürel
+        /// yuvarlak panele düşer — böylece görsel gelmeden de ekran kurulabilir.
+        /// </summary>
+        public static Image CreateSlicedPanel(string name, Transform parent, Sprite sprite,
+            Color? tint = null)
+        {
+            if (sprite == null) return CreateRoundedPanel(name, parent, tint ?? Color.white);
+
+            var rect = CreateRect(name, parent);
+            var image = rect.gameObject.AddComponent<Image>();
+            image.sprite = sprite;
+            // Kenar payı olan sprite'lar 9-dilim, olmayanlar (ikon) düz çizilir.
+            image.type = sprite.border == Vector4.zero ? Image.Type.Simple : Image.Type.Sliced;
+            image.color = tint ?? Color.white;
+            return image;
+        }
+
+        /// <summary>
+        /// İkon. En-boy oranı korunur — kare olmayan bir alana konsa bile ezilmez.
+        /// </summary>
+        public static Image CreateIcon(string name, Transform parent, Sprite sprite,
+            Color? tint = null)
+        {
+            var rect = CreateRect(name, parent);
+            var image = rect.gameObject.AddComponent<Image>();
+            image.sprite = sprite;
+            image.type = Image.Type.Simple;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+            image.color = tint ?? Color.white;
+            return image;
+        }
+
+        /// <summary>
+        /// Görselli düğme: 3B butonun kendi gölgesi var, kod ayrıca gölge koymaz.
+        ///
+        /// DERS (görsel gelince kod SADELEŞİR): Prosedürel düğme, kalınlık
+        /// hissini vermek için ikinci bir koyu kopya çiziyordu. Butonun 3B alt
+        /// kenarı zaten görselin içinde olduğu için o kopya artık fazlalık —
+        /// hem bir Image hem bir çizim çağrısı eksiliyor. Renk geçişi de
+        /// kaldırıldı: sprite boyandığında parlaklık lekesi de boyanır ve
+        /// plastik görünüm bozulur; basma hissi <see cref="UiButtonFeel"/>
+        /// ölçeğinden geliyor.
+        /// </summary>
+        public static Button CreateSpriteButton(string name, Transform parent, Sprite sprite,
+            string text, int fontSize, Color ink)
+        {
+            var root = CreateRect(name, parent);
+
+            var face = CreateSlicedPanel("Face", root, sprite);
+            Place(face, 0f, 0f, 1f, 1f);
+
+            var button = root.gameObject.AddComponent<Button>();
+            button.targetGraphic = face;
+            button.transition = Selectable.Transition.None;
+
+            if (!string.IsNullOrEmpty(text))
+            {
+                var label = CreateLabel("Label", face.transform, text, fontSize, ink);
+                // Yazı butonun YÜZÜNE oturmalı; alt kalınlık payı bırakılmazsa
+                // aşağı kaymış görünür.
+                Place(label, 0.06f, 0.18f, 0.94f, 0.94f);
+                if (TitleMaterial != null) label.fontSharedMaterial = TitleMaterial;
+            }
+
+            root.gameObject.AddComponent<UiButtonFeel>();
+            return button;
+        }
+
+        /// <summary>
         /// Yazı.
         ///
         /// DERS (neden TMP?): Yerleşik `Text`, harfleri bir bitmap atlasına

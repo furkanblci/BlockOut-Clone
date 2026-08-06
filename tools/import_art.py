@@ -31,7 +31,15 @@ COMMON = dict(tolerance=60, neutral=18, size=512)
 # Yalnız ortaktan SAPAN dosyalar yazılır; gerisi COMMON ile işlenir.
 RECIPES = {
     # Ortası delik: kenardan taşma oraya ulaşamaz, ayrıca delinmeli.
-    "icon_gear":      dict(holes=True),
+    # Bunları GÖZLE bulmak zor — koyu bir zemine koyana kadar fark edilmiyor;
+    # satranç zemine bindirilirse üstteki satrançla karışıyor. Kontrol
+    # yöntemi: çıktıyı düz koyu bir renge bindir.
+    "icon_gear":      dict(holes=True),   # dişlinin göbeği
+    "icon_clock":     dict(holes=True),   # iki zilin arası
+    "icon_globe":     dict(holes=True),   # halka ile küre arası
+    "icon_lock":      dict(holes=True),   # kilit dilinin içi
+    "icon_shop":      dict(holes=True),   # tezgâhın arkası
+    "icon_trophy":    dict(holes=True),   # kulpların içi
     "frame_board":    dict(holes=True),
     "banner_region":  dict(holes=True, size=640),
 
