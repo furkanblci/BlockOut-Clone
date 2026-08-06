@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "id": "level_036",
+  "displayNumber": 36,
+  "difficulty": "normal",
+  "timeSeconds": 180,
+  "board": {
+    "width": 7,
+    "height": 8,
+    "rows": [
+      "X.XXX.X",
+      "X.XXX.X",
+      "X.XXX.X",
+      "X.XXX.X",
+      "XXXXXXX",
+      "XXXXXXX",
+      "X.XXX.X",
+      "X.XXX.X"
+    ],
+    "walls": []
+  },
+  "blocks": [
+    { "x": 0, "y": 0, "w": 1, "h": 2, "layers": ["yellow"] },
+    { "x": 0, "y": 2, "w": 1, "h": 2, "layers": ["blue"] },
+    { "x": 6, "y": 0, "w": 1, "h": 2, "layers": ["pink"] },
+    { "x": 6, "y": 2, "w": 1, "h": 2, "layers": ["blue"] },
+    { "x": 2, "y": 4, "w": 1, "h": 2, "layers": ["blue"] },
+    { "x": 3, "y": 4, "w": 1, "h": 2, "layers": ["pink"] },
+    { "x": 4, "y": 4, "w": 1, "h": 2, "layers": ["cyan"] },
+    { "x": 5, "y": 4, "w": 2, "h": 2, "layers": ["green"] },
+    { "x": 0, "y": 6, "w": 1, "h": 2, "layers": ["green"] },
+    { "x": 2, "y": 6, "w": 3, "h": 1, "layers": ["blue"], "ice": 2 },
+    { "x": 2, "y": 7, "w": 3, "h": 1, "layers": ["blue"], "ice": 2 },
+    { "x": 6, "y": 6, "w": 1, "h": 2, "layers": ["red"] }
+  ],
+  "gates": [
+    { "x": 0, "y": 0, "side": "W", "length": 2, "colors": ["pink"], "ice": 6 },
+    { "x": 0, "y": 4, "side": "W", "length": 2, "colors": ["yellow"] },
+    { "x": 6, "y": 0, "side": "E", "length": 2, "colors": ["cyan"], "ice": 11 },
+    { "x": 6, "y": 4, "side": "E", "length": 2, "colors": ["green"], "ice": 1 },
+    { "x": 6, "y": 6, "side": "E", "length": 2, "colors": ["red"], "ice": 10 },
+    { "x": 2, "y": 7, "side": "S", "length": 3, "colors": ["blue"] }
+  ],
+  "obstacles": [
+    {
+      "type": "curtain",
+      "x": 2,
+      "y": 1,
+      "w": 3,
+      "h": 3,
+      "count": 8,
+      "contents": [
+        { "x": 2, "y": 1, "w": 3, "h": 1, "layers": ["yellow"] },
+        { "x": 2, "y": 2, "w": 3, "h": 1, "layers": ["blue"] },
+        { "x": 2, "y": 3, "w": 1, "h": 1, "layers": ["cyan"] },
+        { "x": 3, "y": 3, "w": 1, "h": 1, "layers": ["cyan"] },
+        { "x": 4, "y": 3, "w": 1, "h": 1, "layers": ["cyan"] }
+      ]
+    },
+    {
+      "type": "generator",
+      "side": "N",
+      "x": 2,
+      "y": 0,
+      "queue": [
+        { "x": 0, "y": 0, "w": 3, "h": 1, "layers": ["blue"] },
+        { "x": 0, "y": 0, "w": 2, "h": 1, "layers": ["green"] },
+        { "x": 0, "y": 0, "w": 2, "h": 2, "cells": ["X.", "XX"], "layers": ["yellow"] },
+        { "x": 0, "y": 0, "w": 1, "h": 2, "layers": ["pink"] }
+      ]
+    }
+  ]
+}
