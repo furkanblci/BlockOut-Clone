@@ -132,58 +132,112 @@ Hepsi aynı ortak son ekle. Her biri tek başına, saydam zeminde.
 
 ---
 
-## 2.5. YENİ İSTEK — arayüz kurulurken eksik çıkanlar
+## 2.5. ŞU AN GEREKEN LİSTE (2026-08-07)
 
-Bunlar ekranları kurarken fiilen gerekti; yerlerine geçici çözüm kondu ama
-gerçek görsel gelince belirgin fark yaratacak.
+Arayüzün tamamı kuruldu. Aşağıdakiler ekranlarda fiilen eksik; her birinin
+yerinde şu an geçici bir çözüm duruyor.
 
-### `avatar_player.png` — üst bardaki profil resmi
-Şu anda oyuncunun baş harfi yazıyor. Referansta çerçevenin içinde bir karakter
-portresi var.
-```
-A friendly cartoon creature portrait bust, centered, facing the camera,
-glossy toy plastic style, big round eyes, cheerful expression, teal and
-orange color scheme, shoulders visible at the bottom edge, no background
-elements, no hat
-```
-+ ortak son ek. **Kare, 512×512.** Karakteri referanstan kopyalama — kendi
-karakterimiz olsun.
+**Ortak son ek** (her promptun sonuna aynen ekle):
 
-### `region_1.png` … `region_4.png` — Yolculuk bölge daireleri
-Yolculuk ekranındaki büyük yuvarlak bölge kartları. Şu an menü zemini kırpılıp
-kullanılıyor ve kare duruyor; **dairesel çizilmiş** bir görsel gelirse maskeye
-hiç gerek kalmaz.
 ```
-A circular vignette illustration of <SAHNE>, painted 3D toy diorama style,
-content fully inside a circle with soft edges fading to transparent at the
-circle boundary, viewed from a slight high angle, no text
-```
-`<SAHNE>` yerine sırayla:
-1. `a candy colored village square at sunset` (Görev Hazırlığı)
-2. `a purple night sky with glowing stars and floating platforms` (Yıldız Yolculuğu)
-3. `a snowy icy hill with igloos and frozen ponds` (Penguen Kovalamacası)
-4. `a golden mountain peak above the clouds with a trophy on top` (Zafer Tırmanışı)
-
-**1024×1024, dairesel, kenarları saydama açılsın.**
-
-### `check_green.png` — yeşil onay işareti
-Yolculukta alınmış ödüllerin yanındaki tik. Şimdilik yeşile boyanmış yıldız
-kullanılıyor.
-```
-A thick rounded green checkmark, glossy plastic, slight 3/4 tilt,
-bright grass green with a darker green bottom edge
+mobile casual puzzle game UI asset, 3D rendered glossy plastic toy style,
+soft studio lighting from top-left, subtle ambient occlusion, strong specular
+highlight on top surface, thick rounded edges, no outlines, highly saturated
+candy colors, centered single object, plain flat background,
+no text, no letters, no numbers, clean edges for game asset cutout
 ```
 
-### `ribbon_reward.png` — "Ödüller x3" şeridi (9-slice)
-Ana ekrandaki oyna düğmesinin üstüne binen turuncu etiket. Şimdilik koyu panel
-turuncuya boyanıyor.
-```
-A small horizontal ribbon banner label, glossy orange plastic with a darker
-orange bottom rim, rounded ends, hollow center for text, front view
-```
+Saydamlık gerekmiyor; `tools/cutout.py` hallediyor. **Tek şart: nesne
+görüntünün kenarına değmesin.**
 
 ---
 
+### 1. `home_characters.png` — ana ekranın ortasındaki karakterler
+**En büyük görsel eksik.** Ana ekranın ortası şu an boş manzara; referansta
+orada karakterler duruyor.
+
+```
+Three cheerful original cartoon creature characters standing together in a
+group, full body, front view, friendly poses, one waving, one holding a
+wrapped gift box, one jumping with arms up, chunky rounded proportions,
+soft matte skin with glossy highlights, dungarees and simple overalls in
+teal orange and lime, big expressive eyes, no hats, standing on flat ground
+```
+**1536×1024, yatay.** Karakterleri referanstan kopyalama — kendi karakterlerimiz olsun.
+
+---
+
+### 2. `region_1.png` … `region_4.png` — Yolculuk bölge daireleri
+Şu an menü zemini kırpılıp kullanılıyor ve **kare duruyor**. Dairesel
+çizilirse maskeye hiç gerek kalmaz.
+
+Ortak gövde:
+```
+A circular vignette illustration of <SAHNE>, painted 3D toy diorama style,
+composition fully inside a circle, content fading softly to the circle edge,
+viewed from a slightly high angle, rich saturated colors, no characters
+```
+
+`<SAHNE>` yerine sırayla:
+1. `a candy colored village square at sunset with rounded toy houses`
+2. `a purple night sky with glowing stars and floating platforms`
+3. `a snowy icy hill with igloos and frozen ponds`
+4. `a golden mountain peak above the clouds`
+
+**Her biri 1024×1024, kare çerçeve içinde DAİRE.**
+
+---
+
+### 3. `avatar_player.png` — üst bardaki profil resmi
+Şu an oyuncunun baş harfi yazıyor.
+
+```
+A friendly original cartoon creature portrait bust, centered, facing the
+camera, big round eyes, cheerful smile, teal and orange color scheme,
+shoulders visible at the bottom edge, glossy toy plastic style
+```
+**512×512, kare.**
+
+---
+
+### 4. `check_green.png` — yeşil onay tiki
+Yolculukta alınmış ödüllerin yanında. Şu an yeşile boyanmış yıldız var.
+
+```
+A thick rounded green checkmark symbol, glossy plastic, slight 3/4 tilt,
+bright grass green face with a darker green bottom rim giving 3D thickness
+```
+**512×512.**
+
+---
+
+### 5. `ribbon_reward.png` — "Ödüller x2" şeridi (9-slice)
+Oyna düğmesinin üstüne binen turuncu etiket. Şu an koyu panel turuncuya
+boyanıyor.
+
+```
+A small horizontal ribbon banner label, glossy orange plastic face with a
+darker orange bottom rim, rounded ends, flat hollow center, front view,
+wide 4:1 ratio
+```
+**1024×256.** 9-slice yapılacağı için **ortası düz olmalı**, desen olmamalı.
+
+---
+
+### 6. `ad_creative.png` — sahte reklamın görseli (isteğe bağlı)
+Test reklamı ekranında şu an sandık ikonu duruyor. Şart değil ama akış
+daha inandırıcı görünür.
+
+```
+A colorful fake mobile game advertisement creative, glossy toy blocks
+tumbling out of an open treasure chest, dynamic diagonal composition,
+bright candy colors on a deep purple background
+```
+**1024×1024.**
+
+---
+
+## 3. Öncelik C — süsleme
 ## 3. Öncelik C — süsleme
 
 ### 3.1 `bg_menu.png` — menü arka planı (1024×2048, saydam DEĞİL)
