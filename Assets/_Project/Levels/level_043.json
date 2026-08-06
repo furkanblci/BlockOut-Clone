@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "id": "level_043",
+  "displayNumber": 43,
+  "difficulty": "normal",
+  "timeSeconds": 150,
+  "board": {
+    "width": 7,
+    "height": 9,
+    "rows": [
+      "XXXXXXX",
+      "XXXXXXX",
+      "XXXXXXX",
+      "XXXXXXX",
+      "XXXXXXX",
+      "XXXXXXX",
+      "XXXXXXX",
+      "XXXXXXX",
+      "XXXXXXX"
+    ],
+    "walls": []
+  },
+  "blocks": [
+    { "x": 0, "y": 0, "w": 1, "h": 3, "layers": ["yellow"] },
+    { "x": 4, "y": 0, "w": 3, "h": 2, "cells": [".X.", "XXX"], "layers": ["green"] },
+    { "x": 2, "y": 2, "w": 3, "h": 3, "cells": [".X.", "XXX", ".X."], "layers": ["blue"] },
+    { "x": 4, "y": 3, "w": 3, "h": 3, "cells": [".X.", "XXX", ".X."], "layers": ["yellow"] },
+    { "x": 1, "y": 4, "w": 2, "h": 2, "cells": ["X.", "XX"], "layers": ["red"] },
+    { "x": 1, "y": 6, "w": 3, "h": 2, "cells": [".X.", "XXX"], "layers": ["red"] },
+    { "x": 5, "y": 6, "w": 2, "h": 2, "cells": ["X.", "XX"], "layers": ["green"] }
+  ],
+  "gates": [
+    { "x": 0, "y": 0, "side": "N", "length": 3, "colors": ["red"] },
+    { "x": 4, "y": 0, "side": "N", "length": 3, "colors": ["blue"] },
+    { "x": 0, "y": 8, "side": "S", "length": 3, "colors": ["green"] },
+    { "x": 4, "y": 8, "side": "S", "length": 3, "colors": ["yellow"] }
+  ],
+  "obstacles": [
+    {
+      "type": "generator",
+      "side": "W",
+      "x": 0,
+      "y": 5,
+      "queue": [
+        { "x": 0, "y": 0, "w": 3, "h": 2, "cells": ["XXX", ".X."], "layers": ["blue"] }
+      ]
+    },
+    {
+      "type": "generator",
+      "side": "E",
+      "x": 0,
+      "y": 0,
+      "queue": [
+        { "x": 0, "y": 0, "w": 2, "h": 2, "cells": ["XX", ".X"], "layers": ["yellow"] }
+      ]
+    },
+    {
+      "type": "generator",
+      "side": "E",
+      "x": 0,
+      "y": 3,
+      "queue": [
+        { "x": 0, "y": 0, "w": 2, "h": 2, "cells": ["X.", "XX"], "layers": ["green"] }
+      ]
+    },
+    {
+      "type": "generator",
+      "side": "E",
+      "x": 0,
+      "y": 6,
+      "queue": [
+        { "x": 0, "y": 0, "w": 3, "h": 1, "layers": ["red"] }
+      ]
+    }
+  ]
+}
