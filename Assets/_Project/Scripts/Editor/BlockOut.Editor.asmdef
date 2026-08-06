@@ -6,7 +6,9 @@
         "BlockOut.Runtime",
         "Unity.RenderPipelines.Universal.Runtime",
         "GameKit.Runtime",
-        "GameKit.Editor"
+        "GameKit.Editor",
+        "Unity.TextMeshPro",
+        "Unity.TextMeshPro.Editor"
     ],
     "includePlatforms": [
         "Editor"

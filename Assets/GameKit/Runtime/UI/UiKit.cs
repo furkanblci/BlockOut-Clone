@@ -21,8 +21,10 @@ namespace GameKit.UI
     /// cinsine çevirir. matchWidthOrHeight=1 (yükseklik) dikey oyunlarda
     /// doğrudur: ekran ne kadar dar olursa olsun içerik dikeyde aynı kalır.
     ///
-    /// NOT (font): Şimdilik yerleşik LegacyRuntime fontu. Cila turunda TMP'ye
-    /// geçilecek; düzen kodu aynen kalacağı için o değişiklik yüzeyseldir.
+    /// NOT (font): Yazılar TMP'nin VARSAYILAN fontundan gelir; proje kurulumu
+    /// onu Baloo 2 ExtraBold'a çevirir (FontSetupTool). Böylece burada tek bir
+    /// `label.font = ...` satırı yok — font değişirse bütün ekranlar birlikte
+    /// değişir.
     /// </summary>
     public static class UiKit
     {
@@ -31,6 +33,24 @@ namespace GameKit.UI
         static Font _font;
         public static Font Font =>
             _font != null ? _font : (_font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"));
+
+        // Başlıkların paylaştığı kontur+gölge materyali. Etikete tek tek
+        // `outlineWidth` yazmak her birine ayrı materyal kopyası çıkarır;
+        // paylaşılan materyal hepsini tek çizim çağrısında toplar.
+        static Material _titleMaterial;
+        static bool _titleMaterialSearched;
+        public static Material TitleMaterial
+        {
+            get
+            {
+                if (!_titleMaterialSearched)
+                {
+                    _titleMaterialSearched = true;
+                    _titleMaterial = Resources.Load<Material>("Fonts/Baloo2 SDF Title");
+                }
+                return _titleMaterial;
+            }
+        }
 
         // Referans oyunun paleti.
         public static readonly Color Background = new Color(0.13f, 0.10f, 0.28f);
@@ -174,8 +194,17 @@ namespace GameKit.UI
         {
             var label = CreateLabel(name, parent, text, fontSize, color);
             label.fontStyle = FontStyles.Bold;
-            label.outlineWidth = 0.22f;
-            label.outlineColor = outline;
+
+            if (TitleMaterial != null)
+            {
+                label.fontSharedMaterial = TitleMaterial;
+            }
+            else
+            {
+                // Materyal henüz üretilmemişse (ilk açılış) eski yola düş.
+                label.outlineWidth = 0.22f;
+                label.outlineColor = outline;
+            }
             return label;
         }
 

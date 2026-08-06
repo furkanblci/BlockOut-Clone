@@ -32,13 +32,17 @@ namespace BlockOut.Editor.ProjectSetup
             bool createdAssets = ProjectSetupTool.EnsureConfigAssets();
             bool createdScene = ProjectSetupTool.EnsureGameplayScene();
             bool createdMats = ProjectSetupTool.EnsureBlockMaterials();
+            bool importedUi = UiSpriteImporter.EnsureImported();
+            bool createdFont = FontSetupTool.EnsureFontAsset();
             bool wiredScene = ProjectSetupTool.EnsureGameplayWiring();
 
-            if (createdAssets || createdScene || createdMats || wiredScene)
+            if (createdAssets || createdScene || createdMats || importedUi || createdFont || wiredScene)
                 Debug.Log("[Bootstrap] Eksik kurulum otomatik tamamlandı: " +
                           (createdAssets ? "config asset'leri, " : "") +
                           (createdScene ? "Gameplay sahnesi, " : "") +
                           (createdMats ? "blok materyalleri, " : "") +
+                          (importedUi ? "UI sprite ayarları, " : "") +
+                          (createdFont ? "TMP fontu, " : "") +
                           (wiredScene ? "sahne bağlantıları, " : "") +
                           "— hiçbir menüye tıklamana gerek yok.");
         }

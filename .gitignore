@@ -109,3 +109,12 @@ InitTestScene*.unity*
 # Level editoru Play Test gecici dosyasi
 Assets/_Project/Levels/__playtest.json
 Assets/_Project/Levels/__playtest.json.meta
+
+# Ham gorseller (uretici ciktilari, ~150 MB). Kaynak dosya niteliginde;
+# oyunun ihtiyaci olan islenmis sprite'lar Assets/_Project/Art/UI altinda
+# ve depoya giriyor. Yeniden uretmek icin: python tools/import_art.py
+art_raw/*.png
+
+# Python onbellegi
+__pycache__/
+*.pyc
