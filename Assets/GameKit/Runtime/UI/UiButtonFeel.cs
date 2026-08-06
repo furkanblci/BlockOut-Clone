@@ -67,11 +67,27 @@ namespace GameKit.UI
             _rect.localScale = new Vector3(_current, _current, 1f);
         }
 
+        /// <summary>
+        /// Ses, dokunma anında çalar — bırakma anında değil.
+        ///
+        /// DERS (geri bildirim GECİKMESİZ olmalı): Sesi tıklama tamamlanınca
+        /// çalmak doğru gibi görünür ama parmak kalkana kadar geçen 100-200
+        /// milisaniye "gecikmeli" hissettirir. Basma anında çalmak dokunuşu
+        /// anında onaylar; eylem sonra iptal olsa bile oyuncu "duyuldum" bilir.
+        /// </summary>
         public void OnPointerDown(PointerEventData eventData)
         {
             _target = PressedScale;
             _releasing = false;
+            Clicked?.Invoke();
         }
+
+        /// <summary>
+        /// Dokunma sesini bağlamak için. GameKit ses servisini TANIMAZ —
+        /// bilse arayüz kütüphanesi oyunun ses sistemine bağımlı olurdu ve
+        /// başka bir projede kullanılamazdı.
+        /// </summary>
+        public static System.Action Clicked;
 
         public void OnPointerUp(PointerEventData eventData) => Release();
         public void OnPointerExit(PointerEventData eventData) => Release();

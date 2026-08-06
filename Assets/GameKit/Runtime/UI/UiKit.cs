@@ -297,12 +297,19 @@ namespace GameKit.UI
             colors.fadeDuration = 0.06f;
             button.colors = colors;
 
-            if (!string.IsNullOrEmpty(text))
-            {
-                var label = CreateLabel("Label", face.transform, text, fontSize, ink);
-                Place(label, 0.05f, 0.06f, 0.95f, 0.94f);
-                label.fontStyle = FontStyles.Bold;
-            }
+            // Etiket metin BOŞ OLSA DA kurulur.
+            //
+            // DERS (sonradan doldurulacak alan var olmalı): Boş metinde etiketi
+            // atlamak "gereksiz nesne yaratma" gibi görünüyordu. Ama çağıranlar
+            // düğmeyi boş kurup yazısını sonra yazıyor
+            // (`GetComponentInChildren<TextMeshProUGUI>()` ile bulup). Etiket hiç
+            // yaratılmayınca o arama null döndü ve sonuç ekranı her açılışında
+            // NullReferenceException attı — panel yarı kurulmuş hâlde kaldı,
+            // kaybedince bile yıldızlar ekranda durdu. Bir Text bileşeninin
+            // maliyeti, bu sınıf hatasının maliyetinin yanında yok.
+            var label = CreateLabel("Label", face.transform, text ?? "", fontSize, ink);
+            Place(label, 0.05f, 0.06f, 0.95f, 0.94f);
+            label.fontStyle = FontStyles.Bold;
 
             root.gameObject.AddComponent<UiButtonFeel>();
             return button;
@@ -326,7 +333,7 @@ namespace GameKit.UI
             label.fontSize = fontSize;
             label.color = color;
             label.alignment = align;
-            label.enableWordWrapping = false;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
             label.overflowMode = TextOverflowModes.Overflow;
             label.raycastTarget = false;   // yazı dokunmayı yutmasın
             return label;

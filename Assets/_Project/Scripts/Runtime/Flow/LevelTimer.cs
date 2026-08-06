@@ -25,6 +25,21 @@ namespace BlockOut.Runtime.Flow
 
         public void Stop() => Running = false;
 
+        /// <summary>
+        /// Süre ekler ve sayacı yeniden başlatır — "reklam izle, devam et".
+        ///
+        /// Toplam da artırılıyor: yıldız hesabı kalan/toplam oranına baktığı
+        /// için, süre eklendiğinde toplamı sabit bırakmak oyuncuya hak
+        /// etmediği bir PERFECT verirdi.
+        /// </summary>
+        public void AddTime(int seconds)
+        {
+            if (seconds <= 0) return;
+            Remaining += seconds;
+            Total += seconds;
+            Running = true;
+        }
+
         public void Tick(float deltaTime)
         {
             if (!Running) return;

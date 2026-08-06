@@ -20,6 +20,17 @@ namespace BlockOut.Runtime.Services
             QualitySettings.vSyncCount = 0;
             Application.targetFrameRate = 60;
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
+
+            // Analitik: olaylar ilk kareden itibaren toplansın. Sağlayıcıyı
+            // sonra bağlamak, açılıştaki olayları kaybetmek demek.
+            Analytics = new LocalAnalytics();
+            Analytics.Initialize();
+            GameKit.Services.Analytics.SetProvider(Analytics);
+
+            Application.quitting += () => Analytics.Save();
         }
+
+        /// <summary>Geliştirici menüsü özet raporu için erişilir.</summary>
+        public static LocalAnalytics Analytics { get; private set; }
     }
 }

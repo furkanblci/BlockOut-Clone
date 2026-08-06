@@ -100,7 +100,14 @@ namespace BlockOut.Runtime.Board
                 // donmuş blok bile roketle/UFO ile silinebilir.
                 if (BlockTapped != null && BlockTapped(block)) return;
 
-                if (block.IsFrozen) return; // buzlu blok kilitli — sallanma efekti M4'te
+                // Buzlu blok kilitli. Sessizce yok saymak yerine titreterek
+                // "duydum ama olmaz" diyoruz; oyuncu aynı yere üst üste basmasın.
+                if (block.IsFrozen)
+                {
+                    if (_views.Blocks.TryGetValue(block, out var frozen)) frozen.PlayRefusal();
+                    Services.AudioService.Refuse();
+                    return;
+                }
 
                 _dragged = block;
                 _grabOffset = block.Position - cell;

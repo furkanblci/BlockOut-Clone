@@ -43,6 +43,18 @@ namespace BlockOut.Runtime.Flow
         /// <summary>Son kazanışta verilen coin — bitiş ekranı gösterir.</summary>
         public int LastReward { get; private set; }
 
+        /// <summary>Son kazanış PERFECT miydi? Bitiş ekranı rozeti buna bakar.</summary>
+        public bool LastPerfect { get; private set; }
+
+        /// <summary>
+        /// Son kazanışın yıldızı (1-3). Kalan süreye göre.
+        ///
+        /// DERS (yıldız neden 3'lü): Tek bir "bitti" bilgisi oyuncuya SONRAKİ
+        /// hedefi vermez. Üç kademe, aynı bölümü tekrar oynamak için ücretsiz
+        /// bir sebep üretir — hem de yeni içerik yazmadan.
+        /// </summary>
+        public int LastStars { get; private set; }
+
         /// <summary>Bu deneme için can harcandı mı? (Aynı bölümde iki kez düşmesin.)</summary>
         bool _lifeSpent;
 
@@ -77,6 +89,7 @@ namespace BlockOut.Runtime.Flow
             _servicesReady = true;
 
             _camera = Camera.main;
+            GameKit.FX.CameraShake.Ensure(_camera);
             gameObject.AddComponent<UI.GameplayScreen>().Init(this);
 
             // Menü AppRoot'ta da kuruluyor; burası oynanış kökünün AppRoot
@@ -434,6 +447,9 @@ namespace BlockOut.Runtime.Flow
                 int remaining = Mathf.CeilToInt(Timer.Remaining);
                 bool perfect = remaining * 2 >= Timer.Total;
 
+                LastPerfect = perfect;
+                LastStars = perfect ? 3 : remaining * 4 >= Timer.Total ? 2 : 1;
+
                 LastReward = Services.MetaServices.Progress.NoteCleared(
                     LevelId, _levelIndex, remaining, perfect);
 
@@ -446,6 +462,32 @@ namespace BlockOut.Runtime.Flow
                 GameKit.Services.Analytics.LevelCompleted(
                     _levelIndex, record.Attempts, remaining, perfect);
                 GameKit.Services.Analytics.CurrencyEarned("coin", LastReward, "level_clear");
+            }
+        }
+
+        /// <summary>
+        /// Reklam ödülüyle bölüme devam: süre eklenir, oyun kaldığı yerden akar.
+        /// Tahta hiç bozulmadığı için oyuncu tam bıraktığı yerden devam eder.
+        /// </summary>
+        public void ContinueWithExtraTime(int seconds)
+        {
+            if (State != GameState.Lost) return;
+            State = GameState.Playing;
+            Timer.AddTime(seconds);
+        }
+
+        /// <summary>Kazanılan ödülü katlar — "reklam izle, ödülü ikiye katla".</summary>
+        public void MultiplyReward(int multiplier)
+        {
+            if (State != GameState.Won || multiplier <= 1) return;
+
+            int bonus = LastReward * (multiplier - 1);
+            LastReward *= multiplier;
+
+            if (Services.MetaServices.Ready)
+            {
+                Services.MetaServices.Progress.GrantCoins(bonus);
+                GameKit.Services.Analytics.CurrencyEarned("coin", bonus, "rewarded_ad");
             }
         }
 

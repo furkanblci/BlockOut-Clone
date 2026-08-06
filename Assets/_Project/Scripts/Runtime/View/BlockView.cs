@@ -407,6 +407,43 @@ namespace BlockOut.Runtime.View
         /// <summary>Katman soyulunca dış rengin materyali değişir.</summary>
         public void SetLayerMaterial(Material material) => _renderer.sharedMaterial = material;
 
+        /// <summary>
+        /// "Bu blok kımıldamıyor" tepkisi: kısa, yatay bir titreme.
+        ///
+        /// DERS (reddedilen girdi de CEVAP ister): Donmuş bir bloğa dokunulduğunda
+        /// hiçbir şey olmuyordu. Oyuncu bunu "oyun beni duymadı" diye okur ve
+        /// aynı yere üst üste basar. Küçük bir titreme "duydum ama olmaz" der;
+        /// buzun neden orada olduğunu da göze gösterir. Sessiz reddetme,
+        /// mobil oyunlarda en sık rastlanan hayal kırıklığı kaynağıdır.
+        /// </summary>
+        public void PlayRefusal()
+        {
+            if (_refusing) return;
+            _refusing = true;
+            StartCoroutine(RefusalRoutine());
+        }
+
+        bool _refusing;
+
+        IEnumerator RefusalRoutine()
+        {
+            Vector3 origin = WorldPosition(0f);
+            const float duration = 0.26f;
+            const float amplitude = 0.12f;
+
+            for (float t = 0f; t < duration; t += Time.deltaTime)
+            {
+                float k = t / duration;
+                // Sönümlenen sinüs: üç hızlı salınım, gitgide zayıflayarak.
+                float offset = Mathf.Sin(k * Mathf.PI * 6f) * amplitude * (1f - k);
+                transform.position = origin + new Vector3(offset, 0f, 0f);
+                yield return null;
+            }
+
+            transform.position = origin;
+            _refusing = false;
+        }
+
         /// <summary>Tahta girişinde blokların sırayla yerine oturması.</summary>
         public void PlayIntro(float delay, float duration)
         {

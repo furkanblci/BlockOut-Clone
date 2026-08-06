@@ -70,6 +70,10 @@ namespace BlockOut.Runtime.FX
             Vector3 at = _space.RectCenterToWorld(
                 block.Position, block.W, block.H, BrickHeightHalf);
             Burst(at, ColorOf(block.CurrentColor), 14 + block.W * block.H * 4);
+
+            // Sarsıntı bloğun BÜYÜKLÜĞÜNE bağlı: 1x1 bir parçanın emilmesiyle
+            // 2x4'lük bir kütlenin emilmesi aynı ağırlıkta hissedilmemeli.
+            GameKit.FX.CameraShake.Add(0.10f + block.Cells.Count * 0.012f);
         }
 
         void OnLayerPeeled(BlockModel block, GateModel gate)
@@ -85,6 +89,7 @@ namespace BlockOut.Runtime.FX
             Vector3 at = _space.RectCenterToWorld(
                 block.Position, block.W, block.H, BrickHeightHalf);
             Burst(at, new Color(0.72f, 0.92f, 1f), 20);
+            GameKit.FX.CameraShake.Add(0.30f);      // buz kırılması sert bir an
         }
 
         void OnGateIceShattered(GateModel gate)
@@ -94,6 +99,7 @@ namespace BlockOut.Runtime.FX
                 ? _space.CornerToWorld(spanCenter, gate.EdgeCoord, 0.2f)
                 : _space.CornerToWorld(gate.EdgeCoord, spanCenter, 0.2f);
             Burst(at, new Color(0.72f, 0.92f, 1f), 18);
+            GameKit.FX.CameraShake.Add(0.30f);
         }
 
         void OnCurtainOpened(CurtainModel curtain)
@@ -101,6 +107,7 @@ namespace BlockOut.Runtime.FX
             Vector3 at = _space.RectCenterToWorld(
                 new Vector2(curtain.X, curtain.Y), curtain.W, curtain.H, 0.3f);
             Burst(at, new Color(1f, 0.85f, 0.35f), 26);
+            GameKit.FX.CameraShake.Add(0.22f);
         }
 
         // ---------------- parçacıklar ----------------

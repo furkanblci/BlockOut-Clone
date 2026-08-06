@@ -3,6 +3,7 @@ using BlockOut.Core;
 using BlockOut.Runtime.Config;
 using BlockOut.Runtime.Flow;
 using BlockOut.Runtime.Services;
+using BlockOut.Runtime.UI;
 using UnityEngine;
 
 namespace BlockOut.Runtime.DevTools
@@ -129,7 +130,7 @@ namespace BlockOut.Runtime.DevTools
             if (GUILayout.Button("Kapat", _button, GUILayout.Width(110f * s))) _open = false;
             GUILayout.EndHorizontal();
 
-            _tab = GUILayout.Toolbar(_tab, new[] { "Bölümler", "Kaynaklar", "Bilgi" }, _tabStyle,
+            _tab = GUILayout.Toolbar(_tab, new[] { "Bölümler", "Kaynaklar", "Veri", "Bilgi" }, _tabStyle,
                 GUILayout.Height(46f * s));
             GUILayout.Space(8f * s);
 
@@ -137,6 +138,7 @@ namespace BlockOut.Runtime.DevTools
             {
                 case 0: DrawLevels(s); break;
                 case 1: DrawResources(s); break;
+                case 2: DrawAnalytics(s); break;
                 default: DrawInfo(s); break;
             }
 
@@ -252,6 +254,31 @@ namespace BlockOut.Runtime.DevTools
             if (GUILayout.Button("KAYDI SIFIRLA", _button, GUILayout.Height(56f * s)))
             { MetaServices.Save.Reset(); Note("kayıt sıfırlandı"); }
             GUI.backgroundColor = Color.white;
+        }
+
+        /// <summary>
+        /// Bölüm dengeleme özeti: hangi bölümde tıkanılıyor.
+        ///
+        /// DERS (veriyi görebildiğin yerde tut): Analitik bir dosyaya yazılıp
+        /// kimse bakmazsa yoktur. Cihazda, iki dokunuşla açılan bir ekranda
+        /// durursa test eden kişi oyunu bıraktığı anda "27. bölümde herkes
+        /// takılmış" bilgisini sana getirebilir.
+        /// </summary>
+        void DrawAnalytics(float s)
+        {
+            var analytics = AppBootstrap.Analytics;
+            if (analytics == null) { GUILayout.Label("Analitik hazır değil.", _small); return; }
+
+            _scroll = GUILayout.BeginScrollView(_scroll);
+            GUILayout.Label(analytics.Report(), _small);
+            GUILayout.EndScrollView();
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Kaydet", _button, GUILayout.Height(48f * s)))
+            { analytics.Save(); Note("diske yazıldı"); }
+            if (GUILayout.Button("Verileri sil", _button, GUILayout.Height(48f * s)))
+            { analytics.Reset(); Note("analitik sıfırlandı"); }
+            GUILayout.EndHorizontal();
         }
 
         void DrawInfo(float s)

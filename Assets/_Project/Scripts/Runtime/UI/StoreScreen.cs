@@ -32,6 +32,8 @@ namespace BlockOut.Runtime.UI
         public event System.Action<int, string> OnPurchaseRequested;
 
         TextMeshProUGUI _status;
+        readonly System.Collections.Generic.List<UnityEngine.UI.Button> _purchaseButtons =
+            new System.Collections.Generic.List<UnityEngine.UI.Button>();
 
         public static RectTransform Build(Transform parent)
         {
@@ -105,13 +107,18 @@ namespace BlockOut.Runtime.UI
                 int capturedCoins = coins;
                 string capturedPrice = price;
                 buy.onClick.AddListener(() => screen.RequestPurchase(capturedCoins, capturedPrice));
+                screen._purchaseButtons.Add(buy);
             }
 
             var restore = UiKit.CreateTintedButton("Restore", root, UiSkin.Get(Art.PanelCard),
                 new Color(0.420f, 0.310f, 0.878f), "Satın Alımları Geri Yükle", 24, UiKit.Ink);
             UiKit.Place(restore, 0.15f, 0.015f, 0.85f, 0.075f);
             restore.onClick.AddListener(() =>
-                screen._status.text = "Geri yükleme için mağaza bağlantısı gerekli.");
+            {
+                screen._status.color = UiKit.Ink;
+                screen._status.text = "Satın alımlar sorgulanıyor…";
+                PurchaseService.Instance.Restore(message => screen._status.text = message);
+            });
 
             return root;
         }
@@ -133,10 +140,50 @@ namespace BlockOut.Runtime.UI
             _status.text = PowerUpInfo.Label(kind) + " alındı! (" + progress.Coins + " J kaldı)";
         }
 
+        /// <summary>
+        /// Satın alma: onay → işlem → sonuç. Gerçek para geçmiyor ama akışın
+        /// tamamı gerçek; ödeme SDK'sı bağlanınca değişecek tek yer
+        /// <see cref="PurchaseService"/> olacak.
+        /// </summary>
         void RequestPurchase(int coins, string price)
         {
-            _status.text = "Ödeme sağlayıcısı henüz bağlı değil.";
+            var purchases = PurchaseService.Instance;
+            if (purchases.IsBusy) return;                 // çift tıklama koruması
+
+            string productId = "coins_" + coins;
+            SetBusy(true);
+            _status.color = UiKit.Ink;
+            _status.text = "Mağazaya bağlanılıyor…";
+
+            purchases.Buy(productId, coins, price, outcome =>
+            {
+                SetBusy(false);
+                switch (outcome)
+                {
+                    case PurchaseResult.Purchased:
+                        _status.color = new Color(0.35f, 0.92f, 0.42f);
+                        _status.text = $"{coins:N0} jeton hesabına eklendi!";
+                        GameKit.FX.Juice.Run(GameKit.FX.Juice.PunchScale(_status.transform, 0.30f));
+                        break;
+                    case PurchaseResult.Failed:
+                        _status.color = new Color(1f, 0.42f, 0.36f);
+                        _status.text = "Ödeme tamamlanamadı. Tekrar deneyebilirsin.";
+                        break;
+                    default:
+                        _status.color = UiKit.Ink;
+                        _status.text = "Satın alma iptal edildi.";
+                        break;
+                }
+            });
+
             OnPurchaseRequested?.Invoke(coins, price);
+        }
+
+        /// <summary>İşlem sürerken bütün satın alma düğmeleri kapanır.</summary>
+        void SetBusy(bool busy)
+        {
+            foreach (var button in _purchaseButtons)
+                if (button != null) button.interactable = !busy;
         }
     }
 }

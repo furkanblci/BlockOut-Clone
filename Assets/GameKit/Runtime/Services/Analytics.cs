@@ -117,5 +117,40 @@ namespace GameKit.Services
             Scratch["sink"] = sink;
             _provider.LogEvent("currency_spend", Scratch);
         }
+
+        public static void LogPurchase(string productId, string price, int coins)
+        {
+            Scratch.Clear();
+            Scratch["product"] = productId;
+            Scratch["price"] = price;
+            Scratch["coins"] = coins;
+            _provider.LogEvent("purchase", Scratch);
+        }
+
+        public static void LogPurchaseFailed(string productId, string price)
+        {
+            Scratch.Clear();
+            Scratch["product"] = productId;
+            Scratch["price"] = price;
+            _provider.LogEvent("purchase_failed", Scratch);
+        }
+
+        /// <summary>Ödüllü reklam sonucu — gösterim/tamamlama oranı buradan çıkar.</summary>
+        public static void LogRewardedAd(string placement, RewardedResult outcome)
+        {
+            Scratch.Clear();
+            Scratch["placement"] = placement;
+            Scratch["result"] = outcome.ToString();
+            _provider.LogEvent("rewarded_ad", Scratch);
+        }
+
+        /// <summary>Yardımcı kullanımı — hangi yardımcı hangi bölümde işe yarıyor.</summary>
+        public static void LogPowerUpUsed(string powerUp, int levelIndex)
+        {
+            Scratch.Clear();
+            Scratch["power_up"] = powerUp;
+            Scratch["level"] = levelIndex + 1;
+            _provider.LogEvent("power_up_used", Scratch);
+        }
     }
 }

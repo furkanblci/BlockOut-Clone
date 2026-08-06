@@ -40,6 +40,8 @@ namespace BlockOut.Runtime.UI
         TextMeshProUGUI _rewardLabel;
         Image _playFace;
         Button _playButton;
+        GameObject _adRow;
+        TextMeshProUGUI _adOfferSub;
 
         readonly StringBuilder _scratch = new StringBuilder(32);
         int _shownLives = -1, _shownCoins = -1, _shownRefill = -2, _shownNext = -1;
@@ -75,6 +77,7 @@ namespace BlockOut.Runtime.UI
 
             BuildTopBar(root);
             BuildPlayButton(root);
+            BuildAdOffer(root);
         }
 
         // ---------------------------------------------------------------- üst bar
@@ -205,6 +208,51 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(_rewardLabel, 0.04f, 0.08f, 0.96f, 0.92f);
         }
 
+        /// <summary>
+        /// "Can yok" durumunda çıkan ödüllü reklam teklifi.
+        ///
+        /// DERS (reklam RAHATSIZ ETMEZ, KURTARIR): Reklamı oyuncunun keyfi
+        /// yerindeyken önüne koymak onu kaçırır. Aynı reklamı "oynayamıyorum"
+        /// dediği anda sunmak ise bir çözüm gibi görünür — hem izlenme oranı
+        /// yükselir hem oyuncu rahatsız olmaz. Bu yüzden teklif yalnızca can
+        /// bittiğinde ve tam OYNA düğmesinin yerinde beliriyor.
+        /// </summary>
+        void BuildAdOffer(Transform root)
+        {
+            _adRow = UiKit.CreateRect("AdOffer", root).gameObject;
+            UiKit.Place((RectTransform)_adRow.transform, 0.16f, 0.125f, 0.84f, 0.255f);
+
+            var button = UiKit.CreateSpriteButton("WatchAd", _adRow.transform,
+                UiSkin.Get(Art.ButtonPurple), null, 0, CoinInk);
+            UiKit.Place(button, 0f, 0f, 1f, 1f);
+
+            var face = button.transform.GetChild(0);
+            var title = UiKit.CreateTitle("Title", face, "REKLAM İZLE", 44, CoinInk,
+                new Color(0.16f, 0.06f, 0.30f));
+            UiKit.Place(title, 0.06f, 0.44f, 0.94f, 0.94f);
+
+            _adOfferSub = UiKit.CreateLabel("Sub", face, "+1 can kazan", 30,
+                new Color(1f, 1f, 1f, 0.85f));
+            UiKit.Place(_adOfferSub, 0.06f, 0.22f, 0.94f, 0.46f);
+
+            button.onClick.AddListener(() =>
+            {
+                button.interactable = false;
+                Services.FakeAdScreen.Instance.ShowRewarded("free_life", outcome =>
+                {
+                    button.interactable = true;
+                    if (outcome != GameKit.Services.RewardedResult.Completed) return;
+                    if (!MetaServices.Ready) return;
+
+                    MetaServices.Lives.Grant(1);
+                    _shownLives = -1;              // sayaç hemen tazelensin
+                    Refresh();
+                });
+            });
+
+            _adRow.SetActive(false);
+        }
+
         // ---------------------------------------------------------------- tazeleme
 
         void Refresh()
@@ -253,6 +301,11 @@ namespace BlockOut.Runtime.UI
             }
 
             _playButton.interactable = canPlay;
+
+            // Can bittiğinde OYNA düğmesi ölü bir tuşa dönmemeli: aynı yerde
+            // "reklam izle, can al" teklifi çıkıyor. Oyuncunun oturumu burada
+            // biter ya da devam eder; boş bir düğme bırakmak bitmesini seçmektir.
+            _adRow.SetActive(!canPlay && LevelCatalog.Count > 0);
             if (!canPlay)
             {
                 _levelLabel.text = "CAN YOK";

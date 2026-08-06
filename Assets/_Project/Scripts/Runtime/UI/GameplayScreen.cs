@@ -35,9 +35,12 @@ namespace BlockOut.Runtime.UI
 
         TextMeshProUGUI _levelLabel, _timerLabel, _livesLabel, _coinLabel, _hintLabel;
         RectTransform _resultPanel;
+        Image _resultCard;
+        readonly Image[] _stars = new Image[3];
+        TextMeshProUGUI _perfectBadge;
         TextMeshProUGUI _resultTitle, _resultReward;
-        Button _resultPrimary;
-        TextMeshProUGUI _resultPrimaryLabel;
+        Button _resultPrimary, _adButton, _homeButton;
+        TextMeshProUGUI _resultPrimaryLabel, _adLabel;
 
         readonly (Button button, Image face, TextMeshProUGUI badge)[] _powerButtons =
             new (Button, Image, TextMeshProUGUI)[3];
@@ -47,6 +50,7 @@ namespace BlockOut.Runtime.UI
         string _hint = "";
         float _hintUntil;
         GameState _shownState = GameState.Intro;
+        int _lastPulse = -1;
         float _nextSlowTick;
 
         public void Init(GameSession session)
@@ -156,40 +160,185 @@ namespace BlockOut.Runtime.UI
             }
         }
 
+        /// <summary>
+        /// Sonuç paneli: yıldızlar, PERFECT rozeti, ödül ve iki düğme.
+        ///
+        /// DERS (kutlama BEDAVA elde tutma): Bölümü bitirmek zaten ödül; ama
+        /// ekran "kazandın" yazıp geçerse o an hiçbir şey hissettirmez. Yıldızın
+        /// tek tek oturması, konfetinin patlaması ve jetonun sayaca uçması —
+        /// üçü birlikte yarım saniyelik bir tören yapıyor. Yeni içerik yazmadan
+        /// oyuncunun bir sonraki bölüme geçme isteğini artıran en ucuz yol budur.
+        /// </summary>
         void BuildResultPanel(Transform root)
         {
             _resultPanel = UiKit.CreateRect("Result", root);
             UiKit.Place(_resultPanel, 0f, 0f, 1f, 1f);
 
             // Perde: altındaki tahtaya dokunmayı da yutar.
-            var scrim = UiKit.CreatePanel("Scrim", _resultPanel, new Color(0.05f, 0.03f, 0.14f, 0.82f));
+            var scrim = UiKit.CreatePanel("Scrim", _resultPanel, new Color(0.05f, 0.03f, 0.14f, 0.84f));
             scrim.raycastTarget = true;
 
-            var card = UiKit.CreateSlicedPanel("Card", _resultPanel, UiSkin.Get(Art.PanelCard));
-            UiKit.Place(card, 0.10f, 0.30f, 0.90f, 0.70f);
+            _resultCard = UiKit.CreateSlicedPanel("Card", _resultPanel, UiSkin.Get(Art.PanelCard));
+            UiKit.Place(_resultCard, 0.10f, 0.30f, 0.90f, 0.72f);
 
-            _resultTitle = UiKit.CreateTitle("Title", card.transform, "", 54,
+            _resultTitle = UiKit.CreateTitle("Title", _resultCard.transform, "", 50,
                 new Color(0.30f, 0.16f, 0.05f), new Color(1f, 0.93f, 0.80f));
-            UiKit.Place(_resultTitle, 0.06f, 0.70f, 0.94f, 0.93f);
+            UiKit.Place(_resultTitle, 0.06f, 0.76f, 0.94f, 0.94f);
             _resultTitle.textWrappingMode = TextWrappingModes.Normal;
 
-            _resultReward = UiKit.CreateTitle("Reward", card.transform, "", 38,
-                new Color(0.85f, 0.55f, 0.05f), new Color(1f, 0.95f, 0.85f));
-            UiKit.Place(_resultReward, 0.06f, 0.52f, 0.94f, 0.70f);
+            // Üç yıldız: kazanınca sırayla yaylanarak oturur.
+            for (int i = 0; i < 3; i++)
+            {
+                float x0 = 0.20f + i * 0.21f;
+                var star = UiKit.CreateIcon($"Star_{i}", _resultCard.transform, UiSkin.Get(Art.Star));
+                // Ortadaki yıldız biraz yukarıda: düz sıra "üç ikon" gibi durur,
+                // kavisli dizilim madalya gibi.
+                float lift = i == 1 ? 0.04f : 0f;
+                UiKit.Place(star, x0, 0.52f + lift, x0 + 0.19f, 0.76f + lift);
+                _stars[i] = star;
+            }
 
-            _resultPrimary = UiKit.CreateTintedButton("Primary", card.transform,
+            _perfectBadge = UiKit.CreateTitle("Perfect", _resultCard.transform, "PERFECT", 34,
+                new Color(1f, 0.98f, 0.94f), new Color(0.90f, 0.42f, 0.03f));
+            UiKit.Place(_perfectBadge, 0.28f, 0.44f, 0.72f, 0.55f);
+
+            _resultReward = UiKit.CreateTitle("Reward", _resultCard.transform, "", 36,
+                new Color(0.85f, 0.55f, 0.05f), new Color(1f, 0.95f, 0.85f));
+            UiKit.Place(_resultReward, 0.06f, 0.33f, 0.94f, 0.45f);
+
+            // Reklam düğmesi: kazanınca "ödülü ikiye katla", kaybedince
+            // "+30 sn ile devam et". İkisi de aynı yerde durur ki oyuncu
+            // nereye bakacağını öğrensin.
+            _adButton = UiKit.CreateTintedButton("Ad", _resultCard.transform,
+                UiSkin.Get(Art.PanelCard), new Color(0.94f, 0.62f, 0.06f), "", 26, Ink);
+            UiKit.Place(_adButton, 0.10f, 0.175f, 0.90f, 0.315f);
+            _adLabel = _adButton.GetComponentInChildren<TextMeshProUGUI>();
+            _adButton.onClick.AddListener(OnWatchAd);
+
+            _resultPrimary = UiKit.CreateTintedButton("Primary", _resultCard.transform,
                 UiSkin.Get(Art.PanelCard), Good, "", 30, Ink);
-            UiKit.Place(_resultPrimary, 0.12f, 0.28f, 0.88f, 0.48f);
+            UiKit.Place(_resultPrimary, 0.10f, 0.025f, 0.90f, 0.165f);
             _resultPrimaryLabel = _resultPrimary.GetComponentInChildren<TextMeshProUGUI>();
             _resultPrimary.onClick.AddListener(OnPrimary);
 
-            var home = UiKit.CreateTintedButton("Home", card.transform,
-                UiSkin.Get(Art.PanelCard), Periwinkle, "Ana Ekran", 28, Ink);
-            UiKit.Place(home, 0.12f, 0.06f, 0.88f, 0.24f);
-            home.onClick.AddListener(AppRouter.GoHome);
+            // Ana ekrana dönüş kartın DIŞINDA, küçük: birincil eylem "devam
+            // et"tir, çıkış onunla aynı ağırlıkta görünmemeli.
+            _homeButton = UiKit.CreateTintedButton("Home", _resultPanel,
+                UiSkin.Get(Art.PanelCard), Periwinkle, "Ana Ekran", 24, Ink);
+            UiKit.Place(_homeButton, 0.34f, 0.215f, 0.66f, 0.275f);
+            _homeButton.onClick.AddListener(AppRouter.GoHome);
 
             _resultPanel.gameObject.SetActive(false);
         }
+
+        /// <summary>
+        /// Konfeti: kartın üstünden saçılan küçük renkli kareler.
+        ///
+        /// Kanvas parçacığı yerine düz Image kullanılıyor — arayüz katmanında
+        /// ParticleSystem çizim sırasına karışıyor ve kartın altında kalıyor.
+        /// Otuz küçük Image bir kerelik kutlama için ucuz.
+        /// </summary>
+        void BurstConfetti()
+        {
+            var sheet = UiSkin.Get(Art.Confetti);
+            var colors = new[]
+            {
+                new Color(0.18f, 0.80f, 0.05f), new Color(1f, 0.78f, 0.10f),
+                new Color(0.95f, 0.30f, 0.45f), new Color(0.25f, 0.62f, 0.98f),
+                new Color(0.66f, 0.35f, 0.92f)
+            };
+
+            for (int i = 0; i < 30; i++)
+            {
+                var piece = sheet != null
+                    ? UiKit.CreateIcon($"Confetti_{i}", _resultPanel, sheet, colors[i % colors.Length])
+                    : UiKit.CreateRoundedPanel($"Confetti_{i}", _resultPanel, colors[i % colors.Length]);
+                piece.raycastTarget = false;
+
+                var rect = piece.rectTransform;
+                rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.72f);
+                rect.pivot = new Vector2(0.5f, 0.5f);
+                rect.sizeDelta = new Vector2(Random.Range(18f, 34f), Random.Range(24f, 42f));
+                rect.anchoredPosition = Vector2.zero;
+
+                float angle = Random.Range(20f, 160f) * Mathf.Deg2Rad;
+                float speed = Random.Range(700f, 1500f);
+                var velocity = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * speed;
+                float spin = Random.Range(-540f, 540f);
+
+                GameKit.FX.Juice.Run(ConfettiFlight(rect, velocity, spin));
+            }
+        }
+
+        static System.Collections.IEnumerator ConfettiFlight(RectTransform piece,
+            Vector2 velocity, float spin)
+        {
+            const float gravity = -2600f;
+            const float life = 1.6f;
+            var position = Vector2.zero;
+            float angle = 0f;
+
+            for (float t = 0f; t < life; t += Time.unscaledDeltaTime)
+            {
+                if (piece == null) yield break;
+
+                velocity.y += gravity * Time.unscaledDeltaTime;
+                position += velocity * Time.unscaledDeltaTime;
+                angle += spin * Time.unscaledDeltaTime;
+
+                piece.anchoredPosition = position;
+                piece.localRotation = Quaternion.Euler(0f, 0f, angle);
+
+                // Son üçte birde solarak kaybolur; birden yok olmak göze çarpar.
+                var image = piece.GetComponent<Image>();
+                if (image != null && t > life * 0.66f)
+                {
+                    var color = image.color;
+                    color.a = 1f - (t - life * 0.66f) / (life * 0.34f);
+                    image.color = color;
+                }
+                yield return null;
+            }
+
+            if (piece != null) Destroy(piece.gameObject);
+        }
+
+        /// <summary>
+        /// Ödüllü reklam: kazandıysa ödülü katlar, kaybettiyse süre ekler.
+        ///
+        /// DERS (ödül SONUÇ geldiğinde verilir): Reklamı açıp ödülü hemen
+        /// vermek en sık yapılan hata. Burada ödül yalnız Completed dönerse
+        /// veriliyor; oyuncu atlarsa hiçbir şey değişmiyor.
+        /// </summary>
+        void OnWatchAd()
+        {
+            bool won = _session.State == GameState.Won;
+            string placement = won ? "double_reward" : "continue_level";
+
+            _adButton.interactable = false;
+            Services.FakeAdScreen.Instance.ShowRewarded(placement, outcome =>
+            {
+                _adButton.interactable = true;
+                if (outcome != GameKit.Services.RewardedResult.Completed) return;
+
+                if (won)
+                {
+                    _session.MultiplyReward(2);
+                    _resultReward.text = _scratch.Clear()
+                        .Append('+').Append(_session.LastReward).Append(" jeton").ToString();
+                    GameKit.FX.Juice.Run(GameKit.FX.Juice.PunchScale(_resultReward.transform, 0.34f));
+                    _adButton.gameObject.SetActive(false);   // bir kez katlanır
+                }
+                else
+                {
+                    _session.ContinueWithExtraTime(ExtraSeconds);
+                    _shownState = GameState.Playing;
+                    _resultPanel.gameObject.SetActive(false);
+                }
+            });
+        }
+
+        const int ExtraSeconds = 30;
 
         void OnPrimary()
         {
@@ -238,7 +387,20 @@ namespace BlockOut.Runtime.UI
             _timerLabel.text = _scratch.Clear()
                 .Append(total / 60).Append(':')
                 .Append((total % 60) / 10).Append(total % 10).ToString();
-            _timerLabel.color = total <= _session.WarningSeconds ? Warning : Ink;
+
+            bool warning = total <= _session.WarningSeconds;
+            _timerLabel.color = warning ? Warning : Ink;
+
+            // DERS (uyarı SÜREKLİ değil ANLIK olmalı): Sayacı kırmızıya boyayıp
+            // bırakmak ilk saniyede fark edilir, sonra göz alışır ve uyarı
+            // görünmez olur. Her saniyede bir atan nabız, kalan her saniyeyi
+            // yeniden duyurur — panik hissi de buradan gelir.
+            if (warning && total != _lastPulse)
+            {
+                _lastPulse = total;
+                GameKit.FX.Juice.Replace(_timerLabel,
+                    GameKit.FX.Juice.PunchScale(_timerLabel.transform, 0.26f, 0.32f));
+            }
         }
 
         void RefreshMeta()
@@ -312,6 +474,76 @@ namespace BlockOut.Runtime.UI
 
             if (_resultPrimary.targetGraphic is Image face)
                 face.color = won ? Good : new Color(0.925f, 0.255f, 0.176f);
+
+            _perfectBadge.gameObject.SetActive(won && _session.LastPerfect);
+
+            // Kart yüksekliği içeriğe göre: kaybedince yıldız ve ödül satırı
+            // yok, sabit yükseklik ortada koca bir boşluk bırakıyordu.
+            UiKit.Place(_resultCard, 0.10f, won ? 0.30f : 0.375f, 0.90f, won ? 0.72f : 0.655f);
+            UiKit.Place(_resultTitle, 0.06f, won ? 0.76f : 0.70f, 0.94f, won ? 0.94f : 0.93f);
+            UiKit.Place(_adButton, 0.10f, won ? 0.175f : 0.375f, 0.90f, won ? 0.315f : 0.585f);
+            UiKit.Place(_resultPrimary, 0.10f, won ? 0.025f : 0.06f, 0.90f, won ? 0.165f : 0.31f);
+            UiKit.Place(_homeButton, 0.34f, won ? 0.215f : 0.295f, 0.66f, won ? 0.275f : 0.352f);
+
+            // Reklam düğmesi: kazanınca katlama (yalnız ödül varsa), kaybedince
+            // devam etme. Ödül yoksa katlanacak bir şey de yok, düğme gizlenir.
+            bool adUseful = won ? hasReward : true;
+            _adButton.gameObject.SetActive(adUseful);
+            _adButton.interactable = true;
+            if (adUseful)
+                _adLabel.text = won ? "Reklam izle · Ödülü 2 kat"
+                                    : $"Reklam izle · +{ExtraSeconds} sn devam";
+
+            // Yıldızlar: kaybedince hiç yok, kazanınca kazanılanlar dolu,
+            // kalanlar soluk. Soluk yıldızı GÖSTERMEK önemli — "üç tane var,
+            // ikisini aldın" bilgisi tekrar oynama sebebidir.
+            for (int i = 0; i < _stars.Length; i++)
+            {
+                _stars[i].gameObject.SetActive(won);
+                if (!won) continue;
+                bool earned = i < _session.LastStars;
+                _stars[i].color = earned ? Color.white : new Color(0.55f, 0.52f, 0.48f, 0.55f);
+                _stars[i].transform.localScale = Vector3.one;
+            }
+
+            GameKit.FX.Juice.Replace(_resultCard,
+                GameKit.FX.Juice.PopIn(_resultCard.transform, 0.34f));
+
+            if (won) GameKit.FX.Juice.Run(CelebrateRoutine());
+        }
+
+        /// <summary>
+        /// Kazanma töreni: kart oturur, yıldızlar tek tek düşer, konfeti patlar.
+        ///
+        /// DERS (aynı anda değil SIRAYLA): Hepsini birlikte oynatmak görsel
+        /// gürültü yapar ve hiçbiri fark edilmez. Aralarına 120 milisaniye
+        /// koymak, gözün her birini ayrı ayrı görmesini sağlıyor — toplam süre
+        /// yarım saniyeyi geçmediği için de oyuncuyu bekletmiyor.
+        /// </summary>
+        System.Collections.IEnumerator CelebrateRoutine()
+        {
+            yield return new WaitForSecondsRealtime(0.18f);
+
+            for (int i = 0; i < _session.LastStars && i < _stars.Length; i++)
+            {
+                var star = _stars[i];
+                if (star == null) continue;
+                GameKit.FX.Juice.Run(GameKit.FX.Juice.PopIn(star.transform, 0.30f));
+                Services.AudioService.Star();
+                yield return new WaitForSecondsRealtime(0.12f);
+            }
+
+            if (_session.LastPerfect && _perfectBadge != null)
+                GameKit.FX.Juice.Run(GameKit.FX.Juice.PopIn(_perfectBadge.transform, 0.32f));
+
+            BurstConfetti();
+
+            if (_resultReward != null && _resultReward.gameObject.activeSelf)
+            {
+                yield return new WaitForSecondsRealtime(0.14f);
+                GameKit.FX.Juice.Run(GameKit.FX.Juice.PunchScale(_resultReward.transform, 0.24f));
+                Services.AudioService.Coin();
+            }
         }
     }
 }
