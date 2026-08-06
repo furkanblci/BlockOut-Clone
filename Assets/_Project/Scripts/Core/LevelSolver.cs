@@ -206,10 +206,64 @@ namespace BlockOut.Core
                 if (!block.IsFrozen) movers.Add(block);
             if (movers.Count == 0) return false;
 
+            // ODAKLI ARAMA (asıl iş burada yapılır).
+            //
+            // DERS (sezgisel gradyan): "herhangi bir bloğun kapısına en kısa
+            // mesafesi" gibi GLOBAL bir sezgisel, 20+ bloklu tahtalarda hemen
+            // hemen sabit kalır — arama kör BFS'e döner ve tıkanır. Çözüm,
+            // soruyu küçültmek: "ŞU bloğu kapısına ulaştır" diye tek hedef
+            // seçmek. O zaman sezgisel gerçek bir eğim verir ve yolu kapatan
+            // blokları çekmek ödüllenir. Adaylar sırayla denenir, bütçe
+            // aralarında paylaştırılır.
+            // Önce GLOBAL arama: sığ ama geniş tarar ve çoğu bölümü ucuza çözer.
+            if (SearchForClearing(level, canClear, obstacles, movers, substep, epsilon,
+                    nodeBudget, -1, out budgetExhausted))
+                return true;
+
+            // Bulamadıysa ODAKLI aramalar: derin ama dar — tek bir bloğu seçip
+            // onun yolunu açmaya çalışır. İki aramanın çözdüğü bölüm kümeleri
+            // FARKLI; sırayla denemek ikisini de elde tutuyor (ölçüldü: yalnız
+            // odaklı çalıştırınca 21 ve 31 kayboluyor, yalnız global çalışınca
+            // 31/33/34 kayboluyor).
+            var candidates = new List<int>();
+            for (int i = 0; i < movers.Count; i++)
+                if (BestGateFor(level, movers[i]) != null) candidates.Add(i);
+            if (candidates.Count == 0) return false;
+
+            var startState = Capture(movers);
+            candidates.Sort((a, b) => FocusCost(level, movers, startState, a)
+                .CompareTo(FocusCost(level, movers, startState, b)));
+
+            int share = Mathf.Max(4000, nodeBudget / candidates.Count);
+            foreach (int focus in candidates)
+                if (SearchForClearing(level, canClear, obstacles, movers, substep, epsilon,
+                        share, focus, out _))
+                {
+                    budgetExhausted = false;
+                    return true;
+                }
+
+            budgetExhausted = true;
+            return false;
+        }
+
+        /// <summary>
+        /// Tek bir hedefe (veya <paramref name="focus"/> -1 ise tüm tahtaya)
+        /// odaklı en-iyi-önce durum araması. Bir blok kapıya varabildiği anda
+        /// tahta o düzende bırakılır ve true döner.
+        /// </summary>
+        static bool SearchForClearing(
+            LevelModel level, CanClear canClear, List<Aabb> obstacles, List<BlockModel> movers,
+            float substep, float epsilon, int nodeBudget, int focus, out bool budgetExhausted)
+        {
+            budgetExhausted = false;
+
             var startState = Capture(movers);
             var visited = new HashSet<string> { Key(startState) };
             var frontier = new MinHeap();
-            frontier.Push(startState, Heuristic(level, movers, startState));
+            frontier.Push(startState, focus < 0
+                ? Heuristic(level, movers, startState)
+                : FocusCost(level, movers, startState, focus));
 
             var stepReachable = new HashSet<Vector2>();
             var stepQueue = new Queue<Vector2>();
@@ -222,6 +276,14 @@ namespace BlockOut.Core
 
                 for (int i = 0; i < movers.Count; i++)
                 {
+                    // ODAKLI MODDA DALLANMA BUDAMA: hedefin yoluyla ilgisi
+                    // olmayan blokları oynatmak arama ağacını 24 kat şişiriyor
+                    // ama çözüme yaklaştırmıyor. Yalnız hedefi ve koridorunda
+                    // (bir hücre payla) duran blokları oynat — Rush Hour
+                    // çözücülerinin klasik budaması. Dallanma ~24'ten ~5'e
+                    // düşünce aynı bütçeyle çok daha DERİN arayabiliyoruz.
+                    if (focus >= 0 && !IsRelevant(level, movers, state, focus, i)) continue;
+
                     var block = movers[i];
 
                     // Bu bloğun bu düzende varabildiği tüm hücreler.
@@ -254,7 +316,9 @@ namespace BlockOut.Core
                             next[i] = pos;
                             if (visited.Add(Key(next)))
                             {
-                                frontier.Push(next, Heuristic(level, movers, next));
+                                frontier.Push(next, focus < 0
+                                    ? Heuristic(level, movers, next)
+                                    : FocusCost(level, movers, next, focus));
                                 if (++expanded >= nodeBudget)
                                 {
                                     block.Position = origin;
@@ -288,6 +352,132 @@ namespace BlockOut.Core
         /// "daha iyi düzen daha küçük sayı" sıralamasını kabaca vermesi yeterli.
         /// Duvarları ve diğer blokları yok sayıyoruz; hesap birkaç çıkarma işlemi.
         /// </summary>
+        /// <summary>
+        /// Bloğun çıkabileceği kapılardan, o bloğa EN UYGUN olanı. Kapı açık
+        /// olmalı ve blok açıklıktan geçebilmeli — 1 hücrelik bir kapıdan
+        /// 3 hücre genişliğinde blok geçemez, bu yüzden boyut kontrolü şart.
+        /// </summary>
+        static GateModel BestGateFor(LevelModel level, BlockModel block)
+        {
+            GateModel best = null;
+            float bestCost = float.MaxValue;
+
+            foreach (var gate in level.Gates)
+            {
+                if (gate.IsIced || gate.IsGhost) continue;
+                if (block.CurrentColor != gate.ActiveColor) continue;
+
+                float span = gate.EdgeHorizontal ? block.W : block.H;
+                if (span > gate.SpanMax - gate.SpanMin) continue;  // açıklığa sığmıyor
+
+                float cost = GateCost(block, block.Position, gate);
+                if (cost >= bestCost) continue;
+                bestCost = cost;
+                best = gate;
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Odaklı aramada <paramref name="index"/> bloğunu oynatmak anlamlı mı?
+        /// Hedefin kendisi ve hedefin kapıya giden koridoruna (bir hücre payla)
+        /// değen bloklar anlamlıdır; gerisi bu turda gürültüdür.
+        /// </summary>
+        static bool IsRelevant(
+            LevelModel level, List<BlockModel> movers, Vector2[] state, int focus, int index)
+        {
+            if (index == focus) return true;
+
+            var block = movers[focus];
+            var gate = BestGateFor(level, block);
+            if (gate == null) return true;   // hedef kayboldu: budama yapma
+
+            var pos = state[focus];
+            Corridor(block, pos, gate, out float minX, out float maxX, out float minY, out float maxY);
+
+            const float pad = 1f;   // koridora komşu bloklar da yer açabilir
+            minX -= pad; maxX += pad; minY -= pad; maxY += pad;
+
+            var other = movers[index];
+            var otherPos = state[index];
+            if (otherPos.x + other.W <= minX || otherPos.x >= maxX) return false;
+            if (otherPos.y + other.H <= minY || otherPos.y >= maxY) return false;
+            return true;
+        }
+
+        /// <summary>Bloğun kapıya uzanan eksen hizalı koridor kutusu.</summary>
+        static void Corridor(BlockModel block, Vector2 pos, GateModel gate,
+            out float minX, out float maxX, out float minY, out float maxY)
+        {
+            if (gate.EdgeHorizontal)
+            {
+                minX = Mathf.Min(pos.x, gate.SpanMin);
+                maxX = Mathf.Max(pos.x + block.W, gate.SpanMax);
+                minY = Mathf.Min(pos.y, gate.EdgeCoord);
+                maxY = Mathf.Max(pos.y + block.H, gate.EdgeCoord);
+            }
+            else
+            {
+                minX = Mathf.Min(pos.x, gate.EdgeCoord);
+                maxX = Mathf.Max(pos.x + block.W, gate.EdgeCoord);
+                minY = Mathf.Min(pos.y, gate.SpanMin);
+                maxY = Mathf.Max(pos.y + block.H, gate.SpanMax);
+            }
+        }
+
+        /// <summary>Bloğun verilen konumdan kapıya "kaç hücre uzakta" olduğu (dik + kayma).</summary>
+        static float GateCost(BlockModel block, Vector2 pos, GateModel gate)
+        {
+            float lead = gate.EdgeHorizontal
+                ? (gate.OutwardSign < 0 ? pos.y : pos.y + block.H)
+                : (gate.OutwardSign < 0 ? pos.x : pos.x + block.W);
+            float perpendicular = Mathf.Abs(lead - gate.EdgeCoord);
+
+            float spanStart = gate.EdgeHorizontal ? pos.x : pos.y;
+            float spanSize = gate.EdgeHorizontal ? block.W : block.H;
+            float slide = 0f;
+            if (spanStart < gate.SpanMin) slide = gate.SpanMin - spanStart;
+            else if (spanStart + spanSize > gate.SpanMax) slide = spanStart + spanSize - gate.SpanMax;
+
+            return perpendicular + slide;
+        }
+
+        /// <summary>
+        /// ODAKLI maliyet: yalnız <paramref name="focus"/> bloğunu düşünür —
+        /// kapısına uzaklığı + kapıya giden koridorda duran blok sayısı.
+        ///
+        /// DERS: Sezgiselin işi sıralama vermek. Tek hedefe bakınca "şu bloğu
+        /// kapıya yaklaştıran" ve "önündeki tıkacı çeken" hamleler ayırt
+        /// edilebilir hâle gelir; global sezgiselde bu bilgi kayboluyordu.
+        /// </summary>
+        static float FocusCost(LevelModel level, List<BlockModel> movers, Vector2[] state, int focus)
+        {
+            var block = movers[focus];
+            var gate = BestGateFor(level, block);
+            if (gate == null) return 999f;
+
+            var pos = state[focus];
+            float distance = GateCost(block, pos, gate);
+
+            // Koridor: bloğun kapıya bakan kenarından kapı çizgisine uzanan,
+            // kapı açıklığını da kapsayan eksen hizalı kutu.
+            Corridor(block, pos, gate, out float minX, out float maxX, out float minY, out float maxY);
+
+            int blockers = 0;
+            for (int j = 0; j < movers.Count; j++)
+            {
+                if (j == focus) continue;
+                var other = movers[j];
+                var otherPos = state[j];
+                if (otherPos.x + other.W <= minX || otherPos.x >= maxX) continue;
+                if (otherPos.y + other.H <= minY || otherPos.y >= maxY) continue;
+                blockers++;
+            }
+
+            return distance + blockers * 3f;
+        }
+
         static float Heuristic(LevelModel level, List<BlockModel> movers, Vector2[] state)
         {
             float best = float.MaxValue;
