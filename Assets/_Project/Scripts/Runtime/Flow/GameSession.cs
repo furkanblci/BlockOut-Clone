@@ -77,7 +77,7 @@ namespace BlockOut.Runtime.Flow
             _servicesReady = true;
 
             _camera = Camera.main;
-            gameObject.AddComponent<GameplayHud>().Init(this);
+            gameObject.AddComponent<UI.GameplayScreen>().Init(this);
 
             // Geliştirici menüsü: yayın yapısında hiç derlenmez, geliştirme
             // yapısında sol üst köşeye beş dokunuşla açılır.
