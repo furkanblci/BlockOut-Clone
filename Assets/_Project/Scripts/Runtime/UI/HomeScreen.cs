@@ -269,19 +269,23 @@ namespace BlockOut.Runtime.UI
             // eziyordu. Referanstaki düğme genişliğin ~%54'ü, yüksekliğin
             // ~%7'si. Küçültünce hem manzara nefes alıyor hem düğme daha
             // "basılası" duruyor — büyük düğme güçlü değil, hantal görünüyor.
-            UiKit.Place(_playButton, 0.230f, 0.140f, 0.770f, 0.212f);
+            // Genişlik %54 → %44, yükseklik %7.2 → %10.5. İlk küçültmede yatayda
+            // yeterince daraltmayıp dikeyde fazla kısaltmıştım: yazı iki kenara
+            // dayanıyor, düğme de yassı bir şerit gibi duruyordu. Bir düğmenin
+            // OKUNAKLI olması için yazının iki yanında nefes payı kalmalı.
+            UiKit.Place(_playButton, 0.280f, 0.128f, 0.720f, 0.233f);
             _playButton.onClick.AddListener(PlayCurrent);
             _playFace = _playButton.targetGraphic as Image;
 
             var face = _playButton.transform.GetChild(0);
 
-            _levelLabel = UiKit.CreateTitle("Level", face, "", 48, CoinInk,
+            _levelLabel = UiKit.CreateTitle("Level", face, "", 44, CoinInk,
                 new Color(0.10f, 0.06f, 0.22f));
             UiKit.Place(_levelLabel, 0.06f, 0.44f, 0.94f, 0.94f);
 
-            _difficultyLabel = UiKit.CreateTitle("Difficulty", face, "", 26,
+            _difficultyLabel = UiKit.CreateTitle("Difficulty", face, "", 24,
                 new Color(0.88f, 0.90f, 1f), new Color(0.10f, 0.06f, 0.22f));
-            UiKit.Place(_difficultyLabel, 0.06f, 0.18f, 0.94f, 0.44f);
+            UiKit.Place(_difficultyLabel, 0.08f, 0.16f, 0.92f, 0.42f);
 
             // Ödül şeridi düğmenin ÜST KENARINA binerek durur; ayrı bir kutu
             // gibi değil, düğmeye takılmış bir etiket gibi okunsun.
@@ -290,7 +294,7 @@ namespace BlockOut.Runtime.UI
                 ? UiKit.CreateSlicedPanel("Ribbon", _playButton.transform, ribbonSprite)
                 : UiKit.CreateSlicedPanel("Ribbon", _playButton.transform,
                     UiSkin.Get(Art.PanelDark), new Color(0.94f, 0.55f, 0.10f));
-            UiKit.Place(ribbon, 0.24f, 0.74f, 0.76f, 1.34f);
+            UiKit.Place(ribbon, 0.18f, 0.78f, 0.82f, 1.30f);
             _rewardRibbon = ribbon.rectTransform;
 
             _rewardLabel = UiKit.CreateTitle("RibbonText", ribbon.transform, "", 24,
@@ -310,7 +314,7 @@ namespace BlockOut.Runtime.UI
         void BuildAdOffer(Transform root)
         {
             _adRow = UiKit.CreateRect("AdOffer", root).gameObject;
-            UiKit.Place((RectTransform)_adRow.transform, 0.210f, 0.132f, 0.790f, 0.220f);
+            UiKit.Place((RectTransform)_adRow.transform, 0.255f, 0.128f, 0.745f, 0.233f);
 
             var button = UiKit.CreateSpriteButton("WatchAd", _adRow.transform,
                 UiSkin.Get(Art.ButtonPurple), null, 0, CoinInk);
@@ -435,9 +439,9 @@ namespace BlockOut.Runtime.UI
             // seviye yazısı düğmenin ORTASINA oturur; alt satır boş kaldığında
             // tek satırın yukarıda asılı durması dengesiz görünüyordu.
             bool hasDifficulty = !string.IsNullOrEmpty(label);
-            float top = showRibbon ? 0.86f : 0.92f;
-            float bottom = hasDifficulty ? (showRibbon ? 0.40f : 0.44f) : 0.24f;
-            UiKit.Place(_levelLabel, 0.06f, bottom, 0.94f, top);
+            float top = showRibbon ? 0.84f : 0.90f;
+            float bottom = hasDifficulty ? (showRibbon ? 0.42f : 0.46f) : 0.26f;
+            UiKit.Place(_levelLabel, 0.08f, bottom, 0.92f, top);
         }
 
         void PlayCurrent()

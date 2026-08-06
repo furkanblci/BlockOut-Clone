@@ -29,7 +29,23 @@ namespace BlockOut.Runtime.UI
         [SerializeField] Entry[] entries = new Entry[0];
 
         public Entry[] Entries => entries;
-        public void SetEntries(Entry[] value) => entries = value;   // yalnız kurulum aracı çağırır
+
+        /// <summary>
+        /// Kurulum aracı listeyi yeniler. Arama tablosu MUTLAKA sıfırlanır.
+        ///
+        /// DERS (önbellek, kaynağı değişince geçersizdir): Arama tablosu bir kez
+        /// kurulup ScriptableObject örneğinde saklanıyor. Editörde o örnek
+        /// düzenleme ve oyun modu arasında YAŞAMAYA DEVAM EDER; yeni sprite'lar
+        /// eklendiğinde tablo eskisini tutmaya devam etti ve yeni görseller
+        /// "yok" göründü — avatar çerçevesi ve kare düğme, dosyalar yerinde
+        /// olduğu hâlde yedek çizime düştü. Önbelleği besleyen veri değiştiğinde
+        /// önbelleği düşürmek, yazılmaması en pahalı iki satırdan biri.
+        /// </summary>
+        public void SetEntries(Entry[] value)
+        {
+            entries = value;
+            _lookup = null;
+        }
 
         static UiSkin _current;
         static bool _searched;
@@ -93,6 +109,7 @@ namespace BlockOut.Runtime.UI
         public const string AvatarFrame  = "frame_avatar";
         public const string ButtonSquare = "btn_square";
         public const string Splash       = "splash_art";
+        public const string Hand         = "icon_hand";
 
         /// <summary>Bölge dairesi (1 tabanlı). Yoksa null döner, çağıran düşer.</summary>
         public static string Region(int index) => "region_" + index;

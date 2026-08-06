@@ -25,10 +25,14 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: ab8dd844776115846a9e6caff01700a7, type: 3}
   - name: btn_red
     sprite: {fileID: 21300000, guid: 228613ff5f3148d44bb05b49b4863844, type: 3}
+  - name: btn_square
+    sprite: {fileID: 21300000, guid: 58232abcb8f1b1646b7e8eeadace1b32, type: 3}
   - name: check_green
     sprite: {fileID: 21300000, guid: 76bee41dae84db548b5d5be9b3c4a0bf, type: 3}
   - name: confetti_sheet
     sprite: {fileID: 21300000, guid: 29a5d3bc96f626c4c894abc04d06ddf6, type: 3}
+  - name: frame_avatar
+    sprite: {fileID: 21300000, guid: ebc4c2a2bf2c16149abcaf30fbc18924, type: 3}
   - name: frame_board
     sprite: {fileID: 21300000, guid: e071130c96de5b847b8dbb75529a4b5d, type: 3}
   - name: home_characters
@@ -77,3 +81,5 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: 43787a59f9137a847b32d03de75f4973, type: 3}
   - name: ribbon_reward
     sprite: {fileID: 21300000, guid: b62453dd025c22c4eb16e5fc4de3ec51, type: 3}
+  - name: splash_art
+    sprite: {fileID: 21300000, guid: 3c33fbb4e10e9b549972d6cbbe207cf1, type: 3}

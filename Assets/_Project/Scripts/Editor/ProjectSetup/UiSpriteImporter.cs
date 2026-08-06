@@ -38,13 +38,32 @@ namespace BlockOut.Editor.ProjectSetup
             // Çerçeve: et kalınlığı 70 ölçüldü; pay bundan BÜYÜK olmalı,
             // yoksa gerilince ortadaki boşluk değil duvarın kendisi gerilir.
             { "frame_board", new Vector4(78, 78, 78, 78) },
+
+            // Ödül şeridi: uçları yuvarlak, ortası yazı için oyuk. Siluetten
+            // ölçülen dikleşme noktaları sol 66 / sağ 86 / üst 62 / alt 101.
+            { "ribbon_reward", new Vector4(92, 106, 92, 68) },
+
+            // Avatar çerçevesi ve kare düğme kare oranda kullanılıyor ama
+            // 9-dilim payı verilirse farklı boyutlarda da bozulmaz.
+            { "frame_avatar", new Vector4(112, 110, 112, 112) },
+            { "btn_square",   new Vector4(114, 110, 114, 116) },
         };
 
-        // Bunlar tam ekran ya da çok parçalı; küçültülmemeli.
+        // Varsayılan 512; bunlar ondan büyük olmalı.
+        //
+        // DERS (import boyutu sessizce kırpar): maxTextureSize sprite'ı
+        // KÜÇÜLTÜR ve hiçbir uyarı vermez. 1024 genişliğindeki ödül şeridi
+        // 512'ye inince yatay çözünürlüğün yarısını kaybediyordu; tam ekran
+        // açılış görseli ise tanınmaz hâle gelirdi.
         static readonly Dictionary<string, int> MaxSize = new Dictionary<string, int>
         {
-            { "bg_menu", 2048 },
-            { "confetti_sheet", 1024 },
+            { "bg_menu",         2048 },
+            { "splash_art",      2048 },
+            { "confetti_sheet",  1024 },
+            { "ribbon_reward",   1024 },
+            { "home_characters", 1024 },
+            { "region_1", 1024 }, { "region_2", 1024 },
+            { "region_3", 1024 }, { "region_4", 1024 },
         };
 
         /// <summary>

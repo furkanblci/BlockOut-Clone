@@ -87,12 +87,36 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(_hint, 0.06f, 0.845f, 0.94f, 0.895f);
             _hint.textWrappingMode = TextWrappingModes.Normal;
 
-            // El: dokunmayı YUTMAZ, altındaki tahta tıklanabilir kalır.
-            var hand = UiKit.CreateIcon("Hand", root, UiSkin.Get(Art.Plus));
-            hand.rectTransform.anchorMin = hand.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-            hand.rectTransform.sizeDelta = new Vector2(110f, 110f);
-            hand.color = new Color(1f, 1f, 1f, 0.9f);
-            _hand = hand.rectTransform;
+            // İşaretçi: dokunmayı YUTMAZ, altındaki tahta tıklanabilir kalır.
+            //
+            // El görseli varsa o kullanılır. Yoksa dokunma HALKASI çiziliyor:
+            // içi dolu bir daire ve etrafında saydam bir halka. Mobilde bu,
+            // el kadar yaygın ve dil gerektirmeyen bir "buraya dokun" işareti.
+            var handSprite = UiSkin.Get(Art.Hand);
+            var holder = UiKit.CreateRect("Hand", root);
+            holder.anchorMin = holder.anchorMax = new Vector2(0.5f, 0.5f);
+            holder.sizeDelta = new Vector2(130f, 130f);
+            _hand = holder;
+
+            if (handSprite != null)
+            {
+                var hand = UiKit.CreateIcon("Glyph", holder, handSprite);
+                UiKit.Place(hand, 0f, 0f, 1f, 1f);
+            }
+            else
+            {
+                var ring = UiKit.CreateRoundedPanel("Ring", holder,
+                    new Color(1f, 1f, 1f, 0.30f));
+                ring.pixelsPerUnitMultiplier = 0.05f;
+                ring.raycastTarget = false;
+                UiKit.Place(ring, 0f, 0f, 1f, 1f);
+
+                var dot = UiKit.CreateRoundedPanel("Dot", holder,
+                    new Color(1f, 1f, 1f, 0.85f));
+                dot.pixelsPerUnitMultiplier = 0.05f;
+                dot.raycastTarget = false;
+                UiKit.Place(dot, 0.30f, 0.30f, 0.70f, 0.70f);
+            }
 
             Vector3 from = space.RectCenterToWorld(block.Position, block.W, block.H, 0.4f);
             Vector3 to = GateWorld(space, gate);
