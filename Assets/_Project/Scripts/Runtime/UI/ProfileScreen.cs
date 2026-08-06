@@ -46,9 +46,18 @@ namespace BlockOut.Runtime.UI
             var avatar = UiKit.CreateSlicedPanel("Avatar", card.transform,
                 UiSkin.Get(Art.PanelDark), new Color(0.353f, 0.322f, 0.784f));
             UiKit.Place(avatar, 0.03f, 0.12f, 0.24f, 0.88f);
-            screen._avatarInitial = UiKit.CreateTitle("Face", avatar.transform, "?", 56,
-                UiKit.Ink, new Color(0.12f, 0.09f, 0.28f));
-            UiKit.Place(screen._avatarInitial, 0f, 0f, 1f, 1f);
+            var portrait = UiSkin.Get(Art.Avatar);
+            if (portrait != null)
+            {
+                var face = UiKit.CreateIcon("Portrait", avatar.transform, portrait);
+                UiKit.Place(face, -0.06f, -0.02f, 1.06f, 1.24f);
+            }
+            else
+            {
+                screen._avatarInitial = UiKit.CreateTitle("Face", avatar.transform, "?", 56,
+                    UiKit.Ink, new Color(0.12f, 0.09f, 0.28f));
+                UiKit.Place(screen._avatarInitial, 0f, 0f, 1f, 1f);
+            }
 
             screen._nameLabel = UiKit.CreateTitle("Name", card.transform, "", 40, UiKit.Ink, UiKit.PanelDark);
             UiKit.Place(screen._nameLabel, 0.27f, 0.45f, 0.72f, 0.9f);
@@ -97,8 +106,9 @@ namespace BlockOut.Runtime.UI
             _nameLabel.text = string.IsNullOrEmpty(MetaServices.PlayerName)
                 ? "Oyuncu" : MetaServices.PlayerName;
             _levelLabel.text = "Seviye " + (progress.HighestUnlockedIndex + 1);
-            _avatarInitial.text = string.IsNullOrEmpty(MetaServices.PlayerName)
-                ? "?" : MetaServices.PlayerName.Substring(0, 1).ToUpperInvariant();
+            if (_avatarInitial != null)
+                _avatarInitial.text = string.IsNullOrEmpty(MetaServices.PlayerName)
+                    ? "?" : MetaServices.PlayerName.Substring(0, 1).ToUpperInvariant();
 
             // Şimdilik yalnız ilk sayaç gerçek veriden besleniyor: ilk denemede
             // bitirilen bölüm sayısı. Diğerleri ilgili etkinlik geldiğinde bağlanır.

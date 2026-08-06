@@ -204,8 +204,13 @@ namespace BlockOut.Runtime.UI
             _dimmable.Add((value, milestone.level));
 
             // Onay işareti yalnız kazanılmış ödüllerde görünür.
-            var check = UiKit.CreateIcon($"Check_{milestone.level}", _content,
-                UiSkin.Get(Art.Star), CheckGreen);
+            // Onay tiki artık kendi görseli; daha önce yeşile boyanmış yıldız
+            // kullanılıyordu ve "bir yıldız daha mı kazandım" diye okunuyordu.
+            var checkSprite = UiSkin.Get(Art.Check);
+            var check = checkSprite != null
+                ? UiKit.CreateIcon($"Check_{milestone.level}", _content, checkSprite)
+                : UiKit.CreateIcon($"Check_{milestone.level}", _content,
+                    UiSkin.Get(Art.Star), CheckGreen);
             Anchor(check.rectTransform, 416f, y + 62f, 96f, 96f);
             _checks.Add((check, milestone.level));
         }
@@ -222,34 +227,35 @@ namespace BlockOut.Runtime.UI
             Anchor(title.rectTransform, 0f, y + 350f, 980f, 90f);
             _dimmable.Add((title, region.from));
 
-            // Bölge kartı. Referansta bu bir DAİRE; burada yuvarlatılmış kare
-            // bırakıldı çünkü kare bir görseli daireye kırpmak ya çalışan bir
-            // maske ya da dairesel çizilmiş bir görsel ister. Doğru çözüm
-            // ikincisi: bölgeye ait dairesel bir görsel üretilecek (bkz.
-            // docs/art-prompts.md). Maskeyle zorlamak, üretilecek görsel
-            // geldiğinde atılacak bir katman eklemek olurdu.
-            var disc = UiKit.CreateSlicedPanel($"Region_{region.from}", _content,
-                UiSkin.Get(Art.PanelDark), Periwinkle);
-            Anchor(disc.rectTransform, 0f, y, 620f, 560f);
+            // Bölge dairesi. Görsel DAİRESEL çizildiği için maskeye gerek yok:
+            // kare bir görseli daireye kırpmak ya çalışan bir maske ya da
+            // dairesel çizilmiş bir görsel ister; ikincisi hem daha ucuz hem
+            // kenarları yumuşak.
+            int regionIndex = System.Array.FindIndex(Regions, r => r.from == region.from) + 1;
+            var art = UiSkin.Get(Art.Region(regionIndex));
 
-            var art = UiKit.CreateIcon("Art", disc.transform, UiSkin.Get(Art.MenuBack));
-            UiKit.Place(art, 0.045f, 0.06f, 0.955f, 0.94f);
-            art.preserveAspect = false;
+            var disc = art != null
+                ? UiKit.CreateIcon($"Region_{region.from}", _content, art)
+                : UiKit.CreateSlicedPanel($"Region_{region.from}", _content,
+                    UiSkin.Get(Art.PanelDark), Periwinkle);
+            Anchor(disc.rectTransform, 0f, y, 600f, 600f);
 
-            var tag = UiKit.CreateSlicedPanel("Tag", disc.transform, UiSkin.Get(Art.PanelDark));
-            UiKit.Place(tag, 0.22f, 0.78f, 0.78f, 0.93f);
+            var tag = UiKit.CreateSlicedPanel("Tag", _content, UiSkin.Get(Art.PanelDark));
+            Anchor(tag.rectTransform, 0f, y + 265f, 300f, 84f);
 
             var range = UiKit.CreateTitle("Range", tag.transform, $"sv {region.from} - {region.to}",
                 32, UiKit.Ink, new Color(0.12f, 0.09f, 0.30f));
             UiKit.Place(range, 0.04f, 0.06f, 0.96f, 0.94f);
 
-            var state = UiKit.CreateSlicedPanel("State", disc.transform,
+            // Rozet dairenin İÇİNDE değil ALTINDA: görselin ortasında
+            // karakterler var, rozet tam üstlerine biniyordu.
+            var state = UiKit.CreateSlicedPanel("State", _content,
                 UiSkin.Get(Art.PanelCard), new Color(0.176f, 0.800f, 0.047f));
-            UiKit.Place(state, 0.28f, 0.07f, 0.72f, 0.24f);
+            Anchor(state.rectTransform, 0f, y - 330f, 280f, 90f);
 
             var stateLabel = UiKit.CreateTitle("StateText", state.transform, "", 28,
                 UiKit.Ink, new Color(0.06f, 0.28f, 0.04f));
-            UiKit.Place(stateLabel, 0.04f, 0.22f, 0.96f, 0.90f);
+            UiKit.Place(stateLabel, 0.04f, 0.10f, 0.96f, 0.92f);
             _regionState.Add((stateLabel, region.from));
         }
 

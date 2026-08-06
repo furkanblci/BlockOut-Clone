@@ -75,9 +75,46 @@ namespace BlockOut.Runtime.UI
                 UiSkin.Get(Art.MenuBack), UiKit.Background);
             cover.transform.SetAsFirstSibling();
 
+            BuildCharacters(root);
             BuildTopBar(root);
             BuildPlayButton(root);
             BuildAdOffer(root);
+        }
+
+        /// <summary>
+        /// Ana ekranın ortasındaki karakterler.
+        ///
+        /// DERS (boş orta alan ölü alandır): Manzara güzel ama üstünde hiçbir
+        /// şey olmayan bir ekran "yükleniyor" gibi durur. Referans oyunda o
+        /// alanda karakterler var ve bütün ekranın kimliğini onlar taşıyor.
+        /// Karakterler oyuna kural eklemez; ekranın SAHİPLİ görünmesini sağlar.
+        /// </summary>
+        void BuildCharacters(Transform root)
+        {
+            var art = UiSkin.Get(Art.Characters);
+            if (art == null) return;
+
+            var group = UiKit.CreateIcon("Characters", root, art);
+            // Alt kenarı OYNA düğmesinin hemen üstünde: karakterler yolun
+            // üzerinde duruyormuş gibi görünsün, havada asılı değil.
+            UiKit.Place(group, 0.04f, 0.255f, 0.96f, 0.56f);
+
+            // Hafif nefes alma: tamamen hareketsiz bir görsel, arkasındaki
+            // manzaranın parçası sanılıyor.
+            GameKit.FX.Juice.Run(Breathe(group.transform));
+        }
+
+        static System.Collections.IEnumerator Breathe(Transform target)
+        {
+            Vector3 baseScale = target.localScale;
+            float time = 0f;
+            while (target != null)
+            {
+                time += Time.unscaledDeltaTime;
+                float pulse = Mathf.Sin(time * 1.4f) * 0.012f;
+                target.localScale = baseScale * (1f + pulse);
+                yield return null;
+            }
         }
 
         // ---------------------------------------------------------------- üst bar
@@ -149,9 +186,21 @@ namespace BlockOut.Runtime.UI
                 UiSkin.Get(Art.PanelDark), new Color(0.16f, 0.13f, 0.40f));
             UiKit.Place(inner, 0.12f, 0.12f, 0.88f, 0.88f);
 
-            _avatarInitial = UiKit.CreateTitle("Initial", inner.transform, "?", 52,
-                CoinInk, new Color(0.12f, 0.09f, 0.28f));
-            UiKit.Place(_avatarInitial, 0f, 0f, 1f, 1f);
+            // Portre varsa o, yoksa oyuncunun baş harfi.
+            var portrait = UiSkin.Get(Art.Avatar);
+            if (portrait != null)
+            {
+                var face2 = UiKit.CreateIcon("Portrait", inner.transform, portrait);
+                // Çerçeveden biraz TAŞAR: bust görseli aşağıdan kesik olduğu
+                // için tam oturtulunca kafası küçük kalıyor.
+                UiKit.Place(face2, -0.06f, -0.02f, 1.06f, 1.24f);
+            }
+            else
+            {
+                _avatarInitial = UiKit.CreateTitle("Initial", inner.transform, "?", 52,
+                    CoinInk, new Color(0.12f, 0.09f, 0.28f));
+                UiKit.Place(_avatarInitial, 0f, 0f, 1f, 1f);
+            }
 
             frame.onClick.AddListener(() => MenuShell.Instance?.Show("profile"));
         }
@@ -198,8 +247,11 @@ namespace BlockOut.Runtime.UI
 
             // Ödül şeridi düğmenin ÜST KENARINA binerek durur; ayrı bir kutu
             // gibi değil, düğmeye takılmış bir etiket gibi okunsun.
-            var ribbon = UiKit.CreateSlicedPanel("Ribbon", _playButton.transform,
-                UiSkin.Get(Art.PanelDark), new Color(0.94f, 0.55f, 0.10f));
+            var ribbonSprite = UiSkin.Get(Art.Ribbon);
+            var ribbon = ribbonSprite != null
+                ? UiKit.CreateSlicedPanel("Ribbon", _playButton.transform, ribbonSprite)
+                : UiKit.CreateSlicedPanel("Ribbon", _playButton.transform,
+                    UiSkin.Get(Art.PanelDark), new Color(0.94f, 0.55f, 0.10f));
             UiKit.Place(ribbon, 0.26f, 0.80f, 0.74f, 1.28f);
             _rewardRibbon = ribbon.rectTransform;
 
@@ -287,8 +339,9 @@ namespace BlockOut.Runtime.UI
                         .Append(refill.Seconds / 10).Append(refill.Seconds % 10).ToString();
             }
 
-            _avatarInitial.text = string.IsNullOrEmpty(MetaServices.PlayerName)
-                ? "?" : MetaServices.PlayerName.Substring(0, 1).ToUpperInvariant();
+            if (_avatarInitial != null)
+                _avatarInitial.text = string.IsNullOrEmpty(MetaServices.PlayerName)
+                    ? "?" : MetaServices.PlayerName.Substring(0, 1).ToUpperInvariant();
 
             int next = Mathf.Clamp(progress.HighestUnlockedIndex, 0,
                 Mathf.Max(0, LevelCatalog.Count - 1));
@@ -340,9 +393,13 @@ namespace BlockOut.Runtime.UI
             if (showRibbon)
                 _rewardLabel.text = _scratch.Clear().Append("Ödüller x").Append(multiplier).ToString();
 
-            // Şerit varken seviye yazısı biraz aşağı kaysın, üst üste binmesin.
-            UiKit.Place(_levelLabel, 0.06f, showRibbon ? 0.40f : 0.44f, 0.94f,
-                showRibbon ? 0.88f : 0.94f);
+            // Yazı yerleşimi içeriğe göre. Zorluk etiketi yoksa (normal bölüm)
+            // seviye yazısı düğmenin ORTASINA oturur; alt satır boş kaldığında
+            // tek satırın yukarıda asılı durması dengesiz görünüyordu.
+            bool hasDifficulty = !string.IsNullOrEmpty(label);
+            float top = showRibbon ? 0.86f : 0.92f;
+            float bottom = hasDifficulty ? (showRibbon ? 0.40f : 0.44f) : 0.24f;
+            UiKit.Place(_levelLabel, 0.06f, bottom, 0.94f, top);
         }
 
         void PlayCurrent()

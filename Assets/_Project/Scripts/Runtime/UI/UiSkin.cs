@@ -86,6 +86,13 @@ namespace BlockOut.Runtime.UI
         public const string LevelNode    = "node_level";
         public const string RegionBanner = "banner_region";
         public const string Confetti     = "confetti_sheet";
+        public const string Characters   = "home_characters";
+        public const string Avatar       = "avatar_player";
+        public const string Check        = "check_green";
+        public const string Ribbon       = "ribbon_reward";
+
+        /// <summary>Bölge dairesi (1 tabanlı). Yoksa null döner, çağıran düşer.</summary>
+        public static string Region(int index) => "region_" + index;
 
         public const string Coin    = "icon_coin";
         public const string Heart   = "icon_heart";

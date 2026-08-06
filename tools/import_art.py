@@ -48,6 +48,23 @@ RECIPES = {
 
     # Tam ekran menü zemini: kesilecek bir arka planı yok, yalnız küçültülür.
     "bg_menu":        dict(key=False, size=1920),
+
+    # --- İkinci parti (krem/sıcak gri zeminli) ---
+    # Bu partinin zemini gri satranç değil KREM. Kroması ölçüldü: krem 13,
+    # sıcak gri 24 — ilk partiye göre çok daha yüksek. neutral 18 bırakılsaydı
+    # zeminin kendisi "renkli" sayılıp hiç silinmezdi.
+    # Karakterlerin altındaki gri zemin gölgesi ortak ayarda kalıyordu ve köy
+    # zemininin üstünde gri bir şerit gibi sırıtıyordu. Tolerans 95 onu da alıyor;
+    # karakterler yüksek kromalı olduğu için (turkuaz/turuncu/yeşil) risk yok.
+    "home_characters": dict(neutral=38, tolerance=95, size=1024),
+    "avatar_player":   dict(neutral=26, size=512),
+    "check_green":     dict(neutral=26, size=512),
+    "region_1":        dict(neutral=26, size=1024),
+    "region_2":        dict(neutral=26, size=1024),
+    "region_3":        dict(neutral=26, size=1024),
+    "region_4":        dict(neutral=26, size=1024),
+    # Şeridin ortası oyuk: kapalı delik, kenardan taşma oraya ulaşamaz.
+    "ribbon_reward":   dict(neutral=26, size=1024, holes=True),
 }
 
 
