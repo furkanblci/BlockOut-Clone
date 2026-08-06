@@ -47,6 +47,13 @@ namespace BlockOut.Runtime.Flow
             // Menüyle açılırız; oynanış kökü ilk "Oyna"da uyanır.
             if (gameRoot != null) gameRoot.SetActive(false);
             if (menuRoot != null) menuRoot.SetActive(true);
+
+            // Geliştirici menüsü UYGULAMA AÇILIŞINDA kurulur, bölüme girince
+            // değil. Önce yalnız GameSession kuruyordu; sonuç olarak "bölüme
+            // atla" aracını kullanmak için önce bir bölüme girmek gerekiyordu —
+            // aracın işini yapmasını istediğin ilk an olan ana ekranda yoktu.
+            // Yayın yapısında bu çağrı boş bir metoda gider.
+            DevTools.DevMenu.Ensure();
         }
 
         void OnDestroy()

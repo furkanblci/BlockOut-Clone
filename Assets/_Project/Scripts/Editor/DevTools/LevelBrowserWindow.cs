@@ -24,7 +24,7 @@ namespace BlockOut.Editor.DevTools
         Vector2 _scroll;
         string _filter = "";
 
-        [MenuItem("BlockOut/Bölüm Tarayıcı %#l")]
+        [MenuItem("Tools/Block Out/Bölüm Tarayıcı %#l")]
         public static void Open() =>
             GetWindow<LevelBrowserWindow>("Bölümler").minSize = new Vector2(300f, 400f);
 

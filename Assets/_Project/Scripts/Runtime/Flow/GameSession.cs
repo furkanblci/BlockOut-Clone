@@ -79,8 +79,9 @@ namespace BlockOut.Runtime.Flow
             _camera = Camera.main;
             gameObject.AddComponent<UI.GameplayScreen>().Init(this);
 
-            // Geliştirici menüsü: yayın yapısında hiç derlenmez, geliştirme
-            // yapısında sol üst köşeye beş dokunuşla açılır.
+            // Menü AppRoot'ta da kuruluyor; burası oynanış kökünün AppRoot
+            // olmadan (ör. sahneyi doğrudan açarak) test edildiği durumu
+            // kapsıyor. Ensure zaten varsa hiçbir şey yapmıyor.
             DevTools.DevMenu.Ensure();
 
             // Cila servisleri KALICI kökte yaşar: menüye dönünce ses kesilmesin,
