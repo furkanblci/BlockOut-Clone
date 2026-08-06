@@ -93,6 +93,22 @@ namespace BlockOut.Core.Save
             return true;
         }
 
+        /// <summary>
+        /// İlk denemede bitirilen bölüm sayısı — profildeki "İlk Denemede
+        /// Kazanıldı" sayacı. Kayıtta ayrı bir alan tutmak yerine bölüm
+        /// kayıtlarından türetilir: tek doğruluk kaynağı, senkron kaçağı yok.
+        /// </summary>
+        public int FirstTryClears
+        {
+            get
+            {
+                int count = 0;
+                foreach (var record in _save.Data.Levels.Values)
+                    if (record.Cleared && record.Attempts <= 1) count++;
+                return count;
+            }
+        }
+
         /// <summary>Elde kaç adet var? (Yardımcı envanteri kayıtta yaşar.)</summary>
         public int PowerUpCount(string id) =>
             _save.Data.PowerUps.TryGetValue(id, out int n) ? n : 0;

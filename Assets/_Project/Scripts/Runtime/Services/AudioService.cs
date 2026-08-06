@@ -18,10 +18,22 @@ namespace BlockOut.Runtime.Services
         SfxPlayer _player;
         AudioClip _absorb, _peel, _iceCrack, _curtain, _win, _lose;
 
+        static AudioService _instance;
+
         public bool Muted
         {
             get => _player != null && _player.Muted;
             set { if (_player != null) _player.Muted = value; }
+        }
+
+        /// <summary>
+        /// Ayarlar ekranı sahnedeki örneği bilmez; sesi buradan kapatır.
+        /// Örnek yoksa (menü sahnesinde ses servisi kurulmamışsa) sessizce
+        /// geçilir — ayar zaten kayda yazıldı, oyun sahnesi onu okuyacak.
+        /// </summary>
+        public static void SetMuted(bool muted)
+        {
+            if (_instance != null) _instance.Muted = muted;
         }
 
         public static AudioService Create(Transform parent)
@@ -33,6 +45,7 @@ namespace BlockOut.Runtime.Services
 
         void Awake()
         {
+            _instance = this;
             _player = SfxPlayer.Create(transform);
 
             // Yer tutucu palet: gerçek ses tasarımı geldiğinde DEĞİŞECEK TEK YER.

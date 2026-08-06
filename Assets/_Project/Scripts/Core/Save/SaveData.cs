@@ -100,6 +100,7 @@ namespace BlockOut.Core.Save
     /// <summary>Videodaki Pause menüsünün üç anahtarı.</summary>
     public sealed class SettingsData
     {
+        [JsonProperty("notifications")] public bool Notifications = true;
         [JsonProperty("sounds")]  public bool Sounds = true;
         [JsonProperty("music")]   public bool Music = true;
         [JsonProperty("haptics")] public bool Haptics = true;

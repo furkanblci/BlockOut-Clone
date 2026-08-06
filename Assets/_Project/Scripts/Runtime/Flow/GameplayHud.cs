@@ -172,7 +172,7 @@ namespace BlockOut.Runtime.Flow
                 var kind = (PowerUpKind)i;
                 int owned = power.Owned(kind);
                 string caption = PowerUpInfo.Label(kind) + "\n" +
-                                 (owned > 0 ? "x" + owned : PowerUpInfo.Price(kind) + " ◉");
+                                 (owned > 0 ? "x" + owned : PowerUpInfo.Price(kind) + " J");
 
                 var rect = new Rect(x + i * (w + gap), y, w, h);
                 var previous = GUI.backgroundColor;
@@ -205,7 +205,7 @@ namespace BlockOut.Runtime.Flow
                 _shownRefillSeconds = refillSeconds;
 
                 var sb = Build(_scratch)
-                    .Append("♥ ").Append(_shownLives).Append('/')
+                    .Append("Can ").Append(_shownLives).Append('/')
                     .Append(Services.MetaServices.MaxLives);
                 if (refillSeconds >= 0)
                     sb.Append("  ").Append(refill.Minutes / 10).Append(refill.Minutes % 10)
@@ -216,7 +216,7 @@ namespace BlockOut.Runtime.Flow
             if (progress.Coins != _shownCoins)
             {
                 _shownCoins = progress.Coins;
-                _coinText.text = Build(_scratch).Append("◉ ").Append(_shownCoins).ToString();
+                _coinText.text = Build(_scratch).Append("J ").Append(_shownCoins).ToString();
             }
 
             _timerStyle.fontSize = Mathf.RoundToInt(22 * s);

@@ -69,7 +69,13 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(_livesLabel, 0f, 0f, 1f, 1f);
 
             var coinChip = UiKit.CreateRoundedPanel("CoinChip", topBar.transform, UiKit.Coin);
-            UiKit.Place(coinChip, 0.53f, 0.16f, 0.97f, 0.84f);
+            UiKit.Place(coinChip, 0.53f, 0.16f, 0.86f, 0.84f);
+
+            // Dişli: ayarlar penceresini menü kabuğundan açar.
+            var gear = UiKit.CreateButton("Gear", topBar.transform, "Ayar", 34,
+                UiKit.Panel, UiKit.Ink);
+            UiKit.Place(gear, 0.875f, 0.12f, 0.985f, 0.88f);
+            gear.onClick.AddListener(() => MenuShell.Instance?.Show("settings"));
             _coinLabel = UiKit.CreateLabel("Coins", coinChip.transform, "", 42,
                 new Color(0.32f, 0.20f, 0.02f));
             UiKit.Place(_coinLabel, 0f, 0f, 1f, 1f);
