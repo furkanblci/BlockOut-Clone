@@ -226,6 +226,33 @@ namespace GameKit.UI
         }
 
         /// <summary>
+        /// İKON düğmesi: tıklanabilir, ama görseli en-boy oranını KORUR.
+        ///
+        /// DERS (düğme yüzeyi ile ikon farklı şeylerdir): Normal düğmenin yüzü
+        /// 9-dilim bir panel olduğu için serbestçe gerilir; bu doğrudur.
+        /// Ama yüzeyin kendisi bir İKON olduğunda (yeşil artı düğmesi gibi)
+        /// aynı gerdirme onu ovale çevirir. Yuvarlak çizilmiş bir artı düğmesi
+        /// ekranda yumurtaya dönüyordu. İkon düğmesi ayrı bir yardımcı olmalı.
+        /// </summary>
+        public static Button CreateIconButton(string name, Transform parent, Sprite sprite,
+            Color? tint = null)
+        {
+            var rect = CreateRect(name, parent);
+            var image = rect.gameObject.AddComponent<Image>();
+            image.sprite = sprite;
+            image.type = Image.Type.Simple;
+            image.preserveAspect = true;
+            image.color = tint ?? Color.white;
+
+            var button = rect.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            button.transition = Selectable.Transition.None;
+
+            rect.gameObject.AddComponent<UiButtonFeel>();
+            return button;
+        }
+
+        /// <summary>
         /// Görselli düğme: 3B butonun kendi gölgesi var, kod ayrıca gölge koymaz.
         ///
         /// DERS (görsel gelince kod SADELEŞİR): Prosedürel düğme, kalınlık

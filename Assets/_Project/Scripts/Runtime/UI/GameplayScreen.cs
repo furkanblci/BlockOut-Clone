@@ -34,8 +34,8 @@ namespace BlockOut.Runtime.UI
         GameSession _session;
 
         TextMeshProUGUI _levelLabel, _timerLabel, _livesLabel, _coinLabel, _hintLabel;
-        RectTransform _resultPanel;
-        Image _resultCard;
+        RectTransform _resultPanel, _pausePanel;
+        Image _resultCard, _pauseCard;
         readonly Image[] _stars = new Image[3];
         TextMeshProUGUI _perfectBadge;
         TextMeshProUGUI _resultTitle, _resultReward;
@@ -78,6 +78,7 @@ namespace BlockOut.Runtime.UI
 
             BuildTopBar(root);
             BuildPowerUpBar(root);
+            BuildPausePanel(root);
             BuildResultPanel(root);
         }
 
@@ -90,7 +91,7 @@ namespace BlockOut.Runtime.UI
             if (pause.targetGraphic is Image pauseFace) pauseFace.color = Periwinkle;
             var pauseIcon = UiKit.CreateIcon("Icon", pause.transform, UiSkin.Get(Art.Home));
             UiKit.Place(pauseIcon, 0.16f, 0.16f, 0.84f, 0.84f);
-            pause.onClick.AddListener(AppRouter.GoHome);
+            pause.onClick.AddListener(() => SetPaused(true));
 
             // Bölüm + süre: ortada, tek kapsülde.
             var capsule = UiKit.CreateSlicedPanel("Status", root, UiSkin.Get(Art.PanelDark));
@@ -169,6 +170,68 @@ namespace BlockOut.Runtime.UI
         /// üçü birlikte yarım saniyelik bir tören yapıyor. Yeni içerik yazmadan
         /// oyuncunun bir sonraki bölüme geçme isteğini artıran en ucuz yol budur.
         /// </summary>
+        /// <summary>
+        /// Duraklat paneli.
+        ///
+        /// DERS (geri dönüşü olmayan çıkışı SORMADAN yapma): Bu düğme önce
+        /// doğrudan ana ekrana atıyordu. Bölüme girerken can zaten harcanmış
+        /// oluyor; yanlışlıkla basan oyuncu hem bölümü hem canı kaybediyor ve
+        /// bunun neden olduğunu anlamıyordu. Sessiz veri kaybı, arayüzün
+        /// yapabileceği en pahalı hatadır. Panel üç seçenek sunuyor ve
+        /// "Devam Et" en büyüğü — kazara açılan bir menüden çıkış kolay olmalı.
+        /// </summary>
+        void BuildPausePanel(Transform root)
+        {
+            _pausePanel = UiKit.CreateRect("Pause", root);
+            UiKit.Place(_pausePanel, 0f, 0f, 1f, 1f);
+
+            var scrim = UiKit.CreatePanel("Scrim", _pausePanel, new Color(0.05f, 0.03f, 0.14f, 0.82f));
+            scrim.raycastTarget = true;
+
+            _pauseCard = UiKit.CreateSlicedPanel("Card", _pausePanel, UiSkin.Get(Art.PanelCard));
+            UiKit.Place(_pauseCard, 0.13f, 0.33f, 0.87f, 0.67f);
+
+            var title = UiKit.CreateTitle("Title", _pauseCard.transform, "DURAKLATILDI", 44,
+                new Color(0.30f, 0.16f, 0.05f), new Color(1f, 0.93f, 0.80f));
+            UiKit.Place(title, 0.06f, 0.78f, 0.94f, 0.95f);
+
+            var resume = UiKit.CreateTintedButton("Resume", _pauseCard.transform,
+                UiSkin.Get(Art.PanelCard), Good, "Devam Et", 32, Ink);
+            UiKit.Place(resume, 0.10f, 0.52f, 0.90f, 0.74f);
+            resume.onClick.AddListener(() => SetPaused(false));
+
+            var restart = UiKit.CreateTintedButton("Restart", _pauseCard.transform,
+                UiSkin.Get(Art.PanelCard), Periwinkle, "Yeniden Başla", 28, Ink);
+            UiKit.Place(restart, 0.10f, 0.29f, 0.90f, 0.48f);
+            restart.onClick.AddListener(() =>
+            {
+                SetPaused(false);
+                _session.Restart();
+            });
+
+            // Çıkış EN KÜÇÜK ve en altta: kaybı olan seçenek, kolay basılan
+            // yerde durmamalı.
+            var quit = UiKit.CreateTintedButton("Quit", _pauseCard.transform,
+                UiSkin.Get(Art.PanelCard), new Color(0.925f, 0.255f, 0.176f),
+                "Bölümden Çık", 24, Ink);
+            UiKit.Place(quit, 0.22f, 0.07f, 0.78f, 0.25f);
+            quit.onClick.AddListener(AppRouter.GoHome);
+
+            _pausePanel.gameObject.SetActive(false);
+        }
+
+        void SetPaused(bool paused)
+        {
+            if (_session == null) return;
+            if (paused && _session.State != GameState.Playing) return;
+
+            _session.SetPaused(paused);
+            _pausePanel.gameObject.SetActive(paused);
+            if (paused)
+                GameKit.FX.Juice.Replace(_pauseCard,
+                    GameKit.FX.Juice.PopIn(_pauseCard.transform, 0.30f));
+        }
+
         void BuildResultPanel(Transform root)
         {
             _resultPanel = UiKit.CreateRect("Result", root);

@@ -29,7 +29,7 @@ namespace BlockOut.Runtime.UI
             ("Liderlik",  "board",   Art.Trophy),
             ("Ana Ekran", "home",    Art.Home),
             ("Yolculuk",  "journey", Art.Globe),
-            ("Profil",    "profile", Art.Star)
+            ("Koleksiyon", "collection", Art.Chest)
         };
 
         readonly Dictionary<string, RectTransform> _screens = new Dictionary<string, RectTransform>();
@@ -59,6 +59,7 @@ namespace BlockOut.Runtime.UI
             _screens["board"]   = LeaderboardScreen.Build(content);
             _screens["journey"] = JourneyScreen.Build(content);
             _screens["profile"] = ProfileScreen.Build(content);
+            _screens["collection"] = CollectionScreen.Build(content);
             _screens["settings"] = (RectTransform)SettingsScreen.Build(content).transform;
 
             BuildTabBar(root);
@@ -84,7 +85,13 @@ namespace BlockOut.Runtime.UI
             // girdiği için zemin orada bitiyor ve altında manzara görünüyordu.
             // Kanvasa taşımayı denedim; kanvasın çocuğu olarak güvenli alandan
             // SONRA çizilip düğmelerin üstünü kapattı.
-            var bar = UiKit.CreateSlicedPanel("TabBar", root, UiSkin.Get(Art.PanelDark));
+            // DERS (boyama CARPMADIR — çubukta da geçerli): Çubuk koyu lacivert
+            // panel görselinden yapılıyordu ve üstündeki parlak ikonlarla
+            // uyuşmuyordu; ikonlar boşlukta yüzüyor gibi duruyordu. Krem kart
+            // görseli boyanınca gerçek rengi veriyor: referanstaki mor-lacivert
+            // çubuk ve ondan AÇIK bir seçili kart. İkonlar artık aynı ailedeki
+            // bir yüzeyin üstünde duruyor.
+            var bar = UiKit.CreateSlicedPanel("TabBar", root, UiSkin.Get(Art.PanelCard), BarColor);
             UiKit.Place(bar, 0f, 0f, 1f, 0.082f);
             bar.rectTransform.offsetMin = new Vector2(0f, -220f);
 
@@ -103,8 +110,8 @@ namespace BlockOut.Runtime.UI
                 // Kart, çubuktan AÇIK bir tonda: koyu zemin üstünde koyu bir
                 // kart seçimi göstermiyordu.
                 var card = UiKit.CreateSlicedPanel("Card", button.transform,
-                    UiSkin.Get(Art.PanelDark), Periwinkle);
-                UiKit.Place(card, 0.04f, 0.04f, 0.96f, 1.70f);
+                    UiSkin.Get(Art.PanelCard), CardColor);
+                UiKit.Place(card, 0.06f, 0.05f, 0.94f, 1.66f);
 
                 // Görünmez ama dokunulabilir yüzey: sekmenin tamamı tıklanabilsin.
                 if (button.targetGraphic is Image face) face.color = new Color(1f, 1f, 1f, 0f);
@@ -119,7 +126,10 @@ namespace BlockOut.Runtime.UI
             }
         }
 
-        static readonly Color Periwinkle = new Color(0.353f, 0.322f, 0.784f);
+        // Referans karesinden örneklenen iki ton: çubuk koyu mor-lacivert,
+        // seçili kart ondan belirgin AÇIK bir mor.
+        static readonly Color BarColor  = new Color(0.235f, 0.176f, 0.470f);
+        static readonly Color CardColor = new Color(0.427f, 0.322f, 0.812f);
 
         /// <summary>Sekmeyi değiştirir; aynı sekmeye basmak ana ekrana döner.</summary>
         public void Show(string key)
@@ -150,6 +160,8 @@ namespace BlockOut.Runtime.UI
                 journey.GetComponent<JourneyScreen>()?.Refresh();
             if (key == "profile" && _screens.TryGetValue(key, out var profile))
                 profile.GetComponent<ProfileScreen>()?.Refresh();
+            if (key == "collection" && _screens.TryGetValue(key, out var collection))
+                collection.GetComponent<CollectionScreen>()?.Refresh();
             if (key == "settings" && _screens.TryGetValue(key, out var settings))
                 settings.GetComponent<SettingsScreen>()?.Refresh();
         }

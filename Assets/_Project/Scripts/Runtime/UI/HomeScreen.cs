@@ -97,7 +97,7 @@ namespace BlockOut.Runtime.UI
             var group = UiKit.CreateIcon("Characters", root, art);
             // Alt kenarı OYNA düğmesinin hemen üstünde: karakterler yolun
             // üzerinde duruyormuş gibi görünsün, havada asılı değil.
-            UiKit.Place(group, 0.04f, 0.255f, 0.96f, 0.56f);
+            UiKit.Place(group, 0.03f, 0.215f, 0.97f, 0.545f);
 
             // Hafif nefes alma: tamamen hareketsiz bir görsel, arkasındaki
             // manzaranın parçası sanılıyor.
@@ -119,52 +119,67 @@ namespace BlockOut.Runtime.UI
 
         // ---------------------------------------------------------------- üst bar
 
+        /// <summary>
+        /// Üst bar: avatar · kaynak kapsülü · ayarlar.
+        ///
+        /// DERS (oranlar referanstan ÖLÇÜLDÜ): İlk hâlde her parça göz kararı
+        /// yerleştirilmişti ve üst şerit "uyumsuz" görünüyordu. Referans karesi
+        /// 946 piksel genişliğinde; oradaki ölçüler oranlanarak alındı:
+        /// avatar 45-165 (%4.8-17.4), kapsül 190-775 (%20-82), dişli 795-885
+        /// (%84-93.5). Avatar kapsülden BİRAZ DAHA UZUN — altına ve üstüne
+        /// taşar; bu, referanstaki "madalyon" hissini veren şey.
+        /// </summary>
         void BuildTopBar(Transform root)
         {
-            const float top = 0.988f, bottom = 0.918f;
+            const float top = 0.982f, bottom = 0.926f;   // kapsül şeridi
 
-            BuildAvatar(root, 0.028f, 0.190f, bottom, top);
+            BuildAvatar(root, 0.040f, 0.174f, bottom - 0.012f, top + 0.012f);
 
-            // Jeton ve can TEK kapsülde.
             var pill = UiKit.CreateSlicedPanel("ResourcePill", root, UiSkin.Get(Art.PanelDark));
-            UiKit.Place(pill, 0.205f, bottom, 0.815f, top);
+            UiKit.Place(pill, 0.200f, bottom, 0.820f, top);
+            // Kapsül yüksekliği 108 piksel; panel görselinin 9-dilim payı her
+            // kenarda 60 piksel olduğu için dikeyde 120 pay 108'e sıkışıp
+            // yüzeyi eziyordu. Payı küçültmek kapsülü düzgün bırakıyor.
+            pill.pixelsPerUnitMultiplier = 1.6f;
 
-            _coinLabel = Counter(pill.transform, Art.Coin, 0.015f, 0.475f, out var coinPlus);
+            _coinLabel = Counter(pill.transform, Art.Coin, 0.020f, 0.480f, out var coinPlus);
             coinPlus.onClick.AddListener(() => MenuShell.Instance?.Show("store"));
 
-            _livesLabel = Counter(pill.transform, Art.Heart, 0.500f, 0.985f, out var lifePlus);
+            _livesLabel = Counter(pill.transform, Art.Heart, 0.510f, 0.975f, out var lifePlus);
             lifePlus.onClick.AddListener(() => MenuShell.Instance?.Show("store"));
 
-            // Can durumu ("Dolu" / geri sayım) SAYININ ALTINA yazılır. Yanına
-            // koymayı denedim; jeton sayısı üç haneye çıkınca artı düğmesinin
-            // altına giriyordu.
-            _livesTimer = UiKit.CreateLabel("LivesTimer", pill.transform, "", 24,
-                new Color(1f, 1f, 1f, 0.8f));
-            UiKit.Place(_livesTimer, 0.615f, 0.04f, 0.845f, 0.42f);
+            // Can durumu sayının ALTINDA: yanına koymak, jeton üç haneye
+            // çıkınca artı düğmesinin altına giriyordu.
+            _livesTimer = UiKit.CreateLabel("LivesTimer", pill.transform, "", 22,
+                new Color(1f, 1f, 1f, 0.78f));
+            UiKit.Place(_livesTimer, 0.615f, 0.02f, 0.860f, 0.40f);
 
-            var gear = SquareButton(root, "Gear", Art.Gear, 0.832f, 0.985f, bottom, top);
+            var gear = SquareButton(root, "Gear", Art.Gear, 0.846f, 0.960f, bottom, top);
             gear.onClick.AddListener(() => MenuShell.Instance?.Show("settings"));
         }
 
         /// <summary>
         /// Kapsül içindeki bir sayaç: ikon + sayı + yeşil artı düğmesi.
-        /// Artı düğmesi <paramref name="plus"/> ile dışarı verilir; ne yapacağı
-        /// çağırana ait.
+        ///
+        /// DERS (ikon gerilmez): Artı düğmesi önce normal düğme olarak
+        /// kuruluyordu; yüzeyi 9-dilim gibi gerilip YUMURTAYA dönüyordu. İkonun
+        /// kendisi düğme yüzeyi olduğunda en-boy oranı korunmalı.
         /// </summary>
         TextMeshProUGUI Counter(Transform pill, string icon, float x0, float x1, out Button plus)
         {
             float width = x1 - x0;
 
+            // İkon kapsülün üstüne ve altına hafifçe taşar — referanstaki gibi
+            // kapsüle takılmış bir madalyon.
             var badge = UiKit.CreateIcon($"Icon_{icon}", pill, UiSkin.Get(icon));
-            UiKit.Place(badge, x0, -0.14f, x0 + width * 0.26f, 1.14f);
+            UiKit.Place(badge, x0, -0.10f, x0 + width * 0.235f, 1.10f);
 
-            var label = UiKit.CreateTitle($"Value_{icon}", pill, "", 40, CoinInk,
+            var label = UiKit.CreateTitle($"Value_{icon}", pill, "", 38, CoinInk,
                 new Color(0.12f, 0.09f, 0.28f));
-            UiKit.Place(label, x0 + width * 0.23f, 0.30f, x0 + width * 0.72f, 0.98f);
+            UiKit.Place(label, x0 + width * 0.235f, 0.28f, x0 + width * 0.760f, 0.96f);
 
-            plus = UiKit.CreateSpriteButton($"Plus_{icon}", pill, UiSkin.Get(Art.Plus),
-                null, 0, CoinInk);
-            UiKit.Place(plus, x0 + width * 0.70f, -0.06f, x0 + width, 1.06f);
+            plus = UiKit.CreateIconButton($"Plus_{icon}", pill, UiSkin.Get(Art.Plus));
+            UiKit.Place(plus, x0 + width * 0.760f, -0.02f, x0 + width, 1.02f);
 
             return label;
         }
@@ -172,32 +187,39 @@ namespace BlockOut.Runtime.UI
         /// <summary>
         /// Avatar: çerçeveli, tıklanınca profile götüren kare düğme.
         ///
-        /// Şimdilik oyuncunun baş harfi gösteriliyor — kendi karakter görselimiz
-        /// üretilene kadar boş bir kare bırakmaktansa anlamlı bir şey durur.
+        /// Çerçeve için ayrı bir görsel (frame_avatar) beklenirken koyu panel
+        /// mor tonlanıyor. Görsel gelince yalnız bu satır değişecek.
         /// </summary>
         void BuildAvatar(Transform root, float x0, float x1, float y0, float y1)
         {
-            var frame = UiKit.CreateSpriteButton("Avatar", root, UiSkin.Get(Art.PanelDark),
-                null, 0, CoinInk);
+            var frameSprite = UiSkin.Get(Art.AvatarFrame);
+
+            var frame = frameSprite != null
+                ? UiKit.CreateIconButton("Avatar", root, frameSprite)
+                : UiKit.CreateSpriteButton("Avatar", root, UiSkin.Get(Art.PanelDark),
+                    null, 0, CoinInk);
             UiKit.Place(frame, x0, y0, x1, y1);
-            if (frame.targetGraphic is Image face) face.color = Periwinkle;
 
-            var inner = UiKit.CreateSlicedPanel("Inner", frame.transform,
-                UiSkin.Get(Art.PanelDark), new Color(0.16f, 0.13f, 0.40f));
-            UiKit.Place(inner, 0.12f, 0.12f, 0.88f, 0.88f);
+            Transform host = frame.transform;
+            if (frameSprite == null)
+            {
+                if (frame.targetGraphic is Image face) face.color = Periwinkle;
+                var inner = UiKit.CreateSlicedPanel("Inner", frame.transform,
+                    UiSkin.Get(Art.PanelDark), new Color(0.16f, 0.13f, 0.40f));
+                UiKit.Place(inner, 0.12f, 0.12f, 0.88f, 0.88f);
+                host = inner.transform;
+            }
 
-            // Portre varsa o, yoksa oyuncunun baş harfi.
             var portrait = UiSkin.Get(Art.Avatar);
             if (portrait != null)
             {
-                var face2 = UiKit.CreateIcon("Portrait", inner.transform, portrait);
-                // Çerçeveden biraz TAŞAR: bust görseli aşağıdan kesik olduğu
-                // için tam oturtulunca kafası küçük kalıyor.
-                UiKit.Place(face2, -0.06f, -0.02f, 1.06f, 1.24f);
+                var face2 = UiKit.CreateIcon("Portrait", host, portrait);
+                // Bust görseli aşağıdan kesik; tam oturtulunca kafa küçük kalıyor.
+                UiKit.Place(face2, 0.02f, 0.02f, 0.98f, 1.18f);
             }
             else
             {
-                _avatarInitial = UiKit.CreateTitle("Initial", inner.transform, "?", 52,
+                _avatarInitial = UiKit.CreateTitle("Initial", host, "?", 46,
                     CoinInk, new Color(0.12f, 0.09f, 0.28f));
                 UiKit.Place(_avatarInitial, 0f, 0f, 1f, 1f);
             }
@@ -206,22 +228,33 @@ namespace BlockOut.Runtime.UI
         }
 
         /// <summary>
-        /// Kare düğme: koyu panel sprite'ı mor tonlanıp üstüne ikon konur.
-        ///
-        /// Buton sprite'ları (btn_*) 3:1 orana göre çizildi; kareye sıkıştırınca
-        /// 9-dilim payları (yanlarda 90px) genişliğin tamamını yiyip yüzü
-        /// eziyor. Kare düğmeler için payları eşit olan panel sprite'ı doğru.
+        /// Kare düğme. Kendi görseli (btn_square) varsa o, yoksa panel tonlanır.
+        /// Buton görselleri (btn_*) 3:1 orana çizildi; kareye sıkıştırınca
+        /// 9-dilim payları yüzü eziyor.
         /// </summary>
         static Button SquareButton(Transform root, string name, string icon,
             float x0, float x1, float y0, float y1)
         {
-            var button = UiKit.CreateSpriteButton(name, root, UiSkin.Get(Art.PanelDark),
-                null, 0, CoinInk);
-            UiKit.Place(button, x0, y0, x1, y1);
-            if (button.targetGraphic is Image face) face.color = Periwinkle;
+            var squareSprite = UiSkin.Get(Art.ButtonSquare);
 
-            var glyph = UiKit.CreateIcon("Icon", button.transform, UiSkin.Get(icon));
-            UiKit.Place(glyph, 0.14f, 0.14f, 0.86f, 0.86f);
+            Button button;
+            Transform host;
+            if (squareSprite != null)
+            {
+                button = UiKit.CreateIconButton(name, root, squareSprite);
+                host = button.transform;
+            }
+            else
+            {
+                button = UiKit.CreateSpriteButton(name, root, UiSkin.Get(Art.PanelDark),
+                    null, 0, CoinInk);
+                if (button.targetGraphic is Image face) face.color = Periwinkle;
+                host = button.transform;
+            }
+            UiKit.Place(button, x0, y0, x1, y1);
+
+            var glyph = UiKit.CreateIcon("Icon", host, UiSkin.Get(icon));
+            UiKit.Place(glyph, 0.18f, 0.18f, 0.82f, 0.82f);
             return button;
         }
 
@@ -231,19 +264,24 @@ namespace BlockOut.Runtime.UI
         {
             _playButton = UiKit.CreateSpriteButton("Play", root, UiSkin.Get(Art.ButtonGreen),
                 null, 0, CoinInk);
-            UiKit.Place(_playButton, 0.16f, 0.125f, 0.84f, 0.255f);
+            // DERS (düğme ekranı yemez): İlk hâli genişliğin %68'i ve
+            // yüksekliğin %13'ü kadardı; ekranın altını kaplıyor ve manzarayı
+            // eziyordu. Referanstaki düğme genişliğin ~%54'ü, yüksekliğin
+            // ~%7'si. Küçültünce hem manzara nefes alıyor hem düğme daha
+            // "basılası" duruyor — büyük düğme güçlü değil, hantal görünüyor.
+            UiKit.Place(_playButton, 0.230f, 0.140f, 0.770f, 0.212f);
             _playButton.onClick.AddListener(PlayCurrent);
             _playFace = _playButton.targetGraphic as Image;
 
             var face = _playButton.transform.GetChild(0);
 
-            _levelLabel = UiKit.CreateTitle("Level", face, "", 68, CoinInk,
+            _levelLabel = UiKit.CreateTitle("Level", face, "", 48, CoinInk,
                 new Color(0.10f, 0.06f, 0.22f));
             UiKit.Place(_levelLabel, 0.06f, 0.44f, 0.94f, 0.94f);
 
-            _difficultyLabel = UiKit.CreateTitle("Difficulty", face, "", 34,
+            _difficultyLabel = UiKit.CreateTitle("Difficulty", face, "", 26,
                 new Color(0.88f, 0.90f, 1f), new Color(0.10f, 0.06f, 0.22f));
-            UiKit.Place(_difficultyLabel, 0.06f, 0.22f, 0.94f, 0.46f);
+            UiKit.Place(_difficultyLabel, 0.06f, 0.18f, 0.94f, 0.44f);
 
             // Ödül şeridi düğmenin ÜST KENARINA binerek durur; ayrı bir kutu
             // gibi değil, düğmeye takılmış bir etiket gibi okunsun.
@@ -252,10 +290,10 @@ namespace BlockOut.Runtime.UI
                 ? UiKit.CreateSlicedPanel("Ribbon", _playButton.transform, ribbonSprite)
                 : UiKit.CreateSlicedPanel("Ribbon", _playButton.transform,
                     UiSkin.Get(Art.PanelDark), new Color(0.94f, 0.55f, 0.10f));
-            UiKit.Place(ribbon, 0.26f, 0.80f, 0.74f, 1.28f);
+            UiKit.Place(ribbon, 0.24f, 0.74f, 0.76f, 1.34f);
             _rewardRibbon = ribbon.rectTransform;
 
-            _rewardLabel = UiKit.CreateTitle("RibbonText", ribbon.transform, "", 30,
+            _rewardLabel = UiKit.CreateTitle("RibbonText", ribbon.transform, "", 24,
                 CoinInk, new Color(0.45f, 0.22f, 0.02f));
             UiKit.Place(_rewardLabel, 0.04f, 0.08f, 0.96f, 0.92f);
         }
@@ -272,18 +310,18 @@ namespace BlockOut.Runtime.UI
         void BuildAdOffer(Transform root)
         {
             _adRow = UiKit.CreateRect("AdOffer", root).gameObject;
-            UiKit.Place((RectTransform)_adRow.transform, 0.16f, 0.125f, 0.84f, 0.255f);
+            UiKit.Place((RectTransform)_adRow.transform, 0.210f, 0.132f, 0.790f, 0.220f);
 
             var button = UiKit.CreateSpriteButton("WatchAd", _adRow.transform,
                 UiSkin.Get(Art.ButtonPurple), null, 0, CoinInk);
             UiKit.Place(button, 0f, 0f, 1f, 1f);
 
             var face = button.transform.GetChild(0);
-            var title = UiKit.CreateTitle("Title", face, "REKLAM İZLE", 44, CoinInk,
+            var title = UiKit.CreateTitle("Title", face, "REKLAM İZLE", 34, CoinInk,
                 new Color(0.16f, 0.06f, 0.30f));
             UiKit.Place(title, 0.06f, 0.44f, 0.94f, 0.94f);
 
-            _adOfferSub = UiKit.CreateLabel("Sub", face, "+1 can kazan", 30,
+            _adOfferSub = UiKit.CreateLabel("Sub", face, "+1 can kazan", 24,
                 new Color(1f, 1f, 1f, 0.85f));
             UiKit.Place(_adOfferSub, 0.06f, 0.22f, 0.94f, 0.46f);
 

@@ -293,6 +293,10 @@ namespace BlockOut.Runtime.Flow
             PlayBoardIntro(views);
             Timer.StartCountdown(data.TimeSeconds);
             State = GameState.Playing;
+
+            // Öğretici yalnız ilk bölümde ve yalnız bir kez çıkar; kendisi
+            // karar veriyor, buradan koşul yazmaya gerek yok.
+            UI.TutorialOverlay.TryShow(this, _level, space);
         }
 
         /// <summary>
@@ -463,6 +467,22 @@ namespace BlockOut.Runtime.Flow
                     _levelIndex, record.Attempts, remaining, perfect);
                 GameKit.Services.Analytics.CurrencyEarned("coin", LastReward, "level_clear");
             }
+        }
+
+        /// <summary>
+        /// Duraklat / devam et.
+        ///
+        /// DERS (duraklatma zaman ölçeğiyle YAPILMAZ): `Time.timeScale = 0`
+        /// en kolay yol gibi görünür ama arayüz animasyonlarını da durdurur —
+        /// duraklat paneli donmuş bir resim gibi açılır. Burada oyun durumu
+        /// değişiyor: Update zaten yalnız Playing'ken sayaç işletiyor ve
+        /// sürükleme yalnız Playing'ken kabul ediliyor. Arayüz ölçeklenmemiş
+        /// zamanla çalıştığı için akmaya devam ediyor.
+        /// </summary>
+        public void SetPaused(bool paused)
+        {
+            if (paused && State == GameState.Playing) State = GameState.Paused;
+            else if (!paused && State == GameState.Paused) State = GameState.Playing;
         }
 
         /// <summary>

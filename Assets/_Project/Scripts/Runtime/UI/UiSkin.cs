@@ -90,6 +90,9 @@ namespace BlockOut.Runtime.UI
         public const string Avatar       = "avatar_player";
         public const string Check        = "check_green";
         public const string Ribbon       = "ribbon_reward";
+        public const string AvatarFrame  = "frame_avatar";
+        public const string ButtonSquare = "btn_square";
+        public const string Splash       = "splash_art";
 
         /// <summary>Bölge dairesi (1 tabanlı). Yoksa null döner, çağıran düşer.</summary>
         public static string Region(int index) => "region_" + index;
