@@ -85,21 +85,27 @@ namespace BlockOut.Runtime.UI
             // girdiği için zemin orada bitiyor ve altında manzara görünüyordu.
             // Kanvasa taşımayı denedim; kanvasın çocuğu olarak güvenli alandan
             // SONRA çizilip düğmelerin üstünü kapattı.
-            // DERS (boyama CARPMADIR — çubukta da geçerli): Çubuk koyu lacivert
-            // panel görselinden yapılıyordu ve üstündeki parlak ikonlarla
-            // uyuşmuyordu; ikonlar boşlukta yüzüyor gibi duruyordu. Krem kart
-            // görseli boyanınca gerçek rengi veriyor: referanstaki mor-lacivert
-            // çubuk ve ondan AÇIK bir seçili kart. İkonlar artık aynı ailedeki
-            // bir yüzeyin üstünde duruyor.
-            var bar = UiKit.CreateSlicedPanel("TabBar", root, UiSkin.Get(Art.PanelCard), BarColor);
+            // DERS (hazır görselin PİŞMİŞ detayı sana ait değildir): Çubuk krem
+            // kart görselinden yapılıyordu. O görselin altında magenta bir
+            // taban bandı var; mora boyanınca çubuğun altında koyu, rahatsız
+            // edici bir gölge şeridine dönüştü. Sonra üstüne düz bir ışık
+            // çizgisi ekledim; çubuğun köşeleri yuvarlak, çizgi düz olduğu için
+            // hizasız durdu. İkisi de aynı hatanın sonucu: kendi yüzeyimi
+            // kurmak yerine başkasının yüzeyini boyamaya çalışmak.
+            //
+            // Doğrusu: düz renkli, yuvarlatılmış, tek katmanlı bir çubuk.
+            // Üstüne kendi köşe yarıçapını izleyen İKİNCİ bir panel konuyor —
+            // biraz daha açık ve biraz daha kısa; kenar ışığı böyle radyusa
+            // uyumlu oluyor.
+            var bar = UiKit.CreateRoundedPanel("TabBar", root, BarColor);
             UiKit.Place(bar, 0f, 0f, 1f, 0.082f);
             bar.rectTransform.offsetMin = new Vector2(0f, -220f);
+            bar.pixelsPerUnitMultiplier = 0.10f;
 
-            // Üst kenar ışığı: çubuğun bir yüzey olduğunu söyleyen tek çizgi.
-            var rim = UiKit.CreateRoundedPanel("Rim", root, RimColor);
-            UiKit.Place(rim, 0.02f, 0.0795f, 0.98f, 0.0835f);
-            rim.pixelsPerUnitMultiplier = 0.08f;
-            rim.raycastTarget = false;
+            var sheen = UiKit.CreateRoundedPanel("Sheen", root, RimColor);
+            UiKit.Place(sheen, 0.010f, 0.0765f, 0.990f, 0.0828f);
+            sheen.pixelsPerUnitMultiplier = 0.10f;
+            sheen.raycastTarget = false;
 
             // Seçili kartın taşacağı alan çubuğun üstünde; bu yüzden kartlar
             // çubuğun DEĞİL kökün çocuğu, yoksa çubuk onları kırpar.
@@ -115,8 +121,8 @@ namespace BlockOut.Runtime.UI
                 // Seçiliyken görünen kart: normalde saydam.
                 // Kart, çubuktan AÇIK bir tonda: koyu zemin üstünde koyu bir
                 // kart seçimi göstermiyordu.
-                var card = UiKit.CreateSlicedPanel("Card", button.transform,
-                    UiSkin.Get(Art.PanelCard), CardColor);
+                var card = UiKit.CreateRoundedPanel("Card", button.transform, CardColor);
+                card.pixelsPerUnitMultiplier = 0.14f;
                 UiKit.Place(card, 0.06f, 0.05f, 0.94f, 1.52f);
 
                 // Görünmez ama dokunulabilir yüzey: sekmenin tamamı tıklanabilsin.
@@ -125,6 +131,18 @@ namespace BlockOut.Runtime.UI
                 var glyph = UiKit.CreateIcon("Icon", button.transform, UiSkin.Get(icon));
 
                 var caption = UiKit.CreateLabel("Label", button.transform, label, 24, UiKit.Ink);
+
+                // İnce ayırıcı: sekmelerin "kendi yeri" olduğunu söyler.
+                // Son sekmeden sonra çizgi olmaz.
+                if (i < Tabs.Length - 1)
+                {
+                    var divider = UiKit.CreateRoundedPanel($"Divider_{i}", root,
+                        new Color(1f, 1f, 1f, 0.10f));
+                    float x = (i + 1) * slot;
+                    UiKit.Place(divider, x - 0.0015f, 0.018f, x + 0.0015f, 0.064f);
+                    divider.pixelsPerUnitMultiplier = 0.10f;
+                    divider.raycastTarget = false;
+                }
 
                 string captured = key;
                 button.onClick.AddListener(() => Show(captured));
@@ -140,8 +158,8 @@ namespace BlockOut.Runtime.UI
         // görünür. Çubuk ikonların tonuna yaklaştırıldı ve üst kenarına ince
         // bir ışık şeridi kondu — o çizgi, çubuğu bir YÜZEY yapan şey.
         static readonly Color BarColor  = new Color(0.318f, 0.243f, 0.612f);
-        static readonly Color CardColor = new Color(0.494f, 0.388f, 0.878f);
-        static readonly Color RimColor  = new Color(0.639f, 0.545f, 0.949f);
+        static readonly Color CardColor = new Color(0.404f, 0.278f, 0.831f);
+        static readonly Color RimColor  = new Color(0.478f, 0.396f, 0.812f);
 
         /// <summary>Sekmeyi değiştirir; aynı sekmeye basmak ana ekrana döner.</summary>
         public void Show(string key)

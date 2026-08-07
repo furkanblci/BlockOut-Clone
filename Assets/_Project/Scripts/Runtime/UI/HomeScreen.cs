@@ -120,93 +120,87 @@ namespace BlockOut.Runtime.UI
         // ---------------------------------------------------------------- üst bar
 
         /// <summary>
-        /// Üst bar: avatar · kaynak kapsülü · ayarlar.
+        /// Üst bar: avatar · jeton çubuğu · can çubuğu · ayarlar.
         ///
-        /// DERS (oranlar referanstan ÖLÇÜLDÜ): İlk hâlde her parça göz kararı
-        /// yerleştirilmişti ve üst şerit "uyumsuz" görünüyordu. Referans karesi
-        /// 946 piksel genişliğinde; oradaki ölçüler oranlanarak alındı:
-        /// avatar 45-165 (%4.8-17.4), kapsül 190-775 (%20-82), dişli 795-885
-        /// (%84-93.5). Avatar kapsülden BİRAZ DAHA UZUN — altına ve üstüne
-        /// taşar; bu, referanstaki "madalyon" hissini veren şey.
+        /// DERS (tek kapsül İKİ ayrı bilgiyi taşıyamaz): Jeton ve can tek bir
+        /// uzun kapsülün içindeydi. İki bağımsız kaynak aynı kutuya girince göz
+        /// nereden nereye kadar neyin olduğunu ayıramıyor ve şerit "kalabalık"
+        /// görünüyor. Her kaynağın KENDİ çubuğu var; aralarındaki boşluk,
+        /// ayırıcı çizgiye gerek bırakmadan ayrımı yapıyor.
+        ///
+        /// DERS (ikonun arkasında kutu YOK): İkonlar önce kendi zeminleriyle
+        /// duruyordu; iki katman üst üste gelince şerit kalınlaşıyordu. İkon
+        /// artık doğrudan çubuğun BAŞINDA, kaydırıcı topuzu gibi kenardan
+        /// taşarak duruyor — arkasında ayrı bir yüzey yok.
         /// </summary>
         void BuildTopBar(Transform root)
         {
-            const float top = 0.978f, bottom = 0.932f;   // kapsül şeridi (dikeyde inceltildi)
+            const float top = 0.976f, bottom = 0.936f;
 
-            BuildAvatar(root, 0.040f, 0.174f, bottom - 0.012f, top + 0.012f);
+            BuildAvatar(root, 0.030f, 0.146f, bottom - 0.016f, top + 0.016f);
 
-            // DERS (kapsül bir ZEMİN, bir nesne değil): Panel görselinin kendi
-            // 3B kabartması ve parlaklık lekesi var; kapsül olarak gerildiğinde
-            // o kabartma bozuluyor ve göz kapsülü ikonlardan önce görüyordu.
-            // Kaynak şeridinin işi ikonları TAŞIMAK, dikkat çekmek değil.
-            // Prosedürel yuvarlak panel + düşük opaklık: kabartma yok, ezilme
-            // yok, ikonlar öne çıkıyor. Dikeyde de inceldi.
-            var pill = UiKit.CreateRoundedPanel("ResourcePill", root,
-                new Color(0.055f, 0.035f, 0.145f, 0.58f));
-            UiKit.Place(pill, 0.205f, bottom, 0.815f, top);
-            pill.pixelsPerUnitMultiplier = 0.16f;      // uçları tam yuvarlak
-
-            // Bölümler referans karesinden ölçüldü (kapsül 274x62 kırpma):
-            // jeton bölümü %0-42, can bölümü %42-100.
-            _coinLabel = Section(pill.transform, Art.Coin, 0.010f, 0.420f,
-                iconHeight: 0.62f, out var coinPlus, out _);
+            _coinLabel = Track(root, Art.Coin, 0.200f, 0.474f, bottom, top,
+                out var coinPlus, out _);
             coinPlus.onClick.AddListener(() => MenuShell.Instance?.Show("store"));
 
-            _livesLabel = Section(pill.transform, Art.Heart, 0.430f, 0.990f,
-                iconHeight: 0.78f, out var lifePlus, out _livesTimer);
+            _livesLabel = Track(root, Art.Heart, 0.532f, 0.806f, bottom, top,
+                out var lifePlus, out _livesTimer);
             lifePlus.onClick.AddListener(() => MenuShell.Instance?.Show("store"));
 
-            var gear = SquareButton(root, "Gear", Art.Gear, 0.846f, 0.960f, bottom, top);
+            var gear = SquareButton(root, "Gear", Art.Gear, 0.850f, 0.968f, bottom, top);
             gear.onClick.AddListener(() => MenuShell.Instance?.Show("settings"));
         }
 
         /// <summary>
-        /// Kapsülün bir bölümü: ikon · sayı · (durum) · küçük artı düğmesi.
+        /// Tek bir kaynak çubuğu: ikon (başta, taşarak) · değer · artı (sonda).
         ///
-        /// DERS (ölçüyü REFERANSTAN al, gözden değil): Bu şerit üç kez elden
-        /// geçti ve her seferinde "yaklaşık doğru" kaldı. Sorun ölçülerin göz
-        /// kararı olmasıydı. Referans kırpması 274x62 piksel; oradan okunan
-        /// oranlar: jeton ikonu kapsül yüksekliğinin %55'i, kalp %65'i, artı
-        /// düğmesi %40'ı, ve durum yazısı ("Dolu") sayının ALTINDA değil
-        /// YANINDA. Benim sürümümde artı düğmeleri ikonlar kadar büyüktü ve
-        /// göz önce onları görüyordu; sayaç şeridinde en büyük eleman içeriğin
-        /// kendisi olmalı, düğmesi değil.
+        /// Can çubuğunda sayı KALBİN ÜSTÜNDE ortalanır, çubukta geri sayım
+        /// yazar. Sayıyı kalbin yanına koymak çubuğu uzatıyordu; üstüne koymak
+        /// hem yer kazandırıyor hem "bu sayı canın kendisi" diyor.
         /// </summary>
-        TextMeshProUGUI Section(Transform pill, string icon, float x0, float x1,
-            float iconHeight, out Button plus, out TextMeshProUGUI status)
+        TextMeshProUGUI Track(Transform root, string icon, float x0, float x1,
+            float y0, float y1, out Button plus, out TextMeshProUGUI status)
         {
-            float width = x1 - x0;
-            float top = 0.5f + iconHeight * 0.5f;
-            float bottom = 0.5f - iconHeight * 0.5f;
+            bool isLives = icon == Art.Heart;
+            float span = x1 - x0;
 
-            var badge = UiKit.CreateIcon($"Icon_{icon}", pill, UiSkin.Get(icon));
-            UiKit.Place(badge, x0, bottom, x0 + width * 0.175f, top);
+            var bar = UiKit.CreateRoundedPanel($"Track_{icon}", root,
+                new Color(0.055f, 0.035f, 0.145f, 0.50f));
+            UiKit.Place(bar, x0, y0, x1, y1);
+            bar.pixelsPerUnitMultiplier = 0.16f;
+            bar.raycastTarget = false;
 
-            bool hasStatus = icon == Art.Heart;
-
-            // Sayı ve durum yan yana: durumu alta koymak kapsülü kalınlaştırıyor
-            // ve referansta da öyle değil.
-            float numberEnd = hasStatus ? 0.44f : 0.70f;
-            var label = UiKit.CreateTitle($"Value_{icon}", pill, "", 34, CoinInk,
-                new Color(0.10f, 0.07f, 0.24f));
-            UiKit.Place(label, x0 + width * 0.185f, 0.10f, x0 + width * numberEnd, 0.90f);
+            // İkon çubuğun SOL UCUNDA, kenardan taşarak — kaydırıcı topuzu gibi.
+            var badge = UiKit.CreateIcon($"Icon_{icon}", root, UiSkin.Get(icon));
+            UiKit.Place(badge, x0 - span * 0.075f, y0 - 0.013f,
+                              x0 + span * 0.265f, y1 + 0.013f);
 
             status = null;
-            if (hasStatus)
+            TextMeshProUGUI value;
+
+            if (isLives)
             {
-                status = UiKit.CreateLabel($"Status_{icon}", pill, "", 26, CoinInk);
-                UiKit.Place(status, x0 + width * 0.46f, 0.12f, x0 + width * 0.78f, 0.88f);
+                value = UiKit.CreateTitle($"Value_{icon}", badge.transform, "", 28,
+                    CoinInk, new Color(0.42f, 0.03f, 0.03f));
+                UiKit.Place(value, 0f, 0.04f, 1f, 0.92f);
+
+                status = UiKit.CreateLabel($"Status_{icon}", bar.transform, "", 25, CoinInk);
+                UiKit.Place(status, 0.28f, 0.08f, 0.78f, 0.92f);
+            }
+            else
+            {
+                value = UiKit.CreateTitle($"Value_{icon}", bar.transform, "", 31, CoinInk,
+                    new Color(0.10f, 0.07f, 0.24f));
+                UiKit.Place(value, 0.26f, 0.08f, 0.78f, 0.92f);
             }
 
-            // Artı: KÜÇÜK ve kare. En-boy korunduğu için yükseklik belirleyici.
-            // Referansta artı, kapsül yüksekliğinin ~%40'ı — jetondan ve
-            // kalpten belirgin biçimde küçük. Aynı boyda olunca göz önce
-            // düğmeyi görüyor, oysa şeridin konusu sayının kendisi.
-            plus = UiKit.CreateIconButton($"Plus_{icon}", pill, UiSkin.Get(Art.Plus));
-            UiKit.Place(plus, x0 + width * 0.815f, 0.26f, x0 + width * 0.995f, 0.74f);
+            plus = UiKit.CreateIconButton($"Plus_{icon}", root, UiSkin.Get(Art.Plus));
+            UiKit.Place(plus, x1 - span * 0.235f, y0 - 0.006f,
+                             x1 + span * 0.075f, y1 + 0.006f);
 
-            return label;
+            return value;
         }
+
 
         void BuildAvatar(Transform root, float x0, float x1, float y0, float y1)
         {
@@ -325,22 +319,31 @@ namespace BlockOut.Runtime.UI
 
             // Ödül şeridi düğmenin ÜST KENARINA binerek durur; ayrı bir kutu
             // gibi değil, düğmeye takılmış bir etiket gibi okunsun.
-            // DERS (etiket DÜZ olmalı): Bu şerit iki kez yanlış yapıldı.
-            // Önce kendi sprite'ı üretildi ama gölgesi kesimde kırpılınca
-            // havada duran yarım gölgeli bir etikete döndü. Sonra krem kart
-            // turuncuya boyandı — kartın kendi ALT BANDI da boyanınca altta
-            // kırmızı bir şerit çıktı ve etiket iki renkli bir pastile döndü.
-            // Doğrusu en sade olan: düz renkli, uçları yuvarlak, tek katmanlı
-            // bir etiket. Küçük bir rozette 3B kabartma zaten okunmuyor.
-            var ribbon = UiKit.CreateRoundedPanel("Ribbon", _playButton.transform,
-                new Color(0.96f, 0.53f, 0.05f));
+            // DERS (düz renk = boş görünür): Etiketi tek düz turuncu yapmıştım;
+            // "sade" oldu ama yüzeysiz kaldı, arkası boş bir kutu gibi durdu.
+            // Oyunun geri kalanının dili 3B plastik: her yüzeyin altında bir
+            // kalınlık var. İki katman yeter — altta koyu turuncu bir kopya,
+            // birkaç piksel aşağıda; üstünde parlak yüz. Sprite üretmeye gerek
+            // yok, aynı hissi iki dikdörtgen veriyor.
+            var ribbonRoot = UiKit.CreateRect("Ribbon", _playButton.transform);
+            // Şerit düğmenin ÜST KENARINA oturur, yüzüne değil: 0.82'den
+            // başlayınca "Seviye" yazısının üstünü kapatıyordu.
+            UiKit.Place(ribbonRoot, 0.325f, 0.96f, 0.675f, 1.40f);
+            _rewardRibbon = ribbonRoot;
+
+            var ribbonBase = UiKit.CreateRoundedPanel("Base", ribbonRoot,
+                new Color(0.72f, 0.32f, 0.02f));
+            ribbonBase.pixelsPerUnitMultiplier = 0.16f;
+            UiKit.Place(ribbonBase, 0f, -0.14f, 1f, 0.92f);
+
+            var ribbon = UiKit.CreateRoundedPanel("Face", ribbonRoot,
+                new Color(0.98f, 0.58f, 0.06f));
             ribbon.pixelsPerUnitMultiplier = 0.16f;
-            UiKit.Place(ribbon, 0.30f, 0.84f, 0.70f, 1.20f);
-            _rewardRibbon = ribbon.rectTransform;
+            UiKit.Place(ribbon, 0f, 0f, 1f, 1f);
 
             _rewardLabel = UiKit.CreateTitle("RibbonText", ribbon.transform, "", 22,
-                CoinInk, new Color(0.50f, 0.24f, 0.02f));
-            UiKit.Place(_rewardLabel, 0.04f, 0.08f, 0.96f, 0.92f);
+                CoinInk, new Color(0.52f, 0.25f, 0.02f));
+            UiKit.Place(_rewardLabel, 0.05f, 0.06f, 0.95f, 0.94f);
         }
 
         /// <summary>
@@ -480,7 +483,7 @@ namespace BlockOut.Runtime.UI
             // seviye yazısı düğmenin ORTASINA oturur; alt satır boş kaldığında
             // tek satırın yukarıda asılı durması dengesiz görünüyordu.
             bool hasDifficulty = !string.IsNullOrEmpty(label);
-            float top = showRibbon ? 0.94f : 0.98f;
+            float top = 0.94f;
             float bottom = hasDifficulty ? 0.58f : 0.40f;
             UiKit.Place(_levelLabel, 0.08f, bottom, 0.92f, top);
         }
