@@ -73,10 +73,10 @@ RECIPES = {
     "home_characters": dict(neutral=38, tolerance=72, bright=6, size=1024),
     "avatar_player":   dict(neutral=26, size=1024, feather=1.2),
     "check_green":     dict(neutral=26, size=512),
-    "region_1":        dict(neutral=26, size=1024),
-    "region_2":        dict(neutral=26, size=1024),
-    "region_3":        dict(neutral=26, size=1024),
-    "region_4":        dict(neutral=26, size=1024),
+    "region_1":        dict(circle=True, ring=26, size=1024),
+    "region_2":        dict(circle=True, ring=26, size=1024),
+    "region_3":        dict(circle=True, ring=26, size=1024),
+    "region_4":        dict(circle=True, ring=26, size=1024),
     # Şeridin ortası oyuk: kapalı delik, kenardan taşma oraya ulaşamaz.
     "ribbon_reward":   dict(neutral=26, size=1024, holes=True),
 

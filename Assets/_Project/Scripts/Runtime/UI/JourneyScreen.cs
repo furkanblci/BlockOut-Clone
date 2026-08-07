@@ -76,6 +76,7 @@ namespace BlockOut.Runtime.UI
 
             // Manzarayı tamamen kapat: bu ekran sade zemin ister.
             UiKit.CreatePanel("Solid", root, Indigo);
+            screen.BuildBackdrop(root);
 
             screen.BuildScrollArea(root);
             screen.BuildTrack();
@@ -89,6 +90,54 @@ namespace BlockOut.Runtime.UI
 
             screen._built = true;
             return root;
+        }
+
+        /// <summary>
+        /// Zemin dokusu: büyük yumuşak daireler ve serpiştirilmiş yıldızlar.
+        ///
+        /// DERS (düz renk zemin BOŞ okunur): Bu ekranın zemini düz laciverttdi.
+        /// Manzaradan iyiydi (yazı okunuyordu) ama ekran "yüklenmemiş" gibi
+        /// duruyordu. Referansta da düz değil: çok düşük kontrastlı şekiller
+        /// var. Kritik olan KONTRASTIN DÜŞÜK olması — %4-7 opaklıkta bir daire
+        /// gözü hiç rahatsız etmiyor ama yüzeyin var olduğunu söylüyor.
+        ///
+        /// Şekiller sabit bir düzende: rastgele olsaydı her açılışta farklı
+        /// dururdu ve "bozuk mu" hissi verirdi.
+        /// </summary>
+        void BuildBackdrop(Transform root)
+        {
+            var layer = UiKit.CreateRect("Backdrop", root);
+            UiKit.Place(layer, 0f, 0f, 1f, 1f);
+
+            // (x, y, çap, opaklık) — elle dizildi, ekranı dengeli dolduruyor.
+            var blobs = new[]
+            {
+                (0.14f, 0.86f, 0.42f, 0.055f), (0.82f, 0.72f, 0.34f, 0.045f),
+                (0.30f, 0.52f, 0.50f, 0.040f), (0.88f, 0.34f, 0.44f, 0.050f),
+                (0.16f, 0.16f, 0.38f, 0.045f), (0.62f, 0.06f, 0.30f, 0.038f),
+            };
+            foreach (var (x, y, d, a) in blobs)
+            {
+                var blob = UiKit.CreateRoundedPanel("Blob", layer,
+                    new Color(0.62f, 0.55f, 1f, a));
+                blob.pixelsPerUnitMultiplier = 0.05f;
+                blob.raycastTarget = false;
+                UiKit.Place(blob, x - d * 0.5f, y - d * 0.35f, x + d * 0.5f, y + d * 0.35f);
+            }
+
+            var star = UiSkin.Get(Art.Star);
+            var stars = new[]
+            {
+                (0.09f, 0.62f, 0.055f), (0.91f, 0.55f, 0.042f), (0.20f, 0.30f, 0.048f),
+                (0.78f, 0.90f, 0.045f), (0.50f, 0.94f, 0.035f), (0.86f, 0.14f, 0.050f),
+                (0.12f, 0.44f, 0.038f), (0.70f, 0.24f, 0.042f),
+            };
+            foreach (var (x, y, d) in stars)
+            {
+                var glyph = UiKit.CreateIcon("Star", layer, star,
+                    new Color(1f, 0.96f, 0.78f, 0.10f));
+                UiKit.Place(glyph, x - d * 0.5f, y - d * 0.28f, x + d * 0.5f, y + d * 0.28f);
+            }
         }
 
         void BuildScrollArea(Transform root)
@@ -181,7 +230,7 @@ namespace BlockOut.Runtime.UI
         void BuildMilestone((int level, string icon, string value) milestone, float y)
         {
             var pill = UiKit.CreateSlicedPanel($"Level_{milestone.level}", _content,
-                UiSkin.Get(Art.PanelDark), Periwinkle);
+                UiSkin.Get(Art.PanelDark), new Color(0.463f, 0.416f, 0.878f));
             Anchor(pill.rectTransform, -272f, y, 452f, 172f);
 
             var caption = UiKit.CreateLabel("Caption", pill.transform, "Seviye", 30,
@@ -262,15 +311,18 @@ namespace BlockOut.Runtime.UI
         /// <summary>Rayın iki ucuna atlayan düğmeler — referanstaki "Üst"/"Alt".</summary>
         void BuildJumpButtons(Transform root)
         {
+            // DERS (yardımcı düğme ana yolun ÜSTÜNDE durmaz): Bu ikisi
+            // ekranın ortasındaydı ve rayın üstündeki rozetlerle çakışıyordu.
+            // İşlevleri ikincil — sağ kenara, içeriğin dışına alındılar.
             var up = UiKit.CreateTintedButton("Up", root, UiSkin.Get(Art.PanelCard),
-                Periwinkle, "Üst", 28, UiKit.Ink);
-            UiKit.Place(up, 0.40f, 0.812f, 0.60f, 0.866f);
+                Periwinkle, "Üst", 24, UiKit.Ink);
+            UiKit.Place(up, 0.795f, 0.800f, 0.965f, 0.852f);
             up.onClick.AddListener(() =>
             { if (_scroll != null) _scroll.verticalNormalizedPosition = 1f; });
 
             var down = UiKit.CreateTintedButton("Down", root, UiSkin.Get(Art.PanelCard),
-                Periwinkle, "Alt", 28, UiKit.Ink);
-            UiKit.Place(down, 0.40f, 0.014f, 0.60f, 0.068f);
+                Periwinkle, "Alt", 24, UiKit.Ink);
+            UiKit.Place(down, 0.795f, 0.022f, 0.965f, 0.074f);
             down.onClick.AddListener(() =>
             { if (_scroll != null) _scroll.verticalNormalizedPosition = 0f; });
         }

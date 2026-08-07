@@ -253,7 +253,53 @@ def unfringe(rgb: np.ndarray, alpha: np.ndarray, seeds: np.ndarray) -> np.ndarra
 
 DEFAULTS = dict(tolerance=40.0, trim=True, size=512, feather=0.8, local=8.0,
                 slow=False, holes=False, square=False, min_part=0.0005,
-                neutral=0.0, bright=0.0, seal=0, key=True)
+                neutral=0.0, bright=0.0, seal=0, key=True,
+                circle=False, ring=0.0,
+                ring_color=(126, 108, 226), inner_ring_color=(74, 58, 158))
+
+
+def circular_cut(image: Image.Image, ring: float, ring_color, inner_ring_color) -> Image.Image:
+    """
+    Görseli KUSURSUZ bir daireye kırpar ve kenarına çerçeve halkası basar.
+
+    DERS (bazı şekiller kesilmez, ÇİZİLİR): Bölge görselleri dairesel çizilip
+    kenarları zemine yumuşak geçiyor. Renk taşmasıyla kesmek o yumuşak geçişi
+    düzensiz yiyor: daire artık daire değil, kemirilmiş bir leke oluyor —
+    her görselde farklı yerinden. Şeklin ne olduğunu ZATEN BİLİYORSAK onu
+    tahmin etmeye çalışmak yanlış; doğrudan çizmek hem kusursuz hem de her
+    görselde birebir aynı sonucu veriyor.
+
+    Halka ayrıca iki iş görüyor: kenardaki yarım kalmış pikselleri örtüyor ve
+    koyu zeminde daireye bir sınır veriyor.
+    """
+    size = min(image.width, image.height)
+    left = (image.width - size) // 2
+    top = (image.height - size) // 2
+    square = image.crop((left, top, left + size, top + size)).convert("RGBA")
+
+    y, x = np.ogrid[:size, :size]
+    center = (size - 1) / 2.0
+    distance = np.sqrt((x - center) ** 2 + (y - center) ** 2)
+    radius = center
+
+    pixels = np.array(square).astype(np.float32)
+
+    # Alfa: yarıçapa kadar dolu, son 2 pikselde yumuşak biter (tırtık olmasın).
+    alpha = np.clip((radius - distance) / 2.0, 0.0, 1.0)
+
+    if ring > 0:
+        outer = np.clip((radius - distance) / 1.5, 0.0, 1.0)
+        inner = np.clip((radius - ring - distance) / 1.5, 0.0, 1.0)
+        band = np.clip(outer - inner, 0.0, 1.0)[..., None]
+        pixels[:, :, :3] = pixels[:, :, :3] * (1 - band) + np.array(ring_color) * band
+
+        # İnce iç çizgi: halkanın içine bir ton daha koyu bir hat, kalınlık hissi.
+        thin = np.clip((radius - ring - distance) / 1.5, 0.0, 1.0) -                np.clip((radius - ring - 5 - distance) / 1.5, 0.0, 1.0)
+        thin = np.clip(thin, 0.0, 1.0)[..., None]
+        pixels[:, :, :3] = pixels[:, :, :3] * (1 - thin) + np.array(inner_ring_color) * thin
+
+    pixels[:, :, 3] = alpha * 255.0
+    return Image.fromarray(pixels.astype(np.uint8), "RGBA")
 
 
 def process(path: pathlib.Path, out_dir: pathlib.Path, **overrides) -> str:
@@ -265,6 +311,17 @@ def process(path: pathlib.Path, out_dir: pathlib.Path, **overrides) -> str:
     neutral, bright, seal = opt["neutral"], opt["bright"], opt["seal"]
 
     image = Image.open(path).convert("RGBA")
+
+    # Dairesel görseller: kesilmez, ÇİZİLİR.
+    if opt["circle"]:
+        result = circular_cut(image, opt["ring"], opt["ring_color"], opt["inner_ring_color"])
+        if size > 0 and max(result.size) > size:
+            scale = size / max(result.size)
+            result = result.resize((round(result.width * scale), round(result.height * scale)),
+                                   Image.LANCZOS)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        result.save(out_dir / (path.stem + ".png"))
+        return f"{path.name} -> {path.stem}.png  (daire, {result.width}x{result.height})"
 
     # Arka plan görselleri (menü zemini gibi) kesilmez, yalnız küçültülür.
     if not opt["key"]:
