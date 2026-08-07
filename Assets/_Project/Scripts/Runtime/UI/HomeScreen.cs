@@ -97,7 +97,7 @@ namespace BlockOut.Runtime.UI
             var group = UiKit.CreateIcon("Characters", root, art);
             // Alt kenarı OYNA düğmesinin hemen üstünde: karakterler yolun
             // üzerinde duruyormuş gibi görünsün, havada asılı değil.
-            UiKit.Place(group, 0.03f, 0.262f, 0.97f, 0.585f);
+            UiKit.Place(group, 0.03f, 0.248f, 0.97f, 0.571f);
 
             // Hafif nefes alma: tamamen hareketsiz bir görsel, arkasındaki
             // manzaranın parçası sanılıyor.
@@ -146,54 +146,68 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(pill, 0.205f, bottom, 0.815f, top);
             pill.pixelsPerUnitMultiplier = 0.16f;      // uçları tam yuvarlak
 
-            _coinLabel = Counter(pill.transform, Art.Coin, 0.020f, 0.480f, out var coinPlus);
+            // Bölümler referans karesinden ölçüldü (kapsül 274x62 kırpma):
+            // jeton bölümü %0-42, can bölümü %42-100.
+            _coinLabel = Section(pill.transform, Art.Coin, 0.010f, 0.420f,
+                iconHeight: 0.62f, out var coinPlus, out _);
             coinPlus.onClick.AddListener(() => MenuShell.Instance?.Show("store"));
 
-            _livesLabel = Counter(pill.transform, Art.Heart, 0.510f, 0.975f, out var lifePlus);
+            _livesLabel = Section(pill.transform, Art.Heart, 0.430f, 0.990f,
+                iconHeight: 0.78f, out var lifePlus, out _livesTimer);
             lifePlus.onClick.AddListener(() => MenuShell.Instance?.Show("store"));
-
-            // Can durumu sayının ALTINDA: yanına koymak, jeton üç haneye
-            // çıkınca artı düğmesinin altına giriyordu.
-            _livesTimer = UiKit.CreateLabel("LivesTimer", pill.transform, "", 22,
-                new Color(1f, 1f, 1f, 0.78f));
-            UiKit.Place(_livesTimer, 0.615f, 0.02f, 0.860f, 0.40f);
 
             var gear = SquareButton(root, "Gear", Art.Gear, 0.846f, 0.960f, bottom, top);
             gear.onClick.AddListener(() => MenuShell.Instance?.Show("settings"));
         }
 
         /// <summary>
-        /// Kapsül içindeki bir sayaç: ikon + sayı + yeşil artı düğmesi.
+        /// Kapsülün bir bölümü: ikon · sayı · (durum) · küçük artı düğmesi.
         ///
-        /// DERS (ikon gerilmez): Artı düğmesi önce normal düğme olarak
-        /// kuruluyordu; yüzeyi 9-dilim gibi gerilip YUMURTAYA dönüyordu. İkonun
-        /// kendisi düğme yüzeyi olduğunda en-boy oranı korunmalı.
+        /// DERS (ölçüyü REFERANSTAN al, gözden değil): Bu şerit üç kez elden
+        /// geçti ve her seferinde "yaklaşık doğru" kaldı. Sorun ölçülerin göz
+        /// kararı olmasıydı. Referans kırpması 274x62 piksel; oradan okunan
+        /// oranlar: jeton ikonu kapsül yüksekliğinin %55'i, kalp %65'i, artı
+        /// düğmesi %40'ı, ve durum yazısı ("Dolu") sayının ALTINDA değil
+        /// YANINDA. Benim sürümümde artı düğmeleri ikonlar kadar büyüktü ve
+        /// göz önce onları görüyordu; sayaç şeridinde en büyük eleman içeriğin
+        /// kendisi olmalı, düğmesi değil.
         /// </summary>
-        TextMeshProUGUI Counter(Transform pill, string icon, float x0, float x1, out Button plus)
+        TextMeshProUGUI Section(Transform pill, string icon, float x0, float x1,
+            float iconHeight, out Button plus, out TextMeshProUGUI status)
         {
             float width = x1 - x0;
+            float top = 0.5f + iconHeight * 0.5f;
+            float bottom = 0.5f - iconHeight * 0.5f;
 
-            // İkon kapsülün üstüne ve altına hafifçe taşar — referanstaki gibi
-            // kapsüle takılmış bir madalyon.
             var badge = UiKit.CreateIcon($"Icon_{icon}", pill, UiSkin.Get(icon));
-            UiKit.Place(badge, x0, -0.10f, x0 + width * 0.235f, 1.10f);
+            UiKit.Place(badge, x0, bottom, x0 + width * 0.175f, top);
 
-            var label = UiKit.CreateTitle($"Value_{icon}", pill, "", 38, CoinInk,
-                new Color(0.12f, 0.09f, 0.28f));
-            UiKit.Place(label, x0 + width * 0.235f, 0.28f, x0 + width * 0.760f, 0.96f);
+            bool hasStatus = icon == Art.Heart;
 
+            // Sayı ve durum yan yana: durumu alta koymak kapsülü kalınlaştırıyor
+            // ve referansta da öyle değil.
+            float numberEnd = hasStatus ? 0.44f : 0.70f;
+            var label = UiKit.CreateTitle($"Value_{icon}", pill, "", 34, CoinInk,
+                new Color(0.10f, 0.07f, 0.24f));
+            UiKit.Place(label, x0 + width * 0.185f, 0.10f, x0 + width * numberEnd, 0.90f);
+
+            status = null;
+            if (hasStatus)
+            {
+                status = UiKit.CreateLabel($"Status_{icon}", pill, "", 26, CoinInk);
+                UiKit.Place(status, x0 + width * 0.46f, 0.12f, x0 + width * 0.78f, 0.88f);
+            }
+
+            // Artı: KÜÇÜK ve kare. En-boy korunduğu için yükseklik belirleyici.
+            // Referansta artı, kapsül yüksekliğinin ~%40'ı — jetondan ve
+            // kalpten belirgin biçimde küçük. Aynı boyda olunca göz önce
+            // düğmeyi görüyor, oysa şeridin konusu sayının kendisi.
             plus = UiKit.CreateIconButton($"Plus_{icon}", pill, UiSkin.Get(Art.Plus));
-            UiKit.Place(plus, x0 + width * 0.760f, -0.02f, x0 + width, 1.02f);
+            UiKit.Place(plus, x0 + width * 0.815f, 0.26f, x0 + width * 0.995f, 0.74f);
 
             return label;
         }
 
-        /// <summary>
-        /// Avatar: çerçeveli, tıklanınca profile götüren kare düğme.
-        ///
-        /// Çerçeve için ayrı bir görsel (frame_avatar) beklenirken koyu panel
-        /// mor tonlanıyor. Görsel gelince yalnız bu satır değişecek.
-        /// </summary>
         void BuildAvatar(Transform root, float x0, float x1, float y0, float y1)
         {
             // DERS (katman sırası = çizim sırası): Çerçeve düğmenin KENDİ
@@ -290,7 +304,7 @@ namespace BlockOut.Runtime.UI
             // gibi görünüyor ve parmak yanlış olana basıyordu. Sekme kartı
             // çubuğun üstüne %8 kadar taşıyor, düğme %17'den başlamalı ki
             // arada gerçek bir nefes payı kalsın.
-            UiKit.Place(_playButton, 0.280f, 0.172f, 0.720f, 0.277f);
+            UiKit.Place(_playButton, 0.280f, 0.158f, 0.720f, 0.263f);
             _playButton.onClick.AddListener(PlayCurrent);
             _playFace = _playButton.targetGraphic as Image;
 
@@ -300,9 +314,14 @@ namespace BlockOut.Runtime.UI
                 new Color(0.10f, 0.06f, 0.22f));
             UiKit.Place(_levelLabel, 0.06f, 0.44f, 0.94f, 0.94f);
 
+            // DERS (yazı butonun YÜZÜNE oturur, kenarına değil): "Zor Seviye"
+            // düğmenin alt %34'lük 3B kenarına denk geliyordu ve gölgenin
+            // üstünde yüzüyormuş gibi duruyordu — "model yok" hissi oradan
+            // geliyor. btn_purple'ın alt payı 68px, yani 202px yükseklikte
+            // alt %34 kenardır; iki yazı da bunun üstünde kalmalı.
             _difficultyLabel = UiKit.CreateTitle("Difficulty", face, "", 24,
-                new Color(0.88f, 0.90f, 1f), new Color(0.10f, 0.06f, 0.22f));
-            UiKit.Place(_difficultyLabel, 0.08f, 0.16f, 0.92f, 0.42f);
+                new Color(0.86f, 0.88f, 1f), new Color(0.10f, 0.06f, 0.22f));
+            UiKit.Place(_difficultyLabel, 0.08f, 0.36f, 0.92f, 0.58f);
 
             // Ödül şeridi düğmenin ÜST KENARINA binerek durur; ayrı bir kutu
             // gibi değil, düğmeye takılmış bir etiket gibi okunsun.
@@ -336,7 +355,7 @@ namespace BlockOut.Runtime.UI
         void BuildAdOffer(Transform root)
         {
             _adRow = UiKit.CreateRect("AdOffer", root).gameObject;
-            UiKit.Place((RectTransform)_adRow.transform, 0.255f, 0.172f, 0.745f, 0.277f);
+            UiKit.Place((RectTransform)_adRow.transform, 0.255f, 0.158f, 0.745f, 0.263f);
 
             var button = UiKit.CreateSpriteButton("WatchAd", _adRow.transform,
                 UiSkin.Get(Art.ButtonPurple), null, 0, CoinInk);
@@ -461,8 +480,8 @@ namespace BlockOut.Runtime.UI
             // seviye yazısı düğmenin ORTASINA oturur; alt satır boş kaldığında
             // tek satırın yukarıda asılı durması dengesiz görünüyordu.
             bool hasDifficulty = !string.IsNullOrEmpty(label);
-            float top = showRibbon ? 0.84f : 0.90f;
-            float bottom = hasDifficulty ? (showRibbon ? 0.42f : 0.46f) : 0.26f;
+            float top = showRibbon ? 0.94f : 0.98f;
+            float bottom = hasDifficulty ? 0.58f : 0.40f;
             UiKit.Place(_levelLabel, 0.08f, bottom, 0.92f, top);
         }
 

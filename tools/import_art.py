@@ -57,7 +57,7 @@ RECIPES = {
     # zemininin üstünde gri bir şerit gibi sırıtıyordu. Tolerans 95 onu da alıyor;
     # karakterler yüksek kromalı olduğu için (turkuaz/turuncu/yeşil) risk yok.
     "home_characters": dict(neutral=38, tolerance=95, size=1024),
-    "avatar_player":   dict(neutral=26, size=512),
+    "avatar_player":   dict(neutral=26, size=1024, feather=1.2),
     "check_green":     dict(neutral=26, size=512),
     "region_1":        dict(neutral=26, size=1024),
     "region_2":        dict(neutral=26, size=1024),
@@ -67,7 +67,9 @@ RECIPES = {
     "ribbon_reward":   dict(neutral=26, size=1024, holes=True),
 
     # --- Üçüncü parti (açık gri zeminli) ---
-    "frame_avatar":    dict(neutral=20, size=512, holes=True, min_part=0.004, feather=1.4),   # ortası oyuk
+    # Çerçeve ve portre 1024'te tutuluyor: 512'ye küçülünce çerçevenin ince
+    # kenarı iki-üç piksele düşüyor ve ekranda tırtıklı görünüyordu.
+    "frame_avatar":    dict(neutral=20, size=1024, holes=True, min_part=0.004, feather=1.2),   # ortası oyuk
     # Kenar yumuşatma artırıldı: 512'ye küçülünce kesim kenarında
     # tırtıklanma görünüyordu.
     "btn_square":      dict(neutral=20, size=512, feather=1.4),

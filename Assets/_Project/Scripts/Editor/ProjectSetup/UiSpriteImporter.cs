@@ -45,7 +45,7 @@ namespace BlockOut.Editor.ProjectSetup
 
             // Avatar çerçevesi ve kare düğme kare oranda kullanılıyor ama
             // 9-dilim payı verilirse farklı boyutlarda da bozulmaz.
-            { "frame_avatar", new Vector4(112, 110, 112, 112) },
+            { "frame_avatar", new Vector4(224, 220, 224, 224) },
             { "btn_square",   new Vector4(114, 110, 114, 116) },
         };
 
@@ -64,6 +64,7 @@ namespace BlockOut.Editor.ProjectSetup
             { "home_characters", 1024 },
             { "region_1", 1024 }, { "region_2", 1024 },
             { "region_3", 1024 }, { "region_4", 1024 },
+            { "frame_avatar", 1024 }, { "avatar_player", 1024 },
         };
 
         /// <summary>

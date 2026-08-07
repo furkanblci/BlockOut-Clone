@@ -95,6 +95,12 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(bar, 0f, 0f, 1f, 0.082f);
             bar.rectTransform.offsetMin = new Vector2(0f, -220f);
 
+            // Üst kenar ışığı: çubuğun bir yüzey olduğunu söyleyen tek çizgi.
+            var rim = UiKit.CreateRoundedPanel("Rim", root, RimColor);
+            UiKit.Place(rim, 0.02f, 0.0795f, 0.98f, 0.0835f);
+            rim.pixelsPerUnitMultiplier = 0.08f;
+            rim.raycastTarget = false;
+
             // Seçili kartın taşacağı alan çubuğun üstünde; bu yüzden kartlar
             // çubuğun DEĞİL kökün çocuğu, yoksa çubuk onları kırpar.
             float slot = 1f / Tabs.Length;
@@ -128,8 +134,14 @@ namespace BlockOut.Runtime.UI
 
         // Referans karesinden örneklenen iki ton: çubuk koyu mor-lacivert,
         // seçili kart ondan belirgin AÇIK bir mor.
-        static readonly Color BarColor  = new Color(0.235f, 0.176f, 0.470f);
-        static readonly Color CardColor = new Color(0.427f, 0.322f, 0.812f);
+        // DERS (koyu zemin ikonu YALNIZ BIRAKIR): Çubuk fazla koyuydu ve
+        // parlak 3B ikonlar onun üstünde oturmuyor, boşlukta yüzüyor gibi
+        // duruyordu. Kontrast ne kadar sertse eleman o kadar "yapıştırılmış"
+        // görünür. Çubuk ikonların tonuna yaklaştırıldı ve üst kenarına ince
+        // bir ışık şeridi kondu — o çizgi, çubuğu bir YÜZEY yapan şey.
+        static readonly Color BarColor  = new Color(0.318f, 0.243f, 0.612f);
+        static readonly Color CardColor = new Color(0.494f, 0.388f, 0.878f);
+        static readonly Color RimColor  = new Color(0.639f, 0.545f, 0.949f);
 
         /// <summary>Sekmeyi değiştirir; aynı sekmeye basmak ana ekrana döner.</summary>
         public void Show(string key)
