@@ -67,13 +67,15 @@ RECIPES = {
     "ribbon_reward":   dict(neutral=26, size=1024, holes=True),
 
     # --- Üçüncü parti (açık gri zeminli) ---
-    "frame_avatar":    dict(neutral=20, size=512, holes=True, min_part=0.004),   # ortası oyuk
-    "btn_square":      dict(neutral=20, size=512),
-    # icon_hand DEVRE DISI: kaynak gorselde beyaz eldiven, BEYAZ satranc
-    # zeminin uzerinde. Kenardan tasma zeminden ele geciyor ve elin kendisi
-    # siliniyor -- nesne rengi zemin renklerinden biriyle AYNI oldugunda
-    # kesim matematiksel olarak imkansiz. Renkli zeminle yeniden uretilmeli.
-    "icon_hand":       dict(neutral=20, size=512),
+    "frame_avatar":    dict(neutral=20, size=512, holes=True, min_part=0.004, feather=1.4),   # ortası oyuk
+    # Kenar yumuşatma artırıldı: 512'ye küçülünce kesim kenarında
+    # tırtıklanma görünüyordu.
+    "btn_square":      dict(neutral=20, size=512, feather=1.4),
+    # El: zemin KOYU LACIVERT olduğu için beyaz eldivenle karışmıyor.
+    # İlk sürümde beyaz eldiven BEYAZ satranç zemindeydi ve kesim
+    # matematiksel olarak imkânsızdı — nesne rengi zemin renklerinden
+    # biriyle aynıysa taşma zeminden nesneye geçer.
+    "icon_hand":       dict(neutral=0, tolerance=70, size=512),
     # Açılış görseli tam ekran: kesilecek arka planı yok.
     "splash_art":      dict(key=False, size=1920),
 }

@@ -111,7 +111,7 @@ namespace BlockOut.Runtime.UI
                 // kart seçimi göstermiyordu.
                 var card = UiKit.CreateSlicedPanel("Card", button.transform,
                     UiSkin.Get(Art.PanelCard), CardColor);
-                UiKit.Place(card, 0.06f, 0.05f, 0.94f, 1.66f);
+                UiKit.Place(card, 0.06f, 0.05f, 0.94f, 1.52f);
 
                 // Görünmez ama dokunulabilir yüzey: sekmenin tamamı tıklanabilsin.
                 if (button.targetGraphic is Image face) face.color = new Color(1f, 1f, 1f, 0f);
@@ -149,8 +149,8 @@ namespace BlockOut.Runtime.UI
 
                 // İkon seçiliyken kartın üst yarısına çıkar, yazıya yer açar.
                 if (icon != null)
-                    UiKit.Place(icon, selected ? 0.16f : 0.22f, selected ? 0.58f : 0.16f,
-                                      selected ? 0.84f : 0.78f, selected ? 1.50f : 0.86f);
+                    UiKit.Place(icon, selected ? 0.17f : 0.22f, selected ? 0.56f : 0.16f,
+                                      selected ? 0.83f : 0.78f, selected ? 1.38f : 0.86f);
 
                 if (caption != null) caption.gameObject.SetActive(selected);
                 if (selected && caption != null) UiKit.Place(caption, 0f, 0.10f, 1f, 0.52f);

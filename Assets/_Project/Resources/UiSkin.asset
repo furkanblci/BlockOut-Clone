@@ -47,6 +47,8 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: 5c37f275326bfc54a8d2fcc32335b9a1, type: 3}
   - name: icon_globe
     sprite: {fileID: 21300000, guid: e9adb171ec9de07489791207153526c0, type: 3}
+  - name: icon_hand
+    sprite: {fileID: 21300000, guid: 7b5e38dca7ebb9245bdc2069dcee413f, type: 3}
   - name: icon_heart
     sprite: {fileID: 21300000, guid: c6e28f9f64295fb418ce77ce8c65c5a8, type: 3}
   - name: icon_home
