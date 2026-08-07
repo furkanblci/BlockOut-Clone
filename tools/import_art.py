@@ -26,7 +26,12 @@ from cutout import process                                    # noqa: E402
 RAW = pathlib.Path(__file__).parent.parent / "art_raw"
 OUT = pathlib.Path(__file__).parent.parent / "Assets/_Project/Art/UI"
 
-COMMON = dict(tolerance=60, neutral=18, size=512)
+# bright=25: zeminden 25 birim daha parlak hiçbir piksel silinemez.
+# 3B plastik yüzeylerin parlaklık lekeleri neredeyse beyaz olduğu için
+# kromaları sıfırdır ve kroma şartı onları korumaz; parlaklık ekseninde
+# ayrı bir kapı gerekiyor. Zemin karanlıksa bu kapı hiçbir şey değiştirmez,
+# yani her partide güvenle açık kalabilir.
+COMMON = dict(tolerance=60, neutral=18, bright=25, size=512)
 
 # Yalnız ortaktan SAPAN dosyalar yazılır; gerisi COMMON ile işlenir.
 RECIPES = {
@@ -56,7 +61,16 @@ RECIPES = {
     # Karakterlerin altındaki gri zemin gölgesi ortak ayarda kalıyordu ve köy
     # zemininin üstünde gri bir şerit gibi sırıtıyordu. Tolerans 95 onu da alıyor;
     # karakterler yüksek kromalı olduğu için (turkuaz/turuncu/yeşil) risk yok.
-    "home_characters": dict(neutral=38, tolerance=95, size=1024),
+    # Tolerans ÖLÇÜLEREK seçildi: karakterin gölgeli yanak bölgesi zemin
+    # renginden 75 birim uzakta, yer gölgesinin en uzak parçası 67 birim.
+    # 72 ikisini tam ayırıyor — gölge gidiyor, karakter bütün kalıyor.
+    # Önce 95 verilmişti ve yanaktan, omuzdan, ayaktan parçalar kopuyordu.
+    # bright=6 ÖLÇÜLEREK bulundu: zeminin parlaklığı 145-168 arasında ve
+    # %99.9'u 161'in altında; karakterin siluetindeki kenar ışığı şeridi ise
+    # 166'nın üstünde. Taşma tam o şeridin üstünden ilerleyip omuzdan bir
+    # parça koparıyordu — şerit ne yeterince renkli ki kroma kapısına takılsın,
+    # ne de bright=22 ile korunacak kadar parlak. 6'ya çekmek ikisini ayırıyor.
+    "home_characters": dict(neutral=38, tolerance=72, bright=6, size=1024),
     "avatar_player":   dict(neutral=26, size=1024, feather=1.2),
     "check_green":     dict(neutral=26, size=512),
     "region_1":        dict(neutral=26, size=1024),

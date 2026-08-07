@@ -68,27 +68,43 @@ def distance_to_seeds(rgb: np.ndarray, seeds: np.ndarray) -> np.ndarray:
     return np.linalg.norm(diff, axis=3).min(axis=2)
 
 
-def background_test(rgb: np.ndarray, seeds: np.ndarray,
-                    tolerance: float, neutral: float) -> np.ndarray:
+def background_test(rgb: np.ndarray, seeds: np.ndarray, tolerance: float,
+                    neutral: float, bright: float = 0.0) -> np.ndarray:
     """
     Bir piksel arka plan rengi sayılır mı?
 
-    `neutral` verilirse ikinci bir şart aranır: pikselin KROMASI (en yüksek ve
-    en düşük kanal arasındaki fark) küçük olmalı. Stüdyo fonları gri tonlamadır
-    — kroması sıfıra yakındır. Gri gövdeli bir kilit ise gri-MAVİdir; parlaklığı
-    zeminle örtüşse bile kroması onu ele verir. Bu şart olmadan kilidi zeminden
-    ayırmanın tek yolu toleransı düşürmek, o da zeminin yarısını bırakmak olur.
+    Üç şart:
+      1. Bir arka plan tohumuna yakın olacak (tolerance).
+      2. `neutral` verilirse KROMASI küçük olacak. Stüdyo fonları gri
+         tonlamadır; gri-mavi gövdeli bir kilit parlaklığı zeminle örtüşse
+         bile kroması onu ele verir.
+      3. `bright` verilirse tohumdan belirgin PARLAK OLMAYACAK.
+
+    DERS (kroma beyazı korumaz): Üçüncü şart, karakter görselinde bir hasarı
+    düzeltmek için eklendi. 3B plastik yüzeylerin parlaklık lekeleri neredeyse
+    BEYAZDIR — yani kroması sıfır. Açık gri bir zeminde tolerans yükseltilince
+    bu lekeler "arka plan" sayıldı ve karakterin yanağından, omzundan,
+    ayağından parçalar koptu. Kroma şartı onları korumadı çünkü beyaz da
+    nötrdür. Parlaklık ekseninde ayrı bir kapı gerekiyordu: zeminden yeterince
+    parlak olan hiçbir piksel arka plan olamaz.
     """
     close = distance_to_seeds(rgb, seeds) <= tolerance
+
+    channels = rgb.astype(np.int16)
     if neutral > 0:
-        channels = rgb.astype(np.int16)
         chroma = channels.max(axis=2) - channels.min(axis=2)
         close &= chroma <= neutral
+
+    if bright > 0:
+        luminance = channels.mean(axis=2)
+        seedLuminance = float(seeds.mean(axis=1).max())
+        close &= luminance <= seedLuminance + bright
+
     return close
 
 
 def region_masks(rgb: np.ndarray, seeds: np.ndarray, tolerance: float,
-                 neutral: float = 0.0, min_hole: float = 0.004):
+                 neutral: float = 0.0, bright: float = 0.0, min_hole: float = 0.004):
     """
     Arka plan rengindeki bölgeleri tek seferde etiketler ve ikiye ayırır:
     görüntünün kenarına DEĞEN bölgeler (arka plan) ve değmeyip yeterince
@@ -100,7 +116,7 @@ def region_masks(rgb: np.ndarray, seeds: np.ndarray, tolerance: float,
     Alan eşiği önemli: nesnenin üstündeki minik bir gri leke de arka plan
     rengine yakın olabilir ama delik sayılıp delinmemeli.
     """
-    close = background_test(rgb, seeds, tolerance, neutral)
+    close = background_test(rgb, seeds, tolerance, neutral, bright)
     labels, count = ndimage.label(close)
     if count == 0:
         empty = np.zeros(rgb.shape[:2], dtype=bool)
@@ -118,6 +134,32 @@ def region_masks(rgb: np.ndarray, seeds: np.ndarray, tolerance: float,
     holes = np.isin(labels, big[big > 0]) & ~background
 
     return background, holes
+
+
+def seal_channels(mask: np.ndarray, radius: int) -> np.ndarray:
+    """
+    Nesnenin içine sızan İNCE taşma kanallarını kapatır.
+
+    DERS (taşma bir dikişten içeri girer): Karakterin siluet kenarında,
+    yüzeyin döndüğü yerde ince bir gri ton şeridi var — ne yeterince parlak
+    ki parlaklık kapısına takılsın, ne yeterince renkli ki kroma kapısına.
+    Taşma o bir-iki piksellik dikişten içeri giriyor ve yanaktan bir parça
+    koparıyordu. Toleransı düşürmek işe yaramadı çünkü dikiş zaten zemin
+    rengine çok yakın.
+
+    Çözüm biçimsel: arka plan maskesine KAPAMA uygulanıyor. Kapama, dar
+    boğazları yutar ama geniş alanları olduğu gibi bırakır — yani zeminin
+    kendisi etkilenmez, yalnız nesneye giren dar kanal kesilir. Yarıçap
+    kanal genişliğinden büyük, nesnenin ince parçalarından (parmak, anten)
+    küçük seçilmeli.
+    """
+    if radius <= 0:
+        return mask
+
+    # Arka planı AŞINDIR sonra GENİŞLET: dar kanallar aşınmada kopar,
+    # geniş alanlar geri döner.
+    eroded = ndimage.binary_erosion(mask, iterations=radius, border_value=1)
+    return ndimage.binary_dilation(eroded, iterations=radius, border_value=1) & mask
 
 
 def despeckle(mask: np.ndarray, min_part: float) -> np.ndarray:
@@ -211,7 +253,7 @@ def unfringe(rgb: np.ndarray, alpha: np.ndarray, seeds: np.ndarray) -> np.ndarra
 
 DEFAULTS = dict(tolerance=40.0, trim=True, size=512, feather=0.8, local=8.0,
                 slow=False, holes=False, square=False, min_part=0.0005,
-                neutral=0.0, key=True)
+                neutral=0.0, bright=0.0, seal=0, key=True)
 
 
 def process(path: pathlib.Path, out_dir: pathlib.Path, **overrides) -> str:
@@ -220,7 +262,7 @@ def process(path: pathlib.Path, out_dir: pathlib.Path, **overrides) -> str:
     tolerance, trim, size = opt["tolerance"], opt["trim"], opt["size"]
     feather, local, slow = opt["feather"], opt["local"], opt["slow"]
     holes, square, min_part = opt["holes"], opt["square"], opt["min_part"]
-    neutral = opt["neutral"]
+    neutral, bright, seal = opt["neutral"], opt["bright"], opt["seal"]
 
     image = Image.open(path).convert("RGBA")
 
@@ -241,10 +283,11 @@ def process(path: pathlib.Path, out_dir: pathlib.Path, **overrides) -> str:
     if slow:
         mask = flood_mask(rgb, seeds, tolerance, local)
     else:
-        mask, inner = region_masks(rgb, seeds, tolerance, neutral)
+        mask, inner = region_masks(rgb, seeds, tolerance, neutral, bright)
         if holes:
             mask |= inner
 
+    mask = seal_channels(mask, int(seal))
     mask = despeckle(mask, min_part)
     covered = mask.mean()
     if covered < 0.02:
@@ -306,6 +349,10 @@ def main() -> int:
     parser.add_argument("--square", action="store_true", help="Çıktıyı kareye tamamla")
     parser.add_argument("--no-key", action="store_true",
                         help="Arka planı kesme, yalnız küçült (tam ekran zeminler için)")
+    parser.add_argument("--seal", type=int, default=0,
+                        help="Nesneye sızan ince taşma kanallarını kapatır (piksel)")
+    parser.add_argument("--bright", type=float, default=0.0,
+                        help="Zeminden bu kadar parlak pikseller asla silinmez")
     parser.add_argument("--neutral", type=float, default=0.0,
                         help="Zemin gri tonlamaysa: yalnız kroması bundan küçük pikseller silinir")
     parser.add_argument("--min-part", type=float, default=0.0005,
@@ -328,7 +375,8 @@ def main() -> int:
             print(process(path, out_dir, tolerance=args.tolerance, trim=not args.no_trim,
                           size=args.size, feather=args.feather, local=args.local,
                           holes=args.holes, square=args.square, slow=args.slow,
-                          min_part=args.min_part, neutral=args.neutral, key=not args.no_key))
+                          min_part=args.min_part, neutral=args.neutral,
+                          bright=args.bright, seal=args.seal, key=not args.no_key))
         except Exception as error:                      # tek dosya patlarsa parti durmasın
             print(f"{path.name}: HATA {error}")
 

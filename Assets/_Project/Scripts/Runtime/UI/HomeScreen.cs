@@ -180,18 +180,21 @@ namespace BlockOut.Runtime.UI
 
             if (isLives)
             {
-                value = UiKit.CreateTitle($"Value_{icon}", badge.transform, "", 28,
+                // Kalbin üstündeki sayı: kalp genişliği ~100 piksel, tek/çift
+                // haneli sayı 34 puntoda ~45 piksel — taşma payı bol.
+                value = UiKit.CreateTitle($"Value_{icon}", badge.transform, "", 34,
                     CoinInk, new Color(0.42f, 0.03f, 0.03f));
                 UiKit.Place(value, 0f, 0.04f, 1f, 0.92f);
 
-                status = UiKit.CreateLabel($"Status_{icon}", bar.transform, "", 25, CoinInk);
-                UiKit.Place(status, 0.28f, 0.08f, 0.78f, 0.92f);
+                status = UiKit.CreateLabel($"Status_{icon}", bar.transform, "", 29, CoinInk);
+                UiKit.Place(status, 0.26f, 0.08f, 0.80f, 0.92f);
             }
             else
             {
-                value = UiKit.CreateTitle($"Value_{icon}", bar.transform, "", 31, CoinInk,
+                // "5000" dört hane; 36 puntoda ~95 piksel, ayrılan alan ~154.
+                value = UiKit.CreateTitle($"Value_{icon}", bar.transform, "", 36, CoinInk,
                     new Color(0.10f, 0.07f, 0.24f));
-                UiKit.Place(value, 0.26f, 0.08f, 0.78f, 0.92f);
+                UiKit.Place(value, 0.25f, 0.08f, 0.80f, 0.92f);
             }
 
             plus = UiKit.CreateIconButton($"Plus_{icon}", root, UiSkin.Get(Art.Plus));
@@ -319,31 +322,37 @@ namespace BlockOut.Runtime.UI
 
             // Ödül şeridi düğmenin ÜST KENARINA binerek durur; ayrı bir kutu
             // gibi değil, düğmeye takılmış bir etiket gibi okunsun.
-            // DERS (düz renk = boş görünür): Etiketi tek düz turuncu yapmıştım;
-            // "sade" oldu ama yüzeysiz kaldı, arkası boş bir kutu gibi durdu.
-            // Oyunun geri kalanının dili 3B plastik: her yüzeyin altında bir
-            // kalınlık var. İki katman yeter — altta koyu turuncu bir kopya,
-            // birkaç piksel aşağıda; üstünde parlak yüz. Sprite üretmeye gerek
-            // yok, aynı hissi iki dikdörtgen veriyor.
+            // DERS (rozeti ROZET yapan şey KENARIDIR): Bu etiket üç sürüm
+            // gördü — kendi sprite'ı (gölgesi kırpıldı), krem kart (alt bandı
+            // kırmızıya döndü), düz turuncu (yüzeysiz kaldı). Referanstakine
+            // bakınca eksik olanın ne olduğu görülüyor: koyu bir KENAR. Bir
+            // rozeti arka plandan ayıran, yüzündeki parlaklık değil çevresini
+            // saran o çizgidir; onsuz her renk zemine karışıyor.
+            //
+            // Üç katman: koyu kenar → parlak yüz → yüzün üst yarısında ışık.
             var ribbonRoot = UiKit.CreateRect("Ribbon", _playButton.transform);
-            // Şerit düğmenin ÜST KENARINA oturur, yüzüne değil: 0.82'den
-            // başlayınca "Seviye" yazısının üstünü kapatıyordu.
-            UiKit.Place(ribbonRoot, 0.325f, 0.96f, 0.675f, 1.40f);
+            UiKit.Place(ribbonRoot, 0.300f, 0.98f, 0.700f, 1.46f);
             _rewardRibbon = ribbonRoot;
 
-            var ribbonBase = UiKit.CreateRoundedPanel("Base", ribbonRoot,
-                new Color(0.72f, 0.32f, 0.02f));
-            ribbonBase.pixelsPerUnitMultiplier = 0.16f;
-            UiKit.Place(ribbonBase, 0f, -0.14f, 1f, 0.92f);
+            var ribbonEdge = UiKit.CreateRoundedPanel("Edge", ribbonRoot,
+                new Color(0.60f, 0.24f, 0.01f));
+            ribbonEdge.pixelsPerUnitMultiplier = 0.15f;
+            UiKit.Place(ribbonEdge, 0f, 0f, 1f, 1f);
 
             var ribbon = UiKit.CreateRoundedPanel("Face", ribbonRoot,
-                new Color(0.98f, 0.58f, 0.06f));
-            ribbon.pixelsPerUnitMultiplier = 0.16f;
-            UiKit.Place(ribbon, 0f, 0f, 1f, 1f);
+                new Color(0.98f, 0.60f, 0.07f));
+            ribbon.pixelsPerUnitMultiplier = 0.17f;
+            UiKit.Place(ribbon, 0.030f, 0.10f, 0.970f, 0.92f);
 
-            _rewardLabel = UiKit.CreateTitle("RibbonText", ribbon.transform, "", 22,
-                CoinInk, new Color(0.52f, 0.25f, 0.02f));
-            UiKit.Place(_rewardLabel, 0.05f, 0.06f, 0.95f, 0.94f);
+            var gloss = UiKit.CreateRoundedPanel("Gloss", ribbonRoot,
+                new Color(1f, 0.78f, 0.36f, 0.55f));
+            gloss.pixelsPerUnitMultiplier = 0.17f;
+            gloss.raycastTarget = false;
+            UiKit.Place(gloss, 0.075f, 0.52f, 0.925f, 0.87f);
+
+            _rewardLabel = UiKit.CreateTitle("RibbonText", ribbonRoot, "", 26,
+                CoinInk, new Color(0.42f, 0.18f, 0.01f));
+            UiKit.Place(_rewardLabel, 0.04f, 0.08f, 0.96f, 0.94f);
         }
 
         /// <summary>
