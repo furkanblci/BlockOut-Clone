@@ -64,6 +64,7 @@ namespace BlockOut.Runtime.UI
             new List<(TextMeshProUGUI, int)>();
 
         TextMeshProUGUI _progressLabel;
+        Image _progressFill;
         ScrollRect _scroll;
         RectTransform _content;
         bool _built;
@@ -82,9 +83,29 @@ namespace BlockOut.Runtime.UI
             screen.BuildTrack();
 
             MenuShell.Header(root, "Yolculuk");
-            screen._progressLabel = UiKit.CreateLabel("Progress", root, "", 30,
-                new Color(1f, 1f, 1f, 0.8f));
-            UiKit.Place(screen._progressLabel, 0.04f, 0.876f, 0.96f, 0.918f);
+            screen._progressLabel = UiKit.CreateLabel("Progress", root, "", 26,
+                new Color(1f, 1f, 1f, 0.82f));
+            UiKit.Place(screen._progressLabel, 0.04f, 0.898f, 0.96f, 0.930f);
+
+            // DERS (sayı ne kadar YAKIN olduğunu söylemez): "Sonraki ödüle 5
+            // bölüm" doğru bir cümle ama beş bölümün çok mu az mı olduğunu
+            // anlatmıyor. Dolan bir çubuk aynı bilgiyi karşılaştırmalı verir:
+            // oyuncu çubuğun sonuna ne kadar kaldığını GÖRÜR ve "az kalmış"
+            // hissi ancak böyle doğar.
+            var track = UiKit.CreateRoundedPanel("ProgressTrack", root,
+                new Color(0.055f, 0.035f, 0.145f, 0.55f));
+            track.pixelsPerUnitMultiplier = 0.10f;
+            track.raycastTarget = false;
+            UiKit.Place(track, 0.12f, 0.872f, 0.88f, 0.896f);
+
+            screen._progressFill = UiKit.CreateRoundedPanel("ProgressFill", track.transform,
+                new Color(0.30f, 0.88f, 0.36f));
+            screen._progressFill.pixelsPerUnitMultiplier = 0.10f;
+            screen._progressFill.raycastTarget = false;
+            UiKit.Place(screen._progressFill, 0.008f, 0.14f, 0.992f, 0.86f);
+            screen._progressFill.type = UnityEngine.UI.Image.Type.Filled;
+            screen._progressFill.fillMethod = UnityEngine.UI.Image.FillMethod.Horizontal;
+            screen._progressFill.fillOrigin = 0;
 
             screen.BuildJumpButtons(root);
 
@@ -384,6 +405,19 @@ namespace BlockOut.Runtime.UI
             _progressLabel.text = next == int.MaxValue
                 ? $"Seviye {reached} · tüm ödüller alındı"
                 : $"Seviye {reached} · sonraki ödüle {next - reached} bölüm";
+
+            // Çubuk, ÖNCEKİ kilometre taşından sonrakine olan yolu gösterir.
+            // Sıfırdan ölçseydi ilk ödülden sonra çubuk hep dolu görünürdü.
+            if (_progressFill != null)
+            {
+                int previous = 0;
+                foreach (var (level, _, _) in Milestones)
+                    if (level <= reached && level > previous) previous = level;
+
+                float span = next == int.MaxValue ? 1f : Mathf.Max(1, next - previous);
+                float done = next == int.MaxValue ? 1f : (reached - previous) / span;
+                _progressFill.fillAmount = Mathf.Clamp01(done);
+            }
 
             foreach (var (check, level) in _checks)
                 check.enabled = reached >= level;

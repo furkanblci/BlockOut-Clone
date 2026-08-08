@@ -56,11 +56,37 @@ namespace BlockOut.Runtime.UI
                     // Haptik servisi oyun sahnesinde kurulur; ayar kayıttan okunur.
                 });
 
+            // DERS (oyuncu kimliği DESTEK için vardır): Oyuncu "ilerlemem
+            // kayboldu" diye yazdığında elinde tek bir tanıtıcı olmalı; yoksa
+            // hangi kaydı arayacağını kimse bilemez. Kopyalanabilir kısa bir
+            // kod, destek yazışmasının tamamını mümkün kılan şey.
+            var idRow = UiKit.CreateSlicedPanel("PlayerId", root, UiSkin.Get(Art.PanelDark));
+            UiKit.Place(idRow, 0.06f, 0.398f, 0.94f, 0.474f);
+
+            var idTitle = UiKit.CreateLabel("Name", idRow.transform, "Oyuncu Kimliği", 28, UiKit.Ink);
+            UiKit.Place(idTitle, 0.05f, 0.50f, 0.70f, 0.95f);
+            idTitle.alignment = TextAlignmentOptions.Left;
+
+            screen._playerId = UiKit.CreateLabel("Value", idRow.transform, "", 24,
+                new Color(1f, 1f, 1f, 0.72f));
+            UiKit.Place(screen._playerId, 0.05f, 0.06f, 0.70f, 0.52f);
+            screen._playerId.alignment = TextAlignmentOptions.Left;
+
+            var copy = UiKit.CreateTintedButton("Copy", idRow.transform,
+                UiSkin.Get(Art.PanelCard), new Color(0.427f, 0.322f, 0.812f),
+                "Kopyala", 22, UiKit.Ink);
+            UiKit.Place(copy, 0.72f, 0.16f, 0.96f, 0.84f);
+            copy.onClick.AddListener(() =>
+            {
+                GUIUtility.systemCopyBuffer = screen._playerId.text;
+                screen._playerId.text += "  ✓";
+            });
+
             // Yasal / destek bağlantıları — referanstaki dört satır.
             string[] links = { "Destek", "Koşullar", "Gizlilik", "Hesabımı Sil" };
             for (int i = 0; i < links.Length; i++)
             {
-                float y1 = 0.44f - i * 0.085f;
+                float y1 = 0.360f - i * 0.080f;
                 var button = UiKit.CreateTintedButton($"Link_{i}", root,
                     UiSkin.Get(Art.PanelCard),
                     i == links.Length - 1 ? new Color(0.925f, 0.255f, 0.176f) : new Color(0.420f, 0.310f, 0.878f),
@@ -94,6 +120,8 @@ namespace BlockOut.Runtime.UI
             _rows.Add((state, title, get));
         }
 
+        TextMeshProUGUI _playerId;
+
         // AddComponent, Build() alanları doldurmadan ÖNCE OnEnable'ı tetikler;
         // bu bayrak olmadan ilk tazeleme null referansa çarpıyor.
         bool _built;
@@ -103,6 +131,9 @@ namespace BlockOut.Runtime.UI
         public void Refresh()
         {
             if (!_built) return;
+
+            if (_playerId != null)
+                _playerId.text = MetaServices.Ready ? MetaServices.PlayerId : "—";
 
             foreach (var (label, _, get) in _rows)
             {

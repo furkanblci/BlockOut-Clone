@@ -36,6 +36,24 @@ namespace BlockOut.Runtime.Services
         /// <summary>Profilde gösterilen ad; kayıtta boşsa çağıran varsayılanı koyar.</summary>
         public static string PlayerName => Ready ? Save.Data.PlayerName : "";
 
+        /// <summary>
+        /// Destek yazışmalarında kullanılacak kısa oyuncu kimliği.
+        ///
+        /// Kaydın kendisinden TÜRETİLİYOR, ayrıca saklanmıyor: aynı kayıt aynı
+        /// kodu verir, kayıt sıfırlanınca kod da değişir. Sunucu olmadığı için
+        /// benzersizliği garanti edemeyiz ama tek bir cihazın kaydını
+        /// tanımlamaya yeter.
+        /// </summary>
+        public static string PlayerId
+        {
+            get
+            {
+                if (!Ready) return "—";
+                int hash = (Save.Data.PlayerName + Save.Data.HighestUnlockedIndex).GetHashCode();
+                return "BO-" + (hash & 0x7FFFFFF).ToString("X7");
+            }
+        }
+
         /// <summary>Videodaki üst bar: 5 can, 30 dakikada bir dolum.</summary>
         public const int MaxLives = 5;
         public static readonly TimeSpan RefillInterval = TimeSpan.FromMinutes(30);
