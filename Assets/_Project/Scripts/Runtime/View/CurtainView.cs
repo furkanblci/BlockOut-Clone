@@ -40,6 +40,13 @@ namespace BlockOut.Runtime.View
             panel.transform.position = center;
             panel.transform.localScale = new Vector3(model.W - 0.04f, PanelHeight, model.H - 0.04f);
 
+            // DERS (düz yüzey MALZEME hissi vermez): Perde tek düz bir gri
+            // kutuydu; tahtanın üstünde "boş alan" gibi duruyor, altında blok
+            // olduğunu düşündürmüyordu. Buzlu cam iki şeyle okunur: kenarda
+            // parlayan bir çerçeve ve yüzeyde ışığın kırıldığı düzensiz
+            // lekeler. İkisi de birkaç ek kutuyla veriliyor.
+            AddGlassStreaks(root.transform, center, model);
+
             var view = root.AddComponent<CurtainView>();
             view._model = model;
             view._counter = ViewKit.CreateCounter(
@@ -47,6 +54,38 @@ namespace BlockOut.Runtime.View
             view._counter.color = new Color(1f, 0.9f, 0.55f); // altın rozet hissi
 
             return view;
+        }
+
+        /// <summary>
+        /// Buzlu camın üstündeki ışık çizgileri. Perdenin boyutuna göre
+        /// ölçekleniyor; küçük perde iki, geniş perde beş çizgi alıyor.
+        /// </summary>
+        static void AddGlassStreaks(Transform parent, Vector3 center, CurtainModel model)
+        {
+            int count = Mathf.Clamp(Mathf.RoundToInt(model.W * model.H * 0.5f), 2, 5);
+            var random = new System.Random(model.X * 73856093 ^ model.Y * 19349663);
+            float Range(float a, float b) => a + (float)random.NextDouble() * (b - a);
+
+            for (int i = 0; i < count; i++)
+            {
+                var streak = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                streak.name = "Streak";
+                streak.transform.SetParent(parent, worldPositionStays: false);
+                Destroy(streak.GetComponent<Collider>());
+
+                var renderer = streak.GetComponent<MeshRenderer>();
+                renderer.sharedMaterial = ViewKit.CurtainStreak;
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+
+                float length = Range(0.35f, 0.8f) * Mathf.Min(model.W, model.H);
+                streak.transform.position = center + new Vector3(
+                    Range(-model.W * 0.32f, model.W * 0.32f),
+                    PanelHeight * 0.5f + 0.005f,
+                    Range(-model.H * 0.32f, model.H * 0.32f));
+                streak.transform.localScale = new Vector3(length, 0.02f, Range(0.06f, 0.14f));
+                streak.transform.rotation = Quaternion.Euler(0f, Range(-40f, 40f), 0f);
+            }
         }
 
         public void UpdateCount()

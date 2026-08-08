@@ -59,6 +59,8 @@ namespace BlockOut.Runtime.View
         }
 
         static Material _frostShard;
+        static Material _curtainStreak;
+        static Material _gridLine;
 
         /// <summary>
         /// Buzun üstündeki kristal parçaların materyali.
@@ -86,6 +88,18 @@ namespace BlockOut.Runtime.View
                 return _frostShard;
             }
         }
+
+        /// <summary>Zemindeki hücre ızgarası çizgisi — çok soluk.</summary>
+        public static Material GridLine =>
+            _gridLine != null ? _gridLine
+                : (_gridLine = CreateTransparent(
+                    "GridLine", new Color(1f, 1f, 1f, 0.07f), 2990));
+
+        /// <summary>Buzlu camın üstündeki ışık çizgisi — hafif parlak, saydam.</summary>
+        public static Material CurtainStreak =>
+            _curtainStreak != null ? _curtainStreak
+                : (_curtainStreak = CreateTransparent(
+                    "CurtainStreak", new Color(1f, 1f, 1f, 0.22f), 3010));
 
         /// <summary>
         /// URP için doğru kurulmuş yarı saydam materyal.

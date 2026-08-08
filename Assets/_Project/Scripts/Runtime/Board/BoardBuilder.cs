@@ -58,6 +58,8 @@ namespace BlockOut.Runtime.Board
             floorRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             floorRenderer.receiveShadows = false;
 
+            BuildGrid(root, board, space);
+
             // --- Dış çerçeve: tahtayı çevreleyen kalın bordür ---
             // Referans oyunda tahta, kalın yuvarlatılmış bir çerçeve içinde
             // oturur; bu hem sınırı netleştirir hem de tahtaya kalınlık hissi verir.
@@ -196,6 +198,48 @@ namespace BlockOut.Runtime.Board
         }
 
         /// <summary>Oynanabilir hücrelerin tamamını tek mesh'e örer; her hücre 0-1 UV alır.</summary>
+        /// <summary>
+        /// Zemine ince hücre ızgarası çizer.
+        ///
+        /// DERS (ızgara OKUNABİLİRLİK, süs değil): Zemin düz koyu bir yüzeydi.
+        /// Blok sürüklenirken oyuncu "bir hücre mi iki hücre mi kaydım" sorusunu
+        /// ancak bloğun kendisine bakarak cevaplayabiliyordu. Izgara o soruyu
+        /// zeminden cevaplıyor ve kaydırmanın hücreye oturduğunu gösteriyor.
+        ///
+        /// Çizgiler ÇOK soluk (%7): amaç sınırı sezdirmek, dikkat çekmek değil.
+        /// Belirgin bir ızgara bloklarla yarışır ve tahtayı gürültülü yapar.
+        /// </summary>
+        static void BuildGrid(Transform root, BoardModel board, BoardSpace space)
+        {
+            var holder = new GameObject("Grid");
+            holder.transform.SetParent(root, worldPositionStays: false);
+
+            const float thickness = 0.035f;
+            var material = ViewKit.GridLine;
+
+            void Line(Vector3 center, Vector3 scale)
+            {
+                var line = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                line.transform.SetParent(holder.transform, worldPositionStays: false);
+                Object.Destroy(line.GetComponent<Collider>());
+                var renderer = line.GetComponent<MeshRenderer>();
+                renderer.sharedMaterial = material;
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+                line.transform.position = center;
+                line.transform.localScale = scale;
+            }
+
+            // İç çizgiler: kenarlar çerçeve tarafından zaten belirtiliyor.
+            for (int x = 1; x < board.Width; x++)
+                Line(space.CornerToWorld(x, board.Height * 0.5f, 0.012f),
+                     new Vector3(thickness, 0.02f, board.Height));
+
+            for (int y = 1; y < board.Height; y++)
+                Line(space.CornerToWorld(board.Width * 0.5f, y, 0.012f),
+                     new Vector3(board.Width, 0.02f, thickness));
+        }
+
         static Mesh BuildFloorMesh(BoardModel board, BoardSpace space)
         {
             var verts = new List<Vector3>();
