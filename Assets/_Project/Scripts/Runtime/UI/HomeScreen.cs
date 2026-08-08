@@ -48,10 +48,20 @@ namespace BlockOut.Runtime.UI
 
         float _nextTick;
 
+        DailyRewardPanel _daily;
+
         void Start()
         {
             BuildUi();
             Refresh();
+            _daily?.ShowIfAvailable();
+        }
+
+        void OnEnable()
+        {
+            // Menüye her dönüşte değil, GÜN değiştiyse açılır — servisin
+            // kendisi "bugün alındı mı" kontrolünü yapıyor.
+            if (_daily != null) _daily.ShowIfAvailable();
         }
 
         void Update()
@@ -79,6 +89,9 @@ namespace BlockOut.Runtime.UI
             BuildTopBar(root);
             BuildPlayButton(root);
             BuildAdOffer(root);
+
+            // Günlük ödül: ana ekran açılınca hediye varsa kendiliğinden gelir.
+            _daily = DailyRewardPanel.Build(canvas.transform);
         }
 
         /// <summary>

@@ -28,6 +28,9 @@ namespace BlockOut.Runtime.Services
         public static ProgressService Progress { get; private set; }
         public static LivesService Lives { get; private set; }
 
+        /// <summary>Günlük ödül zinciri.</summary>
+        public static DailyRewardService Daily { get; private set; }
+
         public static bool Ready => Save != null;
 
         /// <summary>Profilde gösterilen ad; kayıtta boşsa çağıran varsayılanı koyar.</summary>
@@ -67,6 +70,7 @@ namespace BlockOut.Runtime.Services
             Save.Load();
 
             Progress = new ProgressService(Save);
+            Daily = new DailyRewardService(Save);
 
             // Can servisi kaydın İKİ alanını görüyor (ILivesState) ve yazma
             // işini geri çağırıyla bize bırakıyor — kayıt formatını bilmiyor.

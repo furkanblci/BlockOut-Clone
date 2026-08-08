@@ -109,8 +109,12 @@ namespace BlockOut.Runtime.UI
                 bool unlocked = reached >= level;
                 if (unlocked) owned++;
 
-                // Kilitli parça GİZLENMİYOR, karartılıyor: hedef görünür kalsın.
-                icon.color = unlocked ? Color.white : new Color(0f, 0f, 0f, 0.55f);
+                // DERS (siluet ile LEKE farklı şeyler): Kilitli parçayı saf
+                // siyaha boyamak silueti değil kara bir leke veriyordu — hangi
+                // parça olduğu okunmuyor, dolayısıyla "onu istiyorum" hissi de
+                // doğmuyordu. Amaç parçayı GİZLEMEK değil ULAŞILMAMIŞ göstermek.
+                // Koyu mor bir ton silueti bırakıyor, rengi alıyor.
+                icon.color = unlocked ? Color.white : new Color(0.16f, 0.13f, 0.30f, 0.95f);
                 frame.color = unlocked ? Periwinkle : Locked;
                 label.text = unlocked ? "" : $"sv {level}";
             }

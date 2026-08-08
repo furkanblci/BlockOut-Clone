@@ -53,6 +53,9 @@ namespace BlockOut.Runtime.UI
         int _lastPulse = -1;
         float _nextSlowTick;
         GameObject _freezeVignette;
+        RectTransform _comboBadge;
+        TextMeshProUGUI _comboLabel;
+        int _shownChain = -1;
 
         public void Init(GameSession session)
         {
@@ -78,6 +81,7 @@ namespace BlockOut.Runtime.UI
             var root = UiKit.CreateSafeArea(canvas);
 
             BuildTopBar(root);
+            BuildComboBadge(root);
             BuildPowerUpBar(root);
             BuildPausePanel(root);
             BuildResultPanel(root);
@@ -181,6 +185,32 @@ namespace BlockOut.Runtime.UI
         /// yapabileceği en pahalı hatadır. Panel üç seçenek sunuyor ve
         /// "Devam Et" en büyüğü — kazara açılan bir menüden çıkış kolay olmalı.
         /// </summary>
+        /// <summary>
+        /// Combo rozeti: tahtanın sağ üstünde, zincir varken beliren sayaç.
+        ///
+        /// DERS (geri bildirim ELİN OLDUĞU yerde olmalı): Combo yazısını ekranın
+        /// ortasına koymak blokların önünü kapatır; en alta koymak ise parmağın
+        /// altında kalır. Sağ üst köşe, sürükleme sırasında gözün doğal olarak
+        /// uğradığı ama parmağın örtmediği yer.
+        /// </summary>
+        void BuildComboBadge(Transform root)
+        {
+            _comboBadge = UiKit.CreateRect("Combo", root);
+            UiKit.Place(_comboBadge, 0.66f, 0.820f, 0.985f, 0.900f);
+
+            var back = UiKit.CreateRoundedPanel("Back", _comboBadge,
+                new Color(0.96f, 0.53f, 0.05f));
+            back.pixelsPerUnitMultiplier = 0.16f;
+            back.raycastTarget = false;
+            UiKit.Place(back, 0f, 0f, 1f, 1f);
+
+            _comboLabel = UiKit.CreateTitle("Text", _comboBadge, "", 32, Ink,
+                new Color(0.42f, 0.18f, 0.01f));
+            UiKit.Place(_comboLabel, 0.06f, 0.08f, 0.94f, 0.92f);
+
+            _comboBadge.gameObject.SetActive(false);
+        }
+
         void BuildPausePanel(Transform root)
         {
             _pausePanel = UiKit.CreateRect("Pause", root);
@@ -422,6 +452,7 @@ namespace BlockOut.Runtime.UI
         void Refresh()
         {
             RefreshTimer();
+            RefreshCombo();
             RefreshPowerUps();
 
             // Can/jeton saniyede bir yeter; her karede kurmak savurganlık.
@@ -465,6 +496,25 @@ namespace BlockOut.Runtime.UI
                 GameKit.FX.Juice.Replace(_timerLabel,
                     GameKit.FX.Juice.PunchScale(_timerLabel.transform, 0.26f, 0.32f));
             }
+        }
+
+        void RefreshCombo()
+        {
+            int chain = _session.Combo.Chain;
+            if (chain == _shownChain) return;
+            _shownChain = chain;
+
+            bool show = chain >= ComboTracker.MinimumChain;
+            _comboBadge.gameObject.SetActive(show);
+            if (!show) return;
+
+            _comboLabel.text = _scratch.Clear().Append("COMBO x").Append(chain).ToString();
+
+            // Her yeni halkada vuruş: sayının değiştiğini sessizce yazmak
+            // zinciri fark ettirmiyordu.
+            GameKit.FX.Juice.Replace(_comboBadge,
+                GameKit.FX.Juice.PunchScale(_comboBadge, 0.30f, 0.26f));
+            Services.AudioService.Star();
         }
 
         void RefreshMeta()

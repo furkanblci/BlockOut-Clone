@@ -34,6 +34,9 @@ namespace BlockOut.Runtime.Flow
 
         /// <summary>Bölüm içi yardımcılar (çalar saat / roket / UFO).</summary>
         public PowerUpSystem PowerUps { get; private set; }
+
+        /// <summary>Arka arkaya emilim zinciri.</summary>
+        public ComboTracker Combo { get; } = new ComboTracker();
         public int DisplayNumber { get; private set; }
         public int WarningSeconds => config.warningSeconds;
 
@@ -145,6 +148,7 @@ namespace BlockOut.Runtime.Flow
         {
             if (State == GameState.Playing)
             {
+                Combo.Tick(Time.time);
                 PowerUps?.Tick(Time.deltaTime);
                 // Çalar saat açıkken sayaç durur — süre baskısı geçici olarak kalkar.
                 if (PowerUps == null || !PowerUps.IsTimeFrozen)
@@ -284,6 +288,10 @@ namespace BlockOut.Runtime.Flow
             PowerUps = new PowerUpSystem(
                 _level, views, gates, obstacles, Services.MetaServices.Progress, space);
             _drag.BlockTapped = PowerUps.HandleBlockTap;
+
+            // Combo: her emilimde zincir uzar. Yeni bölümde sıfırdan başlar.
+            Combo.Reset();
+            _events.BlockAbsorbed += (b, g) => Combo.NoteAbsorb(Time.time);
 
             // Cila servisleri taze olay merkezine bağlanır.
             _fx?.Bind(_events, space);
@@ -456,6 +464,22 @@ namespace BlockOut.Runtime.Flow
 
                 LastReward = Services.MetaServices.Progress.NoteCleared(
                     LevelId, _levelIndex, remaining, perfect);
+
+                // Zincir ödülü: bölüm boyunca yakalanan EN UZUN zincir ödülü
+                // çarpar. Anlık zincire bakmak, son hamlenin şansına bağlı bir
+                // ödül olurdu; en uzun zincir oyuncunun gerçekten yaptığı işi
+                // ölçüyor.
+                float multiplier = ComboTracker.Multiplier(Combo.BestChain);
+                if (multiplier > 1f)
+                {
+                    int bonus = Mathf.RoundToInt(LastReward * (multiplier - 1f));
+                    if (bonus > 0)
+                    {
+                        LastReward += bonus;
+                        Services.MetaServices.Progress.GrantCoins(bonus);
+                        GameKit.Services.Analytics.CurrencyEarned("coin", bonus, "combo");
+                    }
+                }
 
                 // Kazanan oyuncu canını geri alır — videoda can yalnız kaybedince
                 // eksiliyor. Harcamayı girişte yapıp kazanınca iade etmek, "çıkıp

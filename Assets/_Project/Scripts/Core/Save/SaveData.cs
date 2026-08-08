@@ -33,6 +33,10 @@ namespace BlockOut.Core.Save
 
         [JsonProperty("coins")] public int Coins;
 
+        /// <summary>Günlük ödül zinciri (1-7) ve son alım tarihi (UTC).</summary>
+        [JsonProperty("dailyStreak")] public int DailyStreak;
+        [JsonProperty("dailyLastClaimUtc")] public string DailyLastClaimUtc;
+
         /// <summary>-1 = henüz kurulmadı; LivesService ilk çalıştığında doldurur.</summary>
         [JsonProperty("lives")] public int LivesField = -1;
 
