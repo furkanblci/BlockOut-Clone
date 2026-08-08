@@ -110,6 +110,9 @@ namespace BlockOut.Runtime.UI
         public const string ButtonSquare = "btn_square";
         public const string Splash       = "splash_art";
         public const string Hand         = "icon_hand";
+        public const string RewardBadge  = "badge_reward";
+        public const string TabBar       = "bar_tabs";
+        public const string TabCard      = "card_tab";
 
         /// <summary>Bölge dairesi (1 tabanlı). Yoksa null döner, çağıran düşer.</summary>
         public static string Region(int index) => "region_" + index;

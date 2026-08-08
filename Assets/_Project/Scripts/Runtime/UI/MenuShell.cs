@@ -85,27 +85,17 @@ namespace BlockOut.Runtime.UI
             // girdiği için zemin orada bitiyor ve altında manzara görünüyordu.
             // Kanvasa taşımayı denedim; kanvasın çocuğu olarak güvenli alandan
             // SONRA çizilip düğmelerin üstünü kapattı.
-            // DERS (hazır görselin PİŞMİŞ detayı sana ait değildir): Çubuk krem
-            // kart görselinden yapılıyordu. O görselin altında magenta bir
-            // taban bandı var; mora boyanınca çubuğun altında koyu, rahatsız
-            // edici bir gölge şeridine dönüştü. Sonra üstüne düz bir ışık
-            // çizgisi ekledim; çubuğun köşeleri yuvarlak, çizgi düz olduğu için
-            // hizasız durdu. İkisi de aynı hatanın sonucu: kendi yüzeyimi
-            // kurmak yerine başkasının yüzeyini boyamaya çalışmak.
-            //
-            // Doğrusu: düz renkli, yuvarlatılmış, tek katmanlı bir çubuk.
-            // Üstüne kendi köşe yarıçapını izleyen İKİNCİ bir panel konuyor —
-            // biraz daha açık ve biraz daha kısa; kenar ışığı böyle radyusa
-            // uyumlu oluyor.
-            var bar = UiKit.CreateRoundedPanel("TabBar", root, BarColor);
-            UiKit.Place(bar, 0f, 0f, 1f, 0.082f);
+            // Çubuk ve seçili kart artık kendi görselleri. Önce hazır bir kart
+            // görseli boyanmıştı — o görselin pişmiş magenta taban bandı mora
+            // boyanınca çubuğun altında koyu bir gölge şeridine dönüşüyordu.
+            // Sonra prosedürel düz renk denendi; temizdi ama 3B plastik dilini
+            // tutturamıyordu. Kendi görseli olan bir yüzey ikisini de çözüyor.
+            var barSprite = UiSkin.Get(Art.TabBar);
+            var bar = barSprite != null
+                ? UiKit.CreateSlicedPanel("TabBar", root, barSprite)
+                : UiKit.CreateRoundedPanel("TabBar", root, BarColor);
+            UiKit.Place(bar, 0f, 0f, 1f, 0.086f);
             bar.rectTransform.offsetMin = new Vector2(0f, -220f);
-            bar.pixelsPerUnitMultiplier = 0.10f;
-
-            var sheen = UiKit.CreateRoundedPanel("Sheen", root, RimColor);
-            UiKit.Place(sheen, 0.010f, 0.0765f, 0.990f, 0.0828f);
-            sheen.pixelsPerUnitMultiplier = 0.10f;
-            sheen.raycastTarget = false;
 
             // Seçili kartın taşacağı alan çubuğun üstünde; bu yüzden kartlar
             // çubuğun DEĞİL kökün çocuğu, yoksa çubuk onları kırpar.
@@ -121,9 +111,11 @@ namespace BlockOut.Runtime.UI
                 // Seçiliyken görünen kart: normalde saydam.
                 // Kart, çubuktan AÇIK bir tonda: koyu zemin üstünde koyu bir
                 // kart seçimi göstermiyordu.
-                var card = UiKit.CreateRoundedPanel("Card", button.transform, CardColor);
-                card.pixelsPerUnitMultiplier = 0.14f;
-                UiKit.Place(card, 0.06f, 0.05f, 0.94f, 1.52f);
+                var cardSprite = UiSkin.Get(Art.TabCard);
+                var card = cardSprite != null
+                    ? UiKit.CreateSlicedPanel("Card", button.transform, cardSprite)
+                    : UiKit.CreateRoundedPanel("Card", button.transform, CardColor);
+                UiKit.Place(card, 0.05f, 0.06f, 0.95f, 1.56f);
 
                 // Görünmez ama dokunulabilir yüzey: sekmenin tamamı tıklanabilsin.
                 if (button.targetGraphic is Image face) face.color = new Color(1f, 1f, 1f, 0f);
@@ -131,18 +123,6 @@ namespace BlockOut.Runtime.UI
                 var glyph = UiKit.CreateIcon("Icon", button.transform, UiSkin.Get(icon));
 
                 var caption = UiKit.CreateLabel("Label", button.transform, label, 24, UiKit.Ink);
-
-                // İnce ayırıcı: sekmelerin "kendi yeri" olduğunu söyler.
-                // Son sekmeden sonra çizgi olmaz.
-                if (i < Tabs.Length - 1)
-                {
-                    var divider = UiKit.CreateRoundedPanel($"Divider_{i}", root,
-                        new Color(1f, 1f, 1f, 0.10f));
-                    float x = (i + 1) * slot;
-                    UiKit.Place(divider, x - 0.0015f, 0.018f, x + 0.0015f, 0.064f);
-                    divider.pixelsPerUnitMultiplier = 0.10f;
-                    divider.raycastTarget = false;
-                }
 
                 string captured = key;
                 button.onClick.AddListener(() => Show(captured));

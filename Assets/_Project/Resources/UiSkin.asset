@@ -15,8 +15,12 @@ MonoBehaviour:
   entries:
   - name: avatar_player
     sprite: {fileID: 21300000, guid: b0cab17779831204ba0203d71751b4ff, type: 3}
+  - name: badge_reward
+    sprite: {fileID: 21300000, guid: e0b04c67c4fbde6498a314a4c2fc889c, type: 3}
   - name: banner_region
     sprite: {fileID: 21300000, guid: a44ef7d353e822d44be079d4903bb66a, type: 3}
+  - name: bar_tabs
+    sprite: {fileID: 21300000, guid: f8b9cddeda589a447884f18b672ccba7, type: 3}
   - name: bg_menu
     sprite: {fileID: 21300000, guid: 6d90d003216f2a44b94174419c553a4f, type: 3}
   - name: btn_green
@@ -27,6 +31,8 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: 228613ff5f3148d44bb05b49b4863844, type: 3}
   - name: btn_square
     sprite: {fileID: 21300000, guid: 58232abcb8f1b1646b7e8eeadace1b32, type: 3}
+  - name: card_tab
+    sprite: {fileID: 21300000, guid: cde8541811d886b43b10dc291b212c70, type: 3}
   - name: check_green
     sprite: {fileID: 21300000, guid: 76bee41dae84db548b5d5be9b3c4a0bf, type: 3}
   - name: confetti_sheet

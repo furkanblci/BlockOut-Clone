@@ -94,6 +94,17 @@ RECIPES = {
     "icon_hand":       dict(neutral=0, tolerance=70, size=512),
     # Açılış görseli tam ekran: kesilecek arka planı yok.
     "splash_art":      dict(key=False, size=1920),
+
+    # --- Dördüncü parti ---
+    # badge_reward koyu lacivert zeminde, diğer ikisi açık gri zeminde.
+    "badge_reward":    dict(neutral=0, tolerance=70, size=1024),
+    # bright KAPALI: bu ikisinin zemininde stüdyo tabanının parlak bir
+    # bölgesi var ve parlaklık kapısı onu "nesne" sanıp bırakıyordu — kartın
+    # yanında beyaz bir leke kalmıştı. Nesneler doygun mor; kroma kapısı tek
+    # başına yeterli. Parlaklık kapısı zemin DÜZ olduğunda işe yarar, gradyanlı
+    # zeminde ters teper.
+    "bar_tabs":        dict(neutral=20, bright=0, size=1024),
+    "card_tab":        dict(neutral=20, bright=0, size=512),
 }
 
 

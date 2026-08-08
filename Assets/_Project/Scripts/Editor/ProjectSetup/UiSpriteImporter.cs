@@ -47,6 +47,11 @@ namespace BlockOut.Editor.ProjectSetup
             // 9-dilim payı verilirse farklı boyutlarda da bozulmaz.
             { "frame_avatar", new Vector4(224, 220, 224, 224) },
             { "btn_square",   new Vector4(114, 110, 114, 116) },
+
+            // Dördüncü parti; paylar siluetten ölçüldü.
+            { "badge_reward", new Vector4(232, 268, 278, 266) },
+            { "bar_tabs",     new Vector4(96, 16, 96, 86) },
+            { "card_tab",     new Vector4(54, 70, 50, 68) },
         };
 
         // Varsayılan 512; bunlar ondan büyük olmalı.
@@ -65,6 +70,7 @@ namespace BlockOut.Editor.ProjectSetup
             { "region_1", 1024 }, { "region_2", 1024 },
             { "region_3", 1024 }, { "region_4", 1024 },
             { "frame_avatar", 1024 }, { "avatar_player", 1024 },
+            { "badge_reward", 1024 }, { "bar_tabs", 1024 },
         };
 
         /// <summary>

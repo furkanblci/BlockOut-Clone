@@ -322,37 +322,24 @@ namespace BlockOut.Runtime.UI
 
             // Ödül şeridi düğmenin ÜST KENARINA binerek durur; ayrı bir kutu
             // gibi değil, düğmeye takılmış bir etiket gibi okunsun.
-            // DERS (rozeti ROZET yapan şey KENARIDIR): Bu etiket üç sürüm
-            // gördü — kendi sprite'ı (gölgesi kırpıldı), krem kart (alt bandı
-            // kırmızıya döndü), düz turuncu (yüzeysiz kaldı). Referanstakine
-            // bakınca eksik olanın ne olduğu görülüyor: koyu bir KENAR. Bir
-            // rozeti arka plandan ayıran, yüzündeki parlaklık değil çevresini
-            // saran o çizgidir; onsuz her renk zemine karışıyor.
-            //
-            // Üç katman: koyu kenar → parlak yüz → yüzün üst yarısında ışık.
+            // Ödül rozeti artık kendi görseli. Kodla üç kez denendi (düz
+            // renk, iki katman, koyu kenar) ve hiçbiri 3B plastik dilini
+            // tutturamadı: kenarın kalınlığı, yüzeyin eğrisi ve ışık lekesi
+            // birlikte çalışıyor, üçünü dikdörtgenlerle taklit etmek mümkün
+            // değil. Bazı şeyler için görsel üretmek doğru cevaptır.
+            var badge = UiSkin.Get(Art.RewardBadge);
             var ribbonRoot = UiKit.CreateRect("Ribbon", _playButton.transform);
-            UiKit.Place(ribbonRoot, 0.300f, 0.98f, 0.700f, 1.46f);
+            UiKit.Place(ribbonRoot, 0.285f, 0.94f, 0.715f, 1.52f);
             _rewardRibbon = ribbonRoot;
 
-            var ribbonEdge = UiKit.CreateRoundedPanel("Edge", ribbonRoot,
-                new Color(0.60f, 0.24f, 0.01f));
-            ribbonEdge.pixelsPerUnitMultiplier = 0.15f;
-            UiKit.Place(ribbonEdge, 0f, 0f, 1f, 1f);
-
-            var ribbon = UiKit.CreateRoundedPanel("Face", ribbonRoot,
-                new Color(0.98f, 0.60f, 0.07f));
-            ribbon.pixelsPerUnitMultiplier = 0.17f;
-            UiKit.Place(ribbon, 0.030f, 0.10f, 0.970f, 0.92f);
-
-            var gloss = UiKit.CreateRoundedPanel("Gloss", ribbonRoot,
-                new Color(1f, 0.78f, 0.36f, 0.55f));
-            gloss.pixelsPerUnitMultiplier = 0.17f;
-            gloss.raycastTarget = false;
-            UiKit.Place(gloss, 0.075f, 0.52f, 0.925f, 0.87f);
+            var ribbon = badge != null
+                ? UiKit.CreateSlicedPanel("Face", ribbonRoot, badge)
+                : UiKit.CreateRoundedPanel("Face", ribbonRoot, new Color(0.98f, 0.60f, 0.07f));
+            UiKit.Place(ribbon, 0f, 0f, 1f, 1f);
 
             _rewardLabel = UiKit.CreateTitle("RibbonText", ribbonRoot, "", 26,
-                CoinInk, new Color(0.42f, 0.18f, 0.01f));
-            UiKit.Place(_rewardLabel, 0.04f, 0.08f, 0.96f, 0.94f);
+                CoinInk, new Color(0.20f, 0.14f, 0.42f));
+            UiKit.Place(_rewardLabel, 0.10f, 0.20f, 0.90f, 0.82f);
         }
 
         /// <summary>
