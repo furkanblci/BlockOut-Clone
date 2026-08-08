@@ -28,6 +28,8 @@ namespace BlockOut.Runtime.Flow
         readonly GateSystem _gates;
         readonly ObstacleSystem _obstacles;
         readonly ProgressService _progress;
+        readonly BoardSpace _space;
+        readonly bool _hasSpace;
         readonly Dictionary<PowerUpKind, int> _local = new Dictionary<PowerUpKind, int>();
 
         /// <summary>Hedef bekleyen yardımcı; yoksa null.</summary>
@@ -43,13 +45,17 @@ namespace BlockOut.Runtime.Flow
 
         public PowerUpSystem(
             LevelModel level, BoardViews views, GateSystem gates,
-            ObstacleSystem obstacles, ProgressService progress)
+            ObstacleSystem obstacles, ProgressService progress, BoardSpace space = default)
         {
             _level = level;
             _views = views;
             _gates = gates;
             _obstacles = obstacles;
             _progress = progress;
+            // BoardSpace bir DEĞER TİPİ (readonly struct); null olamaz.
+            // Testler onu vermediğinde `default` gelir ve efektler atlanır.
+            _space = space;
+            _hasSpace = space.Width > 0 && space.Height > 0;
         }
 
         /// <summary>
@@ -110,12 +116,18 @@ namespace BlockOut.Runtime.Flow
             // Hedef bekleniyor. Jeton harcandıysa karşılığı ENVANTERE girdi;
             // iptal edilirse yardımcı elde kalır, yalnız kullanım geri alınır.
             Pending = kind;
+            _lastUsed = kind;                      // efekt hangisi olacak
+            GameKit.Services.Analytics.LogPowerUpUsed(kind.ToString(), 0);
             Message?.Invoke(PowerUpInfo.Prompt(kind));
             Changed?.Invoke();
             return true;
         }
 
+        /// <summary>Efektin hangi yardımcıya ait olduğunu bilmek için.</summary>
+        PowerUpKind _lastUsed = PowerUpKind.Clock;
+
         /// <summary>Seçim modundan çıkar; yardımcı harcanmadığı için elde kalır.</summary>
+
         public void Cancel()
         {
             if (Pending == null) return;
@@ -169,6 +181,21 @@ namespace BlockOut.Runtime.Flow
             if (_views.Blocks.TryGetValue(block, out var view))
             {
                 _views.Blocks.Remove(block);
+
+                // Yardımcının GÖRSEL imzası: oyuncu bedelini ödediği şeyin işe
+                // yaradığını görmeli. Blok sessizce kaybolursa "para boşa gitti"
+                // hissi doğar ve yardımcı bir daha satın alınmaz.
+                if (_hasSpace)
+                {
+                    Vector3 at = _space.RectCenterToWorld(
+                        block.Position, block.W, block.H, 0.3f);
+                    if (_lastUsed == PowerUpKind.Rocket)
+                        FX.PowerUpFX.Rocket(view.transform.parent, at, Color.white);
+                    else if (_lastUsed == PowerUpKind.Ufo)
+                        FX.PowerUpFX.Beam(view.transform.parent, at,
+                            new Color(0.62f, 0.45f, 1f));
+                }
+
                 view.PlayVanish();
             }
 

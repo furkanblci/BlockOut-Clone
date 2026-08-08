@@ -58,6 +58,35 @@ namespace BlockOut.Runtime.View
             }
         }
 
+        static Material _frostShard;
+
+        /// <summary>
+        /// Buzun üstündeki kristal parçaların materyali.
+        ///
+        /// Kabuktan daha AÇIK ve daha parlak: parçaların işi ışığı yakalamak.
+        /// Aynı materyali paylaşırlarsa siluetleri kabuğun içinde kaybolur ve
+        /// eklenmiş olmaları hiçbir şey değiştirmez.
+        /// </summary>
+        public static Material FrostShard
+        {
+            get
+            {
+                if (_frostShard == null)
+                {
+                    var shader = Shader.Find("Universal Render Pipeline/Lit")
+                                 ?? Shader.Find("Universal Render Pipeline/Unlit");
+                    _frostShard = new Material(shader) { name = "FrostShard_TEMP" };
+
+                    var color = new Color(0.86f, 0.96f, 1f);
+                    if (_frostShard.HasProperty("_BaseColor")) _frostShard.SetColor("_BaseColor", color);
+                    _frostShard.color = color;
+                    if (_frostShard.HasProperty("_Smoothness")) _frostShard.SetFloat("_Smoothness", 0.92f);
+                    if (_frostShard.HasProperty("_Metallic")) _frostShard.SetFloat("_Metallic", 0f);
+                }
+                return _frostShard;
+            }
+        }
+
         /// <summary>
         /// URP için doğru kurulmuş yarı saydam materyal.
         ///
@@ -69,6 +98,10 @@ namespace BlockOut.Runtime.View
         /// modu elle kurulmalı; yalnız `color.a` düşürmek yetmez, materyal
         /// yine opak hattında çizilir.
         /// </summary>
+        /// <summary>Verilen renkte yeni bir saydam materyal — efektler için.</summary>
+        public static Material Translucent(Color color) =>
+            CreateTransparent("Beam", color, 3000);
+
         static Material CreateTransparent(string name, Color color, int queue)
         {
             var shader = Shader.Find("Universal Render Pipeline/Unlit");

@@ -52,6 +52,7 @@ namespace BlockOut.Runtime.UI
         GameState _shownState = GameState.Intro;
         int _lastPulse = -1;
         float _nextSlowTick;
+        GameObject _freezeVignette;
 
         public void Init(GameSession session)
         {
@@ -504,6 +505,17 @@ namespace BlockOut.Runtime.UI
                 // başka türlü görünmüyor.
                 if (face != null)
                     face.color = power.Pending == kind ? Good : Periwinkle;
+            }
+
+            // Süre donmuşken ekranın kenarında buzlu bir çerçeve dursun:
+            // sayaç durdu bilgisi HUD yazısıyla verilirse gözden kaçıyor.
+            bool frozen = power.IsTimeFrozen;
+            if (frozen && _freezeVignette == null)
+                _freezeVignette = FX.PowerUpFX.FreezeVignette(transform);
+            else if (!frozen && _freezeVignette != null)
+            {
+                Destroy(_freezeVignette);
+                _freezeVignette = null;
             }
 
             if (Time.unscaledTime < _hintUntil)

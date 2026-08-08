@@ -380,10 +380,94 @@ namespace BlockOut.Runtime.View
             // Ok da buzun içinde kalmalı; kabuğun tepesinden dışarı taşmasın.
             if (_axisArrow != null) _axisArrow.SetActive(false);
 
+            BuildFrostShards(center, shellHeight);
+
             _iceCounter = ViewKit.CreateCounter(
                 parent,
                 center + Vector3.up * (shellHeight * 0.5f + 0.06f),
                 _model.IceCount);
+        }
+
+        /// <summary>
+        /// Buzun üstüne kristal parçalar serper.
+        ///
+        /// DERS (düz bir kutu BUZ okunmaz): Kabuk açık mavi, parlak bir küptü.
+        /// Işığı topluyordu ama silueti bir tuğladan farksızdı — oyuncu onu
+        /// "mavi blok" sanıyordu. Buzu buz yapan şey rengi değil KIRIK
+        /// YÜZEYLERİ: farklı açılara bakan küçük düzlemler, ışığı her biri
+        /// başka yönde yansıtıp o tanıdık pırıltıyı veriyor. Altı küçük
+        /// döndürülmüş küp bunu vermeye yetiyor; ayrı bir mesh yazmaya gerek yok.
+        ///
+        /// Parçalar bloğun boyutuna göre ÖLÇEKLENİYOR: 1x1'de üç, büyük blokta
+        /// altı tane. Sabit sayı verilseydi küçük blok kalabalık, büyük blok
+        /// çıplak görünürdü.
+        /// </summary>
+        void BuildFrostShards(Vector3 center, float shellHeight)
+        {
+            if (_iceShell == null) return;
+
+            int count = Mathf.Clamp(2 + _model.Cells.Count, 3, 7);
+            float halfW = (_model.W - 0.3f) * 0.5f;
+            float halfH = (_model.H - 0.3f) * 0.5f;
+
+            // Rastgelelik bloğun KİMLİĞİNE bağlı: her açılışta aynı desen çıksın,
+            // yoksa aynı bölüm her denemede farklı görünür ve "bozuk" hissi verir.
+            var random = new System.Random(_model.Id.GetHashCode());
+            float Range(float a, float b) => a + (float)random.NextDouble() * (b - a);
+
+            for (int i = 0; i < count; i++)
+            {
+                var shard = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                shard.name = "Frost";
+                shard.transform.SetParent(_iceShell.transform.parent, worldPositionStays: false);
+                Destroy(shard.GetComponent<Collider>());
+
+                var renderer = shard.GetComponent<MeshRenderer>();
+                renderer.sharedMaterial = ViewKit.FrostShard;
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+
+                float size = Range(0.16f, 0.34f);
+                shard.transform.position = center + new Vector3(
+                    Range(-halfW, halfW),
+                    shellHeight * 0.5f - size * 0.25f,
+                    Range(-halfH, halfH));
+                shard.transform.localScale = new Vector3(size, size * Range(0.5f, 0.9f), size);
+                shard.transform.rotation = Quaternion.Euler(
+                    Range(-28f, 28f), Range(0f, 360f), Range(-28f, 28f));
+
+                _frost.Add(shard);
+            }
+        }
+
+        readonly List<GameObject> _frost = new List<GameObject>();
+
+        /// <summary>Kristal parçayı yukarı fırlatır, döndürür, söndürür.</summary>
+        static IEnumerator FlingShard(Transform shard)
+        {
+            if (shard == null) yield break;
+
+            Vector3 start = shard.position;
+            var velocity = new Vector3(
+                Random.Range(-2.4f, 2.4f), Random.Range(3.2f, 5.4f), Random.Range(-2.4f, 2.4f));
+            var spin = new Vector3(
+                Random.Range(-540f, 540f), Random.Range(-540f, 540f), Random.Range(-540f, 540f));
+            Vector3 baseScale = shard.localScale;
+
+            const float life = 0.65f;
+            for (float t = 0f; t < life; t += Time.deltaTime)
+            {
+                if (shard == null) yield break;
+                velocity.y -= 14f * Time.deltaTime;              // yerçekimi
+                shard.position += velocity * Time.deltaTime;
+                shard.Rotate(spin * Time.deltaTime, Space.World);
+                // Son üçte birde küçülerek yok olur; birden kaybolmak göze çarpar.
+                float k = Mathf.Clamp01((t - life * 0.6f) / (life * 0.4f));
+                shard.localScale = baseScale * (1f - k);
+                yield return null;
+            }
+
+            if (shard != null) Destroy(shard.gameObject);
         }
 
         public void UpdateIceCount()
@@ -392,10 +476,25 @@ namespace BlockOut.Runtime.View
         }
 
         /// <summary>Buz kırıldı: kabuk ve sayaç gider, blok serbest kalır.</summary>
+        /// <summary>
+        /// Buz kırılır: kabuk anında yok olur, kristal parçalar SAVRULUR.
+        ///
+        /// DERS (yok olmak ile kırılmak farklı okunur): Kabuk ve parçalar
+        /// birlikte silinince olay "blok renk değiştirdi" gibi görünüyordu.
+        /// Parçaları yerinde bırakıp fırlatmak, aynı anda hem neyin kırıldığını
+        /// hem de kırılmanın SERT olduğunu anlatıyor. Parçacık sistemi zaten
+        /// kırıntı saçıyor; bunlar onun büyük kardeşleri, siluet taşıyorlar.
+        /// </summary>
         public void ShatterIce()
         {
             if (_iceShell != null) Destroy(_iceShell);
             if (_iceCounter != null) Destroy(_iceCounter.gameObject);
+
+            foreach (var shard in _frost)
+                if (shard != null)
+                    GameKit.FX.Juice.Run(FlingShard(shard.transform));
+            _frost.Clear();
+
             _iceShell = null;
             _iceCounter = null;
 

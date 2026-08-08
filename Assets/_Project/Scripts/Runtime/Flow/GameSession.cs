@@ -282,7 +282,7 @@ namespace BlockOut.Runtime.Flow
                 () => State == GameState.Playing);
 
             PowerUps = new PowerUpSystem(
-                _level, views, gates, obstacles, Services.MetaServices.Progress);
+                _level, views, gates, obstacles, Services.MetaServices.Progress, space);
             _drag.BlockTapped = PowerUps.HandleBlockTap;
 
             // Cila servisleri taze olay merkezine bağlanır.
