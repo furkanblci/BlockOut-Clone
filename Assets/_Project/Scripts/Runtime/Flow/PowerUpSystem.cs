@@ -201,6 +201,10 @@ namespace BlockOut.Runtime.Flow
 
             _obstacles.NotifyBlockExit();
             _gates.RecomputeGateStates();
+
+            // Son bloğu yardımcı sildiyse bölüm de bitmeli. Bu çağrı olmadan
+            // tahta boşalıyor ama zafer hiç tetiklenmiyordu.
+            _gates.CheckCleared();
         }
     }
 }

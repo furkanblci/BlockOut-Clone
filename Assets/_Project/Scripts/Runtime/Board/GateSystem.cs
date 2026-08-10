@@ -175,9 +175,32 @@ namespace BlockOut.Runtime.Board
             // ...renk mevcudiyeti değişti — ghost/kuyruk durumlarını tazele.
             RecomputeGateStates();
 
-            if (_level.Blocks.Count == 0 && !_level.HasPendingContent())
-                _events.RaiseBoardCleared();
+            CheckCleared();
         }
+
+        /// <summary>
+        /// Tahta boşaldı mı? Boşaldıysa zafer olayını tetikler.
+        ///
+        /// DERS (bitiş koşulu TEK yerde ve HER yoldan kontrol edilmeli):
+        /// Bu kontrol yalnız <see cref="Absorb"/> içindeydi, yani zafer sadece
+        /// blok KAPIDAN çıkarsa görülüyordu. Son bloğu roketle ya da UFO ile
+        /// silen oyuncu tahtayı boşaltıyor ama bölüm bitmiyordu — süre dolana
+        /// kadar boş tahtaya bakıyordu. Yardımcılar oyunun meşru bir parçası;
+        /// bitişi yalnız bir yola bağlamak, diğer yolları sessizce bozuyor.
+        ///
+        /// Bir kez tetiklenir: aynı karede iki blok birden silinirse olay
+        /// ikinci kez atılmasın.
+        /// </summary>
+        public void CheckCleared()
+        {
+            if (_cleared) return;
+            if (_level.Blocks.Count > 0 || _level.HasPendingContent()) return;
+
+            _cleared = true;
+            _events.RaiseBoardCleared();
+        }
+
+        bool _cleared;
 
         /// <summary>
         /// Her kapı için: aktif renk oyunda (gizli katmanlar ve perde içerikleri

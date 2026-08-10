@@ -557,7 +557,22 @@ namespace BlockOut.Runtime.UI
             if (_session.State != _shownState)
             {
                 _shownState = _session.State;
-                RefreshResult();
+
+                // DERS (oyun BİTTİĞİNDE hemen panel açma): Son blok kapıya
+                // doğru kayarken model onu çoktan silmiş oluyor ve zafer olayı
+                // ANINDA tetikleniyordu — panel emilme animasyonunun ortasında
+                // açılıyor, oyuncu son hamlesinin sonucunu HİÇ GÖRMÜYORDU.
+                // Oyun durumu hemen değişmeli (sayaç dursun, girdi kapansın)
+                // ama panel, son animasyon bitene kadar beklemeli.
+                if (_shownState == GameState.Won || _shownState == GameState.Lost)
+                {
+                    if (_resultDelay != null) GameKit.FX.Juice.Stop(_resultDelay);
+                    _resultDelay = GameKit.FX.Juice.Run(ShowResultAfterBeat());
+                }
+                else
+                {
+                    RefreshResult();
+                }
             }
         }
 
@@ -688,6 +703,21 @@ namespace BlockOut.Runtime.UI
                     .Append(Mathf.CeilToInt(power.FreezeRemaining)).Append(" sn").ToString();
             else
                 _hintLabel.text = "";
+        }
+
+        Coroutine _resultDelay;
+
+        /// <summary>
+        /// Son emilme animasyonu bitsin, oyuncu tahtanın boşaldığını GÖRSÜN,
+        /// sonra panel açılsın. Kaybetmede bekleme daha kısa: orada görülecek
+        /// bir animasyon yok, yalnız sayacın sıfırlandığı an okunsun.
+        /// </summary>
+        System.Collections.IEnumerator ShowResultAfterBeat()
+        {
+            float wait = _shownState == GameState.Won ? 0.75f : 0.35f;
+            yield return new WaitForSecondsRealtime(wait);
+            _resultDelay = null;
+            RefreshResult();
         }
 
         void RefreshResult()
