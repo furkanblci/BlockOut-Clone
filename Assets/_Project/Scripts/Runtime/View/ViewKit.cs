@@ -47,11 +47,14 @@ namespace BlockOut.Runtime.View
                                  ?? Shader.Find("Universal Render Pipeline/Unlit");
                     _ice = new Material(shader) { name = "Ice_TEMP" };
 
-                    var color = new Color(0.60f, 0.85f, 0.99f);
+                    // Referans karesinden örneklendi: parlak, doygun camgöbeği.
+                    // Önceki ton (0.60, 0.85, 0.99) fazla soluktu ve buz gri
+                    // bir kutu gibi okunuyordu.
+                    var color = new Color(0.24f, 0.62f, 0.92f);
                     if (_ice.HasProperty("_BaseColor")) _ice.SetColor("_BaseColor", color);
                     _ice.color = color;
                     // Buz parlak ve pürüzsüz: ışığı toplayınca "cam" hissi veriyor.
-                    if (_ice.HasProperty("_Smoothness")) _ice.SetFloat("_Smoothness", 0.75f);
+                    if (_ice.HasProperty("_Smoothness")) _ice.SetFloat("_Smoothness", 0.92f);
                     if (_ice.HasProperty("_Metallic")) _ice.SetFloat("_Metallic", 0f);
                 }
                 return _ice;
@@ -61,6 +64,7 @@ namespace BlockOut.Runtime.View
         static Material _frostShard;
         static Material _curtainStreak;
         static Material _gridLine;
+        static Material _iceGloss;
 
         /// <summary>
         /// Buzun üstündeki kristal parçaların materyali.
@@ -88,6 +92,12 @@ namespace BlockOut.Runtime.View
                 return _frostShard;
             }
         }
+
+        /// <summary>Buzun üst yüzeyindeki parlaklık şeridi.</summary>
+        public static Material IceGloss =>
+            _iceGloss != null ? _iceGloss
+                : (_iceGloss = CreateTransparent(
+                    "IceGloss", new Color(1f, 1f, 1f, 0.42f), 3020));
 
         /// <summary>Zemindeki hücre ızgarası çizgisi — çok soluk.</summary>
         public static Material GridLine =>

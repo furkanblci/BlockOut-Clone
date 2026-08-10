@@ -340,12 +340,17 @@ namespace BlockOut.Runtime.View
         /// </summary>
         void BuildIceShell(Transform parent)
         {
-            _iceShell = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            _iceShell.name = $"Ice_{_model.Id}";
+            // DERS (buz TUĞLA ŞEKLİNDE donar): Kabuk düz bir küptü. Referansta
+            // buz, altındaki tuğlanın silüetini alıyor — yuvarlatılmış kenarlar,
+            // aynı kabartma. Düz bir küp o yüzden "tahtaya yapıştırılmış mavi
+            // levha" gibi duruyordu. Aynı mesh'i kullanmak hem doğru silueti
+            // hem de bedava kenar yumuşatmasını veriyor.
+            _iceShell = new GameObject($"Ice_{_model.Id}");
             _iceShell.transform.SetParent(parent, worldPositionStays: false);
-            Destroy(_iceShell.GetComponent<Collider>());
+            _iceShell.AddComponent<MeshFilter>().sharedMesh =
+                _filter != null ? _filter.sharedMesh : BrickMeshBuilder.Get(_model);
 
-            var renderer = _iceShell.GetComponent<MeshRenderer>();
+            var renderer = _iceShell.AddComponent<MeshRenderer>();
             renderer.sharedMaterial = ViewKit.Ice;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = false;
@@ -368,11 +373,15 @@ namespace BlockOut.Runtime.View
             const float SideInset = 0.09f;   // tuğladaki inset ile aynı his
             float shellHeight = brickTop;
 
+            // Mesh tuğlanın kendi yerel uzayında; kabuk bloğun konumuna oturur
+            // ve bir tık büyütülür ki tuğlayı tamamen örtsün (z-fighting olmasın).
             Vector3 center = _space.RectCenterToWorld(
-                _model.Position, _model.W, _model.H, shellHeight * 0.5f);
+                _model.Position, _model.W, _model.H, 0f);
             _iceShell.transform.position = center;
-            _iceShell.transform.localScale = new Vector3(
-                _model.W - SideInset, shellHeight, _model.H - SideInset);
+            // Yatayda 1.0: 1.02 verilince komşu buzlu bloklar birbirine değip
+            // tek bir kütleye dönüşüyordu ve tahta okunmaz oluyordu. Yalnız
+            // DİKEYDE büyütmek z-fighting'i çözmeye yetiyor.
+            _iceShell.transform.localScale = new Vector3(1f, 1.05f, 1f);
 
             // Buz OPAK olduğu için tuğlayı çizmeye gerek yok: hem referanstaki
             // gibi renk gizleniyor hem de bir çizim çağrısı tasarruf ediyoruz.
@@ -389,56 +398,13 @@ namespace BlockOut.Runtime.View
         }
 
         /// <summary>
-        /// Buzun üstüne kristal parçalar serper.
-        ///
-        /// DERS (düz bir kutu BUZ okunmaz): Kabuk açık mavi, parlak bir küptü.
-        /// Işığı topluyordu ama silueti bir tuğladan farksızdı — oyuncu onu
-        /// "mavi blok" sanıyordu. Buzu buz yapan şey rengi değil KIRIK
-        /// YÜZEYLERİ: farklı açılara bakan küçük düzlemler, ışığı her biri
-        /// başka yönde yansıtıp o tanıdık pırıltıyı veriyor. Altı küçük
-        /// döndürülmüş küp bunu vermeye yetiyor; ayrı bir mesh yazmaya gerek yok.
-        ///
-        /// Parçalar bloğun boyutuna göre ÖLÇEKLENİYOR: 1x1'de üç, büyük blokta
-        /// altı tane. Sabit sayı verilseydi küçük blok kalabalık, büyük blok
-        /// çıplak görünürdü.
+        /// Buz kabuğu artık tuğla mesh'inin kendisi olduğu için ek süse gerek
+        /// yok. Buraya önce kristal parçalar, sonra bir parlaklık şeridi
+        /// konmuştu; ikisi de referanstan UZAKLAŞTIRDI. Kristaller oyunun
+        /// diline yabancıydı, şerit ise buzun üstüne yapıştırılmış bir bant
+        /// gibi duruyordu. Doğru silueti mesh, parlaklığı materyal veriyor.
         /// </summary>
-        void BuildFrostShards(Vector3 center, float shellHeight)
-        {
-            if (_iceShell == null) return;
-
-            int count = Mathf.Clamp(2 + _model.Cells.Count, 3, 7);
-            float halfW = (_model.W - 0.3f) * 0.5f;
-            float halfH = (_model.H - 0.3f) * 0.5f;
-
-            // Rastgelelik bloğun KİMLİĞİNE bağlı: her açılışta aynı desen çıksın,
-            // yoksa aynı bölüm her denemede farklı görünür ve "bozuk" hissi verir.
-            var random = new System.Random(_model.Id.GetHashCode());
-            float Range(float a, float b) => a + (float)random.NextDouble() * (b - a);
-
-            for (int i = 0; i < count; i++)
-            {
-                var shard = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                shard.name = "Frost";
-                shard.transform.SetParent(_iceShell.transform.parent, worldPositionStays: false);
-                Destroy(shard.GetComponent<Collider>());
-
-                var renderer = shard.GetComponent<MeshRenderer>();
-                renderer.sharedMaterial = ViewKit.FrostShard;
-                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                renderer.receiveShadows = false;
-
-                float size = Range(0.16f, 0.34f);
-                shard.transform.position = center + new Vector3(
-                    Range(-halfW, halfW),
-                    shellHeight * 0.5f - size * 0.25f,
-                    Range(-halfH, halfH));
-                shard.transform.localScale = new Vector3(size, size * Range(0.5f, 0.9f), size);
-                shard.transform.rotation = Quaternion.Euler(
-                    Range(-28f, 28f), Range(0f, 360f), Range(-28f, 28f));
-
-                _frost.Add(shard);
-            }
-        }
+        void BuildFrostShards(Vector3 center, float shellHeight) { }
 
         readonly List<GameObject> _frost = new List<GameObject>();
 

@@ -87,44 +87,121 @@ namespace BlockOut.Runtime.UI
             BuildResultPanel(root);
         }
 
+        /// <summary>
+        /// Üst bar — REFERANS VİDEODAN ölçülerek yeniden kuruldu.
+        ///
+        /// İki satır:
+        ///   1) solda jeton sayacı, sağda "Bölüm N" kapsülü
+        ///   2) solda yeniden başlat, ortada süre, sağda duraklat
+        ///
+        /// DERS (oynanışta CAN gösterilmez): Bizim ilk sürümümüz üst bara can
+        /// ve jetonu birlikte koyuyordu. Referans oynanış sırasında canı hiç
+        /// göstermiyor — çünkü can bölüme GİRERKEN harcanır, oyun içinde
+        /// değişmez. Değişmeyen bir sayacı ekranda tutmak yer kaplar ve
+        /// oyuncunun gözünü boş yere çeker.
+        ///
+        /// DERS (yeniden başlat DURAKLATTAN ayrı): Bulmacada en sık istenen
+        /// eylem "baştan al"dır. Referans onu tek dokunuşluk ayrı bir düğme
+        /// yapmış; duraklat menüsünün içine gömmek her seferinde iki dokunuş
+        /// demek olurdu.
+        /// </summary>
         void BuildTopBar(Transform root)
         {
-            // Duraklat: sol üstte, tahtadan uzakta.
-            var pause = UiKit.CreateSpriteButton("Pause", root, UiSkin.Get(Art.PanelDark),
-                null, 0, Ink);
-            UiKit.Place(pause, 0.030f, 0.918f, 0.165f, 0.988f);
-            if (pause.targetGraphic is Image pauseFace) pauseFace.color = Periwinkle;
-            var pauseIcon = UiKit.CreateIcon("Icon", pause.transform, UiSkin.Get(Art.Home));
-            UiKit.Place(pauseIcon, 0.16f, 0.16f, 0.84f, 0.84f);
+            // --- 1. satır: jeton | bölüm ---
+            var coin = UiKit.CreateIcon("Coin", root, UiSkin.Get(Art.Coin));
+            UiKit.Place(coin, 0.035f, 0.944f, 0.115f, 0.984f);
+
+            _coinLabel = UiKit.CreateTitle("Coins", root, "", 34, Ink,
+                new Color(0.10f, 0.07f, 0.24f));
+            UiKit.Place(_coinLabel, 0.125f, 0.944f, 0.420f, 0.984f);
+            _coinLabel.alignment = TextAlignmentOptions.Left;
+
+            var levelPill = UiKit.CreateSlicedPanel("LevelPill", root,
+                UiSkin.Get(Art.PanelDark), Periwinkle);
+            UiKit.Place(levelPill, 0.700f, 0.946f, 0.965f, 0.986f);
+
+            _levelLabel = UiKit.CreateTitle("Level", levelPill.transform, "", 28, Ink,
+                new Color(0.12f, 0.09f, 0.30f));
+            UiKit.Place(_levelLabel, 0.05f, 0.06f, 0.95f, 0.94f);
+
+            // --- 2. satır: yeniden başlat | süre | duraklat ---
+            var restart = SquareButton(root, "Restart", 0.035f, 0.165f, 0.878f, 0.936f);
+            BuildRestartGlyph(restart.transform);
+            restart.onClick.AddListener(() => _session.Restart());
+
+            var timer = UiKit.CreateSlicedPanel("TimerPill", root,
+                UiSkin.Get(Art.PanelDark), new Color(0.18f, 0.15f, 0.38f));
+            UiKit.Place(timer, 0.300f, 0.878f, 0.700f, 0.936f);
+
+            var clock = UiKit.CreateIcon("Clock", timer.transform, UiSkin.Get(Art.Clock));
+            UiKit.Place(clock, 0.05f, 0.14f, 0.24f, 0.86f);
+
+            _timerLabel = UiKit.CreateTitle("Timer", timer.transform, "", 38, Ink,
+                new Color(0.12f, 0.09f, 0.30f));
+            UiKit.Place(_timerLabel, 0.26f, 0.06f, 0.94f, 0.94f);
+
+            var pause = SquareButton(root, "Pause", 0.835f, 0.965f, 0.878f, 0.936f);
+            // Duraklat simgesi de çiziliyor: "II" yazıyla da olurdu ama yazı
+            // tipinin harf aralığı iki çubuğu eşit yapmıyor ve simge eğri duruyor.
+            for (int bar = 0; bar < 2; bar++)
+            {
+                var stripe = UiKit.CreateRoundedPanel($"Bar_{bar}", pause.transform, Ink);
+                stripe.pixelsPerUnitMultiplier = 1.4f;
+                stripe.raycastTarget = false;
+                float x0 = bar == 0 ? 0.30f : 0.56f;
+                UiKit.Place(stripe, x0, 0.26f, x0 + 0.14f, 0.74f);
+            }
             pause.onClick.AddListener(() => SetPaused(true));
 
-            // Bölüm + süre: ortada, tek kapsülde.
-            var capsule = UiKit.CreateSlicedPanel("Status", root, UiSkin.Get(Art.PanelDark));
-            UiKit.Place(capsule, 0.195f, 0.918f, 0.640f, 0.988f);
+            // Can oynanışta gösterilmiyor; alan boş kalmasın diye değil,
+            // GEREKMEDİĞİ için. Alanı bloklar kullanıyor.
+            _livesLabel = null;
+        }
 
-            _levelLabel = UiKit.CreateLabel("Level", capsule.transform, "", 26,
-                new Color(0.84f, 0.86f, 1f));
-            UiKit.Place(_levelLabel, 0.04f, 0.48f, 0.96f, 0.94f);
+        /// <summary>
+        /// Yeniden başlat simgesi: halka + ok başı, ÇİZİLEREK kuruluyor.
+        ///
+        /// DERS (yazı tipinde olmayan karakter kutu olarak çıkar): Simgeyi
+        /// "↺" karakteriyle yazmıştım; Baloo 2'de o karakter yok ve TMP onu
+        /// boş kutuya çeviriyor. Bu tuzağa bu projede dördüncü düşüşüm — ders
+        /// artık net: ARAYÜZ SİMGESİ YAZI DEĞİLDİR. Yazı tipi bir dil taşır,
+        /// simgeler ayrı bir varlıktır ve ya sprite ya çizim olmalı.
+        ///
+        /// Halka için "RoundedOutline" sprite'ı kullanılıyor: köşe yarıçapı
+        /// sonuna kadar açılınca kare çerçeve daireye dönüşüyor.
+        /// </summary>
+        static void BuildRestartGlyph(Transform parent)
+        {
+            var ring = UiKit.CreateRect("Glyph", parent);
+            UiKit.Place(ring, 0.20f, 0.20f, 0.80f, 0.80f);
 
-            _timerLabel = UiKit.CreateTitle("Timer", capsule.transform, "", 46, Ink,
-                new Color(0.12f, 0.09f, 0.30f));
-            UiKit.Place(_timerLabel, 0.04f, 0.04f, 0.96f, 0.52f);
+            var circle = ring.gameObject.AddComponent<Image>();
+            circle.sprite = GameKit.UI.UiSprites.RoundedOutline;
+            circle.type = Image.Type.Sliced;
+            circle.pixelsPerUnitMultiplier = 0.10f;
+            circle.color = Ink;
+            circle.raycastTarget = false;
 
-            // Can ve jeton: sağda, küçük.
-            var meta = UiKit.CreateSlicedPanel("Meta", root, UiSkin.Get(Art.PanelDark));
-            UiKit.Place(meta, 0.665f, 0.918f, 0.985f, 0.988f);
+            // Ok başı: halkanın sağ üstünde küçük bir üçgen. Döndürülmüş bir
+            // kare, üçgen sprite'ı üretmeden aynı okumayı veriyor.
+            var head = UiKit.CreateRoundedPanel("Head", ring, Ink);
+            head.pixelsPerUnitMultiplier = 1.2f;
+            head.raycastTarget = false;
+            UiKit.Place(head, 0.56f, 0.62f, 1.02f, 1.08f);
+            head.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+        }
 
-            var heart = UiKit.CreateIcon("Heart", meta.transform, UiSkin.Get(Art.Heart));
-            UiKit.Place(heart, 0.02f, 0.10f, 0.26f, 0.90f);
-            _livesLabel = UiKit.CreateTitle("Lives", meta.transform, "", 32, Ink,
-                new Color(0.12f, 0.09f, 0.30f));
-            UiKit.Place(_livesLabel, 0.26f, 0.08f, 0.48f, 0.92f);
-
-            var coin = UiKit.CreateIcon("Coin", meta.transform, UiSkin.Get(Art.Coin));
-            UiKit.Place(coin, 0.50f, 0.10f, 0.72f, 0.90f);
-            _coinLabel = UiKit.CreateTitle("Coins", meta.transform, "", 30, Ink,
-                new Color(0.12f, 0.09f, 0.30f));
-            UiKit.Place(_coinLabel, 0.71f, 0.08f, 0.99f, 0.92f);
+        /// <summary>Üst bardaki kare düğme: mor yüzey, ortada simge.</summary>
+        static Button SquareButton(Transform root, string name,
+            float x0, float x1, float y0, float y1)
+        {
+            var square = UiSkin.Get(Art.ButtonSquare);
+            var button = square != null
+                ? UiKit.CreateIconButton(name, root, square)
+                : UiKit.CreateSpriteButton(name, root, UiSkin.Get(Art.PanelDark), null, 0, Ink);
+            if (square == null && button.targetGraphic is Image face) face.color = Periwinkle;
+            UiKit.Place(button, x0, y0, x1, y1);
+            return button;
         }
 
         /// <summary>
@@ -141,50 +218,64 @@ namespace BlockOut.Runtime.UI
 
             _hintLabel = UiKit.CreateTitle("Hint", root, "", 28, Ink,
                 new Color(0.10f, 0.07f, 0.24f));
-            UiKit.Place(_hintLabel, 0.06f, 0.155f, 0.94f, 0.205f);
+            UiKit.Place(_hintLabel, 0.06f, 0.130f, 0.94f, 0.178f);
 
             for (int i = 0; i < 3; i++)
             {
-                float x0 = 0.155f + i * 0.245f;
+                float x0 = 0.235f + i * 0.180f;
 
+                // REFERANS: yardımcılar YEŞİL kare düğme, adet sağ altta
+                // KIRMIZI yuvarlak rozette. Bizde koyu mor düğmenin altında
+                // yazıyla duruyordu — hem referanstan uzaktı hem de adet
+                // düğmenin parçası değil, altına iliştirilmiş bir not gibi
+                // görünüyordu. Rozet, sayıyı düğmenin ÜSTÜNE taşıyıp
+                // "bu düğmenin üç hakkı var" cümlesini tek bakışta veriyor.
+                // DERS (boyama ÇARPMADIR — üçüncü kez): Yeşil düğme için önce
+                // krem kart boyandı (alt bandı koyu yeşil şeride döndü), sonra
+                // MOR kare düğme boyandı — mor × yeşil = koyu haki, hiç yeşil
+                // değil. Doğru cevap boyamak değil ZATEN YEŞİL olan görseli
+                // kullanmak: btn_green.
+                //
+                // btn_green 3:1 orana çizildi ve kare alanda 9-dilim payları
+                // (yanlarda 90px) genişliği aşıyordu. pixelsPerUnitMultiplier
+                // payı yarıya indiriyor; kare oranda da bozulmadan duruyor.
+                // btn_green de denendi: 3:1 orana çizildiği için kare alanda
+                // dikey payları (üst 88 + alt 68) yüksekliğin neredeyse tamamını
+                // yiyor ve ekranda yalnız koyu alt kenarı görünüyordu.
+                // Krem kart doğru cevap: neredeyse beyaz olduğu için parlak
+                // yeşil veriyor, kendi alt bandı da düğmenin 3B kalınlığı gibi
+                // okunuyor — küçük bir düğmede bu istenen şey.
                 var button = UiKit.CreateSpriteButton($"Power_{i}", root,
-                    UiSkin.Get(Art.PanelDark), null, 0, Ink);
-                UiKit.Place(button, x0, 0.030f, x0 + 0.195f, 0.150f);
+                    UiSkin.Get(Art.PanelCard), null, 0, Ink);
+                UiKit.Place(button, x0, 0.028f, x0 + 0.150f, 0.122f);
                 var face = button.targetGraphic as Image;
-                if (face != null) face.color = Periwinkle;
+                if (face != null)
+                {
+                    face.color = PowerGreen;
+                    face.pixelsPerUnitMultiplier = 1.5f;
+                }
 
                 var icon = UiKit.CreateIcon("Icon", button.transform, UiSkin.Get(icons[i]));
-                UiKit.Place(icon, 0.14f, 0.28f, 0.86f, 0.98f);
+                UiKit.Place(icon, 0.12f, 0.18f, 0.88f, 0.94f);
 
-                var badge = UiKit.CreateTitle("Badge", button.transform, "", 26, Ink,
-                    new Color(0.12f, 0.09f, 0.30f));
-                UiKit.Place(badge, 0.02f, 0.02f, 0.98f, 0.30f);
+                // Rozet düğmenin sağ alt köşesinden TAŞAR — referanstaki gibi.
+                var badge = UiKit.CreateRoundedPanel("Badge", button.transform,
+                    new Color(0.91f, 0.16f, 0.16f));
+                badge.pixelsPerUnitMultiplier = 0.10f;
+                UiKit.Place(badge, 0.62f, -0.06f, 1.04f, 0.34f);
+
+                var count = UiKit.CreateTitle("Count", badge.transform, "", 24, Ink,
+                    new Color(0.40f, 0.03f, 0.03f));
+                UiKit.Place(count, 0.04f, 0.06f, 0.96f, 0.94f);
 
                 var kind = (PowerUpKind)i;
                 button.onClick.AddListener(() => _session.PowerUps?.Use(kind));
-                _powerButtons[i] = (button, face, badge);
+                _powerButtons[i] = (button, face, count);
             }
         }
 
-        /// <summary>
-        /// Sonuç paneli: yıldızlar, PERFECT rozeti, ödül ve iki düğme.
-        ///
-        /// DERS (kutlama BEDAVA elde tutma): Bölümü bitirmek zaten ödül; ama
-        /// ekran "kazandın" yazıp geçerse o an hiçbir şey hissettirmez. Yıldızın
-        /// tek tek oturması, konfetinin patlaması ve jetonun sayaca uçması —
-        /// üçü birlikte yarım saniyelik bir tören yapıyor. Yeni içerik yazmadan
-        /// oyuncunun bir sonraki bölüme geçme isteğini artıran en ucuz yol budur.
-        /// </summary>
-        /// <summary>
-        /// Duraklat paneli.
-        ///
-        /// DERS (geri dönüşü olmayan çıkışı SORMADAN yapma): Bu düğme önce
-        /// doğrudan ana ekrana atıyordu. Bölüme girerken can zaten harcanmış
-        /// oluyor; yanlışlıkla basan oyuncu hem bölümü hem canı kaybediyor ve
-        /// bunun neden olduğunu anlamıyordu. Sessiz veri kaybı, arayüzün
-        /// yapabileceği en pahalı hatadır. Panel üç seçenek sunuyor ve
-        /// "Devam Et" en büyüğü — kazara açılan bir menüden çıkış kolay olmalı.
-        /// </summary>
+        static readonly Color PowerGreen = new Color(0.365f, 0.878f, 0.259f);
+
         /// <summary>
         /// Combo rozeti: tahtanın sağ üstünde, zincir varken beliren sayaç.
         ///
@@ -521,11 +612,17 @@ namespace BlockOut.Runtime.UI
         {
             if (!MetaServices.Ready) return;
 
-            int lives = MetaServices.Lives.Current;
-            if (lives != _shownLives)
+            // Can oynanışta gösterilmiyor (referans da göstermiyor: can bölüme
+            // GİRERKEN harcanır, oyun içinde değişmez). Etiket yok, o yüzden
+            // yazmadan önce varlığı kontrol ediliyor.
+            if (_livesLabel != null)
             {
-                _shownLives = lives;
-                _livesLabel.text = lives.ToString();
+                int lives = MetaServices.Lives.Current;
+                if (lives != _shownLives)
+                {
+                    _shownLives = lives;
+                    _livesLabel.text = lives.ToString();
+                }
             }
 
             int coins = MetaServices.Progress.Coins;
@@ -547,14 +644,29 @@ namespace BlockOut.Runtime.UI
                 var (_, face, badge) = _powerButtons[i];
 
                 int owned = power.Owned(kind);
-                badge.text = owned > 0
-                    ? _scratch.Clear().Append('x').Append(owned).ToString()
-                    : _scratch.Clear().Append(PowerUpInfo.Price(kind)).Append(" J").ToString();
 
-                // Seçili yardımcı yeşile döner: "şimdi bir blok seç" durumu
-                // başka türlü görünmüyor.
+                // Rozet yalnız ADET gösteriyor. Fiyat, elde hiç yokken düğmenin
+                // ALTINDAKİ ipucu satırına düşüyor: kırmızı yuvarlak rozete
+                // "300 J" sığmıyor ve sığdırmaya çalışmak yazıyı okunmaz
+                // yapıyordu. Referans da rozette yalnız sayı gösteriyor.
+                badge.text = owned > 0
+                    ? owned.ToString()
+                    : _scratch.Clear().Append(PowerUpInfo.Price(kind)).ToString();
+                badge.fontSize = owned > 0 ? 24 : 18;
+
+                // DERS (kurulumu değiştirmek yetmez, TAZELEMEYİ de değiştir):
+                // Düğmenin yeşili kurulumda ayarlanıyordu ama bu satır her
+                // karede rengi mora geri yazıyordu. Ekranda hiç yeşil
+                // görmediğim için önce sprite'ı, sonra 9-dilim payını suçladım;
+                // ikisi de doğruydu. Bir değeri HER KARE yazan kod varsa,
+                // kurulumdaki değer görünmez.
+                //
+                // Boşta yeşil, seçiliyken ALTIN: seçim durumu artık yeşilden
+                // ayrışmak zorunda.
                 if (face != null)
-                    face.color = power.Pending == kind ? Good : Periwinkle;
+                    face.color = power.Pending == kind
+                        ? new Color(1f, 0.82f, 0.15f)
+                        : PowerGreen;
             }
 
             // Süre donmuşken ekranın kenarında buzlu bir çerçeve dursun:

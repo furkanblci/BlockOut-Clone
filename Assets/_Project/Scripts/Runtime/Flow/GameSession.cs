@@ -215,6 +215,17 @@ namespace BlockOut.Runtime.Flow
 
         public void NextLevel()
         {
+            // Perde arkasında geçiyoruz: oyuncu iki tahtayı birlikte görmesin.
+            // Perde yoksa (sahne doğrudan açıldıysa) doğrudan devam eder.
+            var intro = UI.LevelIntro.Ensure(
+                AppRoot.Current != null ? AppRoot.Current.PersistentRoot : transform);
+
+            if (intro == null) { AdvanceNow(); return; }
+            intro.Play(AdvanceNow);
+        }
+
+        void AdvanceNow()
+        {
             if (HasNextLevel) _levelIndex++;
             Restart();
         }
