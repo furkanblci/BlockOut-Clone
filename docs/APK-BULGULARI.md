@@ -79,7 +79,7 @@ yeri ona geçirildi; burada raycast'i açmayı unutmak mümkün değil.
 
 ## A — BLOCKER'LAR (test bunlar olmadan ilerlemiyor)
 
-### [x] 18. Bölüm açılmıyor — bloklar gelmiyor  ⚠️ SEBEP BULUNDU, DÜZELTİLDİ
+### [~] 18. Bölüm açılmıyor — İKİ SEBEP DAHA BULUNDU, CİHAZDA DOĞRULANACAK
 **Sebep: IL2CPP kod kırpma + Newtonsoft yansıması + `link.xml` yokluğu.**
 
 Elenen şüpheliler (hepsi tek tek kontrol edildi, hiçbiri değildi):
@@ -115,6 +115,62 @@ söylüyor — "katalog boş" ile "parse patladı" ayırt edilebiliyor.
 konsol, teşhisi saatlerce geciktirdi. Hata metnini gizlemek hatayı yok
 etmiyor, yalnız bulunmasını zorlaştırıyor. Bir sonraki APK'da bölüm yine
 açılmazsa ekran sebebini kendisi söyleyecek.
+
+---
+
+#### İKİNCİ TUR (2026-08-17 akşam) — HÂLÂ AÇILMIYOR: İKİ AYRI SEBEP BULUNDU
+
+Kullanıcı: *"buildden test ettim leveller gelmiyor"*. `link.xml` sorunu
+çözmemiş. Kod okunarak iki gerçek kusur bulundu; **ikisi de bu belirtiyi
+birebir üretiyor** ve ikincisi birincinin görülmesini de engelliyordu.
+
+**1. `Dictionary<(int x, int y), int>` — IL2CPP'de bir mayın.**
+`LevelLoader.Validate` blok çakışmasını demet (ValueTuple) anahtarlı bir
+sözlükte tutuyordu. Editörde kusursuz çalışır. Android/IL2CPP'de ise sözlük
+ilk kullanımda `EqualityComparer<ValueTuple<int,int>>.Default` ister; o
+karşılaştırıcı YANSIMAYLA üretilir ve ahead-of-time derlemede o örneklem
+yoksa `ExecutionEngineException` fırlar. `link.xml` bunu ÇÖZMEZ — mesele
+kırpma değil, KOD ÜRETİMİ. Anahtar `y * width + x` tek sayısına çevrildi:
+yansıma yok, kutulama yok, üstelik daha hızlı. Bütün proje tarandı, bu
+desenden başka örnek yok.
+
+**2. Doğrulamadan sonrasının TAMAMI korumasızdı — asıl körlük buydu.**
+`BuildAndStart` yalnız `Parse`'ı try/catch içine almıştı. `Validate`,
+`LevelModel.Build`, `BoardBuilder.Build`, `ObstacleSystem`, `GateSystem`,
+`DragController`, `PowerUpSystem` — hepsi dışarıdaydı. Oradan fırlayan bir
+hata metodu yarıda kesiyor, **`LoadFailure` hiç yazılmıyor** ve oyuncu boş
+bir tahtaya hiçbir açıklama olmadan bakıyor. Yani birinci maddedeki hata
+tam olarak "sessiz boş ekran" olarak görünürdü. Kurulumun tamamı tek bir
+try/catch'e alındı; hata mesajına TÜR ADI da ekleniyor
+(`ExecutionEngineException` → IL2CPP/AOT, `NullReferenceException` →
+bağlanmamış alan).
+
+**DERS (yalnız ŞÜPHELENDİĞİN satırı korumak, körlüğü taşımaktır):** İlk turda
+"parse patlıyor olmalı" diye düşünülüp yalnız o satır korundu. Hata başka
+yerden geldi ve ağ orada değildi.
+
+**3. Hata mesajı SIĞMAYAN bir yere yazılıyordu.** `LoadFailure` yardımcı
+çubuğunun üstündeki ipucu satırına basılıyordu: 28 punto, **tek satır ve
+`NoWrap`**. İki satırlık bir mesaj ekrandan taşıp okunmaz oluyordu — yani
+mekanizma vardı ama görünürlük yoktu. Ekranın ortasında, sarmalı açık,
+otomatik küçülen bir hata kartı eklendi (`GameplayScreen.BuildFailurePanel`).
+
+**YAN DÜZELTME:** `SpendLifeForAttempt()` kurulumun BAŞINDA çağrılıyordu;
+kurulum ortada patlarsa oyuncu hiç oynamadığı bölüm için can kaybediyordu.
+Zaten kodun kendi yorumu "can oynanmaya başlarken harcanır" diyordu —
+çağrı tahta ayağa kalktıktan sonraya alındı.
+
+**Doğrulama (editör):**
+- 50 bölümün hepsi yeni anahtarla parse + validate + model kurulumu:
+  **50/50 temiz, 0 hata** — regresyon yok.
+- Hata kartı kasten bozuk bir bölümle (rows 3 / height 4) denendi: kart
+  ekranın ortasında çıktı ve metnin tamamı okundu
+  ("Level doğrulanamadı / rows sayısı (3) height (4) ile uyuşmuyor").
+
+> ⚠️ **Hâlâ cihazda doğrulanacak.** Editörde kırpma ve AOT yok; 1. maddenin
+> gerçekten sebep olup olmadığını yalnız APK söyler. Bölüm yine açılmazsa
+> artık ekranda kırmızı bir kart ve TÜR ADI olacak — o ad teşhisi tek adımda
+> bitirir.
 
 ### [x] 19. Gizli geliştirici menüsü açılmıyor — DÜZELTİLDİ
 **Sebep kesin:** `DevMenu` sınıfının tamamı

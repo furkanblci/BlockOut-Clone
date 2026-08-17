@@ -63,7 +63,8 @@ namespace BlockOut.Runtime.UI
         readonly RectTransform[] _powerBadge = new RectTransform[3];
         readonly RectTransform[] _powerPrice = new RectTransform[3];
         readonly TextMeshProUGUI[] _powerPriceText = new TextMeshProUGUI[3];
-        RectTransform _resultPanel, _pausePanel, _promptPanel;
+        RectTransform _resultPanel, _pausePanel, _promptPanel, _failurePanel;
+        TextMeshProUGUI _failureText;
         ContinueOffer _offer;
 
         /// <summary>
@@ -348,6 +349,57 @@ namespace BlockOut.Runtime.UI
             // kuruluyor: ikisi aynı anda açık olmuyor ama teklif kapanırken
             // kartın üstünde kalmalı.
             _offer = ContinueOffer.Build(root);
+
+            BuildFailurePanel(root);
+        }
+
+        /// <summary>
+        /// Bölüm kurulamadığında ekranı kaplayan hata kartı.
+        ///
+        /// DERS (hata mesajını SIĞMAYAN bir yere yazmak, yazmamakla aynı şey):
+        /// Yükleme hatası önce yardımcı çubuğunun üstündeki ipucu satırına
+        /// basılıyordu. O satır 28 punto, tek satır ve `NoWrap` — yani
+        /// "Level kurulamadı\nExecutionEngineException: ..." gibi iki satırlık
+        /// bir metin ekrandan taşıp okunmaz oluyordu. Cihazda konsol olmadığı
+        /// için teşhis yine mümkün değildi: mekanizma vardı, görünürlük yoktu.
+        ///
+        /// Bu kart ekranın ortasında, sarmalı açık ve otomatik küçülen bir
+        /// yazıyla duruyor; hata metninin tamamı okunabiliyor.
+        /// </summary>
+        void BuildFailurePanel(Transform root)
+        {
+            _failurePanel = UiKit.CreateRect("LoadFailure", root);
+            UiKit.Place(_failurePanel, 0.04f, 0.300f, 0.96f, 0.720f);
+
+            var rim = UiKit.CreateRoundedPanel("Rim", _failurePanel,
+                new Color(0.318f, 0.043f, 0.078f));
+            rim.pixelsPerUnitMultiplier = 0.34f;
+            rim.raycastTarget = true;      // altındaki tahtaya dokunma geçmesin
+            UiKit.Place(rim, 0f, 0f, 1f, 1f);
+
+            var face = UiKit.CreateRoundedPanel("Face", _failurePanel,
+                new Color(0.106f, 0.055f, 0.129f));
+            face.pixelsPerUnitMultiplier = 0.36f;
+            face.raycastTarget = false;
+            UiKit.Place(face, 0f, 0f, 1f, 1f, padding: 10f);
+
+            var title = UiKit.CreateTitle("Title", _failurePanel, "LEVEL LOAD FAILED", 48,
+                new Color(1f, 0.55f, 0.50f), new Color(0.25f, 0.02f, 0.05f));
+            UiKit.Place(title, 0.06f, 0.800f, 0.94f, 0.940f);
+
+            _failureText = UiKit.CreateLabel("Detail", _failurePanel, "", 34,
+                new Color(1f, 0.88f, 0.86f));
+            // Sarmal AÇIK ve taşma kısıtlı: `CreateLabel` ikisini de kapalı
+            // kuruyor (kısa etiketler için doğru), uzun hata metni için değil.
+            _failureText.textWrappingMode = TMPro.TextWrappingModes.Normal;
+            _failureText.overflowMode = TMPro.TextOverflowModes.Truncate;
+            _failureText.enableAutoSizing = true;
+            _failureText.fontSizeMax = 34;
+            _failureText.fontSizeMin = 18;
+            _failureText.alignment = TMPro.TextAlignmentOptions.Top;
+            UiKit.Place(_failureText, 0.07f, 0.100f, 0.93f, 0.780f);
+
+            _failurePanel.gameObject.SetActive(false);
         }
 
         /// <summary>
@@ -1167,14 +1219,15 @@ namespace BlockOut.Runtime.UI
         void Refresh()
         {
             // Bölüm hiç kurulamadıysa oyuncu boş bir tahtaya bakıyor demektir;
-            // sebebini ipucu satırında gösteriyoruz (cihazda konsol yok).
-            if (!string.IsNullOrEmpty(_session.LoadFailure))
+            // sebebini EKRANIN ORTASINDA söylüyoruz (cihazda konsol yok).
+            bool failed = !string.IsNullOrEmpty(_session.LoadFailure);
+            if (_failurePanel != null && _failurePanel.gameObject.activeSelf != failed)
+                _failurePanel.gameObject.SetActive(failed);
+
+            if (failed)
             {
-                if (_hintLabel != null)
-                {
-                    _hintLabel.text = _session.LoadFailure;
-                    _hintLabel.color = new Color(1f, 0.45f, 0.40f);
-                }
+                if (_failureText != null && _failureText.text != _session.LoadFailure)
+                    _failureText.text = _session.LoadFailure;
             }
             else if (_hintLabel != null && _hintLabel.color.g < 0.5f)
             {

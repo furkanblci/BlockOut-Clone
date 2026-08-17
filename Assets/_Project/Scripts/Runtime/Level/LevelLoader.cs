@@ -62,7 +62,25 @@ namespace BlockOut.Runtime.Level
                 char.ToUpperInvariant(board.Rows[y][x]) == 'X';
 
             // Bloklar: sınır içinde, oynanabilir hücrelerde ve çakışmasız.
-            var occupied = new Dictionary<(int x, int y), int>();
+            //
+            // ANAHTAR DEMET DEĞİL, TEK SAYI.
+            //
+            // DERS (IL2CPP'de `Dictionary<(int,int), T>` bir MAYINDIR): Burası
+            // `Dictionary<(int x, int y), int>` idi. Editörde kusursuz çalışır;
+            // Android/IL2CPP derlemesinde ise sözlük ilk kullanımda
+            // `EqualityComparer<ValueTuple<int,int>>.Default`'u ister ve o
+            // karşılaştırıcı YANSIMAYLA üretilir. Ahead-of-time derlemede o
+            // örneklem üretilmemişse `ExecutionEngineException` fırlar.
+            //
+            // Hücre koordinatları zaten tahta sınırları içinde (yukarıdaki
+            // `Playable` kontrolünden geçiyorlar), yani `y * width + x` tekil
+            // bir sayı veriyor: yansıma yok, kutulama yok, üstelik daha hızlı.
+            //
+            // Bu, 2026-08-17 APK testinde "bölümler gelmiyor" belirtisinin en
+            // güçlü adayıydı: `Validate` o sırada try/catch DIŞINDA çağrılıyordu,
+            // yani buradan fırlayan hata ekrana hiç yazılmadan tahtayı boş
+            // bırakıyordu.
+            var occupied = new Dictionary<int, int>();
             for (int i = 0; i < d.Blocks.Count; i++)
             {
                 var b = d.Blocks[i];
@@ -76,10 +94,11 @@ namespace BlockOut.Runtime.Level
                         errors.Add($"blocks[{i}] oynanamaz hücreye taşıyor: ({x},{y}).");
                         continue;
                     }
-                    if (occupied.TryGetValue((x, y), out int other))
+                    int key = y * board.Width + x;
+                    if (occupied.TryGetValue(key, out int other))
                         errors.Add($"blocks[{i}] ile blocks[{other}] çakışıyor: ({x},{y}).");
                     else
-                        occupied[(x, y)] = i;
+                        occupied[key] = i;
                 }
             }
 

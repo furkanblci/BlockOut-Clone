@@ -345,24 +345,51 @@ namespace BlockOut.Runtime.Flow
                 return;
             }
 
-            var errors = new List<string>();
-            if (!Level.LevelLoader.Validate(data, errors))
+            // BURADAN AŞAĞISININ TAMAMI KORUMALI.
+            //
+            // DERS (yalnız ŞÜPHELENDİĞİN satırı korumak, körlüğü taşımaktır):
+            // Eskiden yalnız `Parse` try/catch içindeydi. Doğrulama, model
+            // kurulumu, tahta inşası, sistemler ve sürükleme denetleyicisi —
+            // hepsi korumasızdı. Oradan fırlayan bir hata `BuildAndStart`'ı
+            // yarıda kesiyor, `LoadFailure` HİÇ yazılmıyor ve oyuncu boş bir
+            // tahtaya, hiçbir açıklama olmadan bakıyor. 2026-08-17 APK
+            // testindeki "bölümler gelmiyor" belirtisi tam olarak bu:
+            // ekranda sebebi söyleyecek mekanizma vardı ama hatanın geçtiği
+            // yol onun DIŞINDAYDI.
+            //
+            // Cihazda konsol yok; bir hatanın nereye düşeceğini tahmin etmek
+            // yerine bütün kurulumu tek bir ağa almak doğrusu.
+            try
             {
-                foreach (var err in errors)
-                    Debug.LogError($"[GameSession] Level doğrulama hatası: {err}", this);
-                ReportLoadFailure("Level doğrulanamadı",
-                    errors.Count > 0 ? errors[0] : "bilinmeyen hata");
-                return;
-            }
+                var errors = new List<string>();
+                if (!Level.LevelLoader.Validate(data, errors))
+                {
+                    foreach (var err in errors)
+                        Debug.LogError($"[GameSession] Level doğrulama hatası: {err}", this);
+                    ReportLoadFailure("Level doğrulanamadı",
+                        errors.Count > 0 ? errors[0] : "bilinmeyen hata");
+                    return;
+                }
 
+                BuildBoard(data);
+            }
+            catch (System.Exception e)
+            {
+                // Tür adı da yazılıyor: cihazda "ExecutionEngineException"
+                // görmek doğrudan IL2CPP/AOT'u işaret eder, "NullReference"
+                // ise bağlanmamış bir alanı.
+                ReportLoadFailure("Level kurulamadı", $"{e.GetType().Name}: {e.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Doğrulanmış veriden tahtayı ve sistemleri kurar.
+        /// <see cref="BuildAndStart"/> bunu try/catch içinde çağırır.
+        /// </summary>
+        void BuildBoard(LevelData data)
+        {
             DisplayNumber = data.DisplayNumber;
             LevelId = string.IsNullOrEmpty(data.Id) ? ActiveLevelAsset.name : data.Id;
-
-
-
-            // Can, bölüm KURULURKEN değil OYNANMAYA BAŞLARKEN harcanır; parse
-            // hatasında oyuncudan can almış olmayalım.
-            SpendLifeForAttempt();
 
             _level = LevelModel.Build(data);
 
@@ -398,6 +425,15 @@ namespace BlockOut.Runtime.Flow
             BindHaptics(_events);
 
             PlayBoardIntro(views);
+
+            // CAN EN SON HARCANIR.
+            //
+            // Niyet zaten buydu ("bölüm kurulurken değil oynanmaya başlarken")
+            // ama çağrı kurulumun BAŞINDAYDI; kurulum ortada patlarsa oyuncu
+            // hiç oynamadığı bir bölüm için can kaybediyordu. Artık tahta
+            // gerçekten ayakta olduğunda harcanıyor.
+            SpendLifeForAttempt();
+
             Timer.StartCountdown(data.TimeSeconds);
             State = GameState.Playing;
 
