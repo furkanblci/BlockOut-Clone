@@ -274,7 +274,7 @@ malzemesiyle yazılmış altın metin. Gerçek logo görseli gelirse tek bir
 
 ## D — EKRAN EKRAN SADAKAT
 
-### [~] 7. Ana ekran — YAZI ÖLÇÜLERİ BİTTİ, iki iş kaldı
+### [x] 7. Ana ekran — BİTTİ (kalan iki iş 23. maddede kapandı)
 
 **Ölçüm yöntemi (`ana ekran.jpeg`, 946×2048):** yazının BÜYÜK HARF
 yüksekliğini, içinde durduğu kabın yüksekliğine oranla.
@@ -332,9 +332,21 @@ kapsül doğru. (Jeton puntosunda olduğu gibi, gözün "yanlış" dediği şeyi
 - **Seçili kart** çubuğun üstüne daha çok çıkıyor: çarpan 1.56 → **1.73**
   (referansta kartın üstü ekranın altından %16.4'te).
 
-#### 7. MADDEDE KALAN
-Sekme ikonları referansta bizimkilerden büyük ve seçili kartın tonu çubuktan
-daha belirgin ayrışıyor. İkinci tur cila; yapısal iş bitti.
+#### 7. MADDEDE KALAN — 23. maddede KAPANDI
+"Sekme ikonları referansta bizimkilerden büyük ve seçili kartın tonu
+çubuktan daha belirgin ayrışıyor" diye bırakılmıştı. İkisi de 23. maddede
+çözüldü — ve orada yukarıdaki iki ölçünün de **yanlış** olduğu çıktı:
+çubuğun gövdesi `#4F3BD8` değil `#5140E4`, seçili kart çarpanı 1.73 değil
+**1.42**. Buradaki `#5340EA` "ışık şeridi" aslında gövdenin kendisiydi;
+gerçek ışık şeridi çok daha parlak (`#7771F9`). Tek bir yatay örnekleme
+üç katmanı birbirine karıştırmış; dikey tarama ayırdı.
+
+**DERS (renk örneklerken KATMANI da ayır):** bir yüzeyden tek nokta almak,
+o noktanın hangi katmana denk geldiğini bilmiyorsan ölçüm değil tahmindir.
+Plastik bir yüzeyin üst kenarında 30 piksel içinde dört ayrı renk var.
+
+Ayrıca 22. maddedeki ödül şeridi de bu ekranın parçası; o da kapandı.
+**Ana ekran tamam.**
 
 ### [ ] 7-eski. Ana ekran (özgün istek metni)
 - Üstteki jeton ve kalp yazıları büyüyecek; kalp adedi ve "Dolu" yazısının
