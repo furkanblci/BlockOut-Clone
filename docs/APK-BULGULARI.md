@@ -406,8 +406,33 @@ Satır aralığı (dikey yoğunluk) ve ödül kapsülünün iç düzeni.
 - Üstteki "Yolculuk" başlığı baskılı/kabartmalı görünüme geçecek.
 Referans: `journey.jpeg`
 
-### [ ] 10. Mağaza — Özel Teklifler kaydırılamıyor
-Taşıyıcı (`OfferCarousel`) APK'da çalışmıyor, sayfa sabit kalıyor.
+### [x] 10. Mağaza — Özel Teklifler kaydırılamıyor — DÜZELTİLDİ
+
+**Taşıyıcı aslında bozuk değildi; BIRAKMA mantığı bozuktu.**
+
+Sanal sürüklemeyle sınadım: 700 piksel çekince sayfa doğru şekilde
+değişiyordu. Ama fiske (hızlı kaydırma) hesabı `eventData.delta.x` ile
+yapılıyordu — yani **yalnız son karede** parmağın gittiği yol.
+
+Gerçek bir dokunuşta parmak kaldırılmadan hemen önce YAVAŞLAR; son kare
+deltası çoğu zaman ~0'dır. Yani fiske katkısı hep sıfır çıkıyor ve **yarım
+sayfadan az her kaydırma geri dönüyordu**. Telefonda başparmakla yapılan
+normal bir kaydırma 1080 genişlikte 200-300 piksel, yarım sayfa ise 540.
+Kullanıcı kaydırıyor, sayfa geri dönüyor, "sabit kalmış, çalışmıyor"
+görünüyor.
+
+**DERS (girdi cihazı hatayı GİZLEYEBİLİR):** Editörde fark edilmemesinin
+sebebi fare. Fareyle yapılan test sürüklemesi kesintisiz ve hızlıdır,
+bırakma anında delta hâlâ büyüktür. Aynı kod, aynı ekran, farklı parmak —
+farklı sonuç. "Editörde çalışıyor"un bir kez daha hiçbir şey kanıtlamadığı
+yer.
+
+**Düzeltme:** hız artık `OnDrag` boyunca yumuşatılarak biriktiriliyor
+(son karenin deltası değil); ayrıca MESAFE eşiği eklendi — sayfanın çeyreği
+kadar kaydırmak komşu sayfaya taşımaya yetiyor.
+
+**Doğrulama:** telefon gibi (önce hızlı, sonu yavaşlayan) 275 piksellik bir
+kaydırma artık 2. sayfaya geçiyor. Eski kodda bu geri dönerdi.
 
 ### [ ] 11. Mağaza arka planı çok sade
 Orijinalde doku var, daha kaliteli duruyor. Referans: `market.jpeg` + video.

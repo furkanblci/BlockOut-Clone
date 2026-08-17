@@ -31,6 +31,9 @@ namespace BlockOut.Runtime.UI
         const float AxisThreshold = 12f;
         const float SnapLerp = 14f;
 
+        /// <summary>Fiske hızının hedefe katkı katsayısı (saniye cinsinden pay).</summary>
+        const float FlickWeight = 0.16f;
+
         ScrollRect _scroll, _outer;
         RectTransform _viewport, _content;
         RectTransform[] _pages;
@@ -39,6 +42,9 @@ namespace BlockOut.Runtime.UI
         bool _deciding, _vertical;
         float _lastWidth = -1f;
         int _page;
+
+        /// <summary>Sürükleme boyunca yumuşatılan parmak hızı (birim/saniye).</summary>
+        float _velocity;
 
         static readonly Color DotOn  = new Color(1f, 0.78f, 0.16f);
         static readonly Color DotOff = new Color(0.62f, 0.35f, 0.16f);
@@ -112,6 +118,11 @@ namespace BlockOut.Runtime.UI
             var position = _content.anchoredPosition;
             position.x += eventData.delta.x / Scale();
             _content.anchoredPosition = position;
+
+            // Parmağın hızını YUMUŞATARAK biriktir (bkz. OnEndDrag'deki ders).
+            float dt = Mathf.Max(Time.unscaledDeltaTime, 0.0001f);
+            float instant = eventData.delta.x / Scale() / dt;
+            _velocity = Mathf.Lerp(_velocity, instant, 0.55f);
         }
 
         public void OnEndDrag(PointerEventData eventData)
@@ -128,12 +139,35 @@ namespace BlockOut.Runtime.UI
 
             _deciding = false;
 
-            // Yarım sayfa kaydırmadan da hızlı bir fiske sayfa çevirebilmeli:
-            // parmağın son hızı hedefe katılıyor.
+            // DERS (son karenin delta'sı HIZ DEĞİLDİR): Burada fiske hesabı
+            // `eventData.delta.x` ile yapılıyordu — yani YALNIZ son karede
+            // parmağın gittiği yol. Gerçek bir dokunuşta parmak kaldırılmadan
+            // hemen önce yavaşlar, çoğu zaman son kare deltası ~0'dır. Sonuç:
+            // fiske katkısı hep sıfır çıkıyor ve YARIM SAYFADAN AZ her kaydırma
+            // geri dönüyordu. Telefonda başparmakla yapılan normal bir kaydırma
+            // 1080 genişlikte 200-300 piksel; yarım sayfa 540. Yani kullanıcı
+            // kaydırıyor, sayfa geri dönüyor ve "kaydıramıyorum, sabit kalmış"
+            // diye görünüyordu (10. APK bulgusu).
+            //
+            // Editörde fark edilmemesinin sebebi de bu: fare ile yapılan test
+            // sürüklemesi kesintisiz ve hızlıdır, bırakma anında delta hâlâ
+            // büyüktür. Girdi cihazı, hatayı gizleyen şeydi.
+            //
+            // Artık hız OnDrag boyunca yumuşatılarak biriktiriliyor; ayrıca
+            // MESAFE eşiği de var: sayfanın çeyreği kadar kaydırmak yeter.
             float width = Mathf.Max(1f, _viewport.rect.width);
             float here = -_content.anchoredPosition.x / width;
-            float flick = -eventData.delta.x / Scale() / width * 6f;
-            _page = Mathf.Clamp(Mathf.RoundToInt(here + flick), 0, _pages.Length - 1);
+
+            float flick = -_velocity / width * FlickWeight;
+            float target = here + flick;
+
+            // Mesafe eşiği: en yakın sayfaya yuvarlamak yerine, çeyrek sayfayı
+            // geçen bir kaydırma komşu sayfaya taşısın.
+            float fromPage = target - _page;
+            int step = Mathf.Abs(fromPage) >= 0.25f ? (int)Mathf.Sign(fromPage) : 0;
+
+            _page = Mathf.Clamp(_page + step, 0, _pages.Length - 1);
+            _velocity = 0f;
         }
 
         /// <summary>Ekran pikselinden kanvas birimine oran.</summary>
