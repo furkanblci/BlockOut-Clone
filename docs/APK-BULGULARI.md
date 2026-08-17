@@ -641,9 +641,104 @@ sandık duruyor. Sekme ikonu da referansta kırmızı-altın çerçeveli bir
 "albüm". İki istem `docs/art-prompts.md` §11'e yazıldı. Gelince yalnız
 anahtar değişecek, düzen aynı kalacak.
 
-### [ ] 4. Günlük ödül (Daily Reward) paneli
-Ödüllerin arkasındaki "day" yazısı okunmuyor ve oyunun konseptine uymuyor.
-**REFERANS EKSİK** — video taranacak, çıkmazsa kullanıcıdan istenecek.
+### [x] 4. Günlük ödül (Daily Reward) paneli — YENİDEN KURULDU
+Kullanıcı kararı (2026-08-17): *"günlük ödül referans görüntüsü çok farklı
+oyundan ama onu kullanmayalım... oyunun genel görsel ui tarzına yakın daha
+güncel hale getirelim yeter"*. Yani **referanssız**, oyunun kendi diliyle.
+
+Eski panelin somut kusurları (yakalandı, `daily_now.png`):
+- Krem `panel_card` zemini oyunun mor diline yabancıydı.
+- "Day 1" **18 punto ve %65 saydam beyaz**, koyu lacivert kutunun üstünde
+  neredeyse görünmüyordu.
+- Bir gün için TEK simge çiziliyor, altına **her zaman jeton sayısı**
+  yazılıyordu. 5. gün "kalp + 200" görünüyordu; 200 kalp değil jetondu,
+  kalp 1 taneydi. Panel **yanlış bilgi veriyordu**.
+- "CLAIM" yazısı yalnız `Refresh` içinde yazılıyordu; Refresh'siz açılışta
+  düğme boş yeşil bir çubuktu.
+
+Yeni panel (`DailyRewardPanel.cs` baştan yazıldı):
+- Koyu kenarlı mor kart + üst kenarına binen kapsül başlık + koyu oyuk —
+  aynı parçalar Yolculuk, Mağaza ve "Continue?" panelinde de var.
+- Bir günün hediyeleri **çip** olarak yan yana: her çipin kendi simgesi ve
+  kendi sayısı (`120` / `x1`). 7. gün üç hediye taşıdığı için kutusu **iki
+  hücre geniş** — haftanın büyük ödülü boyuyla anlatılıyor.
+- Gün etiketi 18 → **30 punto**, kendi koyu kapsülünün üstünde; bugünkü
+  günde kapsül altın, yazı koyu mürekkep. Perdeden SONRA kuruluyor, yani
+  alınmış günün kutusu kararsa da gün numarası okunur kalıyor.
+- Alınmış günün tiki **simgenin sağ üst köşesinde**: ortadaydı ve jetonu
+  tamamen örtüyordu; alt köşede miktarı ("50" → "5C") kesiyordu.
+- Bugünün kutusunda altın kenar + ışık huzmesi + %5 ölçek; 7. gün
+  alınmadığı sürece soluk bir parıltı taşıyor.
+
+**BULUNAN GERÇEK HATA — `PendingDay` iki farklı şey söylüyor.** Ödül
+beklerken bugün alınacak günü verir; ödül ALINDIKTAN sonra `DailyStreak`'e
+düşer, yani az önce alınan günü verir. "alınmış = gün < pending" kuralı
+ikinci durumda yanlıştı: CLAIM'e basınca 3. gün hâlâ altın "bugün" kutusu
+olarak kalıyor, tik hiç gelmiyordu. `Available` da sorularak düzeltildi.
+
+Doğrulama (play modu, **gerçek raycast** ile — `onClick.Invoke()` değil):
+- 3. gün: jeton 1320 → 1440 (+120), Clock 0 → 1, streak 3.
+- 5. gün: jeton 1440 → 1640 (+200), streak 5.
+- 2. gün: alındıktan sonra gün 1 ve 2 tik=True, altın vurgu yok, ölçek 1.00,
+  alt başlık "2 day streak! Come back tomorrow.", düğme "SEE YOU TOMORROW".
+- Ana ekran sayacı panel açıkken tazeleniyor (1320 → 1440 üst çubukta).
+
+**AÇIK KALAN (bu maddeye ait değil, EKONOMİ kararı):** 5. ve 7. günün can
+hediyesi `LivesService.Grant` ile veriliyor ve o metot üst sınırı aşmıyor.
+Canı doluyken ödülü alan oyuncu kalbi **kaybediyor** (5 → 5 ölçüldü). Aynı
+şey reklam ödülü ve mağazadan can satın alma için de geçerli — yani
+çözümü tek panelde değil, taşan canı saklayacak bir alanla olmalı.
+
+### [x] 22. Ana ekran "Rewards x2" şeridi — YENİDEN KURULDU
+Kullanıcı (2026-08-17): *"şu butonun da değişmesi şart çok kötü gözüküyor
+referansla alakası yok ve yazı okunmuyor"*.
+
+Sebep **görsel seçimiydi**: şerit `badge_reward.png` kullanıyordu ve o
+görsel KARE bir çerçeve — turuncu kenarlık, ortasında MOR bir pencere.
+1.9:1 bir şeride gerdirilince kenarlık inceliyor, ortadaki mor pencere de
+yazının zemini oluyordu; 26 puntoluk beyaz yazı açık mor üstünde
+kayboluyordu.
+
+Referans (`ana ekran.jpeg`, 946×2048) ölçüldü: plaka x 338-606 / y 1482-1542,
+düğme x 250-700 / y 1536-1720. Yani plaka düğme genişliğinin **%59.5**'i ve
+düğmenin üstünden düğme yüksekliğinin **%29**'u kadar çıkıyor; yazının büyük
+harf yüksekliği ekranın **%1.46**'sı (26 punto %0.95 veriyordu).
+
+Yapılan: dolu turuncu plaka (kenar `#5B2A08`, yüzey `#FBA40A`, üstte ışık),
+**koyu kahve yazı + krem kontur**, "x2" çarpanı `<size=76%>` ile daha küçük,
+punto 26 → 40 (taşarsa 28'e kadar küçülüyor). Şerit artık düğme kökünün
+**ilk kardeşi**: alt kenarı düğmenin arkasında kayboluyor — referansta da
+öyle, "yapıştırılmış" değil "takılmış" duruyor.
+
+### [x] 23. Alt sekme çubuğu ve seçili sekme — REFERANS RENGİNE ÇEKİLDİ
+Kullanıcı (2026-08-17): *"alt menü için daha iyi orjinale benzer bir
+arkaplan tasarımı ve seçili buton için de görsel lazım"*.
+
+Sebep yine görsel: `bar_tabs.png` ve `card_tab.png` **mor** (#5B1FB8
+civarı), referanstaki çubuk **mavi-mor** (#5140E4). Boyama çarpma olduğu
+için moru maviye çevirmek mümkün değil.
+
+Dikey tarama referansın plastik dudağını katman katman verdi:
+`#2D1B87` koyu dış kenar · `#5C4BD8` ince ışık · `#231578` koyu oyuk ·
+`#7771F9` üst parlaklık · `#5140E4` gövde. Dördü ince şerit olarak kuruldu.
+
+Seçili kart da prosedürel: yüzey `#6B65F9`, kenarlık `#291B8C` (20 birim).
+İki ölçü hatası düzeldi:
+- **Kart slottan GENİŞ olmalı.** Referansta kart ekranın %28.3'ü, bir slot
+  %20 — yani kart slotunun 1.42 katı ve komşulara taşıyor. Bizde kart
+  slotun İÇİNE (0.05-0.95) sığdırılmıştı, referansın yarısı kadar genişti.
+- **Kartın üst kenarı** ekranın altından %13.48'te (bizde %16.4 idi; kart
+  bir baş boyu uzundu). Alt kenarı da artık ekranın dışına taşıyor —
+  görünen yuvarlak alt köşe kartı "çubuğun üstüne konmuş ayrı bir kutu"
+  gösteriyordu.
+- Sekme yazısı 24 → 40 punto (referansta büyük harf yüksekliği ekranın
+  %1.71'i), ikonlar büyütüldü.
+
+`preserveAspect` dersi: ikon kutuyu DOLDURMAZ, kutuya SIĞAR. İkonu
+genişletmek hiçbir şey değiştirmiyordu; sınırlayan kenar yükseklikti.
+
+Görsel isteği (zorunlu değil, kaliteyi yükseltir) `docs/art-prompts.md`
+§12'ye yazıldı — doğru renkte `bar_tabs` ve `card_tab`.
 
 ---
 

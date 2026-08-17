@@ -518,3 +518,53 @@ Aynı istem, kare albüm biçiminde:
 ```
 A square photo-album icon with a thick ornate gold frame and a deep red cover, showing four small colorful square tiles arranged in a two by two grid on its face, glossy 3D plastic toy style, front view, mobile casual puzzle game UI asset, soft studio lighting from top-left, subtle ambient occlusion, thick rounded edges, no outlines, highly saturated candy colors, single centered object on a plain solid light grey background, no text, no letters, no numbers, no drop shadow on the background, square 1024x1024, plenty of empty margin around the object, clean edges for game asset cutout
 ```
+
+---
+
+## 12. ALT SEKME ÇUBUĞU (2026-08-17)
+
+Kullanıcı isteği: *"alt menü için daha iyi orjinale benzer bir arkaplan
+tasarımı ve seçili buton için de görsel lazım"*.
+
+**Şu an bunlar KODLA çiziliyor** ve referanstan ölçülen renklerle
+(`MenuShell.BuildTabBar`) makul görünüyor — yani bu iki görsel *zorunlu*
+değil, kaliteyi yükseltir. Gelirse yalnız iki satır değişir.
+
+### Neden eski görseller kullanılmıyor
+
+`bar_tabs.png` ve `card_tab.png` zaten var ama **yanlış renkte**: ikisi de
+mor (#5B1FB8 civarı), referanstaki çubuk ise mavi-mor (#5140E4, ölçüldü).
+Boyama çarpma olduğu için moru maviye çevirmek mümkün değil — çarpım her
+zaman daha koyu ve daha mor kalır. Yeni görseller **doğru renkte** üretilmeli.
+
+### 12.1 `bar_tabs.png` — çubuk zemini (9-dilim)
+
+Referanstan ölçülen dikey katmanlar (üstten alta):
+`#2D1B87` koyu dış kenar (15 birim) · `#5C4BD8` ince ışık (4) ·
+`#231578` koyu oyuk (11) · `#7771F9` üst parlaklık (9) · `#5140E4` gövde.
+
+```
+A horizontal glossy 3D plastic bar in blue-violet color hex 5140E4, seen straight from the front, with a bright thin highlight strip along its top edge in lighter blue-violet hex 7771F9 and a darker recessed groove line just above it, flat uniform surface with no pattern, sharp horizontal top edge that runs the full width, mobile casual puzzle game bottom navigation bar, soft studio lighting from top, subtle ambient occlusion, thick rounded plastic feel, no outlines, plain solid light grey background, no text, no letters, no numbers, no icons, wide banner 1024x256, the bar fills the full width edge to edge
+```
+
+9-dilim payı: üst 40 px, alt 8 px, yanlar 8 px (yanlarda desen yok, düz uzar).
+
+### 12.2 `card_tab.png` — seçili sekme kartı (9-dilim)
+
+Referanstan ölçüldü: yüzey `#6B65F9`, kenarlık `#291B8C` (18 px kalınlık),
+üst köşeler geniş yuvarlak, alt kenar ekranın dışına taşıdığı için düz.
+
+```
+A vertical rounded rectangle button in light blue-violet color hex 6B65F9 with a thick dark blue-violet border hex 291B8C, glossy 3D plastic toy style, front view, softly rounded top corners and a flat bottom edge, a soft light reflection gathered in the upper half of the face, empty face with nothing on it, mobile casual puzzle game selected tab card, soft studio lighting from top-left, subtle ambient occlusion, no outlines, plain solid light grey background, no text, no letters, no numbers, no icons, portrait 512x640, plenty of empty margin around the object, clean edges for game asset cutout
+```
+
+9-dilim payı: her kenarda ~48 px (köşe yarıçapı kadar).
+
+### 12.3 Gelince ne değişir
+
+`MenuShell.BuildTabBar` içinde çubuğun `CreatePanel` çağrısı
+`CreateSlicedPanel(..., UiSkin.Get(Art.TabBar))` olur ve dört `TopStrip`
+satırı silinir; kart tarafında `Rim`/`Face`/`Sheen` üçlüsü tek bir
+`CreateSlicedPanel(..., UiSkin.Get(Art.TabCard))` olur. Ölçüler (kartın
+slotun 1.42 katı olması, üst kenarın ekranın altından %13.48'te bitmesi)
+aynen kalır — onlar görselden değil referanstan geliyor.

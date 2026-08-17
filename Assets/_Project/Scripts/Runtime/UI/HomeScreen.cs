@@ -382,26 +382,83 @@ namespace BlockOut.Runtime.UI
                 new Color(0.86f, 0.88f, 1f), new Color(0.10f, 0.06f, 0.22f));
             UiKit.Place(_difficultyLabel, 0.06f, 0.355f, 0.94f, 0.60f);
 
-            // Ödül şeridi düğmenin ÜST KENARINA binerek durur; ayrı bir kutu
-            // gibi değil, düğmeye takılmış bir etiket gibi okunsun.
-            // Ödül rozeti artık kendi görseli. Kodla üç kez denendi (düz
-            // renk, iki katman, koyu kenar) ve hiçbiri 3B plastik dilini
-            // tutturamadı: kenarın kalınlığı, yüzeyin eğrisi ve ışık lekesi
-            // birlikte çalışıyor, üçünü dikdörtgenlerle taklit etmek mümkün
-            // değil. Bazı şeyler için görsel üretmek doğru cevaptır.
-            var badge = UiSkin.Get(Art.RewardBadge);
+            BuildRewardRibbon();
+        }
+
+        /// <summary>
+        /// "Ödüller x3" şeridi — referanstan ölçülerek yeniden kuruldu.
+        /// Referans: `ana ekran.jpeg` (946×2048), plaka x 338-606 / y 1482-1542,
+        /// düğme x 250-700 / y 1536-1720.
+        ///
+        /// DERS (hazır görsel BAŞKA BİR ŞEYSE, kullanma): Şerit `badge_reward`
+        /// görselini kullanıyordu. O görsel KARE bir çerçeve: turuncu kenarlık
+        /// ve ortasında MOR bir pencere — bir avatar/ikon çerçevesi. 1.9:1 bir
+        /// şeride gerdirilince kenarlık inceliyor, ortadaki mor pencere de
+        /// yazının zemini oluyordu; beyaz yazı açık mor üstünde kayboluyordu.
+        /// Kullanıcının "yazı okunmuyor" dediği şey buydu. Referansta bu şerit
+        /// bir çerçeve değil DOLU turuncu bir plaka ve yazısı KOYU KAHVE.
+        ///
+        /// DERS (etiket düğmenin ARKASINA girer): Şerit düğme kökünün son
+        /// çocuğuydu, yani düğmenin ÜSTÜNE çiziliyordu ve "üstüne yapıştırılmış"
+        /// duruyordu. Referansta plakanın alt kenarı düğmenin arkasında kayboluyor
+        /// — bu yüzden ilk kardeş yapılıyor. Tek satırlık fark, "yapıştırılmış"
+        /// ile "takılmış" arasındaki fark.
+        ///
+        /// ÖLÇÜ: plaka düğme genişliğinin %59.5'i, düğmenin üstünden düğme
+        /// yüksekliğinin %29'u kadar çıkıyor. Yazının büyük harf yüksekliği
+        /// ekranın %1.46'sı (bizdeki 26 punto %0.95 veriyordu).
+        /// </summary>
+        void BuildRewardRibbon()
+        {
             var ribbonRoot = UiKit.CreateRect("Ribbon", _playButton.transform);
-            UiKit.Place(ribbonRoot, 0.285f, 0.94f, 0.715f, 1.52f);
+            UiKit.Place(ribbonRoot, 0.196f, 0.780f, 0.791f, 1.290f);
+            ribbonRoot.SetAsFirstSibling();      // düğmenin ARKASINDA kalsın
             _rewardRibbon = ribbonRoot;
 
-            var ribbon = badge != null
-                ? UiKit.CreateSlicedPanel("Face", ribbonRoot, badge)
-                : UiKit.CreateRoundedPanel("Face", ribbonRoot, new Color(0.98f, 0.60f, 0.07f));
-            UiKit.Place(ribbon, 0f, 0f, 1f, 1f);
+            // Koyu kahve kenarlık + turuncu yüzey + üstte açık bir ışık.
+            // Renkler referanstan örneklendi: kenar #5B2A08, yüzey #FBA40A,
+            // üst ışık #FFC93C.
+            var edge = UiKit.CreateRoundedPanel("Edge", ribbonRoot,
+                new Color(0.357f, 0.165f, 0.031f));
+            // Köşe yarıçapı referanstan ~20 birim. `pixelsPerUnitMultiplier`
+            // TERS çalışır (büyük değer = küçük köşe) ve 0.5 ≈ 40 birim
+            // verdiğine göre 1.0 ≈ 20 birim.
+            edge.pixelsPerUnitMultiplier = 0.95f;
+            edge.raycastTarget = false;
+            UiKit.Place(edge, 0f, 0f, 1f, 1f);
 
-            _rewardLabel = UiKit.CreateTitle("RibbonText", ribbonRoot, "", 26,
-                CoinInk, new Color(0.20f, 0.14f, 0.42f));
-            UiKit.Place(_rewardLabel, 0.10f, 0.20f, 0.90f, 0.82f);
+            var faceFill = UiKit.CreateRoundedPanel("Face", ribbonRoot,
+                new Color(0.984f, 0.643f, 0.039f));
+            faceFill.pixelsPerUnitMultiplier = 1.05f;
+            faceFill.raycastTarget = false;
+            UiKit.Place(faceFill, 0f, 0f, 1f, 1f, padding: 7f);
+
+            // Işık üstte toplanır. `FadeDown` altta opak olduğu için 180°
+            // çevriliyor — aynı dokuyu ters yönde kullanmak, ikinci bir doku
+            // üretmekten ucuz.
+            var sheen = UiKit.CreateRect("Sheen", faceFill.transform);
+            var sheenImage = sheen.gameObject.AddComponent<Image>();
+            sheenImage.sprite = MenuSprites.FadeDown;
+            sheenImage.type = Image.Type.Sliced;
+            sheenImage.color = new Color(1f, 0.788f, 0.235f, 0.85f);
+            sheenImage.raycastTarget = false;
+            UiKit.Place(sheen, 0.02f, 0.10f, 0.98f, 0.94f);
+            sheen.localRotation = Quaternion.Euler(0f, 0f, 180f);
+
+            // KOYU KAHVE YAZI + KREM KONTUR. Referansta yazı plakadan daha
+            // koyu; beyaz yazı turuncu üstünde yeterince ayrışmıyor.
+            _rewardLabel = UiKit.CreateTitle("RibbonText", ribbonRoot, "", 40,
+                new Color(0.290f, 0.114f, 0.008f), new Color(1f, 0.953f, 0.839f));
+            UiKit.Place(_rewardLabel, 0.07f, 0.36f, 0.93f, 0.97f);
+            UiKit.SetOutline(_rewardLabel, new Color(1f, 0.965f, 0.878f), 0.30f);
+
+            // İngilizce "Rewards x3" Türkçe "Ödüller x3"ten uzun; punto üst
+            // sınır, gerekirse küçülür. `enableAutoSizing` TEK BAŞINA çalışmaz
+            // — kısıtlayıcı bir `overflowMode` olmadan TMP taşırır.
+            _rewardLabel.enableAutoSizing = true;
+            _rewardLabel.fontSizeMax = 40;
+            _rewardLabel.fontSizeMin = 28;
+            _rewardLabel.overflowMode = TextOverflowModes.Truncate;
         }
 
         /// <summary>
@@ -562,8 +619,14 @@ namespace BlockOut.Runtime.UI
             int multiplier = LevelDifficultyRule.RewardMultiplier(difficulty);
             bool showRibbon = multiplier > 1;
             _rewardRibbon.gameObject.SetActive(showRibbon);
+            // "x3" ÇARPANI DAHA KÜÇÜK. Referansta "Ödüller" büyük, "x3" onun
+            // yaklaşık dörtte üçü kadar — okuyan önce NE olduğunu, sonra KAÇ
+            // katı olduğunu görüyor. Tek puntoda yazınca şerit tek bir uzun
+            // kelime gibi okunuyordu.
             if (showRibbon)
-                _rewardLabel.text = _scratch.Clear().Append("Rewards x").Append(multiplier).ToString();
+                _rewardLabel.text = _scratch.Clear()
+                    .Append("Rewards <size=76%>x").Append(multiplier).Append("</size>")
+                    .ToString();
 
             // Yazı yerleşimi içeriğe göre. Zorluk etiketi yoksa (normal bölüm)
             // seviye yazısı düğmenin ORTASINA oturur; alt satır boş kaldığında
