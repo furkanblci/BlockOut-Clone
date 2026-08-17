@@ -112,11 +112,11 @@ namespace GameKit.UI
         public static RectTransform CreateSafeArea(Canvas canvas)
         {
             var rect = CreateRect("SafeArea", canvas.transform);
-            var area = Screen.safeArea;
-            rect.anchorMin = new Vector2(area.xMin / Screen.width, area.yMin / Screen.height);
-            rect.anchorMax = new Vector2(area.xMax / Screen.width, area.yMax / Screen.height);
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
+
+            // Payı bileşen uyguluyor ve ekran değiştikçe yeniden uyguluyor;
+            // burada bir kez hesaplamak cihaz değişince/telefon dönünce
+            // arayüzü eski çentiğe göre bırakıyordu (bkz. UiSafeArea).
+            rect.gameObject.AddComponent<UiSafeArea>();
             return rect;
         }
 
@@ -206,6 +206,12 @@ namespace GameKit.UI
             // Kenar payı olan sprite'lar 9-dilim, olmayanlar (ikon) düz çizilir.
             image.type = sprite.border == Vector4.zero ? Image.Type.Simple : Image.Type.Sliced;
             image.color = tint ?? Color.white;
+
+            // 9-dilim kutu kenar paylarından alçak/dar olabilir; o zaman paylar
+            // çakışıp görseli ezer. Bu bileşen payları kutuya göre küçültüyor.
+            if (image.type == Image.Type.Sliced)
+                image.gameObject.AddComponent<UiSliceFit>();
+
             return image;
         }
 
@@ -275,14 +281,15 @@ namespace GameKit.UI
             button.targetGraphic = face;
             button.transition = Selectable.Transition.None;
 
-            if (!string.IsNullOrEmpty(text))
-            {
-                var label = CreateLabel("Label", face.transform, text, fontSize, ink);
-                // Yazı butonun YÜZÜNE oturmalı; alt kalınlık payı bırakılmazsa
-                // aşağı kaymış görünür.
-                Place(label, 0.06f, 0.18f, 0.94f, 0.94f);
-                if (TitleMaterial != null) label.fontSharedMaterial = TitleMaterial;
-            }
+            // Etiket metin BOŞ OLSA DA kurulur — aynı sebeple CreateTintedButton'da
+            // da öyle: çağıranlar düğmeyi boş kurup yazısını sonra
+            // GetComponentInChildren ile bulup yazıyor. Etiket hiç yaratılmazsa
+            // o arama null döner ve ekran yarı kurulmuş hâlde kalır.
+            var label = CreateLabel("Label", face.transform, text ?? "", fontSize, ink);
+            // Yazı butonun YÜZÜNE oturmalı; alt kalınlık payı bırakılmazsa
+            // aşağı kaymış görünür.
+            Place(label, 0.06f, 0.18f, 0.94f, 0.94f);
+            if (TitleMaterial != null) label.fontSharedMaterial = TitleMaterial;
 
             root.gameObject.AddComponent<UiButtonFeel>();
             return button;
@@ -305,6 +312,54 @@ namespace GameKit.UI
         /// olduğu için çarpım rengin kendisini bırakır, kartın alt bandı da
         /// koyulaşarak bedava bir 3B kalınlık verir.
         /// </summary>
+        /// <summary>
+        /// Düz, çerçeveli kutu: dolgu + ince kenarlık. 3B dudak YOK.
+        ///
+        /// DERS (baskılı gölgeyi BOYAYAMAZSIN): Bu projede `panel_card` uzun
+        /// süre her şeyin zemini olarak kullanıldı — kart, düğme, ipucu kutusu.
+        /// O sprite'ın alt kenarında BASKILI bir 3B gölge var. Krem üstünde
+        /// doğru duruyor; ama boyama çarpma olduğu için turuncuya boyayınca
+        /// gölge kırmızıya, kreme boyayınca magentaya kayıyor ve kutunun altında
+        /// oyunun hiçbir yerinde olmayan bir renk şeridi beliriyor.
+        ///
+        /// Kural: bir yüzeyi BOYAYACAKSAN baskılı gölgesi olmayanı kullan.
+        /// Baskılı gölgeli sprite'lar (`panel_card`, `btn_*`) yalnız KENDİ
+        /// renkleriyle, boyanmadan kullanılmalı.
+        /// </summary>
+        public static Image CreateOutlinedBox(string name, Transform parent,
+            Color fill, Color border, float borderInset = 0f)
+        {
+            var box = CreateSlicedPanel(name, parent, UiSprites.RoundedPanel, fill);
+
+            var ring = CreateSlicedPanel("Border", box.transform,
+                UiSprites.RoundedOutline, border);
+            ring.raycastTarget = false;
+            Place(ring, borderInset, borderInset, 1f - borderInset, 1f - borderInset);
+
+            return box;
+        }
+
+        /// <summary>
+        /// Bir başlığa KENDİNE ÖZEL kontur verir.
+        ///
+        /// DERS (paylaşılan materyal tek tek ayar KABUL ETMEZ): <see cref="CreateTitle"/>
+        /// bütün başlıklara ortak bir TMP materyali veriyor — bir atlas, bir
+        /// çizim çağrısı, mobilde doğru karar. Ama o materyale yazılan kontur
+        /// rengi TÜM başlıkları birden değiştirir; tek bir etikete mor kontur
+        /// vermek istediğinde CreateTitle'a verdiğin renk sessizce yok sayılır.
+        /// `fontMaterial`'e dokunmak o etikete özel bir kopya üretir: bir çizim
+        /// çağrısı daha, ama yalnız gerçekten farklı olması gereken başlıklarda.
+        /// Bu yüzden ayrı bir metot — varsayılan davranış hâlâ paylaşılan
+        /// materyal, ayrışmak bilinçli bir tercih.
+        /// </summary>
+        public static void SetOutline(TextMeshProUGUI label, Color color, float width = 0.30f)
+        {
+            if (label == null) return;
+            var material = label.fontMaterial;
+            material.SetColor(ShaderUtilities.ID_OutlineColor, color);
+            material.SetFloat(ShaderUtilities.ID_OutlineWidth, width);
+        }
+
         public static Button CreateTintedButton(string name, Transform parent, Sprite sprite,
             Color tint, string text, int fontSize, Color ink)
         {

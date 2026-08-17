@@ -104,6 +104,18 @@ namespace BlockOut.Runtime.UI
         public const string Confetti     = "confetti_sheet";
         public const string Characters   = "home_characters";
         public const string Avatar       = "avatar_player";
+
+        /// <summary>
+        /// Rakip avatarları. Liderlik satırları ve podyum bunları sırayla
+        /// kullanıyor — hepsi aynı yüz olursa tablo tek bir kişinin
+        /// tekrarı gibi okunuyor.
+        ///
+        /// NOT: yalnız 2, 3 ve 4 ÇERÇEVESİZ. `avatar_6..9` kendi altın
+        /// çerçevesiyle geliyor ve bizim kare çerçevemizin içine konunca
+        /// ÇİFT ÇERÇEVE oluyor; onlar şimdilik kullanılmıyor.
+        /// </summary>
+        public static string Rival(int index) => "avatar_" + (2 + index % 3);
+
         public const string Check        = "check_green";
         public const string Ribbon       = "ribbon_reward";
         public const string AvatarFrame  = "frame_avatar";
@@ -117,8 +129,23 @@ namespace BlockOut.Runtime.UI
         /// <summary>Bölge dairesi (1 tabanlı). Yoksa null döner, çağıran düşer.</summary>
         public static string Region(int index) => "region_" + index;
 
+        /// <summary>
+        /// Mağazadaki altın yığını (1-6, küçükten büyüğe). Referansta altı
+        /// jeton kutusunun her biri farklı büyüklükte bir yığın gösteriyor;
+        /// fiyat okunmadan önce göz hangisinin daha çok verdiğini görüyor.
+        /// </summary>
+        public static string CoinPile(int index) => "coin_pile_" + index;
+
+        /// <summary>Mağaza paketinin kabı (1-5: kese, kavanoz, sandık, lüks sandık, hazine).</summary>
+        public static string PackArt(int index) => "pack_" + index;
+
+        /// <summary>Varsa kullanılır; yoksa <see cref="MenuSprites"/> çizimine düşülür.</summary>
+        public const string NoAds    = "icon_noads";
+        public const string Infinite = "icon_infinite";
+
         public const string Coin    = "icon_coin";
         public const string Heart   = "icon_heart";
+        public const string HeartBroken = "icon_heart_broken";
         public const string Gear    = "icon_gear";
         public const string Star    = "icon_star";
         public const string Lock    = "icon_lock";

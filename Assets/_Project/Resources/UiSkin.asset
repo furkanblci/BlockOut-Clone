@@ -13,6 +13,20 @@ MonoBehaviour:
   m_Name: UiSkin
   m_EditorClassIdentifier: BlockOut.Runtime::BlockOut.Runtime.UI.UiSkin
   entries:
+  - name: avatar_2
+    sprite: {fileID: 21300000, guid: 07865ccd06ca36541a07d1664c31cfbe, type: 3}
+  - name: avatar_3
+    sprite: {fileID: 21300000, guid: 9102515111f5e6e4099d55027dc4787b, type: 3}
+  - name: avatar_4
+    sprite: {fileID: 21300000, guid: b7f71b2368ec40d449784bd1e663b233, type: 3}
+  - name: avatar_6
+    sprite: {fileID: 21300000, guid: 84bb3a5d071024e47a4b6c485ae15eef, type: 3}
+  - name: avatar_7
+    sprite: {fileID: 21300000, guid: 4cca090109618214fb8afe650dfdc6ea, type: 3}
+  - name: avatar_8
+    sprite: {fileID: 21300000, guid: cfbb118152b2ef740b0798e4b23519b0, type: 3}
+  - name: avatar_9
+    sprite: {fileID: 21300000, guid: 6f7530cb19bc5dc4fa31e0ba1bf2a1d1, type: 3}
   - name: avatar_player
     sprite: {fileID: 21300000, guid: b0cab17779831204ba0203d71751b4ff, type: 3}
   - name: badge_reward
@@ -35,6 +49,18 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: cde8541811d886b43b10dc291b212c70, type: 3}
   - name: check_green
     sprite: {fileID: 21300000, guid: 76bee41dae84db548b5d5be9b3c4a0bf, type: 3}
+  - name: coin_pile_1
+    sprite: {fileID: 21300000, guid: 95f1f05b99dc62b4baf5da6fdf8debdd, type: 3}
+  - name: coin_pile_2
+    sprite: {fileID: 21300000, guid: 4df75d95b67642a418e14a41dbe859b5, type: 3}
+  - name: coin_pile_3
+    sprite: {fileID: 21300000, guid: 4c99745a974f9dc4882d2f9827311198, type: 3}
+  - name: coin_pile_4
+    sprite: {fileID: 21300000, guid: 1edc1e9ceb9b7754dbf602a27e1d82c6, type: 3}
+  - name: coin_pile_5
+    sprite: {fileID: 21300000, guid: ba98049a9d0755c4f9e2db167618f787, type: 3}
+  - name: coin_pile_6
+    sprite: {fileID: 21300000, guid: caf01fd7f6d8f7e428886f3a86cf3836, type: 3}
   - name: confetti_sheet
     sprite: {fileID: 21300000, guid: 29a5d3bc96f626c4c894abc04d06ddf6, type: 3}
   - name: frame_avatar
@@ -57,10 +83,16 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: 7b5e38dca7ebb9245bdc2069dcee413f, type: 3}
   - name: icon_heart
     sprite: {fileID: 21300000, guid: c6e28f9f64295fb418ce77ce8c65c5a8, type: 3}
+  - name: icon_heart_broken
+    sprite: {fileID: 21300000, guid: 98b9317b3a79a894c9a8375e7c5d92fa, type: 3}
   - name: icon_home
     sprite: {fileID: 21300000, guid: 011c2d64827db414bb105aebef535391, type: 3}
+  - name: icon_infinite
+    sprite: {fileID: 21300000, guid: 82cf5f6bb9918de4d951ae7403221033, type: 3}
   - name: icon_lock
     sprite: {fileID: 21300000, guid: 07732edba91e5ab419f1d76ab7620509, type: 3}
+  - name: icon_noads
+    sprite: {fileID: 21300000, guid: eab8d24c3bbc28048bfc6a9a957c54d6, type: 3}
   - name: icon_plus
     sprite: {fileID: 21300000, guid: 6f1b3dd2db02e744fbd60c7348b913e4, type: 3}
   - name: icon_rocket
@@ -75,6 +107,16 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: 7407bc207dbed814b9fb8882a6039604, type: 3}
   - name: node_level
     sprite: {fileID: 21300000, guid: abf0e23ee5f5f964a99539b7786dbe3e, type: 3}
+  - name: pack_1
+    sprite: {fileID: 21300000, guid: 1e9c739aa3b94bb47b7dfe1bf60ca68b, type: 3}
+  - name: pack_2
+    sprite: {fileID: 21300000, guid: 495be2782851c954399964ec10d13f6c, type: 3}
+  - name: pack_3
+    sprite: {fileID: 21300000, guid: 616660366df229c4b8f279c366be64e6, type: 3}
+  - name: pack_4
+    sprite: {fileID: 21300000, guid: a61d6ab573c0afb408ffd6459ef454ca, type: 3}
+  - name: pack_5
+    sprite: {fileID: 21300000, guid: fc2b91a23ed783f44aa2ad063307463c, type: 3}
   - name: panel_card
     sprite: {fileID: 21300000, guid: 7b88331eeb28f1344ac90649014dc2fb, type: 3}
   - name: panel_dark
@@ -87,6 +129,8 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: 887399bb03f43cb4a99563071ed8b517, type: 3}
   - name: region_4
     sprite: {fileID: 21300000, guid: 43787a59f9137a847b32d03de75f4973, type: 3}
+  - name: region_5
+    sprite: {fileID: 21300000, guid: 0c1fa5c0f1cb53e40a3024b6c7465d5e, type: 3}
   - name: ribbon_reward
     sprite: {fileID: 21300000, guid: b62453dd025c22c4eb16e5fc4de3ec51, type: 3}
   - name: splash_art

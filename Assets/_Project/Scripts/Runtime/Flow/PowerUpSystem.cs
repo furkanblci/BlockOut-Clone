@@ -43,6 +43,31 @@ namespace BlockOut.Runtime.Flow
         public event Action Changed;
         public event Action<string> Message;
 
+        /// <summary>
+        /// Bir yardımcı GERÇEKTEN devreye girdiğinde yayınlanır — seçilince
+        /// değil, etkisi uygulanınca.
+        ///
+        /// DERS (sistem sesi TANIMAZ): Buraya doğrudan `AudioService.PowerUp()`
+        /// yazmak iki satır tasarruf ederdi ama oynanış sistemini ses servisine
+        /// bağlardı. Bu projedeki ayrım net: sistem "ne oldu"yu yayınlar, hangi
+        /// olayın hangi sesi çıkardığına <see cref="Services.AudioService"/>
+        /// karar verir. Roket sesini değiştirmek için oynanış koduna dokunmak
+        /// gerekmesin.
+        /// </summary>
+        public event Action<PowerUpKind> Used;
+
+        /// <summary>
+        /// Yardımcı alınamadı — elde yok ve jeton da yetmiyor.
+        ///
+        /// DERS (reddi de bir OLAY olarak yayınla): Bu durum önce yalnız
+        /// `Message` ile bir yazıya dönüşüyordu; yazı 2.5 saniye görünüp
+        /// kayboluyordu, ses yoktu, hangi düğmenin reddedildiği de belli
+        /// değildi. Oyuncunun gördüğü şey "bastım, bir şey olmadı" idi.
+        /// Kind'ı taşıyan ayrı bir olay, arayüzün TAM O DÜĞMEYİ
+        /// işaretlemesini mümkün kılıyor — mesaj metnini ayrıştırmadan.
+        /// </summary>
+        public event Action<PowerUpKind> Refused;
+
         public PowerUpSystem(
             LevelModel level, BoardViews views, GateSystem gates,
             ObstacleSystem obstacles, ProgressService progress, BoardSpace space = default)
@@ -98,7 +123,8 @@ namespace BlockOut.Runtime.Flow
                 int price = PowerUpInfo.Price(kind);
                 if (_progress == null || !_progress.TrySpendCoins(price))
                 {
-                    Message?.Invoke("Yeterli jeton yok.");
+                    Message?.Invoke("Not enough coins.");
+                    Refused?.Invoke(kind);
                     return false;
                 }
                 Grant(kind);
@@ -108,7 +134,8 @@ namespace BlockOut.Runtime.Flow
             {
                 Consume(kind);
                 FreezeRemaining = PowerUpInfo.ClockFreezeSeconds;
-                Message?.Invoke("Süre donduruldu!");
+                Message?.Invoke("Time frozen!");
+                Used?.Invoke(kind);
                 Changed?.Invoke();
                 return true;
             }
@@ -148,6 +175,8 @@ namespace BlockOut.Runtime.Flow
             Pending = null;
             Consume(kind);
             Message?.Invoke("");
+
+            Used?.Invoke(kind);
 
             if (kind == PowerUpKind.Rocket)
                 Remove(block);

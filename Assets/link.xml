@@ -1,0 +1,37 @@
+<!--
+  IL2CPP KOD KIRPMA KORUMASI
+
+  NEDEN GEREKLİ:
+  Android derlemesi IL2CPP kullanıyor (ProjectSettings: scriptingBackend
+  Android: 1) ve yönetilen kod kırpma (managed stripping) açık. Kırpıcı
+  "hangi tip nereden çağrılıyor" sorusunu STATİK olarak yanıtlar: kodda adı
+  geçmeyen bir alanı ya da kurucuyu derlemeden atar.
+
+  Bölüm JSON'ları ve kayıt dosyası Newtonsoft.Json ile YANSIMA (reflection)
+  üzerinden okunuyor:
+
+      JsonConvert.DeserializeObject<LevelData>(json)   // LevelLoader.Parse
+      JsonConvert.DeserializeObject<SaveData>(...)     // SaveService
+
+  Bu çağrılarda `LevelData`, `BoardData`, `BlockData`, `SaveData` ve
+  kardeşlerinin ALANLARINA kodda hiçbir yerden doğrudan dokunulmuyor —
+  onları yalnız Newtonsoft, çalışma anında, isimle buluyor. Kırpıcı bunu
+  göremediği için alanları atıyor.
+
+  SONUÇ (2026-08-17 APK testinde yaşandı):
+  Editörde her şey çalışıyor (editörde kırpma YOK), APK'da 1. bölüm
+  açılmıyor ve tahtaya hiç blok gelmiyordu. `GameSession.Restart` içindeki
+  parse bloğu hata yiyip erken dönüyor, tahta boş kalıyor.
+
+  DERS (editörde çalışması bir şey KANITLAMAZ): Bu hata sınıfı yalnızca
+  gerçek derlemede görünür. "Editörde çalışıyor" demek, kırpıcının hiç
+  koşmadığı bir ortamda çalışıyor demektir.
+
+  Newtonsoft'un kendi paketi kendi link.xml'ini getiriyor; korunması gereken
+  BİZİM veri tiplerimiz. `BlockOut.Core` bu projede modeller ve kayıt
+  şemasından ibaret (davranış değil veri), bu yüzden tamamını korumak hem
+  doğru hem de ucuz.
+-->
+<linker>
+  <assembly fullname="BlockOut.Core" preserve="all" />
+</linker>

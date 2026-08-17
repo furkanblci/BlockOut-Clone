@@ -15,6 +15,7 @@ namespace BlockOut.Runtime.View
     {
         static Texture2D _gradient;
         static Material _material;
+        static MaterialPropertyBlock _block;
 
         public static void Ensure(Camera camera, BlockVisualConfigSO config)
         {
@@ -23,6 +24,34 @@ namespace BlockOut.Runtime.View
             var existing = camera.GetComponentInChildren<BackgroundView>();
             if (existing != null) existing.ApplyColors(config);
             else Create(camera, config);
+        }
+
+        /// <summary>
+        /// Zemini geçici olarak karartır (1 = normal, 0 = simsiyah).
+        /// Yardımcı istemi kipi bunu kullanıyor: referansta tahta olduğu gibi
+        /// kalırken ETRAFI kararıyor.
+        ///
+        /// DERS (paylaşılan malzemeyi BOYAMA): `_material` statik ve tek
+        /// örnek; `sharedMaterial.SetColor` çağırmak zemini kullanan her yeri
+        /// birden değiştirir ve editörde oturumlar arası sızar. Özellik bloğu
+        /// (MaterialPropertyBlock) yalnız BU çizime uygulanır ve boş blok
+        /// atayınca iz bırakmadan geri alınır.
+        /// </summary>
+        public static void SetDim(Camera camera, float factor)
+        {
+            if (camera == null) return;
+            var view = camera.GetComponentInChildren<BackgroundView>();
+            if (view == null) return;
+
+            var renderer = view.GetComponent<MeshRenderer>();
+            if (renderer == null) return;
+
+            if (factor >= 0.999f) { renderer.SetPropertyBlock(null); return; }
+
+            if (_block == null) _block = new MaterialPropertyBlock();
+            renderer.GetPropertyBlock(_block);
+            _block.SetColor("_BaseColor", new Color(factor, factor, factor, 1f));
+            renderer.SetPropertyBlock(_block);
         }
 
         static void Create(Camera camera, BlockVisualConfigSO config)

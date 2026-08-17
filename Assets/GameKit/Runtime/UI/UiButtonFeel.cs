@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using PT = PrimeTween;
 
 namespace GameKit.UI
 {
@@ -15,25 +16,29 @@ namespace GameKit.UI
     ///
     /// DERS (neden geri zıplama?): Doğrusal geri dönüş mekanik durur. Hedefi
     /// biraz aşıp geri gelmek (overshoot) fiziksel bir yay gibi okunur ve beyin
-    /// bunu "gerçek" sayar. Aşma miktarı küçük olmalı: %6 yeterli, %20 oyuncak
+    /// bunu "gerçek" sayar. Aşma miktarı küçük olmalı: %8 yeterli, %20 oyuncak
     /// gibi görünür.
     ///
-    /// Coroutine yerine Update kullanıyoruz: düğme devre dışı bırakılıp yeniden
-    /// açıldığında yarım kalmış bir coroutine ölçeği bozuk bırakabilirdi.
+    /// DERS (neden artık Update değil): Eskiden burada her karede üstel yumuşatma
+    /// yapan bir Update vardı. Ekranda otuz düğme varsa otuz Update çağrısı
+    /// demekti — hiçbiri iş yapmasa bile. PrimeTween tween'i yalnızca canlıyken
+    /// işler; düğme boştayken sıfır maliyet. Basma ve bırakma eğrilerini de
+    /// ayrı ayrı seçebiliyoruz: basış sert ve hızlı, bırakış yaylı.
     /// </summary>
     [RequireComponent(typeof(RectTransform))]
     public sealed class UiButtonFeel : MonoBehaviour,
         IPointerDownHandler, IPointerUpHandler, IPointerExitHandler
     {
         const float PressedScale = 0.94f;
-        const float Overshoot = 1.06f;
-        const float PressSpeed = 22f;
-        const float ReleaseSpeed = 14f;
+        const float PressDuration = 0.07f;
+        const float ReleaseDuration = 0.30f;
+
+        /// <summary>Bırakışta hedefi aşma şiddeti. 1.0 klasik "back" eğrisi.</summary>
+        const float ReleaseOvershoot = 1.6f;
 
         RectTransform _rect;
-        float _current = 1f;
-        float _target = 1f;
-        bool _releasing;
+        PT.Tween _tween;
+        bool _pressed;
 
         void Awake() => _rect = (RectTransform)transform;
 
@@ -41,30 +46,9 @@ namespace GameKit.UI
         {
             // Devre dışı kalırken ölçeği geri ver; yoksa düğme küçük kalıp
             // bir daha düzelmez.
-            _current = _target = 1f;
-            _releasing = false;
+            if (_tween.isAlive) _tween.Stop();
+            _pressed = false;
             if (_rect != null) _rect.localScale = Vector3.one;
-        }
-
-        void Update()
-        {
-            float speed = _releasing ? ReleaseSpeed : PressSpeed;
-            _current = Mathf.Lerp(_current, _target, 1f - Mathf.Exp(-speed * Time.unscaledDeltaTime));
-
-            if (_releasing && Mathf.Abs(_current - _target) < 0.004f)
-            {
-                if (!Mathf.Approximately(_target, 1f))
-                {
-                    _target = 1f;      // aşmadan sonra 1'e otur
-                }
-                else
-                {
-                    _current = 1f;
-                    _releasing = false;
-                }
-            }
-
-            _rect.localScale = new Vector3(_current, _current, 1f);
         }
 
         /// <summary>
@@ -77,8 +61,12 @@ namespace GameKit.UI
         /// </summary>
         public void OnPointerDown(PointerEventData eventData)
         {
-            _target = PressedScale;
-            _releasing = false;
+            _pressed = true;
+
+            if (_tween.isAlive) _tween.Stop();
+            _tween = PT.Tween.Scale(_rect, PressedScale, PressDuration,
+                PT.Ease.OutQuad, useUnscaledTime: true);
+
             Clicked?.Invoke();
         }
 
@@ -94,9 +82,14 @@ namespace GameKit.UI
 
         void Release()
         {
-            if (Mathf.Approximately(_target, 1f) && !_releasing) return;
-            _target = Overshoot;
-            _releasing = true;
+            if (!_pressed) return;
+            _pressed = false;
+
+            if (_tween.isAlive) _tween.Stop();
+            // Overshoot eğrisi 1'i aşıp geri döner; ayrıca bir "aşma hedefi"
+            // vermeye gerek yok, eğrinin kendisi zıplamayı üretiyor.
+            _tween = PT.Tween.Scale(_rect, 1f, ReleaseDuration,
+                PT.Easing.Overshoot(ReleaseOvershoot), useUnscaledTime: true);
         }
     }
 }

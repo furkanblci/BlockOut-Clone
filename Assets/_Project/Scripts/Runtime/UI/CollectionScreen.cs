@@ -1,95 +1,48 @@
-using System.Collections.Generic;
-using BlockOut.Runtime.Config;
 using BlockOut.Runtime.Services;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 using UiKit = GameKit.UI.UiKit;
 
 namespace BlockOut.Runtime.UI
 {
     /// <summary>
-    /// Koleksiyon: oyun boyunca toplanan parçalar ve ilerleme yüzdesi.
+    /// Koleksiyon — referanstan kuruldu.
+    /// Referans kare: `menus,powerups,vs.mp4`, 43-45. saniyeler.
     ///
-    /// DERS (koleksiyon = ilerlemenin İKİNCİ ekseni): Bölüm sayısı tek eksendir
-    /// ve bir noktada oyuncu "kaçıncı bölümdeyim" sorusundan sıkılır. Koleksiyon,
-    /// aynı oynanıştan İKİNCİ bir ilerleme çıkarır: "42 parçadan 17'sini
-    /// topladım". Yeni oynanış yazmadan oyuna uzunluk ekler ve tamamlanmamış
-    /// bir set, tamamlanmış bir setten daha güçlü bir geri dönme sebebidir.
+    /// DERS (referans BOŞ diyorsa boş bırak): Bu ekran uzun süre bir tahmin
+    /// üzerine kuruluydu — ızgara dolusu rozet, ilerleme yüzdesi, filtreler.
+    /// Referansta 53. seviyedeki bir oyuncuda ekranın TAMAMI şu: ortada bir
+    /// kitap/blok görseli ve altında tek satır, "Unlock Collection at Level 95!".
+    /// İçerik 95. seviyeye kadar hiç açılmıyor. Var olmayan bir özelliğin
+    /// arayüzünü uydurmak, portfolyoda "yapabiliyor" değil "anlamamış" der.
     ///
-    /// DERS (kilitli olanı GÖSTER): Toplanmamış parçayı gizlemek "bilmediğim
-    /// şeyi özleyemem" demektir. Silüetini göstermek hedefi görünür kılar;
-    /// referans oyunlar bu yüzden kilitli parçayı karartıp yerinde bırakır.
-    ///
-    /// NOT: Referans oyunun koleksiyon ekranının birebir düzeni henüz elimizde
-    /// yok. Bu ilk sürüm mantığı ve akışı kuruyor; ekran görüntüsü gelince
-    /// yerleşim ona göre düzeltilecek.
+    /// Seviye 95'e gelindiğinde burası gerçek koleksiyonla doldurulacak; o
+    /// hâlin referansı henüz elimizde YOK.
     /// </summary>
     public sealed class CollectionScreen : MonoBehaviour
     {
-        /// <summary>
-        /// Bir set: adı, parça ikonları ve hangi bölümde açıldığı.
-        /// Parçalar bölüm ilerlemesiyle açılıyor — ayrı bir düşürme sistemi
-        /// kurmadan çalışan en basit kural.
-        /// </summary>
-        static readonly (string name, string[] icons, int[] levels)[] Sets =
-        {
-            ("Yolculuk Hatıraları",
-                new[] { Art.Coin, Art.Star, Art.Heart, Art.Trophy },
-                new[] { 2, 5, 9, 14 }),
-            ("Yardımcı Kutusu",
-                new[] { Art.Clock, Art.Rocket, Art.Ufo, Art.Chest },
-                new[] { 18, 24, 31, 38 }),
-            ("Nadir Parçalar",
-                new[] { Art.Globe, Art.Shop, Art.Home, Art.Gear },
-                new[] { 42, 45, 48, 50 })
-        };
+        /// <summary>Referanstaki eşik.</summary>
+        const int UnlockLevel = 95;
 
-        readonly List<(Image icon, Image frame, TextMeshProUGUI label, int level)> _slots =
-            new List<(Image, Image, TextMeshProUGUI, int)>();
-        TextMeshProUGUI _progressLabel;
+        TextMeshProUGUI _hint;
         bool _built;
-
-        static readonly Color Periwinkle = new Color(0.353f, 0.322f, 0.784f);
-        static readonly Color Locked     = new Color(0.22f, 0.20f, 0.34f);
 
         public static RectTransform Build(Transform parent)
         {
-            var root = MenuShell.Screen(parent, "CollectionScreen");
+            var root = MenuPage.Screen(parent, "CollectionScreen");
             var screen = root.gameObject.AddComponent<CollectionScreen>();
-            MenuShell.Header(root, "Koleksiyon");
 
-            screen._progressLabel = UiKit.CreateLabel("Progress", root, "", 30,
-                new Color(1f, 1f, 1f, 0.85f));
-            UiKit.Place(screen._progressLabel, 0.05f, 0.872f, 0.95f, 0.915f);
+            // Ortada duran görsel: elimizde kitap yok, sandık en yakını.
+            var art = UiKit.CreateRect("Art", root);
+            UiKit.Place(art, 0.24f, 0.42f, 0.76f, 0.70f);
+            var icon = UiKit.CreateIcon("Icon", art, UiSkin.Get(Art.Chest));
+            UiKit.Place(icon, 0f, 0f, 1f, 1f);
 
-            float y = 0.845f;
-            foreach (var (name, icons, levels) in Sets)
-            {
-                var title = UiKit.CreateTitle($"Set_{name}", root, name, 34,
-                    UiKit.Ink, new Color(0.12f, 0.09f, 0.30f));
-                UiKit.Place(title, 0.06f, y - 0.045f, 0.94f, y);
-                y -= 0.055f;
+            screen._hint = UiKit.CreateTitle("Hint", root, "", 40,
+                MenuPage.Ink, MenuPage.InkDark);
+            UiKit.Place(screen._hint, 0.06f, 0.33f, 0.94f, 0.40f);
 
-                for (int i = 0; i < icons.Length; i++)
-                {
-                    float x0 = 0.055f + i * 0.2325f;
-
-                    var frame = UiKit.CreateSlicedPanel($"Slot_{name}_{i}", root,
-                        UiSkin.Get(Art.PanelDark), Periwinkle);
-                    UiKit.Place(frame, x0, y - 0.135f, x0 + 0.205f, y);
-
-                    var icon = UiKit.CreateIcon("Icon", frame.transform, UiSkin.Get(icons[i]));
-                    UiKit.Place(icon, 0.14f, 0.24f, 0.86f, 0.94f);
-
-                    var label = UiKit.CreateLabel("Level", frame.transform, "", 20,
-                        new Color(1f, 1f, 1f, 0.8f));
-                    UiKit.Place(label, 0.04f, 0.03f, 0.96f, 0.24f);
-
-                    screen._slots.Add((icon, frame, label, levels[i]));
-                }
-                y -= 0.165f;
-            }
+            MenuPage.Header(root, "Collection");
 
             screen._built = true;
             return root;
@@ -99,28 +52,15 @@ namespace BlockOut.Runtime.UI
 
         public void Refresh()
         {
-            if (!_built || !MetaServices.Ready) return;
+            if (!_built) return;
 
-            int reached = MetaServices.Progress.HighestUnlockedIndex + 1;
-            int owned = 0;
+            int reached = MetaServices.Ready
+                ? MetaServices.Progress.HighestUnlockedIndex + 1
+                : 1;
 
-            foreach (var (icon, frame, label, level) in _slots)
-            {
-                bool unlocked = reached >= level;
-                if (unlocked) owned++;
-
-                // DERS (siluet ile LEKE farklı şeyler): Kilitli parçayı saf
-                // siyaha boyamak silueti değil kara bir leke veriyordu — hangi
-                // parça olduğu okunmuyor, dolayısıyla "onu istiyorum" hissi de
-                // doğmuyordu. Amaç parçayı GİZLEMEK değil ULAŞILMAMIŞ göstermek.
-                // Koyu mor bir ton silueti bırakıyor, rengi alıyor.
-                icon.color = unlocked ? Color.white : new Color(0.16f, 0.13f, 0.30f, 0.95f);
-                frame.color = unlocked ? Periwinkle : Locked;
-                label.text = unlocked ? "" : $"sv {level}";
-            }
-
-            _progressLabel.text =
-                $"{owned} / {_slots.Count} parça  ·  %{Mathf.RoundToInt(100f * owned / _slots.Count)}";
+            _hint.text = reached >= UnlockLevel
+                ? "Collection unlocked!"
+                : $"Unlock Collection at Level {UnlockLevel}!";
         }
     }
 }

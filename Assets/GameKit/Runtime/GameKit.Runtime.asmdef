@@ -3,7 +3,8 @@
     "rootNamespace": "GameKit",
     "references": [
         "Unity.InputSystem",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "PrimeTween.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

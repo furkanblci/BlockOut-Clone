@@ -32,6 +32,7 @@ namespace BlockOut.Runtime.UI
 
         TextMeshProUGUI _coinLabel;
         TextMeshProUGUI _livesLabel;
+        Image _livesInfinity;
         TextMeshProUGUI _livesTimer;
         TextMeshProUGUI _levelLabel;
         TextMeshProUGUI _difficultyLabel;
@@ -49,6 +50,29 @@ namespace BlockOut.Runtime.UI
         float _nextTick;
 
         DailyRewardPanel _daily;
+
+        RectTransform _slideRoot, _slideCover;
+
+        /// <summary>Sekme geçişi için erişim (MenuShell kullanıyor).</summary>
+        public static HomeScreen Instance { get; private set; }
+
+        void Awake() => Instance = this;
+
+        /// <summary>
+        /// Ana ekranı yatayda kaydırır — sekme geçişinde menü ekranlarıyla
+        /// birlikte hareket etsin diye. Manzara ve arayüz ayrı ebeveynlerde
+        /// olduğu için İKİSİ de kaydırılıyor.
+        /// </summary>
+        public void Slide(float fromX, float toX, float duration)
+        {
+            if (_slideRoot != null)
+                GameKit.FX.Juice.Replace(_slideRoot,
+                    GameKit.FX.Juice.SlideX(_slideRoot, fromX, toX, duration));
+
+            if (_slideCover != null)
+                GameKit.FX.Juice.Replace(_slideCover,
+                    GameKit.FX.Juice.SlideX(_slideCover, fromX, toX, duration));
+        }
 
         void Start()
         {
@@ -85,6 +109,13 @@ namespace BlockOut.Runtime.UI
                 UiSkin.Get(Art.MenuBack), UiKit.Background);
             cover.transform.SetAsFirstSibling();
 
+            // Sekme geçişinde ana ekran da kayıyor (bkz. Slide). Manzara ile
+            // arayüz AYRI ebeveynlerde olduğu için ikisini de tutmak gerekiyor;
+            // yalnız birini kaydırmak zemini yerinde bırakır ve geçiş "arayüz
+            // kaydı ama dünya durdu" gibi görünür.
+            _slideRoot = root;
+            _slideCover = cover.rectTransform;
+
             BuildCharacters(root);
             BuildTopBar(root);
             BuildPlayButton(root);
@@ -114,20 +145,11 @@ namespace BlockOut.Runtime.UI
 
             // Hafif nefes alma: tamamen hareketsiz bir görsel, arkasındaki
             // manzaranın parçası sanılıyor.
-            GameKit.FX.Juice.Run(Breathe(group.transform));
-        }
-
-        static System.Collections.IEnumerator Breathe(Transform target)
-        {
-            Vector3 baseScale = target.localScale;
-            float time = 0f;
-            while (target != null)
-            {
-                time += Time.unscaledDeltaTime;
-                float pulse = Mathf.Sin(time * 1.4f) * 0.012f;
-                target.localScale = baseScale * (1f + pulse);
-                yield return null;
-            }
+            //
+            // DERS (nefes GÖRÜNMEMELİ, hissedilmeli): Genlik %2'yi geçtiğinde göz
+            // hareketi fark eder ve karakterler "titriyor" görünür. Amaç ekranın
+            // ölü olmadığını çevresel görüşe söylemek, dikkat çekmek değil.
+            GameKit.FX.Juice.Breathe(group.transform, amount: 0.018f, period: 3.6f);
         }
 
         // ---------------------------------------------------------------- üst bar
@@ -159,6 +181,21 @@ namespace BlockOut.Runtime.UI
             _livesLabel = Track(root, Art.Heart, 0.532f, 0.806f, bottom, top,
                 out var lifePlus, out _livesTimer);
             lifePlus.onClick.AddListener(() => MenuShell.Instance?.Show("store"));
+
+            // Sınırsız can hakkı sürerken sayının yerini ∞ GÖRSELİ alır.
+            //
+            // DERS (simge YAZI DEĞİLDİR): "∞" karakteri Baloo 2'de yok, TMP
+            // onun yerine boş kutu çizer — bu projede beşinci tekrar. Mağazada
+            // zaten kullandığımız `icon_infinite` sprite'ı kullanılıyor.
+            _livesInfinity = UiKit.CreateIcon("Infinite", _livesLabel.transform.parent,
+                UiSkin.Get(Art.Infinite) ?? MenuSprites.Infinity);
+            var number = _livesLabel.rectTransform;
+            var badge = _livesInfinity.rectTransform;
+            badge.anchorMin = number.anchorMin;
+            badge.anchorMax = number.anchorMax;
+            badge.offsetMin = number.offsetMin;
+            badge.offsetMax = number.offsetMax;
+            _livesInfinity.enabled = false;
 
             var gear = SquareButton(root, "Gear", Art.Gear, 0.850f, 0.968f, bottom, top);
             gear.onClick.AddListener(() => MenuShell.Instance?.Show("settings"));
@@ -374,11 +411,11 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(button, 0f, 0f, 1f, 1f);
 
             var face = button.transform.GetChild(0);
-            var title = UiKit.CreateTitle("Title", face, "REKLAM İZLE", 34, CoinInk,
+            var title = UiKit.CreateTitle("Title", face, "WATCH AD", 34, CoinInk,
                 new Color(0.16f, 0.06f, 0.30f));
             UiKit.Place(title, 0.06f, 0.44f, 0.94f, 0.94f);
 
-            _adOfferSub = UiKit.CreateLabel("Sub", face, "+1 can kazan", 24,
+            _adOfferSub = UiKit.CreateLabel("Sub", face, "Earn +1 life", 24,
                 new Color(1f, 1f, 1f, 0.85f));
             UiKit.Place(_adOfferSub, 0.06f, 0.22f, 0.94f, 0.46f);
 
@@ -402,11 +439,16 @@ namespace BlockOut.Runtime.UI
 
         // ---------------------------------------------------------------- tazeleme
 
-        void Refresh()
+        /// <summary>
+        /// Üst bar, oyna düğmesi ve avatar baş harfi. Dışarıdan da çağrılabilir:
+        /// Profil'de ad değişince ana ekran zaten açık olmadığı için OnEnable
+        /// beklemek yetmiyor (bkz. <see cref="ProfileScreen"/>).
+        /// </summary>
+        public void Refresh()
         {
             if (!MetaServices.Ready)
             {
-                if (_levelLabel != null) _levelLabel.text = "OYNA";
+                if (_levelLabel != null) _levelLabel.text = "PLAY";
                 return;
             }
 
@@ -419,19 +461,39 @@ namespace BlockOut.Runtime.UI
                 _coinLabel.text = _scratch.Clear().Append(_shownCoins).ToString();
             }
 
-            var refill = lives.TimeToNextLife;
-            int refillSeconds = lives.IsFull ? -1 : Mathf.CeilToInt((float)refill.TotalSeconds);
-            if (lives.Current != _shownLives || refillSeconds != _shownRefill)
-            {
-                _shownLives = lives.Current;
-                _shownRefill = refillSeconds;
+            // Sınırsız can hakkı varsa sayaç yerini ∞'a ve KALAN SÜREYE bırakır.
+            // Süre her saniye değiştiği için buradaki dal önbelleğe takılmıyor.
+            bool infinite = progress.HasInfiniteLives;
+            if (_livesInfinity != null) _livesInfinity.enabled = infinite;
+            _livesLabel.enabled = !infinite;
 
-                _livesLabel.text = _scratch.Clear().Append(_shownLives).ToString();
-                _livesTimer.text = refillSeconds < 0
-                    ? "Dolu"
-                    : _scratch.Clear()
-                        .Append(refill.Minutes / 10).Append(refill.Minutes % 10).Append(':')
-                        .Append(refill.Seconds / 10).Append(refill.Seconds % 10).ToString();
+            if (infinite)
+            {
+                var left = progress.InfiniteLivesLeft;
+                _livesTimer.text = left.TotalHours >= 1d
+                    ? _scratch.Clear().Append((int)left.TotalHours).Append('h')
+                        .Append(' ').Append(left.Minutes).Append('m').ToString()
+                    : _scratch.Clear().Append(left.Minutes).Append('m')
+                        .Append(' ').Append(left.Seconds).Append('s').ToString();
+                _shownLives = -1;      // hak bitince normal sayaç yeniden yazılsın
+                _shownRefill = int.MinValue;
+            }
+            else
+            {
+                var refill = lives.TimeToNextLife;
+                int refillSeconds = lives.IsFull ? -1 : Mathf.CeilToInt((float)refill.TotalSeconds);
+                if (lives.Current != _shownLives || refillSeconds != _shownRefill)
+                {
+                    _shownLives = lives.Current;
+                    _shownRefill = refillSeconds;
+
+                    _livesLabel.text = _scratch.Clear().Append(_shownLives).ToString();
+                    _livesTimer.text = refillSeconds < 0
+                        ? "Dolu"
+                        : _scratch.Clear()
+                            .Append(refill.Minutes / 10).Append(refill.Minutes % 10).Append(':')
+                            .Append(refill.Seconds / 10).Append(refill.Seconds % 10).ToString();
+                }
             }
 
             if (_avatarInitial != null)
@@ -440,7 +502,10 @@ namespace BlockOut.Runtime.UI
 
             int next = Mathf.Clamp(progress.HighestUnlockedIndex, 0,
                 Mathf.Max(0, LevelCatalog.Count - 1));
-            bool canPlay = lives.HasLife && LevelCatalog.Count > 0;
+            // Sınırsız can hakkı, can sayacı sıfır olsa bile oynatır — hakkın
+            // tamamı zaten "can derdi olmasın" demek. Bu satır atlanınca paketi
+            // alan oyuncu 0 canla "Oyna"ya basamıyordu.
+            bool canPlay = (lives.HasLife || progress.HasInfiniteLives) && LevelCatalog.Count > 0;
 
             if (next != _shownNext)
             {
@@ -457,14 +522,14 @@ namespace BlockOut.Runtime.UI
             if (!canPlay)
             {
                 _levelLabel.text = "CAN YOK";
-                _difficultyLabel.text = "canın dolmasını bekle";
+                _difficultyLabel.text = "waiting for lives";
                 if (_playFace != null) _playFace.color = new Color(0.62f, 0.62f, 0.66f);
             }
         }
 
         void ApplyDifficulty(LevelDifficulty difficulty, int index)
         {
-            _levelLabel.text = _scratch.Clear().Append("Seviye ").Append(index + 1).ToString();
+            _levelLabel.text = _scratch.Clear().Append("Level ").Append(index + 1).ToString();
 
             string label = LevelDifficultyRule.Label(difficulty);
             _difficultyLabel.text = label;
@@ -486,7 +551,7 @@ namespace BlockOut.Runtime.UI
             bool showRibbon = multiplier > 1;
             _rewardRibbon.gameObject.SetActive(showRibbon);
             if (showRibbon)
-                _rewardLabel.text = _scratch.Clear().Append("Ödüller x").Append(multiplier).ToString();
+                _rewardLabel.text = _scratch.Clear().Append("Rewards x").Append(multiplier).ToString();
 
             // Yazı yerleşimi içeriğe göre. Zorluk etiketi yoksa (normal bölüm)
             // seviye yazısı düğmenin ORTASINA oturur; alt satır boş kaldığında

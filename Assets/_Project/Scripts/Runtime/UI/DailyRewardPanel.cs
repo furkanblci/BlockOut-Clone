@@ -46,7 +46,7 @@ namespace BlockOut.Runtime.UI
             panel._card = UiKit.CreateSlicedPanel("Card", holder, UiSkin.Get(Art.PanelCard));
             UiKit.Place(panel._card, 0.07f, 0.28f, 0.93f, 0.74f);
 
-            var title = UiKit.CreateTitle("Title", panel._card.transform, "GÜNLÜK ÖDÜL", 46,
+            var title = UiKit.CreateTitle("Title", panel._card.transform, "DAILY REWARD", 46,
                 new Color(0.30f, 0.16f, 0.05f), new Color(1f, 0.93f, 0.80f));
             UiKit.Place(title, 0.06f, 0.83f, 0.94f, 0.96f);
 
@@ -74,7 +74,7 @@ namespace BlockOut.Runtime.UI
                     gift.Coins.ToString(), 22, Ink);
                 UiKit.Place(amount, 0.04f, 0.04f, 0.96f, 0.32f);
 
-                var day = UiKit.CreateLabel("Day", slot.transform, $"{i + 1}. gün", 18,
+                var day = UiKit.CreateLabel("Day", slot.transform, $"Day {i + 1}", 18,
                     new Color(1f, 1f, 1f, 0.65f));
                 UiKit.Place(day, 0.04f, 0.86f, 0.96f, 1.04f);
 
@@ -87,8 +87,8 @@ namespace BlockOut.Runtime.UI
                 panel._days.Add((slot, check, i + 1));
             }
 
-            panel._claim = UiKit.CreateTintedButton("Claim", panel._card.transform,
-                UiSkin.Get(Art.PanelCard), Claimed, "", 32, Ink);
+            panel._claim = UiKit.CreateSpriteButton("Claim", panel._card.transform,
+                UiSkin.Get(Art.ButtonGreen), "", 32, Ink);
             UiKit.Place(panel._claim, 0.16f, 0.05f, 0.84f, 0.17f);
             panel._claimLabel = panel._claim.GetComponentInChildren<TextMeshProUGUI>();
             panel._claim.onClick.AddListener(panel.OnClaim);
@@ -132,7 +132,7 @@ namespace BlockOut.Runtime.UI
             }
 
             var gift = DailyRewardService.Week[pending - 1];
-            _claimLabel.text = $"{gift.Coins} JETON AL";
+            _claimLabel.text = $"CLAIM {gift.Coins}";
         }
 
         void OnClaim()
@@ -142,14 +142,16 @@ namespace BlockOut.Runtime.UI
             int day = MetaServices.Daily.PendingDay;
             if (!MetaServices.Daily.Claim(MetaServices.Progress, MetaServices.Lives)) return;
 
-            AudioService.Coin();
+            // Jeton sesi tek başına "bir şey aldın" der; hediye açılışının
+            // kendi sesi olayı ödül gibi okutuyor.
+            AudioService.RewardClaim();
             if (_days.Count >= day)
                 GameKit.FX.Juice.Run(GameKit.FX.Juice.PunchScale(
                     _days[day - 1].card.transform, 0.32f));
 
             Refresh();
             _claim.interactable = false;
-            _claimLabel.text = "YARIN GÖRÜŞÜRÜZ";
+            _claimLabel.text = "SEE YOU TOMORROW";
             GameKit.FX.Juice.Run(CloseSoon());
         }
 

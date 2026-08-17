@@ -46,6 +46,13 @@ namespace BlockOut.Runtime.Flow
         /// <summary>Son kazanışta verilen coin — bitiş ekranı gösterir.</summary>
         public int LastReward { get; private set; }
 
+        /// <summary>
+        /// Bu bölüm kazanılsaydı verilecek coin. Kaybetme paneli bunu
+        /// "kaçırdığın ödül" olarak üstünde kırmızı çarpıyla gösteriyor.
+        /// </summary>
+        public int PendingReward =>
+            Services.MetaServices.Ready ? Services.MetaServices.Progress.PreviewReward(LevelId) : 0;
+
         /// <summary>Son kazanış PERFECT miydi? Bitiş ekranı rozeti buna bakar.</summary>
         public bool LastPerfect { get; private set; }
 
@@ -70,6 +77,14 @@ namespace BlockOut.Runtime.Flow
         FX.FXService _fx;
         Services.AudioService _audio;
         GameKit.Services.Haptics _haptics;
+
+        /// <summary>
+        /// Ayar ekranlarının servislere ulaşabilmesi için.
+        /// (Duraklat panelindeki Sounds/Musics/Haptics anahtarları bunları
+        /// <see cref="Services.SettingsBinder"/> üzerinden kullanıyor.)
+        /// </summary>
+        public Services.AudioService Audio => _audio;
+        public GameKit.Services.Haptics Haptics => _haptics;
 
         /// <summary>
         /// Kamerayı tembel çözer. Restart/NextLevel dışarıdan (HUD, editör
@@ -104,8 +119,22 @@ namespace BlockOut.Runtime.Flow
             // ayarlar ekranı ses servisini bulabilsin.
             var host = AppRoot.Current != null ? AppRoot.Current.PersistentRoot : transform;
             _fx = FX.FXService.Create(host, palette);
-            _audio = Services.AudioService.Create(host);
-            _haptics = GameKit.Services.Haptics.Create(host);
+
+            // Ses ve titreşim artık AppRoot'ta, uygulama açılışında kuruluyor
+            // (menü düğmeleri de ses çıkarsın diye). Burada YALNIZCA devralınıyor;
+            // ikinci bir örnek kurmak, ayar ekranının bir örneği kapatıp
+            // oyunun bir başkasını çalması demek olurdu. AppRoot yoksa
+            // (oynanış sahnesi doğrudan açılmışsa) kendi örneğimizi kurarız.
+            if (AppRoot.Current != null)
+            {
+                _audio = AppRoot.Current.Audio;
+                _haptics = AppRoot.Current.Haptics;
+            }
+            else
+            {
+                _audio = Services.AudioService.Create(host);
+                _haptics = GameKit.Services.Haptics.Create(host);
+            }
 
             // Oyuncunun kayıtlı ses/titreşim tercihleri hemen geçerli olsun.
             if (Services.MetaServices.Ready)
@@ -133,6 +162,12 @@ namespace BlockOut.Runtime.Flow
         /// </summary>
         public void StopLevel()
         {
+            // Hedef bekleyen yardımcı ASILI KALMASIN. Menüye dönerken
+            // `Pending` "Rocket" olarak duruyordu; tahta sökülüp gittiği için
+            // görünür bir zararı yoktu ama oyunun durumu yalan söylüyordu ve
+            // bu tür kalıntılar er geç bir yerde patlar.
+            PowerUps?.Cancel();
+
             _drag?.Dispose();
             _drag = null;
             _events = null;
@@ -205,6 +240,18 @@ namespace BlockOut.Runtime.Flow
 
         public bool HasNextLevel => _levelIndex + 1 < LevelCount;
 
+        /// <summary>
+        /// Bölümün zorluğu. HUD'daki uyarı satırı ve ödül çarpanı bunu kullanır.
+        ///
+        /// DERS (aynı bilgiyi İKİ yerden hesaplama): Bu önce GameSession'da
+        /// ayrı bir bool olarak eklendi ve JSON'daki "difficulty" dizesini
+        /// okuyordu. Oysa projede zaten LevelDifficultyRule vardı ve ana ekran
+        /// onu kullanıyordu — üstelik o kural zorluğu tahtanın İÇERİĞİNDEN
+        /// hesaplıyor, JSON etiketinden değil. İki kaynak bir süre aynı cevabı
+        /// verir, sonra sessizce ayrışır. Tek kaynak: kural.
+        /// </summary>
+        public Core.LevelDifficulty Difficulty { get; private set; }
+
         /// <summary>Sıradaki bölüm sayısı (Home ekranı ve test seçicisi için).</summary>
         public int LevelCount =>
             Config.LevelCatalog.Count > 0
@@ -251,18 +298,50 @@ namespace BlockOut.Runtime.Flow
             if (State != GameState.Intro) Restart();
         }
 
+        /// <summary>
+        /// Bölüm yüklenemedi — sebebini EKRANDA söyle.
+        ///
+        /// DERS (cihazda `Debug.LogError` hiçbir yere gitmez): 2026-08-17
+        /// APK testinde 1. bölüm açılmadı, tahta boş kaldı ve oyuncu bunun
+        /// SEBEBİNİ hiçbir yerde göremedi — konsol yok, logcat için kablo
+        /// gerekiyor. Sessiz boş ekran, teşhisi saatlerce geciktirdi.
+        /// Yükleme hatası oyuncunun/testçinin GÖRECEĞİ bir yere yazılmalı;
+        /// hata metnini gizlemek hatayı yok etmiyor, yalnız bulunmasını
+        /// zorlaştırıyor.
+        /// </summary>
+        void ReportLoadFailure(string title, string detail)
+        {
+            Debug.LogError($"[GameSession] {title}: {detail}", this);
+            State = GameState.Intro;
+            LoadFailure = $"{title}\n{detail}";
+        }
+
+        /// <summary>
+        /// Son bölüm yükleme hatası; başarılı kurulumda temizlenir.
+        /// HUD bunu okuyup ekrana basıyor (bkz. <see cref="UI.GameplayScreen"/>).
+        /// </summary>
+        public string LoadFailure { get; private set; }
+
         void BuildAndStart()
         {
+            LoadFailure = null;
+
             if (visuals != null) View.VisualSettings.Apply(visuals);
 
             LevelData data;
             try
             {
-                data = Level.LevelLoader.Parse(ActiveLevelAsset.text);
+                var asset = ActiveLevelAsset;
+                if (asset == null)
+                    throw new System.Exception(
+                        $"Bölüm dosyası bulunamadı (sıra {_levelIndex + 1}, katalogda " +
+                        $"{Config.LevelCatalog.Count} bölüm var).");
+
+                data = Level.LevelLoader.Parse(asset.text);
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"[GameSession] Level parse edilemedi: {e.Message}", this);
+                ReportLoadFailure("Level yüklenemedi", e.Message);
                 return;
             }
 
@@ -271,17 +350,26 @@ namespace BlockOut.Runtime.Flow
             {
                 foreach (var err in errors)
                     Debug.LogError($"[GameSession] Level doğrulama hatası: {err}", this);
+                ReportLoadFailure("Level doğrulanamadı",
+                    errors.Count > 0 ? errors[0] : "bilinmeyen hata");
                 return;
             }
 
             DisplayNumber = data.DisplayNumber;
             LevelId = string.IsNullOrEmpty(data.Id) ? ActiveLevelAsset.name : data.Id;
 
+
+
             // Can, bölüm KURULURKEN değil OYNANMAYA BAŞLARKEN harcanır; parse
             // hatasında oyuncudan can almış olmayalım.
             SpendLifeForAttempt();
 
             _level = LevelModel.Build(data);
+
+            // Zorluk tahtanın İÇERİĞİNDEN hesaplanıyor (LevelDifficultyRule);
+            // JSON'daki "difficulty" alanı yalnız yazarın notu. Bu satır
+            // _level kurulduktan SONRA gelmek zorunda.
+            Difficulty = Core.LevelDifficultyRule.Of(_level);
             _events = new BoardEvents();
             _events.BoardCleared += OnBoardCleared;
 
@@ -316,6 +404,11 @@ namespace BlockOut.Runtime.Flow
             // Öğretici yalnız ilk bölümde ve yalnız bir kez çıkar; kendisi
             // karar veriyor, buradan koşul yazmaya gerek yok.
             UI.TutorialOverlay.TryShow(this, _level, space);
+
+            // Yeni mekanik tanıtımı da kendi kararını kendi veriyor: bu bölümde
+            // ilk kez görülen bir şey varsa spot ışığıyla tanıtır, yoksa hiç
+            // görünmez.
+            UI.NewItemPanel.TryShow(this, _level);
         }
 
         /// <summary>
@@ -450,11 +543,39 @@ namespace BlockOut.Runtime.Flow
         {
             if (_lifeSpent || !Services.MetaServices.Ready) return;
             _lifeSpent = true;
-            Services.MetaServices.Lives.TrySpend();
+
+            // SINIRSIZ CAN: hak sürerken can HARCANMAZ.
+            //
+            // DERS (yazılan ama HİÇ OKUNMAYAN alan): Mağazadaki sınırsız can
+            // paketi `InfiniteLivesUntilUtc`'yi kayda düzgünce yazıyordu ama
+            // projede o alanı okuyan TEK BİR YER YOKTU — ne burası, ne ana
+            // ekranın can sayacı. Yani paket alınıyor, para gidiyor, hiçbir
+            // şey değişmiyordu (2026-08-17 cihaz testinde raporlandı).
+            // Bir alanı yazmak onu bir ÖZELLİK yapmaz; okuyan taraf yoksa
+            // özellik de yoktur.
+            if (!Services.MetaServices.Progress.HasInfiniteLives)
+                Services.MetaServices.Lives.TrySpend();
+
             Services.MetaServices.Progress.NoteAttempt(LevelId);
 
             GameKit.Services.Analytics.LevelStarted(
                 _levelIndex, Services.MetaServices.Progress.Record(LevelId).Attempts);
+        }
+
+        /// <summary>
+        /// Bölümü çözmüş gibi bitirir — YALNIZCA gizli geliştirici menüsü için.
+        ///
+        /// DERS (test kapısı gerçek yolu KULLANMALI): Sonuç panelini görmek için
+        /// paneli elle açan bir kestirme yazmak cazip; ama o zaman test ettiğin
+        /// şey gerçek akış olmaz — ödül hesabı, PERFECT ölçüsü, can iadesi
+        /// çalışmadan panel açılır ve "doğru görünen ama yanlış veriyle dolu"
+        /// bir ekran doğrularsın. Bu metot normal bitiş yolunun ta kendisini
+        /// çağırıyor; tek farkı tetiğin nereden çekildiği.
+        /// </summary>
+        public void DebugForceWin()
+        {
+            if (State != GameState.Playing && State != GameState.Intro) return;
+            OnBoardCleared();
         }
 
         void OnBoardCleared()
@@ -501,6 +622,20 @@ namespace BlockOut.Runtime.Flow
                 GameKit.Services.Analytics.LevelCompleted(
                     _levelIndex, record.Attempts, remaining, perfect);
                 GameKit.Services.Analytics.CurrencyEarned("coin", LastReward, "level_clear");
+            }
+            else
+            {
+                // DERS (sessiz kayıp en kötü hata türüdür): Meta katmanı hazır
+                // değilken bölüm bitirilirse buradaki hiçbir şey çalışmaz —
+                // oyuncu jetonunu, canını, bölüm açılışını ve kaydını kaybeder.
+                // Eskiden bu durum HİÇBİR iz bırakmıyordu; sonuç paneli sadece
+                // ödülsüz açılıyor ve "tasarım böyle" gibi görünüyordu. Bir
+                // gün gerçek cihazda olursa sebebi aranabilsin diye bağırıyor.
+                LastReward = 0;
+                LastStars = 0;
+                LastPerfect = false;
+                Debug.LogError("[GameSession] Bölüm bitti ama MetaServices hazır değil — " +
+                               "ödül, can iadesi ve bölüm açılışı YAZILMADI.");
             }
         }
 

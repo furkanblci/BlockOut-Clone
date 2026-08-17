@@ -5,7 +5,8 @@
         "BlockOut.Core",
         "Unity.InputSystem",
         "GameKit.Runtime",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "PrimeTween.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

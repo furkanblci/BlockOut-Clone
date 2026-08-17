@@ -82,7 +82,7 @@ namespace BlockOut.Runtime.UI
             var root = UiKit.CreateSafeArea(canvas);
 
             _hint = UiKit.CreateTitle("Hint", root,
-                "Bloğu kendi rengindeki kapıya sürükle", 30,
+                "Drag the block to its matching door", 30,
                 new Color(1f, 0.98f, 0.94f), new Color(0.10f, 0.07f, 0.24f));
             UiKit.Place(_hint, 0.06f, 0.845f, 0.94f, 0.895f);
             _hint.textWrappingMode = TextWrappingModes.Normal;

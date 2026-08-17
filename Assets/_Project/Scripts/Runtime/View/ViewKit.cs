@@ -15,6 +15,27 @@ namespace BlockOut.Runtime.View
     /// </summary>
     public static class ViewKit
     {
+        /// <summary>
+        /// <c>GameObject.CreatePrimitive</c>'in eklediği çarpıştırıcıyı siler.
+        ///
+        /// Bu oyunda fizik YOK: çarpıştırıcı yalnız bellek ve raycast gürültüsü.
+        ///
+        /// DERS (edit modunda <c>Destroy</c> geçersizdir): Unity edit modunda
+        /// <c>Object.Destroy</c> çağrısını hata olarak bildirir ve nesneyi
+        /// silmez. Bu kurulum kodu artık level editörünün 3D önizlemesinden de
+        /// çağrılıyor — yani hem oyun hem editör bağlamında koşuyor. Kurulum
+        /// yolundaki her yıkım çağrısı bu yüzden mod ayrımı yapmak zorunda.
+        /// </summary>
+        public static void StripCollider(GameObject go)
+        {
+            if (go == null) return;
+            var collider = go.GetComponent<Collider>();
+            if (collider == null) return;
+
+            if (Application.isPlaying) Object.Destroy(collider);
+            else Object.DestroyImmediate(collider);
+        }
+
         static Material _ice;
         static Material _curtainPanel;
         static Material _curtainFrame;

@@ -304,3 +304,191 @@ tasarım; portfolyoda "kopyaladı" değil "yapabiliyor" demek istiyoruz. Aynı
 
 İlk üç madde geldiği anda ekranları yeniden kurmaya başlayabilirim; hepsini
 beklemeye gerek yok.
+
+---
+
+## 7. MAĞAZA görselleri (2026-08-10 eklendi)
+
+Mağaza ekranı referanstan ölçülerek yeniden kuruldu
+(`StoreScreen.cs` + `ShopSprites.cs`). Yerleşim, renkler ve yazılar bitti.
+Eksik olan tek şey **11 resim**: kartlardaki altın yığınları ve paket kapları.
+Gelmeyenlerin yerine şimdilik `icon_coin` / `icon_chest` konuyor — bu yüzden
+beş paketin beşi de aynı sandığı gösteriyor.
+
+> Hepsi ortak son ek ile üretilecek. Dosya adları kodun beklediği adlardır,
+> `art_raw/` içine bu adlarla at.
+
+### 7.1 Jeton yığınları — `coin_pile_1.png` … `coin_pile_6.png`
+
+Jetonlar ızgarasındaki altı kutu. Tek iş: **büyüklük farkı okunsun**. Fiyatı
+okumadan önce göz hangisinin daha çok verdiğini görmeli, o yüzden yığınlar
+sayıca ve hacimce belirgin biçimde artmalı.
+
+| Dosya | Karşılığı | İstenen |
+|---|---|---|
+| `coin_pile_1` | 1 000 | `a small neat pile of about 8 gold coins, one coin standing upright leaning on the pile` |
+| `coin_pile_2` | 5 000 | `a modest pile of about 20 gold coins in two short stacks, a few loose coins in front` |
+| `coin_pile_3` | 10 000 | `a wider pile of about 40 gold coins, three stacks of different heights` |
+| `coin_pile_4` | 25 000 | `a large mound of gold coins, roughly 80 coins, several tall stacks rising from a spread base` |
+| `coin_pile_5` | 50 000 | `a very large heap of gold coins, roughly 150 coins, tall central stack, coins spilling wide` |
+| `coin_pile_6` | 100 000 | `a huge treasure mound of gold coins, hundreds of coins, tall peak in the middle, coins cascading down both sides` |
+
+Ortak: `bright yellow gold coins with a five-pointed star embossed on the face,
+matching the game coin icon, seen from a low 3/4 angle, wider than tall (about 4:3)`
+\+ ortak son ek.
+
+**Dikkat:** Yığın 4:3 civarı olmalı, kare değil — kart alanı yatay. Ve yığının
+üstüne **rakam yazdırma**, sayıyı oyun kendi yazıyor.
+
+### 7.2 Paket kapları — `pack_1.png` … `pack_5.png`
+
+Paketler listesindeki beş kart. Bunlar bir "kap + içinden taşan altın"
+kompozisyonu; kap büyüdükçe ve zenginleştikçe paket değeri artıyor.
+
+| Dosya | Paket | İstenen |
+|---|---|---|
+| `pack_1` | Tuğla Paketi (2 000) | `a small red cloth money pouch tied with a gold cord, a few gold coins spilling out of the top and lying beside it` |
+| `pack_2` | Blok Paketi (5 000) | `a round red ceramic pot with a silver rim, filled to the brim with gold coins that spill down its side` |
+| `pack_3` | Premium Paket (8 000) | `an open treasure chest with a red body and gold trim, pink gemstones on the lid, packed with gold coins overflowing at the front` |
+| `pack_4` | Lüks Paket (20 000) | `a large ornate treasure chest with a purple velvet body and heavy gold corners, wide open, gold coins and a few purple gems pouring out` |
+| `pack_5` | Nihai Paket (60 000) | `an enormous mound of gold coins burying a half-open royal chest, coins cascading forward, a couple of red and blue gems on top` |
+
+Ortak: `seen from a low 3/4 angle, wider than tall (about 4:3), the container sits
+on the left and the gold spills toward the right` + ortak son ek.
+
+**Neden sola yaslı:** Kartın sağ yarısı ödül simgelerine ayrıldı (reklam-yok,
+sınırsız can, üç yardımcı). Kap ortalanırsa simgelerin altına girer.
+
+### 7.3 İsteğe bağlı — çizimle idare ediliyor
+
+Bunlar şu an kodla çiziliyor (`ShopSprites.cs`) ve fena durmuyor. Referansa
+tam oturması istenirse üretilebilir, **öncelik değil**:
+
+- `icon_noads.png` — `a bold red prohibition sign, thick red ring with a diagonal
+  bar from top-left to bottom-right, glossy 3D plastic`
+- `icon_infinite.png` — `a glossy red heart with a white infinity symbol embossed
+  across its center`
+
+### 7.4 Bunları İSTEME
+
+Bu ekranın geri kalanı görsel değil geometri; kod çiziyor ve her genişlikte
+kusursuz çalışıyor. Üretici görsel istemek burada geriye adım olur:
+
+- Mavi çizgili **tente** ve festonlu alt kenarı (`ShopSprites.Awning`)
+- Bölüm başlıklarının **kapsül** şeridi (`ShopSprites.Capsule`)
+- Yeşil fiyat düğmeleri, mavi geri-yükle düğmesi, köşe kurdelesi, taşıyıcı
+  noktaları — hepsi kapsül/panel + renk
+
+### 7.5 Durum — KAPANDI (2026-08-17 doğrulandı)
+
+> Aşağıdaki üç eksik **giderilmiş**: `coin_pile_5` artık `coin_pile_3` ile
+> aynı dosya değil, `pack_4` ile `pack_5` ayrı dosyalar ve `pack_5`'in sağ
+> kenarında tek bir opak piksel yok (düz kesik gitmiş). Liste tarihsel kayıt
+> olarak duruyor; yeni bir şey istenmiyor.
+
+Gelen dosyalar işlendi ve `UiSkin`'e bağlandı. Eksikler:
+
+| Dosya | Sorun |
+|---|---|
+| `coin_pile_5` | Hiç gelmedi — atılan dosya `coin_pile_3` ile **byte-byte aynı** |
+| `pack_4` | Gelmedi; ham `pack_4` aslında `pack_5` tarifiydi |
+| `pack_5` | Kurtarıldı ama **sağ kenarında düz kesik** var, yeniden üretilmeli |
+
+**`pack_5`'te ne oldu:** Altın yığını görüntünün sol/sağ/alt kenarına
+değiyordu. `cutout.py` taşmayı KENARDAN başlatır; kenardaki altın "zemin
+tohumu" sayıldı ve yığının tamamı silindi. Kenar payı eklenip kesim tekrarlandı,
+görsel kurtarıldı — ama padding, kenara değen sikkeleri düz bir çizgide kesiyor.
+
+> **Bu yüzden "nesne kenara değmesin" şartı süs değil.** Prompt'a
+> `object must not touch the image border` yazmak yetmiyorsa
+> `plenty of empty margin around the object, object occupies only the middle 80% of the frame`
+> ekle.
+
+Eksik kademe kodda **bir alt kademeye** düşüyor (`StoreScreen.Tiered`): şu an
+`coin_pile_5` yerine `_4`, `pack_4` yerine `pack_3` görünüyor. Ekran çalışıyor,
+sadece iki kart komşusuyla aynı resmi paylaşıyor.
+
+### 7.6 Kapandı (2026-08-10)
+
+Eksik üç dosya geldi, kesildi, bağlandı. **Mağazanın görsel ihtiyacı bitti.**
+`check_art.py`: 52 görsel, 0 hasarlı.
+
+İkinci turda kenar payı şartı tuttu: `coin_pile_5`, `pack_4`, `pack_5`'in
+üçünde de kenar şeridinde nesne yok, kesim ilk denemede temiz çıktı.
+
+**Ölçülen not — yığınları büyütme:** Üretici her yığını kareye sığdırıyor,
+yani 8 jetonluk yığınla 300 jetonluk yığın aynı kutuyu dolduruyor. Bu bir
+kusur DEĞİL: referans karesi ölçüldüğünde altı yığının da genişliği 226-229
+piksel çıktı, artan tek şey jeton yoğunluğu (%21 → %35). Kodda yığınları
+kademeli büyüten ölçek bu yüzden kaldırıldı.
+
+---
+
+## 8. YOLCULUK görselleri (2026-08-10)
+
+Yolculuk ekranı referanstan yeniden kuruldu. İki görsel eksik.
+
+### 8.1 `region_5.png` — "Buz Kurtarma" bölgesi (sv 71-100)
+
+Referansta beş bölge var; "Buz Kurtarma" ilk kuruluşta atlanmıştı (videoda
+yalnız kilitli hâliyle göründüğü için gözden kaçmış). Diğer dördü elimizde:
+`region_1` köy, `region_2` uzay, `region_3` penguen/kar, `region_4` zirve.
+
+```
+A circular game region badge showing a snowy ice cavern scene: friendly cartoon creatures chipping frozen blocks out of a pale blue glacier wall, icicles hanging above, soft snow drifts, a warm lantern glow in the middle of the cold blues, mobile casual puzzle game key art, 3D rendered glossy plastic toy style, soft studio lighting from top-left, subtle ambient occlusion, thick rounded edges, highly saturated candy colors, the whole illustration is cropped inside a PERFECT CIRCLE that touches the edges of the square frame, no border, no ring, no text, no letters, no numbers, square 1024x1024
+```
+
+**Dikkat — bu görselde kural TERS:** Bölge görselleri daire biçiminde
+kırpılmış olmalı ve kareyi doldurmalı; kesim aracına girmezler
+(`cutout.py` çalıştırma, doğrudan `Assets/_Project/Art/UI/` altına at).
+Diğer üçü de böyle üretildi.
+
+### 8.2 `icon_lock.png` — ALTIN asma kilit (mevcut olan gümüş)
+
+Kilitli bölgenin ortasındaki asma kilit referansta **altın sarısı**; elimizdeki
+`icon_lock` gümüş. Kod şimdilik sıcak bir tona boyuyor ama **boyama çarpımdır**,
+gümüşü altına çeviremez — sonuç mat bir hardal.
+
+```
+A chunky closed padlock in bright warm gold with an orange-amber body, a lighter gold shackle, a dark keyhole in the center, glossy 3D plastic toy style, front view, mobile casual puzzle game UI asset, soft studio lighting from top-left, subtle ambient occlusion, strong specular highlight on top surface, thick rounded edges, no outlines, highly saturated candy colors, single centered object on a plain solid light grey background, no text, no letters, no numbers, no drop shadow on the background, square 1024x1024, object must not touch the image border, clean edges for game asset cutout
+```
+
+Bu ikincisi `art_raw/` yoluna girer (kesim gerekir).
+
+---
+
+## 9. Kaybetme paneli (2026-08-16)
+
+Referans: `OneDrive/Masaüstü/Block Out! Videos/Game over .mp4`, 18. saniye.
+
+### 9.1 `icon_heart_broken.png` — KIRIK kalp
+
+Kaybetme kartının üst kenarına binen rozet referansta **çatlamış** bir kalp.
+Elimizde yalnız sağlam `icon_heart` var ve panel şu an onu kullanıyor —
+"can kaybettin" mesajı sağlam kalple TERS anlam veriyor.
+
+```
+A chunky glossy red heart broken into two halves with a jagged lightning-bolt crack running down the middle, the two halves tilted slightly apart, deep crimson shading in the crack, glossy 3D plastic toy style, front view, mobile casual puzzle game UI asset, soft studio lighting from top-left, subtle ambient occlusion, strong specular highlight on the upper left of each half, thick rounded edges, no outlines, highly saturated candy colors, single centered object on a plain solid light grey background, no text, no letters, no numbers, no drop shadow on the background, square 1024x1024, object must not touch the image border, clean edges for game asset cutout
+```
+
+`art_raw/` yoluna girer (kesim gerekir).
+
+### 9.2 İki panel KURULDU (2026-08-17) — bir görsel eksik kaldı
+
+"Devam Et?" paneli yukarıdaki kırık kalbi kullanıyor, sorun yok.
+
+"Süre Doldu" panelinde referansta **altın bir kronometre** var; biz süre
+yardımcısının **yeşil çalar saatini** kullanıyoruz. Yanlış değil (oyuncu o
+simgeyi zaten "süre" diye tanıyor) ama referansla aynı da değil.
+
+**Boyayarak çözülemez:** boyama çarpmadır, yeşil bir görsel altına
+çevrilemez — denendi, çamurlu bir yeşil çıktı ve boyama kaldırıldı.
+
+## 10. `icon_stopwatch.png` — altın kronometre (isteğe bağlı)
+
+```
+A chunky golden stopwatch seen from the front, round gold case with a cream dial, a single bold red-orange pointer, small blue square markers at the quarter positions, a gold crown button on top and a small red push button on the upper right, glossy 3D plastic toy style, mobile casual puzzle game UI asset, soft studio lighting from top-left, subtle ambient occlusion, strong specular highlight on the upper left of the case, thick rounded edges, no outlines, highly saturated candy colors, single centered object on a plain solid light grey background, no text, no letters, no numbers, no drop shadow on the background, square 1024x1024, object must not touch the image border, clean edges for game asset cutout
+```
+
+`art_raw/` yoluna girer (kesim gerekir). Gelince `ContinueOffer.BuildStage1`
+içindeki `Art.Clock` yerine yeni anahtar konur, düzen değişmez.

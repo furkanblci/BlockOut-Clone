@@ -85,8 +85,8 @@ namespace BlockOut.Core
         {
             switch (difficulty)
             {
-                case LevelDifficulty.Hard:      return "Zor Seviye";
-                case LevelDifficulty.SuperHard: return "Çok Zor Seviye";
+                case LevelDifficulty.Hard:      return "Hard Level";
+                case LevelDifficulty.SuperHard: return "Super Hard Level";
                 default:                        return "";
             }
         }

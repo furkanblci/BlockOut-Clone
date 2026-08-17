@@ -145,12 +145,12 @@ namespace BlockOut.Runtime.Services
             var art = UiKit.CreateIcon("Art", _root, UI.UiSkin.Get(UI.Art.Chest));
             UiKit.Place(art, 0.24f, 0.50f, 0.76f, 0.82f);
 
-            var title = UiKit.CreateTitle("Title", _root, "Test Reklamı", 46,
+            var title = UiKit.CreateTitle("Title", _root, "Test Ad", 46,
                 UiKit.Ink, new Color(0.12f, 0.09f, 0.30f));
             UiKit.Place(title, 0.08f, 0.40f, 0.92f, 0.49f);
 
             var body = UiKit.CreateLabel("Body", _root,
-                "Gerçek reklam ağı bağlanmadı.\nAkış birebir aynı çalışıyor.", 26,
+                "No real ad network connected.\nThe flow works exactly the same.", 26,
                 new Color(1f, 1f, 1f, 0.7f));
             UiKit.Place(body, 0.08f, 0.31f, 0.92f, 0.40f);
             body.textWrappingMode = TextWrappingModes.Normal;
@@ -172,9 +172,8 @@ namespace BlockOut.Runtime.Services
                 UiKit.Ink, new Color(0.12f, 0.09f, 0.30f));
             UiKit.Place(_countdown, 0.12f, 0.15f, 0.88f, 0.21f);
 
-            _skip = UiKit.CreateTintedButton("Skip", _root,
-                UI.UiSkin.Get(UI.Art.PanelCard), new Color(0.55f, 0.53f, 0.62f),
-                "Atla (ödül yok)", 24, UiKit.Ink);
+            _skip = UiKit.CreateSpriteButton("Skip", _root,
+                UI.UiSkin.Get(UI.Art.ButtonPurple), "Skip (no reward)", 24, UiKit.Ink);
             UiKit.Place(_skip, 0.28f, 0.05f, 0.72f, 0.13f);
             _skip.onClick.AddListener(() => Finish(RewardedResult.Skipped));
 

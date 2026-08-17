@@ -110,6 +110,11 @@ namespace BlockOut.Runtime.Board
                 }
 
                 _dragged = block;
+                // Kaldırma sesi: reddetmenin sesi vardı ama KABULÜN yoktu.
+                // Oyuncu parmağını koyduğunda ekranı kendi eli örtüyor;
+                // "tuttum" bilgisi büyük ölçüde sesle geliyor.
+                Services.AudioService.PickUp();
+
                 _grabOffset = block.Position - cell;
                 _obstacles.Clear();
                 _level.CollectObstacles(_obstacles, block);
@@ -154,6 +159,8 @@ namespace BlockOut.Runtime.Board
                 view.SetHighlight(false);
                 view.SyncFromModel();
             }
+
+            Services.AudioService.Drop();
 
             // Kapıya dayalı bırakıldıysa oturur oturmaz emilsin/soyulsun.
             _gates.ResolveContact(block);

@@ -27,7 +27,7 @@ namespace BlockOut.Runtime.View
             var frame = GameObject.CreatePrimitive(PrimitiveType.Cube);
             frame.name = "Frame";
             frame.transform.SetParent(root.transform, false);
-            Destroy(frame.GetComponent<Collider>());
+            ViewKit.StripCollider(frame);
             frame.GetComponent<MeshRenderer>().sharedMaterial = ViewKit.CurtainFrame;
             frame.transform.position = center + Vector3.down * 0.03f;
             frame.transform.localScale = new Vector3(model.W + 0.1f, PanelHeight - 0.06f, model.H + 0.1f);
@@ -35,7 +35,7 @@ namespace BlockOut.Runtime.View
             var panel = GameObject.CreatePrimitive(PrimitiveType.Cube);
             panel.name = "Panel";
             panel.transform.SetParent(root.transform, false);
-            Destroy(panel.GetComponent<Collider>());
+            ViewKit.StripCollider(panel);
             panel.GetComponent<MeshRenderer>().sharedMaterial = ViewKit.CurtainPanel;
             panel.transform.position = center;
             panel.transform.localScale = new Vector3(model.W - 0.04f, PanelHeight, model.H - 0.04f);
@@ -71,7 +71,7 @@ namespace BlockOut.Runtime.View
                 var streak = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 streak.name = "Streak";
                 streak.transform.SetParent(parent, worldPositionStays: false);
-                Destroy(streak.GetComponent<Collider>());
+                ViewKit.StripCollider(streak);
 
                 var renderer = streak.GetComponent<MeshRenderer>();
                 renderer.sharedMaterial = ViewKit.CurtainStreak;

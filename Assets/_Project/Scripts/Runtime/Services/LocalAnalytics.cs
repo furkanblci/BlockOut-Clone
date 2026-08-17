@@ -154,7 +154,7 @@ namespace BlockOut.Runtime.Services
         /// <summary>Geliştirici menüsünün gösterdiği özet.</summary>
         public string Report(int topCount = 10)
         {
-            if (_levels.Count == 0) return "Henüz veri yok. Birkaç bölüm oyna.";
+            if (_levels.Count == 0) return "No data yet. Play a few levels.";
 
             var ranked = new List<LevelStat>(_levels.Values);
             // En çok denenip en az geçilen bölüm en tepede: "burası tıkanıyor".
@@ -170,7 +170,7 @@ namespace BlockOut.Runtime.Services
             {
                 var stat = ranked[i];
                 if (stat.Starts == 0) continue;
-                text.Append("  Bölüm ").Append(stat.Level)
+                text.Append("  Level ").Append(stat.Level)
                     .Append(":  ").Append(stat.Clears).Append('/').Append(stat.Starts)
                     .Append("  (%").Append(Mathf.RoundToInt(stat.ClearRate * 100f)).Append(")\n");
             }

@@ -40,8 +40,8 @@ namespace BlockOut.Core
         {
             switch (kind)
             {
-                case PowerUpKind.Clock:  return "Çalar Saat";
-                case PowerUpKind.Rocket: return "Roket";
+                case PowerUpKind.Clock:  return "Alarm Clock";
+                case PowerUpKind.Rocket: return "Rocket";
                 default:                 return "UFO";
             }
         }
@@ -51,8 +51,8 @@ namespace BlockOut.Core
         {
             switch (kind)
             {
-                case PowerUpKind.Rocket: return "Kaldırılacak bloğu seçin.";
-                case PowerUpKind.Ufo:    return "Silmek istediğiniz rengi seçin.";
+                case PowerUpKind.Rocket: return "Pick a block to remove.";
+                case PowerUpKind.Ufo:    return "Pick a color to clear.";
                 default:                 return "";
             }
         }

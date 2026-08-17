@@ -13,13 +13,20 @@ namespace BlockOut.Runtime.DevTools
     ///
     /// DERS (test aracı görünmez olmalı): Ekranın köşesinde duran bir "bölüm
     /// seç" düğmesi, testçinin oyunu OYNAMASINI engeller — herkes o düğmeye
-    /// basar ve gerçek ilerleyişi kimse denemez. Üstelik yayınlanan yapıya
-    /// sızarsa oyunu bozar. Çözüm iki katmanlı:
-    ///   1. Bu dosyanın tamamı YALNIZCA geliştirme yapılarında derlenir
-    ///      (DEVELOPMENT_BUILD / editör). Yayın yapısında hiç yoktur.
-    ///   2. Geliştirme yapısında bile görünür bir düğmesi yoktur; sol üst
-    ///      köşeye ÜST ÜSTE BEŞ KEZ dokununca açılır. Kimse kazara bulmaz,
-    ///      bilen bir saniyede açar.
+    /// basar ve gerçek ilerleyişi kimse denemez. Bu yüzden görünür düğmesi
+    /// yoktur; sol üst köşeye ÜST ÜSTE BEŞ KEZ dokununca açılır. Kimse kazara
+    /// bulmaz, bilen bir saniyede açar.
+    ///
+    /// DERS (test aracı TEST EDİLEN YAPIDA olmalı): Bu dosya eskiden
+    /// `#if DEVELOPMENT_BUILD || UNITY_EDITOR` ile çevriliydi, yani normal
+    /// (release) bir APK'da HİÇ YOKTU. 2026-08-17 cihaz testinde araç
+    /// "açılmıyor" diye raporlandı — aslında açılacak bir şey yoktu.
+    /// Testçinin eline verilen yapı ile aracın bulunduğu yapı farklıysa araç
+    /// hiç yok demektir.
+    ///
+    /// Bu proje MAĞAZAYA KONMAYACAK (portfolyo, GitHub'da yayınlanacak), o
+    /// yüzden gizli menü her yapıda derleniyor. Bir gün gerçekten yayınlanırsa
+    /// tek yapılacak: aşağıdaki sınıf gövdesini yeniden `#if` içine almak.
     ///
     /// DERS (liste taşarsa araç işe yaramaz): Önceki bölüm seçici 50 bölümü
     /// tek bir ızgaraya yığıyordu; son satırlar ekranın altından taşıyor ve
@@ -28,7 +35,6 @@ namespace BlockOut.Runtime.DevTools
     /// </summary>
     public sealed class DevMenu : MonoBehaviour
     {
-#if DEVELOPMENT_BUILD || UNITY_EDITOR
         const int TapsToOpen = 5;
         const float TapWindow = 2.0f;
         const float CornerRatio = 0.18f;      // ekranın sol üst %18'i
@@ -126,11 +132,11 @@ namespace BlockOut.Runtime.DevTools
                                          panel.width - 24f * s, panel.height - 20f * s));
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("GELİŞTİRİCİ MENÜSÜ", _title);
-            if (GUILayout.Button("Kapat", _button, GUILayout.Width(110f * s))) _open = false;
+            GUILayout.Label("DEVELOPER MENU", _title);
+            if (GUILayout.Button("Close", _button, GUILayout.Width(110f * s))) _open = false;
             GUILayout.EndHorizontal();
 
-            _tab = GUILayout.Toolbar(_tab, new[] { "Bölümler", "Kaynaklar", "Veri", "Bilgi" }, _tabStyle,
+            _tab = GUILayout.Toolbar(_tab, new[] { "Levels", "Resources", "Data", "Info" }, _tabStyle,
                 GUILayout.Height(46f * s));
             GUILayout.Space(8f * s);
 
@@ -154,11 +160,11 @@ namespace BlockOut.Runtime.DevTools
         void DrawLevels(float s)
         {
             int count = LevelCatalog.Count;
-            if (count == 0) { GUILayout.Label("Bölüm bulunamadı.", _small); return; }
+            if (count == 0) { GUILayout.Label("No levels found.", _small); return; }
 
             int current = _session != null ? _session.LevelIndex : -1;
-            GUILayout.Label(current >= 0 ? $"Şu an: Bölüm {current + 1} / {count}"
-                                         : $"{count} bölüm", _small);
+            GUILayout.Label(current >= 0 ? $"Now: Level {current + 1} / {count}"
+                                         : $"{count} levels", _small);
 
             // Kaydırma alanı: 50 bölüm ekrana sığmaz, taşan satırlar
             // seçilemiyordu. FlexibleSpace'siz bir ScrollView bunu çözer.
@@ -189,13 +195,20 @@ namespace BlockOut.Runtime.DevTools
             GUILayout.EndScrollView();
 
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Bölümü yeniden başlat", _button, GUILayout.Height(52f * s)))
+            if (GUILayout.Button("Restart level", _button, GUILayout.Height(52f * s)))
             {
                 _session?.Restart();
-                Note("yeniden başlatıldı");
+                Note("restarted");
                 _open = false;
             }
-            if (GUILayout.Button("Hepsini aç", _button, GUILayout.Height(52f * s)))
+            // Sonuç panelini ve kutlamayı görmek için: bölümü çözmeden bitirir.
+            if (GUILayout.Button("Force win", _button, GUILayout.Height(52f * s)))
+            {
+                _session?.DebugForceWin();
+                Note("forced win");
+                _open = false;
+            }
+            if (GUILayout.Button("Unlock all", _button, GUILayout.Height(52f * s)))
             {
                 if (MetaServices.Ready)
                 {
@@ -203,7 +216,7 @@ namespace BlockOut.Runtime.DevTools
                     // ayıklama için bir "hepsini aç" metodu eklemek, yayına
                     // giden koda test kapısı açmak olurdu.
                     MetaServices.Save.Mutate(data => data.HighestUnlockedIndex = count - 1);
-                    Note("tüm bölümler açıldı");
+                    Note("all levels unlocked");
                 }
             }
             GUILayout.EndHorizontal();
@@ -216,12 +229,12 @@ namespace BlockOut.Runtime.DevTools
                 _session.GoToLevel(index);
             else
                 AppRouter.PlayLevel(index);
-            Note($"Bölüm {index + 1}");
+            Note($"Level {index + 1}");
         }
 
         void DrawResources(float s)
         {
-            if (!MetaServices.Ready) { GUILayout.Label("Meta servisler hazır değil.", _small); return; }
+            if (!MetaServices.Ready) { GUILayout.Label("Meta services not ready.", _small); return; }
 
             var progress = MetaServices.Progress;
             GUILayout.Label($"Jeton: {progress.Coins}    Can: {MetaServices.Lives.Current}", _small);
@@ -230,7 +243,7 @@ namespace BlockOut.Runtime.DevTools
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("+1000 jeton", _button, GUILayout.Height(52f * s)))
             { progress.GrantCoins(1000); Note("+1000 jeton"); }
-            if (GUILayout.Button("Canları doldur", _button, GUILayout.Height(52f * s)))
+            if (GUILayout.Button("Refill lives", _button, GUILayout.Height(52f * s)))
             { MetaServices.Lives.Grant(MetaServices.MaxLives); Note("canlar dolduruldu"); }
             GUILayout.EndHorizontal();
 
@@ -252,7 +265,7 @@ namespace BlockOut.Runtime.DevTools
             GUILayout.Space(14f * s);
             GUI.backgroundColor = new Color(1f, 0.45f, 0.4f);
             if (GUILayout.Button("KAYDI SIFIRLA", _button, GUILayout.Height(56f * s)))
-            { MetaServices.Save.Reset(); Note("kayıt sıfırlandı"); }
+            { MetaServices.Save.Reset(); Note("save reset"); }
             GUI.backgroundColor = Color.white;
         }
 
@@ -267,7 +280,7 @@ namespace BlockOut.Runtime.DevTools
         void DrawAnalytics(float s)
         {
             var analytics = AppBootstrap.Analytics;
-            if (analytics == null) { GUILayout.Label("Analitik hazır değil.", _small); return; }
+            if (analytics == null) { GUILayout.Label("Analytics not ready.", _small); return; }
 
             _scroll = GUILayout.BeginScrollView(_scroll);
             GUILayout.Label(analytics.Report(), _small);
@@ -275,16 +288,16 @@ namespace BlockOut.Runtime.DevTools
 
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Kaydet", _button, GUILayout.Height(48f * s)))
-            { analytics.Save(); Note("diske yazıldı"); }
-            if (GUILayout.Button("Verileri sil", _button, GUILayout.Height(48f * s)))
-            { analytics.Reset(); Note("analitik sıfırlandı"); }
+            { analytics.Save(); Note("written to disk"); }
+            if (GUILayout.Button("Delete data", _button, GUILayout.Height(48f * s)))
+            { analytics.Reset(); Note("analytics reset"); }
             GUILayout.EndHorizontal();
         }
 
         void DrawInfo(float s)
         {
             _text.Clear()
-                 .Append("Sürüm: ").Append(Application.version).Append('\n')
+                 .Append("Version: ").Append(Application.version).Append('\n')
                  .Append("Unity: ").Append(Application.unityVersion).Append('\n')
                  .Append("Cihaz: ").Append(SystemInfo.deviceModel).Append('\n')
                  .Append("Ekran: ").Append(Screen.width).Append('x').Append(Screen.height)
@@ -293,13 +306,13 @@ namespace BlockOut.Runtime.DevTools
                  .Append("Bellek: ").Append(SystemInfo.systemMemorySize).Append(" MB\n");
 
             if (MetaServices.Ready)
-                _text.Append("Kayıt: ").Append(MetaServices.Save.Outcome).Append('\n');
+                _text.Append("Save: ").Append(MetaServices.Save.Outcome).Append('\n');
 
             GUILayout.Label(_text.ToString(), _small);
 
             GUILayout.Space(10f * s);
-            if (GUILayout.Button(GameKit.Services.PerfProbe.Visible ? "FPS sayacını kapat"
-                                                                    : "FPS sayacını aç",
+            if (GUILayout.Button(GameKit.Services.PerfProbe.Visible ? "Hide FPS counter"
+                                                                    : "Show FPS counter",
                     _button, GUILayout.Height(52f * s)))
                 GameKit.Services.PerfProbe.Visible = !GameKit.Services.PerfProbe.Visible;
         }
@@ -333,10 +346,5 @@ namespace BlockOut.Runtime.DevTools
             };
             _small.normal.textColor = new Color(0.85f, 0.86f, 0.95f);
         }
-#else
-        // Yayın yapısında hiçbir şey yapmaz; çağrı yerleri #if ile
-        // kirlenmesin diye boş bir Ensure bırakılıyor.
-        public static void Ensure() { }
-#endif
     }
 }

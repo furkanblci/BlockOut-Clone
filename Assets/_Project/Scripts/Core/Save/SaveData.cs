@@ -59,6 +59,17 @@ namespace BlockOut.Core.Save
         [JsonProperty("powerUps")] public Dictionary<string, int> PowerUps
             = new Dictionary<string, int>();
 
+        /// <summary>
+        /// Mağaza paketlerinin verdiği kalıcı "reklam yok" hakkı.
+        /// Referanstaki her pakette üstü çizili ADS rozeti var ve süresi yazmıyor
+        /// — süreli olanların (∞ can) yanında hep bir süre yazdığına göre bu
+        /// kalıcı.
+        /// </summary>
+        [JsonProperty("noAds")] public bool NoAds;
+
+        /// <summary>Sınırsız can hakkının bitiş anı (UTC, ISO-8601). Boş = hak yok.</summary>
+        [JsonProperty("infiniteLivesUntilUtc")] public string InfiniteLivesUntilUtc = "";
+
         [JsonProperty("settings")] public SettingsData Settings = new SettingsData();
 
         /// <summary>Son kaydın yazıldığı an — teşhis için.</summary>
@@ -82,6 +93,7 @@ namespace BlockOut.Core.Save
             if (data.PowerUps == null) data.PowerUps = new Dictionary<string, int>();
             if (data.PlayerName == null) data.PlayerName = "";
             if (data.NextLifeAtUtcField == null) data.NextLifeAtUtcField = "";
+            if (data.InfiniteLivesUntilUtc == null) data.InfiniteLivesUntilUtc = "";
             if (data.Coins < 0) data.Coins = 0;
             if (data.HighestUnlockedIndex < 0) data.HighestUnlockedIndex = 0;
         }

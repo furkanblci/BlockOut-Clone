@@ -34,6 +34,12 @@ namespace BlockOut.Runtime.Flow
         /// <summary>Hiç kapanmayan servis kökü (ses, titreşim, efektler).</summary>
         public Transform PersistentRoot { get; private set; }
 
+        /// <summary>Ses servisi — menüde de, oynanışta da AYNI örnek.</summary>
+        public Services.AudioService Audio { get; private set; }
+
+        /// <summary>Titreşim servisi — menüde de, oynanışta da AYNI örnek.</summary>
+        public GameKit.Services.Haptics Haptics { get; private set; }
+
         public bool InGame { get; private set; }
 
         void Awake()
@@ -43,6 +49,24 @@ namespace BlockOut.Runtime.Flow
             var persistent = new GameObject("Persistent");
             persistent.transform.SetParent(transform, worldPositionStays: false);
             PersistentRoot = persistent.transform;
+
+            // Ses ve titreşim UYGULAMA AÇILIŞINDA kurulur.
+            //
+            // DERS (menü de oyunun parçası): Bu ikisi eskiden GameSession'ın
+            // kurulumunda doğuyordu. Oynanış kökü kapalı başladığı için
+            // `Start` hiç koşmuyor, yani oyuncu İLK BÖLÜME GİRENE KADAR sahnede
+            // hiç AudioService olmuyordu: ana ekranın, mağazanın, ayarların
+            // bütün düğmeleri SESSİZ basılıyordu (`UiButtonFeel.Clicked`
+            // bağlanmamış oluyor) ve Ayarlar'daki "Sounds" anahtarı
+            // uygulanacak bir örnek bulamadığı için sessizce hiçbir şey
+            // yapmıyordu. Servis "oyun başlayınca değil, uygulama açılınca"
+            // kurulmalı — menü kabuğu da oynanış kadar oyundur.
+            Audio = Services.AudioService.Create(PersistentRoot);
+            Haptics = GameKit.Services.Haptics.Create(PersistentRoot);
+
+            if (Services.MetaServices.Ready)
+                Services.SettingsBinder.Apply(
+                    Services.MetaServices.Save.Data.Settings, Audio, Haptics);
 
             // Menüyle açılırız; oynanış kökü ilk "Oyna"da uyanır.
             if (gameRoot != null) gameRoot.SetActive(false);

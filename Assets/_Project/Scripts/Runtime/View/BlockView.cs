@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using BlockOut.Core;
 using BlockOut.Runtime.Board;
 using UnityEngine;
+using PT = PrimeTween;
 
 namespace BlockOut.Runtime.View
 {
@@ -37,6 +38,7 @@ namespace BlockOut.Runtime.View
         GameObject _axisArrow;
         TextMesh _iceCounter;
         Coroutine _tween;
+        PT.Sequence _motion;
         bool _highlighted;
 
         public static BlockView Create(
@@ -233,34 +235,35 @@ namespace BlockOut.Runtime.View
             else
             {
                 // Bırakma: model zaten hücreye oturdu, görsel oraya yumuşak varır.
-                _tween = StartCoroutine(SnapRoutine());
+                SnapToCell();
             }
         }
 
-        IEnumerator SnapRoutine()
+        /// <summary>
+        /// Bırakma anında hücreye oturma.
+        ///
+        /// DERS (konum ve ölçek AYNI eğriyi paylaşmamalı): Eskiden ikisi de tek
+        /// bir ease-out ile gidiyordu ve varış "yumuşak ama ölü" duruyordu.
+        /// Konumun sertçe varması (OutQuad) "kilitlendi" der; ölçeğin hedefi
+        /// hafifçe aşıp dönmesi (overshoot) o kilitlenmeye tokat sesi ekler.
+        /// İkisi aynı anda çalışıyor, bu yüzden Group.
+        /// </summary>
+        void SnapToCell()
         {
-            Vector3 fromPos = transform.position;
-            Vector3 fromScale = transform.localScale;
             Vector3 toPos = WorldPosition(0f);
 
-            for (float t = 0f; t < SnapDuration; t += Time.deltaTime)
-            {
-                float k = t / SnapDuration;
-                k = 1f - (1f - k) * (1f - k); // ease-out
-                transform.position = Vector3.Lerp(fromPos, toPos, k);
-                transform.localScale = Vector3.Lerp(fromScale, Vector3.one, k);
-                yield return null;
-            }
-
-            transform.position = toPos;
-            transform.localScale = Vector3.one;
-            _tween = null;
+            _motion = PT.Sequence.Create()
+                .Group(PT.Tween.Position(transform, toPos, SnapDuration, PT.Ease.OutQuad))
+                .Group(PT.Tween.Scale(transform, Vector3.one, SnapDuration * 2.4f,
+                    PT.Easing.Overshoot(1.8f)));
         }
 
         void StopTween()
         {
             if (_tween != null) StopCoroutine(_tween);
             _tween = null;
+
+            if (_motion.isAlive) _motion.Stop();
         }
 
         /// <summary>
@@ -370,7 +373,9 @@ namespace BlockOut.Runtime.View
                 : BrickMeshBuilder.Height;
 
             // Buz kalıbı tuğlanın yerine geçer: aynı ayak izi, aynı yükseklik.
-            const float SideInset = 0.09f;   // tuğladaki inset ile aynı his
+            // (Eski `SideInset` sabiti kaldırıldı: kabuk artık tuğla mesh'inin
+            // kendisi olduğu için ayrı bir kenar payına gerek yok, kullanılmayan
+            // değişken uyarısı basıyordu.)
             float shellHeight = brickTop;
 
             // Mesh tuğlanın kendi yerel uzayında; kabuk bloğun konumuna oturur
@@ -481,62 +486,53 @@ namespace BlockOut.Runtime.View
         /// buzun neden orada olduğunu da göze gösterir. Sessiz reddetme,
         /// mobil oyunlarda en sık rastlanan hayal kırıklığı kaynağıdır.
         /// </summary>
+        /// DERS (reddetme SERT başlamalı): Sönümlenen bir titremenin gücü ilk
+        /// salınımdadır; sonrası yalnızca "duruyor" der. enableFalloff tam olarak
+        /// bunu yapıyor — ilk darbe en güçlü, arkası hızla sönüyor. Yalnız X
+        /// ekseninde sallıyoruz: dikey titreme bloğun düşmek üzere olduğunu ima
+        /// eder, oysa anlatmak istediğimiz "buraya sıkışmış".
         public void PlayRefusal()
         {
             if (_refusing) return;
             _refusing = true;
-            StartCoroutine(RefusalRoutine());
+
+            PT.Tween.ShakeLocalPosition(transform,
+                    strength: new Vector3(0.14f, 0f, 0f), duration: 0.28f,
+                    frequency: 13f, enableFalloff: true)
+                .OnComplete(this, view => view._refusing = false);
         }
 
         bool _refusing;
 
-        IEnumerator RefusalRoutine()
-        {
-            Vector3 origin = WorldPosition(0f);
-            const float duration = 0.26f;
-            const float amplitude = 0.12f;
-
-            for (float t = 0f; t < duration; t += Time.deltaTime)
-            {
-                float k = t / duration;
-                // Sönümlenen sinüs: üç hızlı salınım, gitgide zayıflayarak.
-                float offset = Mathf.Sin(k * Mathf.PI * 6f) * amplitude * (1f - k);
-                transform.position = origin + new Vector3(offset, 0f, 0f);
-                yield return null;
-            }
-
-            transform.position = origin;
-            _refusing = false;
-        }
-
-        /// <summary>Tahta girişinde blokların sırayla yerine oturması.</summary>
+        /// <summary>
+        /// Tahta girişinde blokların sırayla yerine oturması.
+        ///
+        /// DERS (düşen şey HIZLANIR): Eskiden iniş ease-out cubic ile, yani
+        /// yavaşlayarak yapılıyordu. Bu "indirildi" der, "düştü" demez —
+        /// yerçekimi altındaki bir cisim varışa doğru hızlanır. InQuad bunu
+        /// verir; ardından gelen ezilme (squash) çarpmanın ağırlığını anlatır.
+        ///
+        /// DERS (ezilme tek başına yetmez, GERİ DÖNÜŞ de gerekir): Yalnız ezip
+        /// bırakmak lastik gibi durur. Ezilmeden sonra hedefi aşarak toparlanmak
+        /// cismin katı ama canlı olduğunu söyler — çizgi filmdeki squash & stretch
+        /// tam olarak budur.
+        /// </summary>
         public void PlayIntro(float delay, float duration)
         {
             StopTween();
-            _tween = StartCoroutine(IntroRoutine(delay, duration));
-        }
 
-        IEnumerator IntroRoutine(float delay, float duration)
-        {
             Vector3 target = WorldPosition(0f);
             Vector3 start = target + Vector3.up * 2.2f; // fazla yüksek düşüş tahtanın dışına taşıyor
             transform.position = start;
             transform.localScale = Vector3.one * 0.6f;
 
-            yield return new WaitForSeconds(delay);
-
-            for (float t = 0f; t < duration; t += Time.deltaTime)
-            {
-                float k = t / duration;
-                float eased = 1f - (1f - k) * (1f - k) * (1f - k); // ease-out cubic
-                transform.position = Vector3.Lerp(start, target, eased);
-                transform.localScale = Vector3.one * Mathf.Lerp(0.6f, 1f, eased);
-                yield return null;
-            }
-
-            transform.position = target;
-            transform.localScale = Vector3.one;
-            _tween = null;
+            _motion = PT.Sequence.Create()
+                .Group(PT.Tween.Position(transform, start, target, duration,
+                    PT.Ease.InQuad, startDelay: delay))
+                .Group(PT.Tween.Scale(transform, Vector3.one * 0.6f, Vector3.one, duration,
+                    PT.Ease.OutQuad, startDelay: delay))
+                .Chain(PT.Tween.ScaleY(transform, 0.80f, 0.06f, PT.Ease.OutQuad))
+                .Chain(PT.Tween.ScaleY(transform, 1f, 0.20f, PT.Easing.Overshoot(2.0f)));
         }
 
         /// <summary>

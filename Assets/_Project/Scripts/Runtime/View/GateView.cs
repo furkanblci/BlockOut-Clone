@@ -55,7 +55,7 @@ namespace BlockOut.Runtime.View
             var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
             go.name = $"Gate_{model.ActiveColor}_{model.Side.ToId()}";
             go.transform.SetParent(parent, worldPositionStays: false);
-            Destroy(go.GetComponent<Collider>());
+            ViewKit.StripCollider(go);
 
             // Kapı barının kenar boyunca kapladığı aralık. Tahtanın KÖŞESİNE
             // dayanan uç, çerçevenin yuvarlatılmış köşesinin içine girip

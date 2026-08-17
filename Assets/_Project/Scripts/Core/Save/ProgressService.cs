@@ -47,6 +47,36 @@ namespace BlockOut.Core.Save
             return record;
         }
 
+        /// <summary>
+        /// Kaydı OKUR; yoksa <c>null</c> döner ve HİÇBİR ŞEY YARATMAZ.
+        ///
+        /// DERS (aynı tuzak iki kez): <see cref="Record"/> bulamadığını yaratıp
+        /// kayda yazıyor. Liderlik ekranı puan hesaplarken bütün bölümler için
+        /// onu çağırıyordu — yani her tazelemede kayıt dosyasına oynanmamış
+        /// her bölüm için boş bir satır ekliyordu. Sadece OKUYACAK olan
+        /// buradan geçmeli.
+        /// </summary>
+        public LevelRecord Peek(string levelId) =>
+            !string.IsNullOrEmpty(levelId)
+            && _save.Data.Levels.TryGetValue(levelId, out var record) ? record : null;
+
+        /// <summary>
+        /// Bu bölüm ŞU AN temizlenseydi kaç jeton verirdi? Hiçbir şeye
+        /// dokunmaz. Kaybetme paneli bunu "kaçırdığın ödül" olarak gösteriyor.
+        ///
+        /// DERS (okuma kayıt OLUŞTURMAMALI): <see cref="Record"/> aradığını
+        /// bulamazsa yenisini yaratıp kayda YAZIYOR. Sırf ödülü göstermek için
+        /// onu çağırmak, oynanmamış her bölüm için kayıt dosyasında boş bir
+        /// satır açardı — panel bir şeyi değiştirmeden okumalı.
+        /// </summary>
+        public int PreviewReward(string levelId)
+        {
+            bool cleared = !string.IsNullOrEmpty(levelId)
+                        && _save.Data.Levels.TryGetValue(levelId, out var record)
+                        && record.Cleared;
+            return cleared ? CoinsPerClear : CoinsPerFirstClear;
+        }
+
         /// <summary>Bölüme girildiğinde — deneme sayacı istatistik ve zorluk ayarı için.</summary>
         public void NoteAttempt(string levelId)
         {
@@ -126,6 +156,55 @@ namespace BlockOut.Core.Save
             _save.Data.Coins += amount;
             _save.Save();
             CoinsChanged?.Invoke(_save.Data.Coins);
+        }
+
+        /// <summary>Mağaza paketi alındıysa reklam gösterilmez.</summary>
+        public bool NoAds => _save.Data.NoAds;
+
+        /// <summary>
+        /// Sınırsız can hakkı sürüyor mu?
+        ///
+        /// DERS (hakkı BİTİŞ ANI olarak sakla, kalan süre olarak değil): Kalan
+        /// süreyi saklarsan onu her açılışta azaltman gerekir ve oyun kapalıyken
+        /// zaman durur — oyuncu 3 saatlik hakkı günlerce kullanır. Bitiş anı
+        /// yazmak bu sınıf hatayı imkânsız kılar.
+        /// </summary>
+        public bool HasInfiniteLives => InfiniteLivesLeft > TimeSpan.Zero;
+
+        /// <summary>Sınırsız can hakkından kalan süre; hak yoksa sıfır.</summary>
+        public TimeSpan InfiniteLivesLeft
+        {
+            get
+            {
+                var text = _save.Data.InfiniteLivesUntilUtc;
+                if (string.IsNullOrEmpty(text)) return TimeSpan.Zero;
+                if (!DateTime.TryParse(text, null,
+                        System.Globalization.DateTimeStyles.RoundtripKind, out var until))
+                    return TimeSpan.Zero;
+
+                var left = until - DateTime.UtcNow;
+                return left > TimeSpan.Zero ? left : TimeSpan.Zero;
+            }
+        }
+
+        /// <summary>
+        /// Paketin verdiklerini işler. Süre EKLENİR: elinde 2 saat varken
+        /// 6 saatlik paket alan oyuncu 8 saat almalı, 6 saate düşmemeli.
+        /// </summary>
+        public void GrantPackage(int coins, int infiniteLifeHours, bool noAds)
+        {
+            if (coins > 0) _save.Data.Coins += coins;
+            if (noAds) _save.Data.NoAds = true;
+
+            if (infiniteLifeHours > 0)
+            {
+                var from = DateTime.UtcNow + InfiniteLivesLeft;
+                _save.Data.InfiniteLivesUntilUtc =
+                    from.AddHours(infiniteLifeHours).ToString("o");
+            }
+
+            _save.Save();
+            if (coins > 0) CoinsChanged?.Invoke(_save.Data.Coins);
         }
     }
 }

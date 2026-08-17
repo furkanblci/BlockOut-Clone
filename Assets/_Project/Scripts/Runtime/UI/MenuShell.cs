@@ -25,11 +25,11 @@ namespace BlockOut.Runtime.UI
     {
         static readonly (string label, string key, string icon)[] Tabs =
         {
-            ("Mağaza",    "store",   Art.Shop),
-            ("Liderlik",  "board",   Art.Trophy),
-            ("Ana Ekran", "home",    Art.Home),
-            ("Yolculuk",  "journey", Art.Globe),
-            ("Koleksiyon", "collection", Art.Chest)
+            ("Shop",       "store",   Art.Shop),
+            ("Leaderboard","board",   Art.Trophy),
+            ("Home",       "home",    Art.Home),
+            ("Journey",    "journey", Art.Globe),
+            ("Collection", "collection", Art.Chest)
         };
 
         readonly Dictionary<string, RectTransform> _screens = new Dictionary<string, RectTransform>();
@@ -37,6 +37,10 @@ namespace BlockOut.Runtime.UI
             _tabButtons = new List<(Button, Image, RectTransform, TextMeshProUGUI, string)>();
 
         string _active = "home";
+        RectTransform _content;
+
+        /// <summary>Referanstan ölçüldü: geçiş ~170 ms (30 kare/sn'de ~5 kare).</summary>
+        const float SlideSeconds = 0.17f;
 
         /// <summary>Ana ekrandaki dişli düğmesi buraya bağlanır.</summary>
         public static MenuShell Instance { get; private set; }
@@ -54,6 +58,7 @@ namespace BlockOut.Runtime.UI
             // İçerik alanı: sekme çubuğunun üstünde kalan her şey.
             var content = UiKit.CreateRect("Content", root);
             UiKit.Place(content, 0f, 0.105f, 1f, 1f);
+            _content = content;
 
             _screens["store"]   = StoreScreen.Build(content);
             _screens["board"]   = LeaderboardScreen.Build(content);
@@ -63,6 +68,15 @@ namespace BlockOut.Runtime.UI
             _screens["settings"] = (RectTransform)SettingsScreen.Build(content).transform;
 
             BuildTabBar(root);
+
+            // Ayarlar ve Profil ÖRTÜ sayfalarıdır: referansta tam ekran ve
+            // sekme çubuğunu da kapatıyorlar (kapanışları sağ üstteki kırmızı
+            // çarpı). Kardeş sırası çizim sırası olduğu için çubuktan SONRAYA
+            // alınıyorlar; yoksa çubuk sayfanın üstünde kalır ve "tam ekran"
+            // hissi bozulur.
+            _screens["settings"].SetAsLastSibling();
+            _screens["profile"].SetAsLastSibling();
+
             Show("home");
         }
 
@@ -141,14 +155,38 @@ namespace BlockOut.Runtime.UI
         static readonly Color CardColor = new Color(0.404f, 0.278f, 0.831f);
         static readonly Color RimColor  = new Color(0.478f, 0.396f, 0.812f);
 
-        /// <summary>Sekmeyi değiştirir; aynı sekmeye basmak ana ekrana döner.</summary>
+        /// <summary>
+        /// Sekmeyi değiştirir. ZATEN AÇIK olan sekmeye basmak hiçbir şey yapmaz.
+        ///
+        /// DERS (aynı yere iki kez basmak bir GEZİNME değildir): Burası eskiden
+        /// açık sekmeye tekrar basınca oyuncuyu ANA EKRANA atıyordu. Niyet
+        /// "geri tuşu gibi olsun" idi ama cihazda yaşanan şey şu: oyuncu
+        /// mağazadayken mağaza sekmesine bir daha dokunuyor ve kendini ana
+        /// ekranda buluyor — ekran "açılıp kapanıyor" gibi görünüyor.
+        /// Bir sekme çubuğunda seçili sekme bir HEDEF'tir, bir düğme değil;
+        /// zaten oradaysan gidilecek yer yok. Tek doğru karşılık dokunuşun
+        /// alındığını hissettirmek: haptik.
+        /// </summary>
         public void Show(string key)
         {
-            if (_active == key && key != "home") key = "home";
+            if (_active == key)
+            {
+                if (Flow.AppRoot.Current != null)
+                    Flow.AppRoot.Current.Haptics?.Play(GameKit.Services.HapticStrength.Medium);
+                return;
+            }
+
+            string previous = _active;
             _active = key;
 
             foreach (var pair in _screens)
+            {
+                // Çıkan ekran hemen kapanmıyor: kayma bitince kapanacak.
+                if (pair.Key == previous && previous != key) continue;
                 pair.Value.gameObject.SetActive(pair.Key == key);
+            }
+
+            SlideSwap(previous, key);
 
             foreach (var (_, card, icon, caption, tabKey) in _tabButtons)
             {
@@ -174,6 +212,64 @@ namespace BlockOut.Runtime.UI
                 collection.GetComponent<CollectionScreen>()?.Refresh();
             if (key == "settings" && _screens.TryGetValue(key, out var settings))
                 settings.GetComponent<SettingsScreen>()?.Refresh();
+        }
+
+        /// <summary>
+        /// Sekme geçişi: yeni ekran yandan girer, eski ekran karşı yönden çıkar.
+        /// Yön SEKME SIRASINDAN gelir — sağdaki sekmeye geçerken yeni ekran
+        /// sağdan girer. Referansta ölçülen süre ~170 ms.
+        ///
+        /// DERS (anlık değişim yön TAŞIMAZ): Eski hâl `SetActive` ile bir
+        /// karede değişiyordu; oyuncu "ışınlandım" hissi alıyor ve iki sekme
+        /// arasındaki komşuluğu öğrenemiyordu. Referans oyun bu yüzden
+        /// kaydırıyor.
+        ///
+        /// SINIR: Ana ekran AYRI bir kanvasta (HomeCanvas) ve menü içeriğinin
+        /// ALTINDA duruyor; bu yüzden ana ekrana geçerken yalnız menü ekranı
+        /// kayıp altındakini açığa çıkarıyor, ana ekranın kendisi kaymıyor.
+        /// Referansta ikisi birden kayıyor.
+        /// </summary>
+        void SlideSwap(string from, string to)
+        {
+            if (_content == null || from == to) return;
+
+            float width = _content.rect.width;
+            if (width < 1f) width = 1080f;
+
+            float direction = TabOrder(to) >= TabOrder(from) ? 1f : -1f;
+
+            if (_screens.TryGetValue(to, out var incoming))
+                GameKit.FX.Juice.Replace(incoming,
+                    GameKit.FX.Juice.SlideX(incoming, direction * width, 0f, SlideSeconds));
+            else if (to == "home")
+                // Ana ekranın kendi kanvası var; kaymayı kendisi yapıyor.
+                HomeScreen.Instance?.Slide(direction * width, 0f, SlideSeconds);
+
+            if (from == "home")
+                HomeScreen.Instance?.Slide(0f, -direction * width, SlideSeconds);
+
+            if (_screens.TryGetValue(from, out var outgoing))
+            {
+                var leaving = outgoing;
+                GameKit.FX.Juice.Replace(leaving,
+                    GameKit.FX.Juice.SlideX(leaving, 0f, -direction * width, SlideSeconds,
+                        () =>
+                        {
+                            // Kapatmadan önce YERİNE geri koy: bir daha
+                            // açıldığında ekran dışında kalmasın.
+                            leaving.anchoredPosition =
+                                new Vector2(0f, leaving.anchoredPosition.y);
+                            leaving.gameObject.SetActive(false);
+                        }));
+            }
+        }
+
+        /// <summary>Sekme çubuğundaki sıra; listede olmayan ekranlar sona sayılır.</summary>
+        static int TabOrder(string key)
+        {
+            for (int i = 0; i < Tabs.Length; i++)
+                if (Tabs[i].key == key) return i;
+            return Tabs.Length;   // profile/settings: örtü sayfaları
         }
 
         /// <summary>Ekranların ortak başlık şeridi.</summary>

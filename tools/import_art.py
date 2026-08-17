@@ -108,11 +108,48 @@ RECIPES = {
 }
 
 
+# Bilerek işlenmeyenler. Dosyayı SİLMİYORUZ — kullanıcının ürettiği bir şeyi
+# silmek onun işi, bizimki değil; yalnız oyuna girmesini engelliyoruz.
+SKIP = {
+    # Altın kilidin ikinci kopyası. `icon_lock.jpg` (15 Ağustos) zaten aynı
+    # altın kilit; araç JPG atladığı için görünmemiş, kullanıcı da mevcut
+    # `icon_lock.png`'yi (eski GÜMÜŞ olan) görüp adı çakışmasın diye ikinci
+    # bir dosya üretmişti. Artık JPG okunduğu için gerek kalmadı.
+    "icon_lock2",
+}
+
+
 def main() -> int:
-    files = sorted(p for p in RAW.rglob("*.png") if p.parent.name != "cutout")
+    # DERS (sessizce atlamak, hatadan beterdir): Burası uzun süre yalnız
+    # "*.png" topluyordu. Üretici araçların çoğu JPG veriyor ve o dosyalar
+    # hiçbir uyarı vermeden atlanıyordu — `avatar_2/3/4` aylarca art_raw'da
+    # durduğu hâlde oyuna hiç girmemişti ve kimse fark etmemişti.
+    # Alfa yokluğu sorun değil: kesim zaten zemini kendisi siliyor.
+    patterns = ("*.png", "*.jpg", "*.jpeg")
+    files = sorted(
+        p for pattern in patterns for p in RAW.rglob(pattern)
+        if p.parent.name != "cutout" and p.stem not in SKIP
+    )
     if not files:
         print("art_raw/ boş.")
         return 1
+
+    # Aynı isim birden fazla uzantıyla geldiyse EN YENİSİ kazanır.
+    #
+    # DERS (uzantıya değil TARİHE bak): İlk kural "PNG kazansın" idi, gerekçe
+    # de makuldü (alfası olabilir). Ama gerçek durum tersine döndü: altın
+    # kilit JPG olarak geldi ve art_raw'daki ESKİ gümüş `icon_lock.png` hâlâ
+    # duruyordu — kural bayat olanı seçiyordu. Kullanıcı bir görseli
+    # yenilediğinde uzantısını değiştirebilir; değişmeyen tek şey yeni
+    # dosyanın daha yeni olmasıdır.
+    by_stem: dict = {}
+    for path in files:
+        current = by_stem.get(path.stem)
+        if current is None or path.stat().st_mtime > current.stat().st_mtime:
+            if current is not None:
+                print(f"{path.stem}: {current.name} atlandı, {path.name} daha yeni")
+            by_stem[path.stem] = path
+    files = sorted(by_stem.values())
 
     for path in files:
         settings = dict(COMMON, **RECIPES.get(path.stem, {}))

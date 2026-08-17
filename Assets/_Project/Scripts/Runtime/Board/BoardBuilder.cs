@@ -144,7 +144,7 @@ namespace BlockOut.Runtime.Board
                 var seg = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 seg.name = $"Wall_{edge.X}_{edge.Y}_{(edge.Horizontal ? "H" : "V")}";
                 seg.transform.SetParent(wallRoot, false);
-                Object.Destroy(seg.GetComponent<Collider>());
+                ViewKit.StripCollider(seg);
                 var wallRenderer = seg.GetComponent<MeshRenderer>();
                 wallRenderer.sharedMaterial = wallMaterial;
                 wallRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -221,7 +221,7 @@ namespace BlockOut.Runtime.Board
             {
                 var line = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 line.transform.SetParent(holder.transform, worldPositionStays: false);
-                Object.Destroy(line.GetComponent<Collider>());
+                ViewKit.StripCollider(line);
                 var renderer = line.GetComponent<MeshRenderer>();
                 renderer.sharedMaterial = material;
                 renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -263,8 +263,22 @@ namespace BlockOut.Runtime.Board
                     uvs.Add(new Vector2(1f, 0f)); uvs.Add(new Vector2(0f, 0f));
                     for (int n = 0; n < 4; n++) normals.Add(Vector3.up);
 
-                    tris.Add(start); tris.Add(start + 2); tris.Add(start + 1);
-                    tris.Add(start); tris.Add(start + 3); tris.Add(start + 2);
+                    // HATA (level editörünün 3D önizlemesi ortaya çıkardı):
+                    // Bu iki üçgen TERS sarılmıştı ve zemin ön yüzü AŞAĞI
+                    // bakıyordu — yani tahtanın zemini kamera tepeden baktığı
+                    // için arka yüz eleme (backface culling) ile HİÇ
+                    // ÇİZİLMİYORDU. Oyunda "zemin" sanılan şey arka plan +
+                    // ızgara çizgileri + çerçeveydi; floorColorA/B ayarlarının
+                    // hiçbir etkisi olmuyordu.
+                    //
+                    // DERS (sarım yönü sessizce kaybeder): Ters sarılmış bir
+                    // yüzey hata vermez, sadece görünmez olur. Kıyas noktası
+                    // aynı dosyadaki gölge mesh'i: köşeleri ALTTAN üste
+                    // sıralıyor ve doğru çalışıyor. Buradaki köşeler ÜSTTEN
+                    // alta sıralanıyor (CornerToWorld'de y arttıkça z AZALIR),
+                    // dolayısıyla üçgen sırası da tersine dönmek zorundaydı.
+                    tris.Add(start); tris.Add(start + 1); tris.Add(start + 2);
+                    tris.Add(start); tris.Add(start + 2); tris.Add(start + 3);
                 }
             }
 

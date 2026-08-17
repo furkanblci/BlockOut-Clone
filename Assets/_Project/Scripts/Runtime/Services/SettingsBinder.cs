@@ -19,7 +19,7 @@ namespace BlockOut.Runtime.Services
             if (settings == null) return;
             if (audio != null) audio.Muted = !settings.Sounds;
             if (haptics != null) haptics.Enabled = settings.Haptics;
-            // Müzik henüz yok; anahtarı kayıtta duruyor, kaynağı M5'in ilerisinde.
+            AudioService.SetMusicEnabled(settings.Music);
         }
 
         /// <summary>Bir anahtarı değiştirir, diske yazar ve servislere uygular.</summary>

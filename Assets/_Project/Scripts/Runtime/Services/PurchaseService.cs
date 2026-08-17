@@ -79,7 +79,7 @@ namespace BlockOut.Runtime.Services
             Action<PurchaseResult> onFinished)
         {
             IsBusy = true;
-            Status?.Invoke("Mağazaya bağlanılıyor…");
+            Status?.Invoke("Connecting to store…");
 
             // GERÇEK SDK BURAYA: mağaza penceresi açılır, oyuncu onaylar.
             yield return new WaitForSecondsRealtime(
@@ -89,7 +89,7 @@ namespace BlockOut.Runtime.Services
             if (failed)
             {
                 IsBusy = false;
-                Status?.Invoke("Ödeme tamamlanamadı.");
+                Status?.Invoke("Payment failed.");
                 GameKit.Services.Analytics.LogPurchaseFailed(productId, price);
                 onFinished?.Invoke(PurchaseResult.Failed);
                 yield break;
@@ -102,7 +102,7 @@ namespace BlockOut.Runtime.Services
             GameKit.Services.Analytics.LogPurchase(productId, price, coins);
 
             IsBusy = false;
-            Status?.Invoke("Satın alma tamamlandı.");
+            Status?.Invoke("Purchase complete.");
             onFinished?.Invoke(PurchaseResult.Purchased);
         }
 
@@ -118,9 +118,9 @@ namespace BlockOut.Runtime.Services
 
         IEnumerator RestoreRoutine(Action<string> onFinished)
         {
-            Status?.Invoke("Satın alımlar sorgulanıyor…");
+            Status?.Invoke("Checking purchases…");
             yield return new WaitForSecondsRealtime(1.1f);
-            onFinished?.Invoke("Geri yüklenecek kalıcı ürün yok (jeton paketleri tüketilir).");
+            onFinished?.Invoke("No restorable items (coin packs are consumable).");
         }
     }
 }
