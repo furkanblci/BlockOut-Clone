@@ -315,9 +315,43 @@ daha belirgin ayrışıyor. İkinci tur cila; yapısal iş bitti.
   hâle getirilecek.
 Referans: `ana ekran.jpeg`
 
-### [ ] 9. Yolculuk (Journey)
-- **Kaydırma çalışmıyor:** orijinalde ekranın HER YERİNDEN yukarı/aşağı
-  sürüklenebiliyor, bizde olmuyor.
+### [~] 9. Yolculuk — KAYDIRMA DÜZELDİ + BİR ÖLÜ KONTROL DAHA
+
+**Kaydırma neden çalışmıyordu:** `ScrollRect` viewport'ta kuruluydu ama
+viewport'ta **raycast yakalayan hiçbir grafik yoktu** — yalnız `RectMask2D`.
+uGUI olay sistemi sürükleme olaylarını ancak `raycastTarget` açık bir
+GRAFİĞE çarpınca yollar. Sonuç: parmağını tesadüfen bir kapsülün üstüne
+koyarsan kayıyordu, boş zemine koyarsan hiçbir şey olmuyordu.
+
+Çözüm: görünmez ama dokunulabilir bir yüzey (`TouchCatcher`, alfa 0).
+
+**DERS (yakalayıcıyı VIEWPORT'a koyma):** İlk denemede yüzeyi viewport'un
+KENDİSİNE koydum. Kaydırma düzeldi ama "Üst"/"Alt" düğmeleri tıklanamaz
+oldu — o düğmeler viewport'un çocuğu değil KARDEŞİ. uGUI'de kardeş sırası
+çizim ve raycast sırasıdır. Yakalayıcı, kaydırılan İÇERİĞİN ilk çocuğu
+olmalı: hem viewport'un kardeşlerinin altında kalır, hem de sonradan
+eklenen bölge düğmeleri onun üstünde kalır.
+
+#### BEŞİNCİ ÖLÜ KONTROL — "Üst" / "Alt" düğmeleri
+Yakalayıcıyı düzeltirken çıktı: bu iki düğmenin `onClick`'i bağlıydı,
+`Button` bileşeni yerindeydi, ekranda düğme gibi duruyordu — ama hedef
+grafiği `MenuCapsule`'den geliyor ve o yardımcı `raycastTarget = false`
+üretiyor. **Dokunuş düğmeye hiç ulaşmıyordu; hiçbir zaman çalışmamışlar.**
+
+**DERS (dinleyici bağlamak YETMEZ, dokunuşun ULAŞMASI da gerekir):**
+Önceki dört ölü kontrol dinleyicisizdi ve "onClick bağlı mı" taramasıyla
+bulunmuştu. Bu ise dinleyicisi olup DUYAMAYAN bir düğme — o tarama bu türü
+göremez. Bulan şey bir **raycast taraması** oldu: her düğmenin merkezine
+sanal dokunuş atıp ilk çarpanın o düğme olup olmadığına bakmak.
+
+**Doğrulama:** boş zeminden 9/9 noktada kaydırma çalışıyor, iki atlama
+düğmesi de 2/2 tıklanabilir, kaydırma konumu gerçekten değişiyor.
+
+#### 9. MADDEDE KALAN
+Çember boyutları, ödül kapsüllerinin sadeliği ve baskılı "Yolculuk" başlığı.
+
+### [ ] 9-eski. Yolculuk (özgün istek metni)
+- ~~Kaydırma çalışmıyor~~ — düzeldi (yukarı bak).
 - Yuvarlak bölge görselleri biraz daha küçük olacak.
 - Dikdörtgen ödül (kilometre taşı) kapsülleri sade kalmış — kendi UI'ımızı
   çizdirebiliriz.

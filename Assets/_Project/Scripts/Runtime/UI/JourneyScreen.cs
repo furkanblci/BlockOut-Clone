@@ -218,12 +218,40 @@ namespace BlockOut.Runtime.UI
             viewport.offsetMin = new Vector2(0f, -210f);
             viewport.gameObject.AddComponent<RectMask2D>();
 
+            // DOKUNUŞ YAKALAYICI — ekranın HER YERİNDEN kaydırabilmek için.
+            //
+            // DERS (ScrollRect boşluğu duymaz): `ScrollRect` sürükleme
+            // olaylarını uGUI olay sisteminden alır; olay sistemi ise yalnız
+            // `raycastTarget` açık bir GRAFİĞE çarpan dokunuşları yollar.
+            // Burada viewport'ta hiç grafik yoktu — yalnız `RectMask2D`.
+            // Sonuç: parmağını tesadüfen bir kapsülün ya da çemberin üstüne
+            // koyarsan kayıyordu, boş zemine koyarsan HİÇBİR ŞEY olmuyordu.
+            // Kullanıcının "Yolculuk'u hareket ettiremiyoruz, orijinalde
+            // dokunduğun her yerden yapabiliyorsun" dediği şey buydu
+            // (9. APK bulgusu).
+            //
+            // Çözüm: görünmez ama dokunulabilir bir yüzey. Alfası 0 olduğu
+            // için hiçbir şeyi boyamıyor; uGUI raycast'i alfaya bakmadığı
+            // için dokunuşu yakalıyor.
+            //
+            // DERS (yakalayıcıyı VIEWPORT'a koyma): İlk denemede yüzey
+            // viewport'un KENDİSİNE konmuştu. Kaydırma düzeldi ama "Üst" ve
+            // "Alt" atlama düğmeleri tıklanamaz oldu — o düğmeler viewport'un
+            // ÇOCUĞU değil KARDEŞİ ve hiyerarşide ondan ÖNCE geliyorlar;
+            // uGUI'de kardeş sırası çizim ve raycast sırasıdır, yani viewport
+            // onları örttü. Yakalayıcı, kaydırılan İÇERİĞİN ilk çocuğu olmalı:
+            // hem viewport'un kardeşlerinin altında kalır, hem de kendisinden
+            // sonra eklenen bölge düğmeleri onun üstünde kalır.
             _content = UiKit.CreateRect("Track", viewport);
             _content.anchorMin = new Vector2(0f, 0f);
             _content.anchorMax = new Vector2(1f, 0f);
             _content.pivot = new Vector2(0.5f, 0f);
             _content.sizeDelta = new Vector2(0f, ContentHeight());
             _content.anchoredPosition = Vector2.zero;
+
+            var catcher = UiKit.CreatePanel("TouchCatcher", _content,
+                new Color(0f, 0f, 0f, 0f));
+            catcher.raycastTarget = true;
 
             _scroll = viewport.gameObject.AddComponent<ScrollRect>();
             _scroll.content = _content;
@@ -554,6 +582,19 @@ namespace BlockOut.Runtime.UI
             var label = UiKit.CreateTitle("Label", face.transform, text, 30,
                 UiKit.Ink, new Color(0.12f, 0.13f, 0.24f));
             UiKit.Place(label, 0.06f, 0.06f, 0.94f, 0.94f);
+
+            // DERS (dinleyici bağlamak YETMEZ, dokunuşun ULAŞMASI da gerekir):
+            // Bu düğmenin `onClick`'i bağlıydı, `Button` bileşeni yerindeydi,
+            // görsel olarak da düğme gibi duruyordu — ama hedef grafiği
+            // `MenuCapsule`'den geliyor ve o yardımcı `raycastTarget = false`
+            // üretiyor. Yani dokunuş düğmeye HİÇ ULAŞMIYORDU; "Üst" ve "Alt"
+            // hiçbir zaman çalışmamış. Mekanik denetimde bulunan ölü
+            // kontrollerin beşincisi ve en sinsisi: öncekiler dinleyicisizdi,
+            // bu ise dinleyicisi olup duyamayan bir düğmeydi.
+            //
+            // Bunu bir raycast taraması ortaya çıkardı — "onClick bağlı mı"
+            // diye bakan tarama bu türü GÖREMEZ.
+            face.raycastTarget = true;
 
             var click = button.gameObject.AddComponent<Button>();
             click.targetGraphic = face;
