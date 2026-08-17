@@ -137,6 +137,13 @@ namespace BlockOut.Runtime.UI
             screen.BuildSelfRow(root);
 
             MenuPage.Header(root, "Leaderboard");
+
+            // Bilgi balonu EN SON kuruluyor: her şeyin üstünde görünmeli.
+            screen._infoToast = UiKit.CreateTitle("InfoToast", root, "", 30,
+                MenuPage.Ink, MenuPage.InkDark);
+            UiKit.Place(screen._infoToast, 0.08f, 0.795f, 0.92f, 0.845f);
+            screen._infoToast.gameObject.SetActive(false);
+
             screen._built = true;
             return root;
         }
@@ -145,7 +152,11 @@ namespace BlockOut.Runtime.UI
 
         void BuildTabs(Transform root)
         {
-            var slotRow = MenuPage.Row("Tabs", root, 336f, 112f, 0.075f, 0.925f);
+            // ÖLÇÜ REFERANSTAN (`sıralama.jpeg`): yuva X 0.107-0.803, yani
+            // ekranın SOLUNA yaslı ve sağda "i" bilgi düğmesine yer bırakıyor.
+            // Bizimki 0.075-0.925 ile neredeyse tam genişlikti; üç sekme
+            // birbirinden kopuk üç düğme gibi duruyordu (17. APK bulgusu).
+            var slotRow = MenuPage.Row("Tabs", root, 336f, 112f, 0.107f, 0.803f);
             var slot = MenuPage.Capsule("Slot", slotRow, TabSlot);
             UiKit.Place(slot, 0f, 0f, 1f, 1f);
 
@@ -170,13 +181,52 @@ namespace BlockOut.Runtime.UI
                 _tabs.Add((face, label, i));
             }
 
-            // Geri sayım rozeti sekmelerin ALT kenarına biner.
-            var badge = MenuPage.Row("Countdown", root, 424f, 62f, 0.09f, 0.40f);
+            // Geri sayım rozeti sekmelerin ALT kenarına biner; referansta
+            // yuvanın SOL alt köşesinde duruyor.
+            var badge = MenuPage.Row("Countdown", root, 424f, 62f, 0.107f, 0.375f);
             var badgeFace = MenuPage.Capsule("Face", badge, TabSlot);
             UiKit.Place(badgeFace, 0f, 0f, 1f, 1f);
             _countdown = UiKit.CreateTitle("Text", badgeFace.transform, "", 26,
                 MenuPage.Ink, MenuPage.InkDark);
             UiKit.Place(_countdown, 0.06f, 0.06f, 0.94f, 0.94f);
+
+            // "i" bilgi düğmesi: referansta yuvanın SAĞINDA, aynı hizada.
+            // Sıralamanın nasıl hesaplandığını anlatan kısa bir bilgi.
+            var info = MenuPage.Row("Info", root, 344f, 96f, 0.836f, 0.936f);
+            var infoFace = UiKit.CreateIcon("Face", info, GameKit.UI.UiSprites.Circle,
+                new Color(0.173f, 0.545f, 0.996f));
+            UiKit.Place(infoFace, 0f, 0f, 1f, 1f);
+            var infoText = UiKit.CreateTitle("Text", infoFace.transform, "i", 46,
+                MenuPage.Ink, MenuPage.InkDark);
+            UiKit.Place(infoText, 0f, 0f, 1f, 1f);
+
+            UiKit.MakeClickable(info.gameObject, infoFace,
+                () => ShowInfo("Scores reset every week. Play levels to climb."));
+        }
+
+        TextMeshProUGUI _infoToast;
+        float _infoUntil;
+
+        /// <summary>
+        /// "i" düğmesinin kısa açıklaması.
+        ///
+        /// DERS (düğme gibi duran şey bir şey YAPMALI): Referansta bu düğme
+        /// var; koymayıp boş bırakmak ya da koyup işlevsiz bırakmak, bu
+        /// projede beş kez düşülen tuzağın altıncısı olurdu.
+        /// </summary>
+        void ShowInfo(string text)
+        {
+            if (_infoToast == null) return;
+            _infoToast.text = text;
+            _infoToast.gameObject.SetActive(true);
+            _infoUntil = Time.unscaledTime + 3f;
+        }
+
+        void Update()
+        {
+            if (_infoToast != null && _infoToast.gameObject.activeSelf &&
+                Time.unscaledTime >= _infoUntil)
+                _infoToast.gameObject.SetActive(false);
         }
 
         // ---- Podyum --------------------------------------------------------
@@ -252,26 +302,44 @@ namespace BlockOut.Runtime.UI
 
         // ---- Sıralı satırlar -------------------------------------------------
 
+        /// <summary>
+        /// Sıralama satırları — İLK ÜÇ DE LİSTEDE.
+        ///
+        /// DERS (podyum listenin yerini tutmaz): Burası kasten `Rivals[i + 3]`
+        /// ile başlıyordu; gerekçe "podyumdaki yüz iki kez görünmesin"di ve
+        /// mantıklı geliyordu. Referans (`sıralama.jpeg`) tam tersini yapıyor:
+        /// 1 Ella, 2 Fikret, 3 KOR podyumda DA listede DE var, üstelik
+        /// listedeki sıra rozetleri madalya. Sebebi şu — podyum bir kutlama,
+        /// liste bir CETVELdir. Cetvelden ilk üçü çıkarınca oyuncu "ben
+        /// kaçıncıyım, önümde kim var" sorusunu cevaplayamıyor; 4. sıradaki
+        /// oyuncu listenin başında görünüp birinci sanılıyor.
+        ///
+        /// Yan etki: sıra numaraları da uydurma değil artık. Eskiden 997-1000
+        /// yazıyordu ama veri puana göre sıralı, yani o satırlar aslında
+        /// 4-7. sıralardı. Ekranda görünen sayı ile verinin anlattığı şey
+        /// birbirini tutmuyordu.
+        /// </summary>
         void BuildRows(Transform root)
         {
             const float rowH = 158f, gap = 24f, top = 1006f;
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < RowCount; i++)
             {
-                var rival = Rivals[i + 3];
+                var rival = Rivals[i];
                 var row = MenuPage.Row("Row" + i, root, top + i * (rowH + gap), rowH,
                     0.035f, 0.965f);
-                // Podyumdaki üçünden sonra devam et ki aynı yüz iki kez
-                // görünmesin (podyum 0-2'yi kullanıyor).
                 var (_, nameText, scoreText, levelText) =
-                    BuildRowContent(row, (997 + i).ToString(), rival.name, rival.score,
+                    BuildRowContent(row, (i + 1).ToString(), rival.name, rival.score,
                         rival.level, RowFace, i);
                 _rows.Add((nameText, scoreText, levelText));
             }
         }
 
+        /// <summary>Referansta beş rakip satırı görünüyor.</summary>
+        const int RowCount = 5;
+
         void BuildSelfRow(Transform root)
         {
-            var row = MenuPage.Row("Self", root, 1006f + 4 * 182f, 158f, 0.035f, 0.965f);
+            var row = MenuPage.Row("Self", root, 1006f + RowCount * 182f, 158f, 0.035f, 0.965f);
             // Oyuncunun satırında puan rozeti yok (score < 0), o yüzden
             // dönen puan yazısı null; bilerek atılıyor.
             var (rankText, nameText, _, levelText) =
@@ -385,9 +453,9 @@ namespace BlockOut.Runtime.UI
             for (int i = 0; i < _podiumNames.Length && i < board.Length; i++)
                 if (_podiumNames[i] != null) _podiumNames[i].text = board[i].name;
 
-            for (int i = 0; i < _rows.Count && i + 3 < board.Length; i++)
+            for (int i = 0; i < _rows.Count && i < board.Length; i++)
             {
-                var rival = board[i + 3];
+                var rival = board[i];
                 var (nameText, scoreText, levelText) = _rows[i];
                 if (nameText != null) nameText.text = rival.name;
                 if (scoreText != null) scoreText.text = rival.score.ToString();

@@ -517,15 +517,37 @@ söyledi. **Punto seçerken ölçülecek şey BÜYÜK HARF yüksekliğidir.**
 Anahtarlar referansta daha küçük ve ince konturlu; kapat çarpısı daha küçük
 ve başlığa daha yakın; kart kenarlığı daha belirgin.
 
-### [ ] 16. Liderlik — tasarım çok sade
-- Sıralama listesi kaydırılamıyor.
-- Podyum tasarımı zayıf; referansta yeşil park zemini üzerinde üç kürsü var.
-- **İlk üçtekiler kürsüde OLMASINA RAĞMEN alttaki listede de görünüyor**
-  (referansta 1. Ella, 2. Fikret, 3. KOR listede de var).
-Referans: `sıralama.jpeg`
+### [~] 16. Liderlik — İLK ÜÇ ARTIK LİSTEDE DE VAR
 
-### [ ] 17. Liderlik — Haftalık/Dünya/Ülke düğmelerinin yeri kötü
-Referansta tek yuvada, başlığın hemen altında; yanında "i" bilgi düğmesi.
+**Sebep koddaydı ve gerekçesi yazılıydı:** satırlar kasten `Rivals[i + 3]`
+ile başlıyordu, yorumu "podyumdaki yüz iki kez görünmesin" diyordu. Mantıklı
+geliyor ama referans (`sıralama.jpeg`) tam tersini yapıyor: 1 Ella,
+2 Fikret, 3 KOR podyumda DA listede DE var.
+
+**DERS (podyum listenin yerini tutmaz):** Podyum bir KUTLAMA, liste bir
+CETVEL. Cetvelden ilk üçü çıkarınca oyuncu "ben kaçıncıyım, önümde kim var"
+sorusunu cevaplayamıyor; üstelik 4. sıradaki isim listenin başında görünüp
+birinci sanılıyordu.
+
+**Yan etki — uydurma sıra numaraları gitti.** Satırlarda 997-1000 yazıyordu
+ama veri puana göre sıralı; o satırlar aslında 4-7. sıralardı. Ekrandaki
+sayı ile verinin anlattığı şey birbirini tutmuyordu. Artık 1,2,3,4,5.
+
+Satır sayısı 4 → **5** (referansta beş rakip satırı var).
+
+**Doğrulama:** podyum aisha/Bet/zzz gösteriyor, liste de 1 aisha 980 ·
+2 Bet 910 · 3 zzz 860 · 4 dotsang 800 · 5 player_2u1hw 760.
+
+### [x] 17. Liderlik — sekme düğmelerinin yeri — DÜZELTİLDİ
+Yuva X 0.075-0.925 (neredeyse tam genişlik) → **0.107-0.803** (referans
+ölçüsü). Sağda kalan boşluğa referanstaki **"i" bilgi düğmesi** eklendi;
+basınca puanların nasıl hesaplandığını söyleyen kısa bir açıklama çıkıyor
+(düğme gibi duran şey bir şey yapmalı). Geri sayım rozeti de yuvanın sol alt
+köşesine hizalandı.
+
+#### 16'DA KALAN
+Liste kaydırma, podyumun yeşil park zemini, ilk üç için madalya rozetleri ve
+sağdaki "Puan" sütunu (bizde "Level" yazıyor).
 
 ### [ ] 21. Profil ekranı düzensiz
 Referansa benzetilecek. Referans: `profil.jpeg`
