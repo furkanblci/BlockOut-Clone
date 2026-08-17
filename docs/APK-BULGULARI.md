@@ -945,3 +945,65 @@ Görsel isteği (zorunlu değil, kaliteyi yükseltir) `docs/art-prompts.md`
 ## KAPANAN MADDELER
 
 _(Bir madde bitince buraya taşınır: ne yapıldı, nasıl doğrulandı.)_
+
+---
+
+### [x] 24. Cihazda hata görünmüyor — HATA KATI EKLENDİ
+`Assets/_Project/Scripts/Runtime/Flow/DeviceErrorOverlay.cs`
+
+18. maddenin iki turu da aynı şeye takıldı: **hatayı bildirecek mekanizma
+vardı ama hep BİR EKRANA bağlıydı.** Hata o ekran kurulmadan önce olursa
+(Awake, menü kurulumu, ölü bir düğme) kimse görmüyordu; telefonda konsol yok,
+logcat için kablo gerekiyor, yani her sessiz hata bir APK turu kaybettiriyor.
+
+Yeni kat `Application.logMessageReceivedThreaded`'a bağlanıyor —
+`Debug.LogError`, `Debug.LogException` ve **yakalanmamış istisnaların
+hepsini** kodun hiçbir yerine dokunmadan topluyor. `AppRoot.Awake`'te, her
+şeyden ÖNCE ve kendi kanvasında (sortingOrder 32000) kuruluyor.
+
+**DERS (teşhis aracı, teşhis edilecek şeyden BAĞIMSIZ olmalı):** Bir ekranın
+hatasını o ekrana yazdırırsan, ekran hiç kurulamadığında elin boş kalır.
+
+İki incelik:
+- **Panel tam opak.** Yarı saydam bir teşhis penceresinin arkasından manzara
+  sızıyor ve asıl işi olan okunurluk düşüyordu.
+- **Yalnız DAHA ÖNCE GÖRÜLMEMİŞ hata paneli açar.** `Update` içinden gelen
+  bir NullReference her kare tekrarlar; ilk tasarımda panel KAPAT'a basılsa
+  bile bir sonraki karede geri geliyordu, yani oyun kilitlenmiş gibi
+  oluyordu. Tekrarlar artık yalnız sayaca yazılıyor.
+  **DERS: kapatılamayan bir teşhis penceresi, teşhis aracı değil engeldir.**
+
+Doğrulama: play modunda kasten bir `LogError` ve bir
+`ExecutionEngineException` fırlatıldı; ikisi de yığın satırlarıyla birlikte
+ekranda göründü.
+
+> **YAYINA ÇIKARKEN:** `DeviceErrorOverlay.Enabled` → `false`.
+
+### [x] 12. Mağaza tente kontrastı — ÖLÇÜLDÜ ve DÜZELTİLDİ
+İlk örnekleme koyu #0356FB / açık #0084FC vermişti. Ekrandaki SONUÇ ölçülünce
+(#034CDF ve #0075E0) iki sorun çıktı: açık şerit referanstakinden belirgin
+biçimde KOYU ve ikisi de MORA kaçıyordu. Referansın gerçek çifti **#0066DC**
+ve **#01A1F5** — açık şerit çok daha camgöbeği (G kanalı 117 değil 161).
+Parlaklık oranı bizde **1.32**, referansta **1.43**.
+
+**DERS (kaynağı değil SONUCU ölç):** Sprite'ın taban rengi ekranda göründüğü
+renk değil — üstüne dikey parlaklık rampası biniyor. Kıyaslanacak şey
+ekrandaki piksel; taban renk ondan geri hesaplanmalı (÷0.945).
+
+Feston derinliği de düzeltildi (%11.5 → **%14**) ve tente yüksekliği 263 →
+**268** birim. İlk feston ölçümüm %23 demişti; o rakam tentenin dışındaki bir
+mavi pikselden kirlenmişti — **periyot içinde ölçmek** doğrusu.
+
+Tente altındaki çentik şeridi de tentenin üst satırının ortalamasına çekildi
+(#053AE8 → **#016FC3**); çentiksiz bir telefonda ikisi arasında görünür bir
+dikiş kalıyordu.
+
+**Kalan:** "harf kalınlığı biraz hafif" notu için ölçüm bir fark göstermedi
+(iki taraf da ExtraBold); değiştirilmedi.
+
+### [x] 25. Aynı sayı iki ekranda iki türlü yazılıyordu
+Mağaza `Amount()` ile "1 720" yazıyordu, ana ekranın üst çubuğu düz
+`ToString()` ile "1720". Ortak biçim `MenuPage.Amount`'a alındı (referans
+binlik ayıracı olarak BOŞLUK kullanıyor — `market.jpeg` paket tutarları).
+Biçim `InvariantCulture` üzerinden gidiyor: `ToString("N0")` tek başına
+cihazın diline bağlı ve Türkçe bir telefonda "1.720" verir.

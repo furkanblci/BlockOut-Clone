@@ -231,6 +231,23 @@ namespace BlockOut.Runtime.UI
             return button;
         }
 
+        /// <summary>
+        /// Sayıyı oyunun her yerinde AYNI biçimde yazar: binlik ayıracı BOŞLUK
+        /// ("2 000"). Referans böyle yapıyor (`market.jpeg` paket tutarları).
+        ///
+        /// DERS (biçimlendirme KÜLTÜRE bağlıdır): `ToString("N0")` cihazın
+        /// diline göre ayırır — Türkçe bir telefonda "1.720" çıkar ve oyuncu
+        /// bunu ondalık sanabilir. `InvariantCulture` ile virgüle sabitleyip
+        /// boşluğa çevirmek, hangi dilde açılırsa açılsın aynı sonucu verir.
+        ///
+        /// DERS (aynı sayı iki ekranda iki türlü yazılmamalı): Mağaza bu
+        /// yardımcıyı kullanıyordu ama ana ekranın üst çubuğu düz `ToString()`
+        /// ile yazıyordu; aynı 1720 jetonu bir ekranda "1 720", diğerinde
+        /// "1720" görünüyordu. Ortak biçim ortak yerde durmalı.
+        /// </summary>
+        public static string Amount(int value) => value.ToString("N0",
+            System.Globalization.CultureInfo.InvariantCulture).Replace(",", " ");
+
         /// <summary>Rengi ALFAYA DOKUNMADAN koyultur (`color * f` alfayı da çarpar).</summary>
         public static Color Darken(Color color, float factor) =>
             new Color(color.r * factor, color.g * factor, color.b * factor, color.a);

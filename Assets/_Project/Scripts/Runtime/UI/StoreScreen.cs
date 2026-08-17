@@ -68,7 +68,9 @@ namespace BlockOut.Runtime.UI
 
         // ---- Referanstan ölçülen yükseklikler (kanvas birimi) --------------
 
-        const float AwningH   = 263f;
+        // Tentenin en alçak noktası referansta y=286 (946×2048) → ekranın
+        // %13.96'sı → 268 birim.
+        const float AwningH   = 268f;
         const float PadTop    = 34f;
         const float PillH     = 104f;
         const float PillGap   = 54f;
@@ -233,7 +235,11 @@ namespace BlockOut.Runtime.UI
             bleed.sizeDelta = new Vector2(0f, 320f);
             bleed.anchoredPosition = Vector2.zero;
             var bleedImage = bleed.gameObject.AddComponent<Image>();
-            bleedImage.color = new Color(0.020f, 0.227f, 0.910f);
+            // Renk, tentenin ÜST SATIRININ ortalaması olmalı; yoksa çentiksiz
+            // bir telefonda ikisi arasında görünür bir dikiş kalır. Tentenin
+            // üst satırı taban rengin %80'i (dikey parlaklık rampası), iki
+            // şeridin ortalaması ≈ #016FC3.
+            bleedImage.color = new Color(0.004f, 0.435f, 0.765f);
             bleedImage.raycastTarget = false;
 
             var bar = Row("Awning", root, 0f, AwningH);
@@ -843,9 +849,8 @@ namespace BlockOut.Runtime.UI
 
         // ---- Küçük yardımcılar ------------------------------------------------
 
-        /// <summary>Referans binlik ayıracı olarak BOŞLUK kullanıyor: "60 000".</summary>
-        static string Amount(int value) => value.ToString("N0",
-            System.Globalization.CultureInfo.InvariantCulture).Replace(",", " ");
+        /// <summary>Ortak biçim <see cref="MenuPage.Amount"/>'ta; burası ona geçiyor.</summary>
+        static string Amount(int value) => MenuPage.Amount(value);
 
         /// <summary>
         /// Dikeyde piksel, yatayda oran ile yerleşen satır.

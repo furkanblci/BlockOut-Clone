@@ -50,6 +50,11 @@ namespace BlockOut.Runtime.Flow
             persistent.transform.SetParent(transform, worldPositionStays: false);
             PersistentRoot = persistent.transform;
 
+            // HATA KATI EN ÖNCE: kendisinden sonra kurulan hiçbir şeyin ayakta
+            // olmasına ihtiyaç duymuyor ve onların hatalarını yakalayabilmesi
+            // için önce kurulmuş olması gerekiyor (bkz. DeviceErrorOverlay).
+            DeviceErrorOverlay.Create(PersistentRoot);
+
             // Ses ve titreşim UYGULAMA AÇILIŞINDA kurulur.
             //
             // DERS (menü de oyunun parçası): Bu ikisi eskiden GameSession'ın

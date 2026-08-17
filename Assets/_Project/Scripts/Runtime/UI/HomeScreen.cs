@@ -527,7 +527,10 @@ namespace BlockOut.Runtime.UI
             if (progress.Coins != _shownCoins)
             {
                 _shownCoins = progress.Coins;
-                _coinLabel.text = _scratch.Clear().Append(_shownCoins).ToString();
+                // Mağazayla AYNI biçim: binlik ayıracı boşluk ("1 720").
+                // Değer yalnız değiştiğinde yazıldığı için tahsis kare başına
+                // değil, olay başına.
+                _coinLabel.text = MenuPage.Amount(_shownCoins);
             }
 
             // Sınırsız can hakkı varsa sayaç yerini ∞'a ve KALAN SÜREYE bırakır.

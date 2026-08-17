@@ -85,9 +85,21 @@ namespace BlockOut.Runtime.UI
             var tex = NewTexture("ShopAwning", AwningW, AwningH);
             var pixels = new Color32[AwningW * AwningH];
 
-            // Referans karesinden örneklendi: koyu #0356FB, açık #0084FC.
-            var dark  = new Color(0.012f, 0.337f, 0.984f);
-            var light = new Color(0.000f, 0.518f, 0.988f);
+            // RENKLER YENİDEN ÖLÇÜLDÜ (2026-08-17, `market.jpeg`).
+            //
+            // İlk örnekleme koyu #0356FB / açık #0084FC vermişti. Ekrandaki
+            // SONUÇ ölçülünce (bizim yakalamamızda #034CDF ve #0075E0) iki
+            // sorun çıktı: açık şerit referanstakinden belirgin biçimde KOYU
+            // ve ikisi de MORA kaçıyordu. Referansın gerçek çifti #0066DC ve
+            // #01A1F5 — yani açık şerit çok daha CAMGÖBEĞİ (G kanalı 117
+            // değil 161). Parlaklık oranı bizde 1.32, referansta 1.43.
+            //
+            // DERS (kaynağı değil SONUCU ölç): Sprite'ın taban rengi ekranda
+            // göründüğü renk değil — üstüne dikey parlaklık rampası (`shade`)
+            // biniyor. Referansla kıyaslanacak şey ekrandaki piksel; taban
+            // renk ondan GERİ hesaplanmalı (burada ÷0.945).
+            var dark  = new Color(0.000f, 0.424f, 0.914f);   // ekranda ≈ #0066DC
+            var light = new Color(0.004f, 0.667f, 1.000f);   // ekranda ≈ #01A1F5
 
             float stripeW = AwningW / (float)Scallops;
 
@@ -101,7 +113,11 @@ namespace BlockOut.Runtime.UI
             // olan bir yayın yarıçapı R = (c² + v²) / 2v. Böylece yay şerit
             // sınırında tam olarak kumaşın alt çizgisine değer, uç kalmaz.
             float chord = stripeW * 0.5f;
-            float depth = AwningH * 0.115f;           // referanstaki sarkma oranı
+            // Sarkma oranı referanstan: bir feston periyodu boyunca alt kenar
+            // 40 piksel iniyor, tentenin toplam yüksekliği 286 → %14.
+            // (İlk ölçüm %23 demişti; o rakam tentenin dışındaki bir mavi
+            // pikselden kirlenmişti — periyot içinde ölçmek doğrusu.)
+            float depth = AwningH * 0.140f;
             float scallopR = (chord * chord + depth * depth) / (2f * depth);
 
             for (int y = 0; y < AwningH; y++)
