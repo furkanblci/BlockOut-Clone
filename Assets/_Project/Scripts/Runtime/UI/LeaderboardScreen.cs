@@ -244,6 +244,50 @@ namespace BlockOut.Runtime.UI
             var sky = band.gameObject.AddComponent<Image>();
             sky.color = new Color(0.227f, 0.627f, 0.910f);
 
+            // PARK ZEMİNİ: referansta kürsüler düz mavi bir dikdörtgenin
+            // üstünde değil, ağaçlı yeşil bir sahnenin içinde duruyor.
+            //
+            // DERS (podyum bir SAHNEDİR): Düz mavi zemin kürsüleri "arayüz
+            // öğesi" gibi gösteriyor; birkaç ağaç ve çim şeridi onları bir
+            // YERE koyuyor ve kutlama hissi oradan geliyor. Kullanıcının
+            // "podyum tasarımları çok zayıf" dediği farkın büyük kısmı bu
+            // (16. APK bulgusu).
+            //
+            // Ağaçlar tek tek çizilmiyor: yuvarlak panelden üst üste iki
+            // daire (koyu taç + açık taç) ve ince bir gövde. Uzakta duran
+            // süs için yeterli, kendi görseline gerek yok.
+            var grass = UiKit.CreateRoundedPanel("Grass", band,
+                new Color(0.361f, 0.729f, 0.235f));
+            grass.pixelsPerUnitMultiplier = 0.22f;
+            grass.raycastTarget = false;
+            UiKit.Place(grass, -0.04f, -0.02f, 1.04f, 0.30f);
+
+            // Ağaçlar kürsülerin ARKASINDA kalmalı; bu yüzden kürsülerden
+            // ÖNCE kuruluyorlar (kardeş sırası = çizim sırası).
+            //
+            // Yalnız İKİ KENARDA duruyorlar: kürsüler 0.065-0.935 arasını
+            // neredeyse tamamen kaplıyor, aradaki bir ağaç hiç görünmezdi.
+            // İlk denemede dört ağaç kondu ve ikisi kürsülerin arkasında
+            // kayboldu — görünmeyen bir süs, olmayan bir süstür.
+            foreach (float cx in new[] { 0.045f, 0.955f })
+            {
+                const float w = 0.115f, h = 0.46f;
+
+                var trunk = UiKit.CreatePanel("Trunk", band, new Color(0.451f, 0.278f, 0.125f));
+                trunk.raycastTarget = false;
+                UiKit.Place(trunk, cx - w * 0.16f, 0.16f, cx + w * 0.16f, 0.40f);
+
+                var crownLow = UiKit.CreateIcon("CrownLow", band, GameKit.UI.UiSprites.Circle,
+                    new Color(0.192f, 0.545f, 0.180f));
+                crownLow.raycastTarget = false;
+                UiKit.Place(crownLow, cx - w, 0.34f, cx + w, 0.34f + h * 0.66f);
+
+                var crownTop = UiKit.CreateIcon("CrownTop", band, GameKit.UI.UiSprites.Circle,
+                    new Color(0.310f, 0.694f, 0.243f));
+                crownTop.raycastTarget = false;
+                UiKit.Place(crownTop, cx - w * 0.74f, 0.50f, cx + w * 0.74f, 0.50f + h * 0.62f);
+            }
+
             // (x merkezi, yükseklik, madalya no)
             var slots = new[] { (0.22f, 282f, 2), (0.50f, 364f, 1), (0.78f, 282f, 3) };
             var medal = new[] { default(Color),
@@ -252,8 +296,11 @@ namespace BlockOut.Runtime.UI
 
             foreach (var (cx, height, place) in slots)
             {
+                // Kürsüler ÇİMİN ÜSTÜNE oturuyor, bandın en altından değil.
+                // Aksi hâlde çim şeridi tamamen kürsülerin arkasında kalıyor
+                // ve sahne yine düz bir dikdörtgen gibi okunuyordu.
                 var pillar = UiKit.CreateRect("Place" + place, band);
-                UiKit.Place(pillar, cx - 0.155f, 0f, cx + 0.155f, height / 486f);
+                UiKit.Place(pillar, cx - 0.155f, 0.15f, cx + 0.155f, height / 486f);
 
                 var body = UiKit.CreateRoundedPanel("Body", pillar,
                     new Color(0.910f, 0.851f, 0.753f));
@@ -386,6 +433,15 @@ namespace BlockOut.Runtime.UI
         /// <summary>Aynı anda görünen satır sayısı (referansta beş).</summary>
         const int RowCount = 5;
 
+        /// <summary>Sıra rozetinin madalya renkleri (1=altın, 2=gümüş, 3=bronz).</summary>
+        static readonly Color[] MedalColors =
+        {
+            default,
+            new Color(1.000f, 0.796f, 0.180f),
+            new Color(0.804f, 0.831f, 0.878f),
+            new Color(0.827f, 0.518f, 0.267f)
+        };
+
         void BuildSelfRow(Transform root)
         {
             // Kaydırılan listenin ALTINDA, sekme çubuğunun ÜSTÜNDE sabit.
@@ -411,12 +467,24 @@ namespace BlockOut.Runtime.UI
             // referansta satır, sıra rozetinin etrafında bir çentik gibi
             // duruyor. Düz metin olarak bırakınca isimle aynı ağırlıkta
             // okunuyordu; oysa sıra listenin ana bilgisi.
-            var rankSlot = MenuPage.Capsule("RankSlot", face.transform,
-                MenuPage.Darken(faceColor, 0.72f));
+            // İLK ÜÇ MADALYA RENGİNDE.
+            //
+            // DERS (sıra numarası bir DEĞER taşır): Sekiz satırın rozeti de
+            // aynı koyu mordu; liste bir numaralandırmadan ibaret kalıyordu.
+            // Referansta ilk üçün rozeti altın/gümüş/bronz — göz listeye
+            // bakar bakmaz zirveyi buluyor. Renk burada süs değil, BİLGİ.
+            bool medalled = int.TryParse(rank, out int place) && place >= 1 && place <= 3;
+            var slotColor = medalled ? MedalColors[place] : MenuPage.Darken(faceColor, 0.72f);
+
+            var rankSlot = MenuPage.Capsule("RankSlot", face.transform, slotColor);
             UiKit.Place(rankSlot, -0.005f, 0.04f, 0.155f, 0.96f);
 
+            // Madalyalı rozette yazı KOYU: altın/gümüş üstünde beyaz okunmuyor.
+            var rankInk = medalled ? new Color(0.24f, 0.14f, 0.03f) : MenuPage.Ink;
+            var rankEdge = medalled ? new Color(1f, 0.96f, 0.86f) : MenuPage.InkDark;
+
             var rankText = UiKit.CreateTitle("Rank", rankSlot.transform, rank, 36,
-                MenuPage.Ink, MenuPage.InkDark);
+                rankInk, rankEdge);
             UiKit.Place(rankText, 0.05f, 0.06f, 0.95f, 0.94f);
 
             // Avatar KARE çerçevede (referansta da öyle); çerçevesiz portre

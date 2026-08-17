@@ -564,10 +564,31 @@ sabit satır + çubuk payı DÜŞÜLDÜKTEN sonra kalan yere kadar uzayabilir.
 **Doğrulama:** 8 satır, içerik 1456 > görüntü 522, boş zeminden sürükleme
 ScrollRect'e ulaşıyor, "You" satırı çubuğun üstünde sabit duruyor.
 
-#### 16'DA KALAN
-Podyumun yeşil park zemini, ilk üç için madalya rozetleri ve sağdaki sütun
-(referansta "Puan", bizde "Level"). Referansta ilk üç satırda ayrıca ÖDÜL
-kapsülü var (2000/1000/500 jeton) — 4-5. satırlarda yok.
+#### PODYUM ARTIK BİR SAHNE + İLK ÜÇ MADALYALI
+
+**Park zemini:** kürsüler düz mavi bir dikdörtgenin üstünde duruyordu.
+**DERS (podyum bir SAHNEDİR):** Düz zemin kürsüleri "arayüz öğesi" gibi
+gösteriyor; çim şeridi ve birkaç ağaç onları bir YERE koyuyor, kutlama hissi
+oradan geliyor. Ağaçlar kendi görselleri olmadan kuruldu — yuvarlak panelden
+iki daire (koyu taç + açık taç) ve ince bir gövde.
+
+İki küçük hata yolda düzeltildi:
+- İlk denemede dört ağaç kondu, ikisi kürsülerin arkasında kayboldu
+  (kürsüler 0.065-0.935 arasını kaplıyor). **Görünmeyen bir süs, olmayan bir
+  süstür** — ağaçlar iki kenara alındı ve büyütüldü.
+- Kürsüler bandın en altından başlıyordu, çim tamamen arkalarında kalıyordu.
+  Artık çimin ÜSTÜNE oturuyorlar.
+
+**Madalya rozetleri:** sekiz satırın rozeti de aynı koyu mordu; liste bir
+numaralandırmadan ibaret kalıyordu. İlk üç artık altın/gümüş/bronz ve
+üstündeki yazı koyu (altın üstünde beyaz okunmuyor).
+**DERS (sıra numarası bir DEĞER taşır):** Renk burada süs değil, bilgi —
+göz listeye bakar bakmaz zirveyi buluyor.
+
+#### 16'DA KALAN (görsel isterse)
+Referansta kürsüler oymalı sütunlar, avatarlar altın çerçeveli ve isim
+levhaları süslü. Bunlar görsel işi. Ayrıca referansta ilk üç satırda ÖDÜL
+kapsülü var (2000/1000/500 jeton) ve sağdaki sütun "Puan" (bizde "Level").
 
 ### [~] 21. Profil ekranı düzensiz — İKİ GERÇEK SEBEP BULUNDU
 
