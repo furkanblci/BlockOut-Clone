@@ -434,8 +434,22 @@ kadar kaydırmak komşu sayfaya taşımaya yetiyor.
 **Doğrulama:** telefon gibi (önce hızlı, sonu yavaşlayan) 275 piksellik bir
 kaydırma artık 2. sayfaya geçiyor. Eski kodda bu geri dönerdi.
 
-### [ ] 11. Mağaza arka planı çok sade
-Orijinalde doku var, daha kaliteli duruyor. Referans: `market.jpeg` + video.
+### [x] 11. Mağaza arka planı çok sade — KAPİTONE DOKU EKLENDİ
+
+Ölçüm: bölüm zeminlerinin renkleri zaten doğruydu (bordo `#601B0C`,
+mor `#3C1D66` — bizimkiler birkaç birim farkla aynı). Eksik olan **doku**.
+Referansta zemin düz değil: eşkenar dörtgen bir kapitone deseni var ve her
+yüzeyin ışığı biraz farklı. Bordo bölümde kırmızı kanal 62 ile 116 arasında
+salınıyor (ortalamanın ±%28'i).
+
+`MenuSprites.Quilt` eklendi — döşenebilir 128×128 prosedürel desen: iki
+köşegen dalganın toplamı yüzeyleri, sıfır geçişleri de dikiş çizgilerini
+veriyor.
+
+**DERS (doku RENK DEĞİL, IŞIKTIR):** Deseni renkli çizip Image'ı boyamak,
+boyama çarpma olduğu için deseni de renklendirirdi ve her bölümde farklı bir
+ton çıkardı. Doku BEYAZ üstüne yalnız parlaklık farkı olarak çiziliyor;
+bölüm rengi tint ile veriliyor. Tek doku üç bölümde de doğru çalışıyor.
 
 ### [ ] 12. Mağaza başlığı ve panel köşe yarıçapları
 "Mağaza" yazısının yeri, üst bandın duruşu, panellerin radius'u ve genel

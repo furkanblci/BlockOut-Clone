@@ -327,10 +327,23 @@ namespace BlockOut.Runtime.UI
         /// Bölüm zemini. Kardeş sırasında EN BAŞA alınır: sonradan eklenen
         /// zemin, üstüne dizilmiş kartların önüne geçerdi.
         /// </summary>
+        /// <summary>
+        /// Bölüm zemini — düz renk DEĞİL, kapitone dokulu.
+        ///
+        /// Referansta zemin dokulu (bkz. `MenuSprites.Quilt`); bizde düz
+        /// renkti ve ekran "sade" duruyordu (11. APK bulgusu). Doku beyaz
+        /// üstüne yalnız ışık farkı olarak çizildiği için bölüm rengi tint
+        /// ile veriliyor ve tek doku üç bölümde de doğru çalışıyor.
+        /// </summary>
         static void Background(Transform content, float top, float height, Color color, string name)
         {
             var rect = Row(name, content, top, height);
             var image = rect.gameObject.AddComponent<Image>();
+            image.sprite = MenuSprites.Quilt;
+            image.type = Image.Type.Tiled;
+            // Döşeme ölçüsü: desen okunsun ama gürültü olmasın. 128 piksellik
+            // kare, kanvas biriminde ~190'a geliyor.
+            image.pixelsPerUnitMultiplier = 0.68f;
             image.color = color;
             image.raycastTarget = false;
             rect.SetAsFirstSibling();

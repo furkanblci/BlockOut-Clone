@@ -372,6 +372,56 @@ namespace BlockOut.Runtime.UI
             return t * t * (3f - 2f * t);
         }
 
+        static Sprite _quilt;
+
+        /// <summary>
+        /// Mağaza bölümlerinin arkasındaki KAPİTONE doku — döşenebilir.
+        ///
+        /// Referansta (`market.jpeg`) bölüm zeminleri düz değil: eşkenar
+        /// dörtgen bir kapitone deseni var ve her yüzeyin ışığı biraz farklı.
+        /// Ölçüm: bordo bölümde kırmızı kanalı 62 ile 116 arasında salınıyor
+        /// (±%25), mor bölümde daha yumuşak. Kullanıcının "arkaplan çok sade
+        /// kalmış, orada doku filan var" dediği şey bu (11. APK bulgusu).
+        ///
+        /// DERS (doku RENK DEĞİL, IŞIKTIR): Deseni renkli çizip Image'ı
+        /// boyamak, boyama çarpma olduğu için deseni de renklendirirdi ve her
+        /// bölümde farklı bir ton çıkardı. Bunun yerine doku BEYAZ üstüne
+        /// yalnız parlaklık farkı olarak çiziliyor; bölüm rengi tint ile
+        /// veriliyor. Böylece tek doku üç bölümde de doğru çalışıyor.
+        /// </summary>
+        public static Sprite Quilt => _quilt != null ? _quilt : (_quilt = BuildQuilt());
+
+        static Sprite BuildQuilt()
+        {
+            const int s = 128;                 // döşeme karesi
+            var tex = NewTexture("ShopQuilt", s, s);
+            tex.wrapMode = TextureWrapMode.Repeat;
+
+            var pixels = new Color32[s * s];
+            for (int y = 0; y < s; y++)
+            for (int x = 0; x < s; x++)
+            {
+                // Eşkenar dörtgen ızgara: iki köşegen dalganın toplamı.
+                float u = (x + y) / (float)s * Mathf.PI * 2f;
+                float v = (x - y) / (float)s * Mathf.PI * 2f;
+                float facet = (Mathf.Cos(u) + Mathf.Cos(v)) * 0.5f;      // -1..1
+
+                // Dikişlerde ince koyu çizgi: dalganın sıfır geçişine yakın yer.
+                float seam = 1f - Step(0.02f, 0.16f, Mathf.Abs(facet));
+
+                // Genlik referans ölçüsünden: bordo bölümde kırmızı kanal 62 ile
+                // 116 arasında salınıyor, yani ortalamanın ±%28'i. Dikiş
+                // çizgisi ayrıca koyultuyor.
+                float light = 1f + facet * 0.17f - seam * 0.20f;
+                byte c = (byte)Mathf.Clamp(Mathf.RoundToInt(255f * light), 0, 255);
+                pixels[y * s + x] = new Color32(c, c, c, 255);
+            }
+
+            tex.SetPixels32(pixels);
+            tex.Apply();
+            return Sprite.Create(tex, new Rect(0f, 0f, s, s), new Vector2(0.5f, 0.5f), 100f);
+        }
+
         static Texture2D NewTexture(string name, int w, int h) =>
             new Texture2D(w, h, TextureFormat.RGBA32, false)
             {
