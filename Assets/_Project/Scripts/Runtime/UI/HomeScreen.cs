@@ -177,9 +177,22 @@ namespace BlockOut.Runtime.UI
             BuildAvatar(root, 0.058f, 0.201f, bottom - 0.018f, top + 0.018f);
 
             // Tek koyu kapsül: iki kaynağı birden taşıyor.
+            //
+            // GENİŞLİK REFERANSTAN DEĞİL, ESKİ HÂLİMİZDEN: Referansta kapsül
+            // 0.303'te başlıyor ve jeton ikonu onun SOLUNDA kalıyor. Bunu
+            // birebir uygulayınca jetonun altındaki saydam gri kayboldu ve
+            // kullanıcı haklı olarak "arkaplanı bozdun" dedi. Kapsül artık
+            // eskisi gibi jetonun ALTINDAN başlıyor (0.200) ve son artıya
+            // kadar kesintisiz gidiyor — eski kurulumdaki iki kapsülün
+            // arasındaki boşluk da böylece kapanıyor.
+            //
+            // DERS (referansa uymak, İYİ OLANI bozmak pahasına olmaz):
+            // Ölçüm bir araç, amaç değil. Bu şeritte bizim çözümümüz daha
+            // iyiydi; referansın X değeri uğruna onu feda etmek sadakat değil
+            // körlük olurdu.
             var bar = UiKit.CreateRoundedPanel("ResourceTrack", root,
                 new Color(0.055f, 0.035f, 0.145f, 0.50f));
-            UiKit.Place(bar, 0.303f, bottom, 0.866f, top);
+            UiKit.Place(bar, 0.200f, bottom, 0.845f, top);
             bar.pixelsPerUnitMultiplier = 0.16f;
             bar.raycastTarget = false;
 
