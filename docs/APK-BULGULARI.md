@@ -549,8 +549,31 @@ köşesine hizalandı.
 Liste kaydırma, podyumun yeşil park zemini, ilk üç için madalya rozetleri ve
 sağdaki "Puan" sütunu (bizde "Level" yazıyor).
 
-### [ ] 21. Profil ekranı düzensiz
-Referansa benzetilecek. Referans: `profil.jpeg`
+### [~] 21. Profil ekranı düzensiz — İKİ GERÇEK SEBEP BULUNDU
+
+**1. Zemin yanlıştı, kutular değil.** Referansta menü sayfalarının zemini
+her ekranda AYNI DEĞİL: Ayarlar/Liderlik/Koleksiyon koyu lacivert
+(`#1E1856` civarı) ama **Profil belirgin biçimde daha açık bir mor
+(`#302488`)**. Biz ortak kabuğa tek bir koyu zemin vermiştik; Profil'in
+KOYU istatistik kutuları o zeminden hiç ayrışmıyor, ekran "dağınık"
+okunuyordu. Kutu rengimiz zaten doğruydu — yanlış olan arkasıydı.
+`MenuPage.Screen` artık isteğe bağlı zemin rengi alıyor.
+
+**2. Aralık, ikonun taşmasını hesaba katmıyordu.** İkon kutunun üst
+kenarından %34 taşıyor (tasarım böyle, referans da öyle) ama satır aralığı
+30 birimdi. Sonraki satırın taşan ikonu, önceki kutunun altındaki DEĞER
+yazısının üstüne biniyordu — ekranda "0" rakamı roketin üstünde yüzüyor gibi
+duruyordu.
+
+**DERS (bir öğe taşıyorsa komşusunun payı da o kadar artmalı).**
+
+Aralığı açmak ızgarayı ekrandan taşırdı; **satır adımı referanstan ölçüldü**
+(ızgara Y 0.053-0.536 arasında dört satır → adım ekranın %12.1'i = 232
+birim) ve kutu ile aralık birlikte ayarlandı: 214+30 → **152+80**.
+
+#### 21'DE KALAN
+Ad kapsülü referansta avatarın ALTINDA, bizde yanında. Kutuların ince açık
+kenarlığı yok.
 
 ### [ ] 5. Koleksiyon ikonu, içerik görseli, yazı biçimi ve başlık
 Referansta: kitap + bloklar görseli, "Koleksiyonu **Seviye 95'de** Aç!"

@@ -40,7 +40,21 @@ namespace BlockOut.Runtime.UI
         public const float HeaderH = 240f;
 
         /// <summary>Sayfa kökü + koyu gövde. Başlık EN SON kurulur (üstte kalsın).</summary>
-        public static RectTransform Screen(Transform parent, string name)
+        /// <summary>
+        /// Profil sayfasının zemini — diğerlerinden AÇIK.
+        ///
+        /// DERS (ortak kabuk, her yerde aynı renk demek değil): Referansta
+        /// Ayarlar, Liderlik ve Koleksiyon koyu lacivert bir zemin kullanıyor
+        /// (#1E1856 civarı) ama Profil belirgin biçimde daha açık bir mor
+        /// (#302488). Biz hepsine aynı koyu zemini vermiştik ve Profil'deki
+        /// KOYU istatistik kutuları zeminden hiç ayrışmıyordu — ekran
+        /// "düzensiz" görünmesinin sebebi buydu (21. APK bulgusu).
+        /// Kutu rengimiz zaten doğruydu; yanlış olan arkasındaki zemindi.
+        /// </summary>
+        public static readonly Color BodyProfile = new Color(0.188f, 0.141f, 0.533f);
+
+        public static RectTransform Screen(Transform parent, string name,
+                                           Color? bodyColor = null)
         {
             var root = UiKit.CreateRect(name, parent);
             UiKit.Place(root, 0f, 0f, 1f, 1f);
@@ -55,7 +69,7 @@ namespace BlockOut.Runtime.UI
             // ölçüleri referanstan birebir almayı mümkün kılıyor.
             root.offsetMin = new Vector2(0f, -210f);
 
-            var body = UiKit.CreatePanel("Body", root, Body);
+            var body = UiKit.CreatePanel("Body", root, bodyColor ?? Body);
             return root;
         }
 

@@ -47,7 +47,9 @@ namespace BlockOut.Runtime.UI
 
         public static RectTransform Build(Transform parent)
         {
-            var root = MenuPage.Screen(parent, "ProfileScreen");
+            // Zemin diğer menü sayfalarından AÇIK — referansta öyle ve koyu
+            // istatistik kutularının ayrışması buna bağlı (bkz. MenuPage).
+            var root = MenuPage.Screen(parent, "ProfileScreen", MenuPage.BodyProfile);
             var screen = root.gameObject.AddComponent<ProfileScreen>();
 
             // --- Kimlik kartı ---
@@ -122,7 +124,21 @@ namespace BlockOut.Runtime.UI
             ruleImage.raycastTarget = false;
 
             // --- 2 × 4 sayaç ızgarası ---
-            const float boxH = 214f, gapY = 30f, top = 902f;
+            // ARALIK, İKONUN TAŞMASINI HESABA KATMALI.
+            //
+            // DERS (bir öğe taşıyorsa komşusunun payı da o kadar artmalı):
+            // İkon kutunun ÜST kenarından %34 taşıyor (tasarım böyle, referans
+            // da öyle). Ama satır aralığı 30 birimdi; yani sonraki satırın
+            // taşan ikonu, önceki kutunun ALTINDAKİ DEĞER yazısının üstüne
+            // biniyordu. Ekranda "0" rakamı roketin üstünde yüzüyor gibi
+            // görünüyordu ve tablo düzensiz okunuyordu (21. APK bulgusu).
+            // Taşma 0.34 × kutu yüksekliği kadar, aralık en az o kadar olmalı.
+            //
+            // SATIR ADIMI REFERANSTAN: ızgara Y 0.053-0.536 arasında dört
+            // satır taşıyor, yani adım ekranın %12.1'i = 232 birim. Kutuyu
+            // 214'te bırakıp aralığı açmak ızgarayı ekrandan taşırıyordu;
+            // ikisi birlikte ayarlandı (152 + 80 = 232).
+            const float boxH = 152f, gapY = 80f, top = 902f;
             for (int i = 0; i < Stats.Length; i++)
             {
                 int col = i % 2, rowIndex = i / 2;
