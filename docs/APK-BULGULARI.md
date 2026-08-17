@@ -476,14 +476,46 @@ edilmeli.**
 Tente şeritlerinin kontrastı ve harf kalınlığı (font ağırlığı) referanstan
 biraz hafif. Panel köşe yarıçapları gözle kıyaslandı, belirgin fark yok.
 
-### [ ] 13. Ayarlar — düğme/ikon/yazı kalitesi + alt menü çıkmamalı
-Orijinalde ayarlar ekranında alt sekme çubuğu YOK (referansta doğrulandı).
-Düğmelerin, ikonların ve yazının kalitesi Block Out seviyesine çıkacak.
-Referans: `WhatsApp Image ... (2).jpeg`
+### [x] 13. Ayarlar — alt menü çıkmamalı — DÜZELTİLDİ
+### [x] 14. Ayarlar — "Hesabımı Sil" görünür oldu + başlık — DÜZELTİLDİ
 
-### [ ] 14. Ayarlar — "Hesabımı Sil" ve başlık yerleşimi
-Referansta "Hesabımı Sil" en altta duruyor; "Ayarlar" başlığının yeri ve
-görünümü güncellenecek.
+İkisi de **tek bir sebepten** kaynaklanıyordu.
+
+**Sebep:** Ayarlar ve Profil "tam ekran örtü sayfası" olsun diye
+`SetAsLastSibling()` ile "çubuktan sonra çizilsin" diye işaretlenmişti.
+Mantık doğruydu ama çubuk onların **kardeşi değil**: ekranlar `Content`'in,
+çubuk ise `SafeArea`'nın çocuğu. Kardeş sırası yalnız aynı ebeveyn altında
+anlam taşır — çubuk her ekranın üstünde kalmaya devam ediyordu ve
+Ayarlar'ın en altındaki "Hesabımı Sil" düğmesi **onun arkasında
+kayboluyordu**.
+
+**DERS (kardeş sırası YETMEZ, kardeş OLMAK gerekir).**
+
+**Düzeltme:** `MenuShell` artık tam ekran sayfalarda (`settings`, `profile`)
+çubuğu, sekme düğmelerini ve ayraçları tamamen gizliyor.
+
+**Kendi eklediğim küçük hata:** ayraç çizgileri de kökün çocuğu olduğu için
+çubukla birlikte gizlenmiyordu; ekranın altında iki dikey çizgi kalıyordu.
+Onlar da listeye bağlandı.
+
+**Doğrulama:** Ayarlar'da çubuk kapalı, 5 sekme düğmesi kapalı, ayraç
+kapalı, "Delete My Account" referanstaki yerinde görünüyor. Mağazaya
+dönünce üçü de geri geliyor.
+
+#### ORTAK BAŞLIK — dört ekran birden
+`MenuPage.Header` punto 62 → **72** ve `SetOutline` ile kalın kontur
+(`#322192`, referanstan). Ayarlar, Profil, Liderlik ve Koleksiyon aynı
+başlığı kullandığı için tek düzeltme dördünü birden etkiledi.
+
+**DERS (ALT UZANTI ölçüyü şişirir):** İlk ölçümde "Ayarlar" %3.47,
+"Koleksiyon" %3.17 çıktı ve "başlıklar %50 küçük" gibi göründü. İkisinde de
+'y' harfi var; beyaz piksel kutusu alt uzantıyı da sayıyor. Alt uzantısı
+olmayan üç başlık (Yolculuk %2.73 · Liderlik %2.69 · Profil %2.78) gerçeği
+söyledi. **Punto seçerken ölçülecek şey BÜYÜK HARF yüksekliğidir.**
+
+#### 13'TE KALAN
+Anahtarlar referansta daha küçük ve ince konturlu; kapat çarpısı daha küçük
+ve başlığa daha yakın; kart kenarlığı daha belirgin.
 
 ### [ ] 16. Liderlik — tasarım çok sade
 - Sıralama listesi kaydırılamıyor.

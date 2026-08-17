@@ -111,8 +111,26 @@ namespace BlockOut.Runtime.UI
             fadeImage.raycastTarget = false;
             UiKit.Place(fade, 0f, 0f, 1f, 1f);
 
-            var label = UiKit.CreateTitle("Title", band, title, 62, Ink, TitleEdge);
-            UiKit.Place(label, 0.12f, 0.30f, 0.88f, 0.86f);
+            // PUNTO REFERANSTAN (2026-08-17): dört ekranın da başlığı ölçüldü
+            // ve büyük harf yüksekliği tutarlı biçimde ekranın **%2.7**'si:
+            // Yolculuk 0.0273 · Liderlik 0.0269 · Profil 0.0278.
+            // 62 punto %2.32 veriyordu.
+            //
+            // DERS (ALT UZANTI ölçüyü şişirir): İlk ölçümde "Ayarlar" %3.47,
+            // "Koleksiyon" %3.17 çıktı ve "başlıklar %50 küçük" gibi göründü.
+            // İkisinde de 'y' harfi var; beyaz piksel kutusu alt uzantıyı da
+            // sayıyor. Alt uzantısı olmayan üç başlık gerçeği söyledi.
+            // Punto seçerken ölçülmesi gereken şey BÜYÜK HARF yüksekliği.
+            var label = UiKit.CreateTitle("Title", band, title, 72, Ink, TitleEdge);
+            UiKit.Place(label, 0.12f, 0.28f, 0.88f, 0.88f);
+
+            // KONTUR — paylaşılan başlık materyali `CreateTitle`'a verilen
+            // kontur rengini sessizce yok sayıyor (bu projede yedinci tuzak).
+            // Referanstan örneklendi (#322192); başlığa "baskılı" görünümünü
+            // veren şey bu. Aynı eksik Yolculuk ve Mağaza başlıklarında da
+            // vardı — burada düzeltmek Ayarlar, Profil, Liderlik ve
+            // Koleksiyon'u BİRDEN düzeltiyor.
+            UiKit.SetOutline(label, new Color(0.196f, 0.129f, 0.573f), 0.50f);
             return band;
         }
 

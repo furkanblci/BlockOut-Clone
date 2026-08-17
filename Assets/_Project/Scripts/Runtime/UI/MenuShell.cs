@@ -51,6 +51,29 @@ namespace BlockOut.Runtime.UI
         /// bilmek zorunda; yoksa "değişmedi" ile "hiç yazılmadı" karışır.
         /// </summary>
         bool _applied;
+
+        RectTransform _bar, _tabBarRoot;
+
+        /// <summary>Çubukla birlikte gizlenecek süsler (ayraç çizgileri).</summary>
+        readonly List<RectTransform> _tabDecor = new List<RectTransform>();
+
+        /// <summary>
+        /// Sekme çubuğunun GÖRÜNMEMESİ gereken ekranlar.
+        ///
+        /// Referansta Ayarlar ve Profil TAM EKRAN örtü sayfaları; alt çubuk
+        /// orada yok, kapanışları sağ üstteki kırmızı çarpı
+        /// (`WhatsApp Image ... (2).jpeg` ve `profil.jpeg` ile doğrulandı).
+        ///
+        /// DERS (kardeş sırası YETMEZ, kardeş OLMAK gerekir): Bu iki ekran
+        /// `SetAsLastSibling()` ile "çubuktan sonra çizilsin" diye
+        /// işaretlenmişti ve mantık doğruydu — ama çubuk onların kardeşi
+        /// DEĞİL: ekranlar `Content`'in, çubuk ise `SafeArea`'nın çocuğu.
+        /// Sıralama yalnız aynı ebeveyn altında anlam taşır, o yüzden çubuk
+        /// her ekranın üstünde kalmaya devam ediyordu ve Ayarlar'ın en
+        /// altındaki "Hesabımı Sil" düğmesi onun arkasında kayboluyordu
+        /// (13. ve 14. APK bulguları).
+        /// </summary>
+        static readonly string[] FullScreenPages = { "settings", "profile" };
         RectTransform _content;
 
         /// <summary>Referanstan ölçüldü: geçiş ~170 ms (30 kare/sn'de ~5 kare).</summary>
@@ -90,6 +113,7 @@ namespace BlockOut.Runtime.UI
             // hissi bozulur.
             _screens["settings"].SetAsLastSibling();
             _screens["profile"].SetAsLastSibling();
+            _tabBarRoot = root;
 
             Show("home");
         }
@@ -132,6 +156,7 @@ namespace BlockOut.Runtime.UI
             // yuvarlanıp arkasındaki manzarayı gösteriyordu.
             bar.rectTransform.offsetMin = new Vector2(-90f, -220f);
             bar.rectTransform.offsetMax = new Vector2(90f, 0f);
+            _bar = bar.rectTransform;
 
             // Seçili kartın taşacağı alan çubuğun üstünde; bu yüzden kartlar
             // çubuğun DEĞİL kökün çocuğu, yoksa çubuk onları kırpar.
@@ -145,6 +170,11 @@ namespace BlockOut.Runtime.UI
                 var divider = UiKit.CreatePanel($"Divider_{i}", root, DividerColor);
                 divider.raycastTarget = false;
                 UiKit.Place(divider, i * slot - 0.0015f, 0.020f, i * slot + 0.0015f, 0.078f);
+
+                // Çubukla birlikte gizlenmeliler: kökün çocuğu oldukları için
+                // çubuğu kapatmak onları kapatmıyor ve tam ekran sayfalarda
+                // ekranın altında iki dikey çizgi olarak kalıyorlardı.
+                _tabDecor.Add(divider.rectTransform);
             }
 
             for (int i = 0; i < Tabs.Length; i++)
@@ -221,6 +251,16 @@ namespace BlockOut.Runtime.UI
 
             string previous = _active;
             _applied = true;
+
+            // Tam ekran örtü sayfalarında çubuk tamamen gizleniyor: hem
+            // görünmesin, hem de arkasında kalan içerik (Hesabımı Sil)
+            // ortaya çıksın.
+            bool fullScreen = System.Array.IndexOf(FullScreenPages, key) >= 0;
+            if (_bar != null) _bar.gameObject.SetActive(!fullScreen);
+            foreach (var (button, _, _, _, _) in _tabButtons)
+                if (button != null) button.gameObject.SetActive(!fullScreen);
+            foreach (var decor in _tabDecor)
+                if (decor != null) decor.gameObject.SetActive(!fullScreen);
             _active = key;
 
             foreach (var pair in _screens)
