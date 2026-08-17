@@ -27,9 +27,20 @@ namespace GameKit.Services
     /// platformda DERLENMELİ ama yalnızca mobilde iş yapmalıdır. `#if` ile
     /// ayırmak, çalışma anında platform sorgulamaktan hem hızlı hem temizdir.
     ///
-    /// NOT: `Handheld.Vibrate` süresi ayarlanamaz (Android'de ~500 ms) ve
-    /// şiddet ayrımı yapamaz. Şiddet kademeleri şimdilik "titret / titretme"
-    /// eşiğine dönüşüyor; ileride yerel eklenti gelirse DEĞİŞECEK TEK YER burası.
+    /// DERS (kaba bir motorla ince iş yapılmaz): İlk hâl `Handheld.Vibrate()`
+    /// çağırıyordu. O çağrı Android'de SÜRESİ AYARLANAMAYAN ~500 ms'lik bir
+    /// buzz üretir ve şiddet ayrımı yapmaz. Bu yüzden `Threshold` Medium'da
+    /// tutuluyordu — her dokunuşta yarım saniye titreyen bir oyun kullanılamaz.
+    /// Ama o eşik asıl istenen şeyi de imkânsız kılıyordu: arayüz
+    /// dokunuşlarının HAFİF bir tık vermesini (2026-08-17, 15. APK bulgusu).
+    ///
+    /// Artık Android'de `Vibrator` doğrudan çağrılıyor ve şiddet gerçek bir
+    /// SÜRE + GENLİK oluyor (Light 12 ms, Medium 25 ms, Heavy 45 ms). Eşik
+    /// Light'a inebildi; her düğme rahatsız etmeden tık veriyor.
+    ///
+    /// iOS'ta karşılığı yok: `Handheld.Vibrate()` orada da uzun bir buzz.
+    /// Bu yüzden iOS'ta yalnız Heavy titriyor — hafif tık için Taptic Engine
+    /// eklentisi gerekir, o gelirse değişecek tek yer yine burası.
     /// </summary>
     public sealed class Haptics : MonoBehaviour
     {
@@ -37,10 +48,10 @@ namespace GameKit.Services
         public bool Enabled { get; set; } = true;
 
         /// <summary>
-        /// Bu şiddetin altındaki titreşimler yok sayılır. Sürekli titreyen bir
-        /// oyun rahatsız eder; varsayılan olarak yalnızca kayda değer anlar.
+        /// Bu şiddetin altındaki titreşimler yok sayılır. Artık Light da
+        /// gerçekten hafif olduğu için varsayılan en alta çekildi.
         /// </summary>
-        public HapticStrength Threshold { get; set; } = HapticStrength.Medium;
+        public HapticStrength Threshold { get; set; } = HapticStrength.Light;
 
         public static Haptics Create(Transform parent = null)
         {
@@ -49,14 +60,89 @@ namespace GameKit.Services
             return go.AddComponent<Haptics>();
         }
 
+        /// <summary>Şiddetin süre (ms) ve genlik (0-255) karşılığı.</summary>
+        static void Shape(HapticStrength strength, out int ms, out int amplitude)
+        {
+            switch (strength)
+            {
+                case HapticStrength.Light:  ms = 12; amplitude = 60;  break;
+                case HapticStrength.Medium: ms = 25; amplitude = 140; break;
+                default:                    ms = 45; amplitude = 255; break;
+            }
+        }
+
         public void Play(HapticStrength strength = HapticStrength.Medium)
         {
             if (!Enabled || strength < Threshold) return;
+
 #if UNITY_ANDROID && !UNITY_EDITOR
-            Handheld.Vibrate();
+            Shape(strength, out int ms, out int amplitude);
+            Vibrate(ms, amplitude);
 #elif UNITY_IOS && !UNITY_EDITOR
-            Handheld.Vibrate();
+            // iOS'ta kısa tık üretemiyoruz; hafifleri hiç çalmamak, hepsini
+            // yarım saniyelik buzz'a çevirmekten iyidir.
+            if (strength == HapticStrength.Heavy) Handheld.Vibrate();
 #endif
         }
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+        static AndroidJavaObject _vibrator;
+        static bool _looked;
+        static int _sdk;
+
+        /// <summary>
+        /// Android titreşim servisi — bir kez bulunup saklanıyor. Her dokunuşta
+        /// `AndroidJavaObject` kurmak JNI üzerinden pahalıdır.
+        /// </summary>
+        static AndroidJavaObject Vibrator
+        {
+            get
+            {
+                if (_looked) return _vibrator;
+                _looked = true;
+                try
+                {
+                    using (var version = new AndroidJavaClass("android.os.Build$VERSION"))
+                        _sdk = version.GetStatic<int>("SDK_INT");
+
+                    using (var player = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+                    using (var activity = player.GetStatic<AndroidJavaObject>("currentActivity"))
+                        _vibrator = activity.Call<AndroidJavaObject>("getSystemService", "vibrator");
+                }
+                catch (System.Exception error)
+                {
+                    Debug.LogWarning("[Haptics] Titreşim servisi alınamadı: " + error.Message);
+                    _vibrator = null;
+                }
+                return _vibrator;
+            }
+        }
+
+        static void Vibrate(int milliseconds, int amplitude)
+        {
+            var vibrator = Vibrator;
+            if (vibrator == null) return;
+
+            try
+            {
+                // API 26+ genlik destekliyor; altında yalnız süre verilebiliyor.
+                if (_sdk >= 26)
+                {
+                    using (var effects = new AndroidJavaClass("android.os.VibrationEffect"))
+                    using (var effect = effects.CallStatic<AndroidJavaObject>(
+                               "createOneShot", (long)milliseconds, amplitude))
+                        vibrator.Call("vibrate", effect);
+                }
+                else
+                {
+                    vibrator.Call("vibrate", (long)milliseconds);
+                }
+            }
+            catch (System.Exception error)
+            {
+                Debug.LogWarning("[Haptics] Titreşim çalınamadı: " + error.Message);
+            }
+        }
+#endif
     }
 }

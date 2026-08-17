@@ -158,9 +158,50 @@ açık kaldı; farklı sekmeye geçiş hâlâ çalışıyor.
 **DERS:** Sekme çubuğunda seçili sekme bir HEDEF'tir, düğme değil — zaten
 oradaysan gidilecek yer yoktur.
 
-### [ ] 15. Haptik eksik — bütün oyunun haptik denetimi
-Kapat düğmesine basılı tutup bırakmamak gibi "sonuçsuz" dokunuşlarda bile
-haptik olmalı. Haptiğin olması gereken YERLER tek tek çıkarılıp eklenecek.
+### [x] 15. Haptik eksik — bütün oyunun haptik denetimi — DÜZELTİLDİ
+
+**Asıl sorun düğmelerde değil, MOTORDA'ydı.** `Haptics.Play` tek bir şey
+yapıyordu: `Handheld.Vibrate()`. O çağrı Android'de **süresi ayarlanamayan
+~500 ms**'lik bir buzz üretir ve şiddet ayrımı yapmaz. Bu yüzden `Threshold`
+Medium'da tutulmuştu — her dokunuşta yarım saniye titreyen bir oyun
+kullanılamaz. Ama o eşik, asıl istenen şeyi de imkânsız kılıyordu: arayüz
+dokunuşlarının hafif bir tık vermesini. Yani "haptik ekle" demek, önce
+motoru değiştirmek demekti.
+
+**Düzeltme 1 — motor.** Android'de `Vibrator` doğrudan çağrılıyor; şiddet
+artık gerçek bir SÜRE + GENLİK: Light 12 ms/60, Medium 25 ms/140,
+Heavy 45 ms/255 (API 26+ `VibrationEffect.createOneShot`, altında süre).
+Servis nesnesi bir kez bulunup saklanıyor (her dokunuşta JNI pahalı).
+Eşik `Light`'a indirildi. iOS'ta kısa tık üretilemediği için yalnız Heavy
+titriyor — hepsini buzz'a çevirmektense hafifleri hiç çalmamak daha iyi.
+
+**Düzeltme 2 — bağlama noktası.** Haptiği düğme düğme eklemek imkânsız
+(onlarca düğme var, her yenisi yeniden unutulur). `UiButtonFeel` zaten
+HEPSİNİN üstünde — basma animasyonu ondan geliyor. Oraya sesten AYRI bir
+`Pressed` kancası eklendi; `AppRoot` onu haptiğe bağlıyor.
+
+> **Neden ayrı kanca:** `Clicked` bir olay değil bir ALAN; ses ve titreşimi
+> aynı alana bağlamak, ikinci atamanın birinciyi ezmesi demek olurdu ve
+> hangisinin kazandığı kurulum sırasına kalırdı.
+
+**Düzeltme 3 — kullanıcının asıl noktası.** "Kapat düğmesine basılı tutup
+parmağımı dışarı kaydırınca hiçbir şey olmaması normal, ama yine de haptik
+çalışmalı." Doğru okuma: **titreşim eylemin değil, DOKUNUŞUN onayıdır.**
+Kanca `OnPointerDown` içinde — tıklamanın tamamlanmasını beklemiyor, eylem
+iptal olsa bile parmak "duyuldum" bilgisini alıyor.
+
+**Düzeltme 4 — hissiz kalan 6 düğme.** Tarama: 76 düğmenin **6'sı**
+`UiButtonFeel` taşımıyordu — duraklat panelindeki Off/On yarımları. Onlarda
+ne basma animasyonu, ne tık sesi, ne titreşim vardı. Ses elle çağrıldığı
+için eksiklik yıllarca fark edilmemiş. Eklendi; elle çağrılan ses satırı da
+kaldırıldı (yoksa ses ikiye katlanırdı).
+
+**Doğrulama (play modu):** 76 düğme, **hissiz 0**. `Pressed` ve `Clicked`
+ikisi de bağlı. Eşik `Light`, ayar açık. Kanca, oyuncunun haptik ayarı
+kapalıyken de açıkken de hatasız çalışıyor.
+
+> Titreşimin kendisi editörde hissedilemez (`#if UNITY_ANDROID && !UNITY_EDITOR`).
+> Cihazda tık sertliği fazla/az gelirse ayarlanacak tek yer `Haptics.Shape`.
 
 ---
 

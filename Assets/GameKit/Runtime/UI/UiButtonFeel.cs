@@ -68,6 +68,7 @@ namespace GameKit.UI
                 PT.Ease.OutQuad, useUnscaledTime: true);
 
             Clicked?.Invoke();
+            Pressed?.Invoke();
         }
 
         /// <summary>
@@ -76,6 +77,24 @@ namespace GameKit.UI
         /// başka bir projede kullanılamazdı.
         /// </summary>
         public static System.Action Clicked;
+
+        /// <summary>
+        /// Dokunma titreşimini bağlamak için — sesten AYRI bir kanca.
+        ///
+        /// DERS (iki dinleyici, tek atama = biri sessizce kaybolur): Ses ve
+        /// titreşimi tek bir `Clicked` alanına bağlamak cazipti; ama bu bir
+        /// OLAY değil, bir ALAN — ikinci atama birincisini eziyor ve hangisinin
+        /// kazandığı kurulum sırasına kalıyor. Ayrı kanca, iki sistemin
+        /// birbirinden habersiz yaşamasını sağlıyor.
+        ///
+        /// DERS (haptik BIRAKMADA değil BASMADA): Kullanıcı APK testinde şunu
+        /// söyledi — "kapat düğmesine basılı tutup parmağımı dışarı kaydırınca
+        /// hiçbir şey olmaması normal, ama yine de haptik çalışmalı".
+        /// Doğru okuma: titreşim eylemin DEĞİL, dokunuşun onayıdır. Eylem
+        /// iptal olsa bile parmak "duyuldum" bilgisini almalı. Bu yüzden
+        /// kanca `OnPointerDown` içinde, tıklama tamamlanmasını beklemiyor.
+        /// </summary>
+        public static System.Action Pressed;
 
         public void OnPointerUp(PointerEventData eventData) => Release();
         public void OnPointerExit(PointerEventData eventData) => Release();

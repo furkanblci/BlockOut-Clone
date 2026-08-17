@@ -789,11 +789,20 @@ namespace BlockOut.Runtime.UI
             var button = face.gameObject.AddComponent<Button>();
             button.targetGraphic = face;
             button.transition = Selectable.Transition.None;
+
+            // DERS (his TEK BİR bileşenden geliyorsa, onu unutmak sessizlik
+            // demektir): Bu altı yarım düğme `UiButtonFeel` taşımıyordu —
+            // yani basma animasyonu da, tık sesi de, titreşim de yoktu.
+            // Ses burada elle çağrıldığı için eksiklik fark edilmemişti;
+            // haptik denetiminde (15. APK bulgusu) 76 düğmeden bu 6'sı çıktı.
+            // Elle çağrılan ses satırı da kaldırıldı: artık `UiButtonFeel`
+            // hepsini birden veriyor, iki kaynak olsa ses ikiye katlanırdı.
+            face.gameObject.AddComponent<GameKit.UI.UiButtonFeel>();
+
             button.onClick.AddListener(() =>
             {
                 apply(value);
                 RefreshToggles();
-                Services.AudioService.Click();
             });
         }
 

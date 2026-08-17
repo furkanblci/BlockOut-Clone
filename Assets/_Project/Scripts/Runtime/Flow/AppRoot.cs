@@ -68,6 +68,17 @@ namespace BlockOut.Runtime.Flow
                 Services.SettingsBinder.Apply(
                     Services.MetaServices.Save.Data.Settings, Audio, Haptics);
 
+            // HER düğme dokunuşu hafif bir tık versin — tek yerden.
+            //
+            // DERS (haptiği düğme düğme eklemek imkânsız): Oyunda onlarca
+            // düğme var; her birine tek tek titreşim yazmak hem unutulur hem
+            // de eklenen her yeni düğmede yeniden unutulur. `UiButtonFeel`
+            // zaten HEPSİNİN üstünde (basma animasyonu ondan geliyor), yani
+            // tek doğru bağlama noktası orası. Ses de aynı sebeple oradan
+            // bağlanıyor.
+            GameKit.UI.UiButtonFeel.Pressed =
+                () => Haptics?.Play(GameKit.Services.HapticStrength.Light);
+
             // Menüyle açılırız; oynanış kökü ilk "Oyna"da uyanır.
             if (gameRoot != null) gameRoot.SetActive(false);
             if (menuRoot != null) menuRoot.SetActive(true);
