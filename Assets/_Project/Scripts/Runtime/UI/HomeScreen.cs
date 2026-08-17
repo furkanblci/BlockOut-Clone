@@ -228,23 +228,30 @@ namespace BlockOut.Runtime.UI
             status = null;
             TextMeshProUGUI value;
 
+            // PUNTOLAR REFERANSTAN ÖLÇÜLDÜ (`ana ekran.jpeg`, 2026-08-17).
+            // Yöntem: yazının büyük harf yüksekliğini KOYU KAPSÜLÜN
+            // yüksekliğine oranla. Referans kapsül 85 piksel; oranlar:
+            //   jeton sayısı  29/85 = 0.341   → bizde 0.34, ZATEN DOĞRUYDU
+            //   kalp adedi    37/85 = 0.435   → bizde 0.32, %27 küçüktü
+            //   "Dolu"        31/85 = 0.365   → bizde 0.27, %26 küçüktü
+            // Yani kullanıcının işaret ettiği iki yazı gerçekten küçüktü,
+            // jeton sayısı ise değildi — göz "hepsi küçük" diyordu, ölçüm
+            // hangisinin olduğunu söyledi.
             if (isLives)
             {
-                // Kalbin üstündeki sayı: kalp genişliği ~100 piksel, tek/çift
-                // haneli sayı 34 puntoda ~45 piksel — taşma payı bol.
-                value = UiKit.CreateTitle($"Value_{icon}", badge.transform, "", 34,
+                value = UiKit.CreateTitle($"Value_{icon}", badge.transform, "", 46,
                     CoinInk, new Color(0.42f, 0.03f, 0.03f));
                 UiKit.Place(value, 0f, 0.04f, 1f, 0.92f);
 
-                status = UiKit.CreateLabel($"Status_{icon}", bar.transform, "", 29, CoinInk);
-                UiKit.Place(status, 0.26f, 0.08f, 0.80f, 0.92f);
+                status = UiKit.CreateLabel($"Status_{icon}", bar.transform, "", 39, CoinInk);
+                UiKit.Place(status, 0.24f, 0.08f, 0.82f, 0.92f);
             }
             else
             {
-                // "5000" dört hane; 36 puntoda ~95 piksel, ayrılan alan ~154.
-                value = UiKit.CreateTitle($"Value_{icon}", bar.transform, "", 36, CoinInk,
+                // "5000" dört hane; 40 puntoda ~105 piksel, ayrılan alan ~154.
+                value = UiKit.CreateTitle($"Value_{icon}", bar.transform, "", 40, CoinInk,
                     new Color(0.10f, 0.07f, 0.24f));
-                UiKit.Place(value, 0.25f, 0.08f, 0.80f, 0.92f);
+                UiKit.Place(value, 0.24f, 0.08f, 0.82f, 0.92f);
             }
 
             plus = UiKit.CreateIconButton($"Plus_{icon}", root, UiSkin.Get(Art.Plus));
@@ -357,18 +364,34 @@ namespace BlockOut.Runtime.UI
 
             var face = _playButton.transform.GetChild(0);
 
-            _levelLabel = UiKit.CreateTitle("Level", face, "", 44, CoinInk,
+            // ÖLÇÜ REFERANSTAN (2026-08-17, `ana ekran.jpeg` 946×2048):
+            // "Seviye 54" yazısının BÜYÜK harf yüksekliği 67 piksel, yani
+            // ekran yüksekliğinin %3.27'si. Bizdeki 44 punto %1.65 veriyordu —
+            // TAM İKİ KATI küçük. Kullanıcının "level yazısı çok küçük"
+            // dediği şey buydu (7. APK bulgusu).
+            //
+            // DERS (oranı NEYE göre ölçtüğüne dikkat): Düğmenin İÇİNDEKİ
+            // orana bakmak yanıltıyor — bizim düğmemiz referanstan %50 daha
+            // yüksek, o yüzden "yazı/düğme" oranı iki tarafta farklı şeyi
+            // anlatıyor. Doğru ölçü EKRANA göre olan: oyuncunun gözü düğmeyi
+            // değil yazıyı okuyor.
+            _levelLabel = UiKit.CreateTitle("Level", face, "", 84, CoinInk,
                 new Color(0.10f, 0.06f, 0.22f));
-            UiKit.Place(_levelLabel, 0.06f, 0.44f, 0.94f, 0.94f);
+            UiKit.Place(_levelLabel, 0.05f, 0.58f, 0.95f, 0.97f);
 
             // DERS (yazı butonun YÜZÜNE oturur, kenarına değil): "Zor Seviye"
             // düğmenin alt %34'lük 3B kenarına denk geliyordu ve gölgenin
             // üstünde yüzüyormuş gibi duruyordu — "model yok" hissi oradan
             // geliyor. btn_purple'ın alt payı 68px, yani 202px yükseklikte
             // alt %34 kenardır; iki yazı da bunun üstünde kalmalı.
-            _difficultyLabel = UiKit.CreateTitle("Difficulty", face, "", 24,
+            // Zorluk da aynı oranda büyüdü (24 → 48). Referansta bu bir AYRI
+            // rozet değil, düğmenin İÇİNDE ikinci satır — açık lavanta tonda.
+            // Kullanıcı "zorluk kısmı için daha iyi buton olacak" derken
+            // gördüğü şey, yazının o kadar küçük olması yüzünden düğmeye ait
+            // görünmemesiydi.
+            _difficultyLabel = UiKit.CreateTitle("Difficulty", face, "", 48,
                 new Color(0.86f, 0.88f, 1f), new Color(0.10f, 0.06f, 0.22f));
-            UiKit.Place(_difficultyLabel, 0.08f, 0.36f, 0.92f, 0.58f);
+            UiKit.Place(_difficultyLabel, 0.06f, 0.355f, 0.94f, 0.60f);
 
             // Ödül şeridi düğmenin ÜST KENARINA binerek durur; ayrı bir kutu
             // gibi değil, düğmeye takılmış bir etiket gibi okunsun.

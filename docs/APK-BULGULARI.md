@@ -244,7 +244,48 @@ malzemesiyle yazılmış altın metin. Gerçek logo görseli gelirse tek bir
 
 ## D — EKRAN EKRAN SADAKAT
 
-### [ ] 7. Ana ekran
+### [~] 7. Ana ekran — YAZI ÖLÇÜLERİ BİTTİ, iki iş kaldı
+
+**Ölçüm yöntemi (`ana ekran.jpeg`, 946×2048):** yazının BÜYÜK HARF
+yüksekliğini, içinde durduğu kabın yüksekliğine oranla.
+
+| yazı | referans oranı | bizim (önce) | sonuç |
+|---|---|---|---|
+| jeton sayısı | 29/85 = **0.341** | 0.34 | **zaten doğruymuş** — dokunulmadı |
+| kalp adedi | 37/85 = **0.435** | 0.32 | 34 → **46** punto |
+| "Dolu" | 31/85 = **0.365** | 0.27 | 29 → **39** punto |
+| "Seviye 54" | ekranın **%3.27**'si | %1.65 | 44 → **84** punto |
+| "Zor Seviye" | — | — | 24 → **48** punto |
+
+**DERS (göz "hepsi küçük" der, ölçüm hangisi olduğunu söyler):** Jeton
+sayısı zaten doğru orandaydı; küçük olanlar kalp adedi ve "Dolu"ydu. Hepsini
+birden büyütmek jeton sayısını yanlış yapardı.
+
+**DERS (oranı NEYE göre ölçtüğün önemli):** "Seviye 54" için düğme-içi orana
+bakmak yanıltıcı — bizim düğmemiz referanstan %50 daha yüksek. Doğru ölçü
+EKRANA göre olan; oyuncunun gözü düğmeyi değil yazıyı okuyor.
+
+**Zorluk ayrı bir rozet DEĞİL:** referansta düğmenin İÇİNDE ikinci satır.
+Küçük olduğu için düğmeye ait görünmüyordu; büyüyünce yerine oturdu.
+
+#### Bu iş sırasında KENDİ eklediğim bir hata yakalandı
+8. bulgunun düzeltmesi (`Show` başındaki "aynı sekme = çık" koruması)
+kurulumdaki `Show("home")` çağrısını da yutuyordu — `_active` zaten "home"
+ile başlıyor. Sonuç: sekme görselleri hiç uygulanmıyor, **beş sekmenin de
+kartı ve yazısı açık kalıyordu**, hepsi seçiliymiş gibi görünüyordu.
+`_applied` bayrağı eklendi. **DERS: "durum değişmediyse çık" koruması,
+durumun bir kez UYGULANDIĞINI da bilmek zorunda; yoksa "değişmedi" ile
+"hiç yazılmadı" karışır.**
+
+#### KALAN İKİ İŞ
+1. **Üst bar TEK kapsül olmalı.** Referansta jeton ve kalp AYNI koyu
+   kapsülün içinde (x 0.303-0.866), ikonlar kapsülden taşıyor. Bizde iki
+   ayrı kapsül var ve aralarında boşluk kalıyor.
+2. **Sekme çubuğu cilası.** Referans: çubuk kenardan kenara DÜZ (bizde
+   yuvarlak uçlar + yanlarda boşluk), sekmeler arasında ince dikey ayraçlar,
+   seçili kart daha yüksek, ikonlar daha büyük.
+
+### [ ] 7-eski. Ana ekran (özgün istek metni)
 - Üstteki jeton ve kalp yazıları büyüyecek; kalp adedi ve "Dolu" yazısının
   puntosu artacak.
 - Alttaki "Seviye N" düğmesinin yazısı çok küçük — referanstaki ölçüye çıkacak.

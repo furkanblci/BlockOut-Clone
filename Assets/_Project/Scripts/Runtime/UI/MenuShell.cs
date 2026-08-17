@@ -37,6 +37,20 @@ namespace BlockOut.Runtime.UI
             _tabButtons = new List<(Button, Image, RectTransform, TextMeshProUGUI, string)>();
 
         string _active = "home";
+
+        /// <summary>
+        /// Sekme görselleri (kart, yazı, ikon konumu) en az bir kez uygulandı mı?
+        ///
+        /// DERS (erken çıkış İLK ÇALIŞMAYI atlamamalı): 8. bulgunun düzeltmesi
+        /// "aynı sekmeye basmak hiçbir şey yapmasın" diye <see cref="Show"/>
+        /// başına bir koruma koydu. Ama `_active` zaten "home" ile başlıyor ve
+        /// kurulum `Show("home")` ile bitiyor — yani o çağrı da korumaya takıldı
+        /// ve sekme görselleri HİÇ uygulanmadı. Sonuç: beş sekmenin de kartı ve
+        /// yazısı açık kaldı, hepsi seçiliymiş gibi göründü.
+        /// "Durum değişmediyse çık" koruması, durumun bir kez UYGULANDIĞINI da
+        /// bilmek zorunda; yoksa "değişmedi" ile "hiç yazılmadı" karışır.
+        /// </summary>
+        bool _applied;
         RectTransform _content;
 
         /// <summary>Referanstan ölçüldü: geçiş ~170 ms (30 kare/sn'de ~5 kare).</summary>
@@ -169,7 +183,7 @@ namespace BlockOut.Runtime.UI
         /// </summary>
         public void Show(string key)
         {
-            if (_active == key)
+            if (_active == key && _applied)
             {
                 if (Flow.AppRoot.Current != null)
                     Flow.AppRoot.Current.Haptics?.Play(GameKit.Services.HapticStrength.Medium);
@@ -177,6 +191,7 @@ namespace BlockOut.Runtime.UI
             }
 
             string previous = _active;
+            _applied = true;
             _active = key;
 
             foreach (var pair in _screens)
