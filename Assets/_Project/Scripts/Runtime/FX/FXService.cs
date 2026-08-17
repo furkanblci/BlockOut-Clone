@@ -185,9 +185,10 @@ namespace BlockOut.Runtime.FX
         {
             if (_cubeMesh != null) return _cubeMesh;
 
-            var temp = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            _cubeMesh = temp.GetComponent<MeshFilter>().sharedMesh;
-            DestroyImmediate(temp);
+            // Yalnız KÜP AĞI isteniyor: nesne yaratıp hemen silmeye gerek yok.
+            // (Eskiden CreatePrimitive ile bir küp kurulup ağı alınıp
+            // nesne siliniyordu — üstelik o çağrı çarpıştırıcı da ekliyordu.)
+            _cubeMesh = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
             return _cubeMesh;
         }
 

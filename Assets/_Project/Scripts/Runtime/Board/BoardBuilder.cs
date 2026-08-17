@@ -141,10 +141,9 @@ namespace BlockOut.Runtime.Board
 
             void BuildWallSegment(EdgeId edge)
             {
-                var seg = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                var seg = ViewKit.CreateShape(PrimitiveType.Cube, "Shape");
                 seg.name = $"Wall_{edge.X}_{edge.Y}_{(edge.Horizontal ? "H" : "V")}";
                 seg.transform.SetParent(wallRoot, false);
-                ViewKit.StripCollider(seg);
                 var wallRenderer = seg.GetComponent<MeshRenderer>();
                 wallRenderer.sharedMaterial = wallMaterial;
                 wallRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -219,9 +218,8 @@ namespace BlockOut.Runtime.Board
 
             void Line(Vector3 center, Vector3 scale)
             {
-                var line = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                var line = ViewKit.CreateShape(PrimitiveType.Cube, "GridLine");
                 line.transform.SetParent(holder.transform, worldPositionStays: false);
-                ViewKit.StripCollider(line);
                 var renderer = line.GetComponent<MeshRenderer>();
                 renderer.sharedMaterial = material;
                 renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;

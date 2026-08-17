@@ -24,18 +24,16 @@ namespace BlockOut.Runtime.View
             Vector3 center = space.RectCenterToWorld(
                 new Vector2(model.X, model.Y), model.W, model.H, PanelHeight * 0.5f);
 
-            var frame = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var frame = ViewKit.CreateShape(PrimitiveType.Cube, "Shape");
             frame.name = "Frame";
             frame.transform.SetParent(root.transform, false);
-            ViewKit.StripCollider(frame);
             frame.GetComponent<MeshRenderer>().sharedMaterial = ViewKit.CurtainFrame;
             frame.transform.position = center + Vector3.down * 0.03f;
             frame.transform.localScale = new Vector3(model.W + 0.1f, PanelHeight - 0.06f, model.H + 0.1f);
 
-            var panel = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var panel = ViewKit.CreateShape(PrimitiveType.Cube, "Shape");
             panel.name = "Panel";
             panel.transform.SetParent(root.transform, false);
-            ViewKit.StripCollider(panel);
             panel.GetComponent<MeshRenderer>().sharedMaterial = ViewKit.CurtainPanel;
             panel.transform.position = center;
             panel.transform.localScale = new Vector3(model.W - 0.04f, PanelHeight, model.H - 0.04f);
@@ -68,11 +66,9 @@ namespace BlockOut.Runtime.View
 
             for (int i = 0; i < count; i++)
             {
-                var streak = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                var streak = ViewKit.CreateShape(PrimitiveType.Cube, "Shape");
                 streak.name = "Streak";
                 streak.transform.SetParent(parent, worldPositionStays: false);
-                ViewKit.StripCollider(streak);
-
                 var renderer = streak.GetComponent<MeshRenderer>();
                 renderer.sharedMaterial = ViewKit.CurtainStreak;
                 renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;

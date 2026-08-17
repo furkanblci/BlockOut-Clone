@@ -15,25 +15,65 @@ namespace BlockOut.Runtime.View
     /// </summary>
     public static class ViewKit
     {
-        /// <summary>
-        /// <c>GameObject.CreatePrimitive</c>'in eklediği çarpıştırıcıyı siler.
-        ///
-        /// Bu oyunda fizik YOK: çarpıştırıcı yalnız bellek ve raycast gürültüsü.
-        ///
-        /// DERS (edit modunda <c>Destroy</c> geçersizdir): Unity edit modunda
-        /// <c>Object.Destroy</c> çağrısını hata olarak bildirir ve nesneyi
-        /// silmez. Bu kurulum kodu artık level editörünün 3D önizlemesinden de
-        /// çağrılıyor — yani hem oyun hem editör bağlamında koşuyor. Kurulum
-        /// yolundaki her yıkım çağrısı bu yüzden mod ayrımı yapmak zorunda.
-        /// </summary>
-        public static void StripCollider(GameObject go)
-        {
-            if (go == null) return;
-            var collider = go.GetComponent<Collider>();
-            if (collider == null) return;
+        // `StripCollider` KALDIRILDI (2026-08-17).
+        //
+        // Görevi `GameObject.CreatePrimitive`'in zorla eklediği çarpıştırıcıyı
+        // silmekti. Artık çarpıştırıcı hiç oluşmuyor (bkz. CreateShape), yani
+        // silinecek bir şey de yok. Metodun kendisi de zararlıydı:
+        // `GetComponent<Collider>()` fizik modülüne DOKUNUYOR ve bu oyunda
+        // fizik yok — dokunulan her modül ya derlemede tutulmak zorunda kalır
+        // ya da orada patlar.
 
-            if (Application.isPlaying) Object.Destroy(collider);
-            else Object.DestroyImmediate(collider);
+        static readonly Dictionary<PrimitiveType, Mesh> _shapes =
+            new Dictionary<PrimitiveType, Mesh>();
+
+        /// <summary>
+        /// Çarpıştırıcısız temel şekil — <c>GameObject.CreatePrimitive</c>'in yerine.
+        ///
+        /// NEDEN: `CreatePrimitive` nesneye HER ZAMAN bir çarpıştırıcı ekler.
+        /// Bu oyunda fizik yok, o yüzden zaten hemen siliniyordu — ama Android
+        /// derlemesinde `stripEngineCode` açık ve fizik modülünü kullanan kod
+        /// olmadığı için Unity `MeshCollider` sınıfını derlemeden ATIYOR.
+        /// Sonuç, 2026-08-17 APK'sinde ekrana düşen hata:
+        ///
+        ///     Can't add component because class 'MeshCollider' doesn't exist!
+        ///
+        /// Yani nesne HİÇ KURULAMIYOR ve tahta boş kalıyor. İstemediğimiz bir
+        /// bileşeni ekleyip silmek, olmadığı ortamda çökme sebebine dönüşüyor.
+        ///
+        /// DERS (kullanmadığın şeyi İSTEME): Kırpıcı "kimse kullanmıyorsa at"
+        /// diye çalışır. Kodun geçici olarak dokunduğu her modül, o modülü
+        /// derlemede tutmak zorunda kalmak ya da orada patlamak demektir.
+        /// Doğru çözüm modülü zorla korumak değil, ona hiç dokunmamaktı.
+        ///
+        /// Ağlar Unity'nin yerleşik kaynaklarından geliyor (fizik gerekmez) ve
+        /// PAYLAŞILIYOR — her çağrıda yeni ağ üretilmiyor.
+        /// </summary>
+        public static GameObject CreateShape(PrimitiveType type, string name)
+        {
+            if (!_shapes.TryGetValue(type, out var mesh) || mesh == null)
+            {
+                mesh = Resources.GetBuiltinResource<Mesh>(BuiltinMeshName(type));
+                _shapes[type] = mesh;
+            }
+
+            var go = new GameObject(name);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            go.AddComponent<MeshRenderer>();
+            return go;
+        }
+
+        static string BuiltinMeshName(PrimitiveType type)
+        {
+            switch (type)
+            {
+                case PrimitiveType.Quad:     return "Quad.fbx";
+                case PrimitiveType.Plane:    return "Plane.fbx";
+                case PrimitiveType.Sphere:   return "Sphere.fbx";
+                case PrimitiveType.Capsule:  return "Capsule.fbx";
+                case PrimitiveType.Cylinder: return "Cylinder.fbx";
+                default:                     return "Cube.fbx";
+            }
         }
 
         static Material _ice;

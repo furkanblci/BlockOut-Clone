@@ -79,7 +79,7 @@ yeri ona geçirildi; burada raycast'i açmayı unutmak mümkün değil.
 
 ## A — BLOCKER'LAR (test bunlar olmadan ilerlemiyor)
 
-### [~] 18. Bölüm açılmıyor — İKİ SEBEP DAHA BULUNDU, CİHAZDA DOĞRULANACAK
+### [x] 18. Bölüm açılmıyor — GERÇEK SEBEP CİHAZDAN GELDİ: MOTOR KODU KIRPMA
 **Sebep: IL2CPP kod kırpma + Newtonsoft yansıması + `link.xml` yokluğu.**
 
 Elenen şüpheliler (hepsi tek tek kontrol edildi, hiçbiri değildi):
@@ -1084,3 +1084,66 @@ Ekranlardaki işaret (`UiTweakRoot`) tek bir string alan taşıyor.
 düğmesi "elle" 0.158 → 0.188'e taşındı, kaydedildi, **play yeniden
 başlatıldı** ve değer 0.188 olarak geldi. Sınav düzeltmesi sonra silindi,
 varlık boş bırakıldı.
+
+---
+
+### 18 — ÜÇÜNCÜ TUR (2026-08-17 gece): CİHAZ CEVABI VERDİ
+
+**Hata katı işini yaptı.** Kullanıcı build'i aldı ve ekrandaki kart iki satırla
+sebebi söyledi — teşhis tek turda bitti:
+
+```
+Can't add component because class 'MeshCollider' doesn't exist!
+    UnityEngine.GameObject:CreatePrimitive(PrimitiveType)
+
+[GameSession] Level kurulamadı: ArgumentNullException:
+Value cannot be null. Parameter name: shader
+```
+
+**Sebep Newtonsoft DEĞİLMİŞ.** İki ayrı MOTOR KODU KIRPMA sorunu:
+
+#### 1. Shader'lar derlemeye hiç girmiyordu
+Bütün görsel katman materyalleri `Shader.Find(...)` ile kuruyor. Bir shader
+ne "Always Included Shaders" listesindeyse ne de gönderilen bir materyalden
+referanslıysa, **derlemede yoktur** — `Shader.Find` null döner ve
+`new Material(null)` `ArgumentNullException` atar.
+
+Ölçüldü: kodun aradığı beş shader'dan **dördü listede yoktu**. Eklendi:
+`Universal Render Pipeline/Lit`, `.../Unlit`, `.../Particles/Unlit`,
+`BlockOut/Brick`. (`Sprites/Default` zaten vardı.)
+
+**DERS (`Shader.Find` editörde her zaman çalışır):** Editörde bütün shader'lar
+yüklüdür; `Shader.Find` orada hiç null dönmez. Bu çağrının derlemede
+çalışması, shader'ın derlemeye GİRDİĞİNİ ayrıca garanti etmene bağlı.
+
+#### 2. `MeshCollider` sınıfı kırpılmıştı
+`GameObject.CreatePrimitive` nesneye **her zaman** bir çarpıştırıcı ekler.
+Bu oyunda fizik yok, o yüzden kod onu hemen siliyordu — ama Android
+derlemesinde `stripEngineCode` açık ve fizik modülünü *gerçekten kullanan*
+kod olmadığı için Unity `MeshCollider` sınıfını atıyor. Nesne HİÇ
+kurulamıyor, tahta boş kalıyor.
+
+Çözüm modülü zorla korumak değil, ona hiç dokunmamak oldu:
+`ViewKit.CreateShape(PrimitiveType, ad)` — `MeshFilter` + `MeshRenderer` +
+Unity'nin yerleşik ağı, çarpıştırıcı yok. 12 çağrı yeri geçirildi,
+`StripCollider` ve altı `GetComponent<Collider>()` çağrısı silindi.
+`FXService` küp ağını almak için nesne yaratıp siliyordu; artık doğrudan
+yerleşik ağı okuyor.
+
+**DERS (kullanmadığın şeyi İSTEME):** Kırpıcı "kimse kullanmıyorsa at" diye
+çalışır. Kodun *geçici olarak* dokunduğu her modül, o modülü derlemede tutmak
+zorunda kalmak ya da orada patlamak demektir. İstemediğin bir bileşeni
+ekleyip silmek, olmadığı ortamda çökme sebebine dönüşüyor.
+
+**Doğrulama (editör):** 1., 25. ve 50. bölüm — üçü de `Playing`, yükleme
+hatası yok; sahnede **0 çarpıştırıcı**, **0 boş ağ**, **0 boş
+materyal/shader**. 1. bölümde JSON 2 blok + 2 kapı diyor, sahnede 2 blok
+meshi + 4 kapı meshi (çubuk + ok) var.
+
+> ⚠️ Cihazda tekrar doğrulanacak — editörde kırpma yok. Ama bu sefer sebep
+> TAHMİN değil, cihazın kendi söylediği şey.
+
+**Önceki iki turun düzeltmeleri yerinde kalıyor** (IL2CPP demet anahtarı,
+korumasız kurulum, görünür hata kartı): hiçbiri bu hatanın sebebi değildi
+ama üçü de gerçek kusurdu ve hata katının o mesajı gösterebilmesi ikinci
+turdaki try/catch genişletmesi sayesinde oldu.

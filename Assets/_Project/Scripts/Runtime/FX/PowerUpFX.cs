@@ -1,6 +1,7 @@
 using System.Collections;
 using BlockOut.Core;
 using BlockOut.Runtime.Board;
+using BlockOut.Runtime.View;
 using UnityEngine;
 
 namespace BlockOut.Runtime.FX
@@ -28,11 +29,9 @@ namespace BlockOut.Runtime.FX
         /// </summary>
         public static void Rocket(Transform parent, Vector3 target, Color tint)
         {
-            var rocket = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var rocket = ViewKit.CreateShape(PrimitiveType.Cube, "Shape");
             rocket.name = "RocketFX";
             rocket.transform.SetParent(parent, worldPositionStays: false);
-            Object.Destroy(rocket.GetComponent<Collider>());
-
             var renderer = rocket.GetComponent<MeshRenderer>();
             renderer.sharedMaterial = View.ViewKit.FrostShard;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -68,11 +67,9 @@ namespace BlockOut.Runtime.FX
         /// </summary>
         public static void Beam(Transform parent, Vector3 target, Color tint)
         {
-            var beam = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            var beam = ViewKit.CreateShape(PrimitiveType.Cylinder, "Shape");
             beam.name = "BeamFX";
             beam.transform.SetParent(parent, worldPositionStays: false);
-            Object.Destroy(beam.GetComponent<Collider>());
-
             var renderer = beam.GetComponent<MeshRenderer>();
             renderer.sharedMaterial = View.ViewKit.Translucent(
                 new Color(tint.r, tint.g, tint.b, 0.55f));

@@ -56,11 +56,9 @@ namespace BlockOut.Runtime.View
 
         static void Create(Camera camera, BlockVisualConfigSO config)
         {
-            var go = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            var go = ViewKit.CreateShape(PrimitiveType.Quad, "Shape");
             go.name = "Background";
             go.transform.SetParent(camera.transform, worldPositionStays: false);
-            Destroy(go.GetComponent<Collider>());
-
             var view = go.AddComponent<BackgroundView>();
             var renderer = go.GetComponent<MeshRenderer>();
             renderer.sharedMaterial = Material(config);

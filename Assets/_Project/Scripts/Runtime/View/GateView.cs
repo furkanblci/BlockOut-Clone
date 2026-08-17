@@ -52,11 +52,9 @@ namespace BlockOut.Runtime.View
         public static GateView Create(
             Transform parent, GateModel model, BoardSpace space, Material colorMaterial)
         {
-            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var go = ViewKit.CreateShape(PrimitiveType.Cube, "Shape");
             go.name = $"Gate_{model.ActiveColor}_{model.Side.ToId()}";
             go.transform.SetParent(parent, worldPositionStays: false);
-            ViewKit.StripCollider(go);
-
             // Kapı barının kenar boyunca kapladığı aralık. Tahtanın KÖŞESİNE
             // dayanan uç, çerçevenin yuvarlatılmış köşesinin içine girip
             // "içinden geçmiş" gibi görünüyordu — o ucu köşeden uzaklaştırıyoruz.

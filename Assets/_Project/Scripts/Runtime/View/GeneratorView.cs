@@ -35,20 +35,16 @@ namespace BlockOut.Runtime.View
             bool horizontalEdge = model.Side == Side.North || model.Side == Side.South;
 
             // Gövde: kenarın dışında duran kutu.
-            var body = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var body = ViewKit.CreateShape(PrimitiveType.Cube, "Shape");
             body.name = "Body";
             body.transform.SetParent(go.transform, worldPositionStays: false);
             body.GetComponent<MeshRenderer>().sharedMaterial = ViewKit.GeneratorBody;
-            Kill(body.GetComponent<Collider>());
-
             // Pencere: sıradaki bloğun rengi.
-            var window = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var window = ViewKit.CreateShape(PrimitiveType.Cube, "Shape");
             window.name = "Window";
             window.transform.SetParent(go.transform, worldPositionStays: false);
             view._window = window.GetComponent<MeshRenderer>();
             view._window.sharedMaterial = nextMaterial;
-            Kill(window.GetComponent<Collider>());
-
             Vector3 center = view.WorldCenter(space, horizontalEdge);
             go.transform.position = center;
 
