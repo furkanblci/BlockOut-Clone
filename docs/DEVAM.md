@@ -8,6 +8,42 @@ Bu dosya her oturum sonunda güncellenir. Aşağısı 2026-08-10 itibarıyla ge�
 
 ---
 
+## 2026-08-17 OTURUM SONU — BUILD ALINABİLİR DURUMDA
+
+Ayrıntılı kayıt: **`docs/APK-BULGULARI.md`** (21 kullanıcı bulgusu + 2 yeni).
+
+**Bu oturumda kapanan maddeler:** 4 (günlük ödül), 7 (ana ekran), 9 (Yolculuk),
+13 (Ayarlar), 16 (Liderlik), 21 (Profil), 22 (ödül şeridi), 23 (alt sekme
+çubuğu). Konsol **0 hata**, play modundan çıkıldı, asset'ler kaydedildi.
+
+**Geriye kalan üç şey:**
+1. **Uygulama ikonu (1. madde) — SENDEN BİR DOSYA BEKLİYOR.** `art_raw/icon_app.png`
+   (kare, ≥512px). Gelmeden Android ikon yuvaları bağlanamaz. **Build alınabilir
+   ama ikon Unity'nin varsayılanı olur.**
+2. **Koleksiyon görseli (5. madde)** — açık kitap + albüm sekme ikonu
+   (`docs/art-prompts.md` §11). Yerine şimdilik sandık duruyor.
+3. **Mağaza (12. madde) — tente şerit kontrastı ve harf kalınlığı.** Tek kalan
+   kod işi; bu oturumda sıra gelmedi.
+
+**Karar bekleyen ekonomi sorunu:** `LivesService.Grant` üst sınırı aşmıyor.
+Canı doluyken can ödülü alan oyuncu kalbi KAYBEDİYOR (5 → 5 ölçüldü). Günlük
+ödülün 5. ve 7. günü, ödüllü reklam ve mağazadan can alımı — üçü de aynı
+yoldan geçiyor. Çözümü taşan canı saklayacak bir alan; ekonomiye dokunduğu
+için tek başıma değiştirmedim.
+
+**Bu oturumda öğrenilen iki büyük ders:**
+- **Yakalama yöntemi hatayı GİZLİYORDU.** Aşağıdaki "Yakalama/doğrulama
+  notları" bölümündeki `Capture()` uyarısı artık GEÇERSİZ — tam tersi doğru.
+- **`UiSprites.Circle` düz bir `Image` olarak kutuya GERİLİR.** Kutu kare
+  olmadığı anda daire elipse döner. Projede DÖRT yerde vardı (kapatma
+  çarpısı, kalem rozeti, günlük ödül/Continue çarpıları, mağaza noktaları).
+  Hepsi `UiKit.CreateIcon`'a alındı — o en-boy oranını korur.
+- **Ölçerken KATMANI da ayır.** Alt çubuğun üst kenarında 30 piksel içinde
+  dört ayrı renk var; tek yatay örnekleme üçünü birbirine karıştırıp yanlış
+  "gövde rengi" verdi. Dikey tarama ayırdı.
+
+---
+
 ## Proje nedir
 
 Unity 6.3 URP Mobile ile **Block Out! – Color Sort Puzzle** (Grand Games)
@@ -585,12 +621,17 @@ değiştir") dördüncü tekrarıydı.
 
 ## Yakalama/doğrulama notları
 
-- **`UiCaptureTool.Capture()` (kanvas SÜZGECİ OLMADAN) kadrajı bozuyor.**
-  Tek kanvas alan `CaptureOf<T>(...)` doğru çıkıyor; hepsini birden alan
-  `Capture(ad)` ise içeriği sağa kaydırıp kırpıyor (5 sekmeli çubuk 4
-  sekme görünüyor, ~1550 birim genişlik 1080'e sığdırılıyor). `Screen`
-  gerçekten 1080x1920 — yani hata OYUNDA DEĞİL, araçta. Menü ekranlarını
-  kıyaslarken buna aldanma; ölçüm alacaksan `CaptureOf` kullan.
+- **~~`UiCaptureTool.Capture()` kadrajı bozuyor~~ — ARTIK GEÇERSİZ (2026-08-17).**
+  Bu not bir zamanlar doğruydu ama şimdi `Capture(ad)` tam olarak 1080×1920
+  ve doğru kadrajda çıkıyor (beş sekmenin beşi de görünüyor). **Üstelik ASIL
+  KULLANILMASI GEREKEN O.** `CaptureOf<T>` yalnız o bileşenin KENDİ kanvasını
+  çiziyor; alt sekme çubuğu `MenuCanvas`'ta olduğu için `CaptureOf<HomeScreen>`
+  karesinde HİÇ görünmüyor, menü sayfalarının altındaki zemin de görünmüyor.
+  Bu yüzden iki gerçek hata aylarca gizlendi: Liderlik'te sekmelerin arkasındaki
+  siyah şerit ve podyumda birbirine giren kürsüler. İkisi de ilk tam ekran
+  `Capture()` çağrısında bir anda ortaya çıktı.
+  **Kural: kıyas ve denetim için `Capture(ad)`; yalnız tek bir paneli izole
+  etmek istediğinde `CaptureOf<T>`.**
 - **TAM KARE yakalama (tahta + zemin + HUD).** `UiCaptureTool` kendi
   kamerasını kurup YALNIZ kanvası çeker; tahta ve zemin o karede yoktur, bu
   yüzden referansla "ne kadar karardı" kıyası yapılamaz. Tam kare için ana
