@@ -529,7 +529,7 @@ söyledi. **Punto seçerken ölçülecek şey BÜYÜK HARF yüksekliğidir.**
 Anahtarlar referansta daha küçük ve ince konturlu; kapat çarpısı daha küçük
 ve başlığa daha yakın; kart kenarlığı daha belirgin.
 
-### [~] 16. Liderlik — İLK ÜÇ ARTIK LİSTEDE DE VAR
+### [x] 16. Liderlik — BİTTİ (kalan yalnız süsleme görselleri)
 
 **Sebep koddaydı ve gerekçesi yazılıydı:** satırlar kasten `Rivals[i + 3]`
 ile başlıyordu, yorumu "podyumdaki yüz iki kez görünmesin" diyordu. Mantıklı
@@ -597,10 +597,51 @@ numaralandırmadan ibaret kalıyordu. İlk üç artık altın/gümüş/bronz ve
 **DERS (sıra numarası bir DEĞER taşır):** Renk burada süs değil, bilgi —
 göz listeye bakar bakmaz zirveyi buluyor.
 
-#### 16'DA KALAN (görsel isterse)
+#### 16 — İKİNCİ TUR (2026-08-17): ÖDÜL, PUAN, PODYUM, ZEMİN
+
+**Kırmızı rozet PUAN değil ÖDÜL'dü.** Bizde o rozet rakibin puanını
+gösteriyor ve SEKİZ satırın hepsinde duruyordu. Referansta aynı yerde bir
+jeton yığını + kırmızı kapsül var ve içindeki sayı haftalık ÖDÜL
+(2000/1000/500), bu yüzden yalnız ilk üçte. Puan ise sağdaki **"Puan"**
+sütununda — bizde orada **"Level"** yazıyordu. Aynı görsel iki farklı
+bilgiyi anlatınca liste yanlış okunuyordu: 4. sıradaki oyuncu "ödülüm yok"
+değil "puanım yok" gibi görünüyordu.
+
+**Ölü kod bir sorunun iziydi.** Sınıfta `Score(level, progress)` diye bir
+yardımcı var — bitirilen bölüm, yıldız ve mükemmel geçişlerden puan
+hesaplıyor. **Hiçbir yerden çağrılmıyordu**, çünkü ekran onun yerine seviye
+numarasını yazıyordu. Sütun "Puan" olunca hesap da canlandı (oyuncunun
+gerçek puanı: 286, play modunda doğrulandı). Rakip verisindeki `level`
+alanı artık kullanılmadığı için diziden çıkarıldı — gösterilmeyen veri,
+sonradan "acaba nerede kullanılıyor" diye aranan veridir.
+
+**Podyumda kürsüler BİRLEŞİKTİ.** Üçü de 0.155 yarım genişlikteydi ve
+merkezleri 0.22/0.50/0.78'di; yani komşular **0.03 kadar üst üste
+biniyordu**. Aynı krem rengi paylaştıkları için ekranda üç kürsü değil tek
+bir krem kütle görünüyordu — "podyum tasarımları çok zayıf" şikâyetinin
+ölçülebilir kısmı buydu. Referansta kürsüler arasında boşluk var ve
+ortadaki belirgin biçimde GENİŞ (0.34-0.66; yanlar 0.107-0.325 ve
+0.671-0.905). Genişlik de bir sıralama işareti. Her kürsüye kendi kenarlığı
+verildi, kapaklar elips olmaktan çıktı (yarıçap kutu yüksekliğinin yarısını
+geçince yuvarlak panel elipse döner), madalya `CreateIcon` ile daire kaldı,
+ad puntosu 24 → 34 (referansta cap yüksekliği ekranın %1.27'si).
+
+**Sekmelerin arkası MAVİ olmalıydı.** Menü kabuğu her sayfaya aynı koyu
+gövdeyi veriyor; Koleksiyon'da doğru ama Liderlik'te referans zemini ikiye
+bölüyor: sekme bandı parlak mavi (**#205DF3** üstte, **#246CF4** altta),
+liste alanı koyu lacivert (#1B215B). Tek renk verince sekme şeridi ekranda
+siyah bir delik gibi kalıyordu.
+
+**DERS (yakalama yöntemi hatayı GİZLİYORDU):** Bu ekran defalarca
+`UiCaptureTool.CaptureOf<LeaderboardScreen>` ile doğrulandı ve siyah şerit
+hiç görünmedi — o metot yalnız bileşenin KENDİ kanvasını çiziyor. Tam ekran
+`UiCaptureTool.Capture(...)` ilk çağrıldığında hem siyah şerit hem birleşik
+kürsüler bir anda ortaya çıktı. Bu projede "doğrulama yöntemi hatayı
+gizliyor" tuzağının kaçıncı tekrarı olduğunu artık saymıyorum.
+
+#### 16'DA KALAN (yalnız GÖRSEL)
 Referansta kürsüler oymalı sütunlar, avatarlar altın çerçeveli ve isim
-levhaları süslü. Bunlar görsel işi. Ayrıca referansta ilk üç satırda ÖDÜL
-kapsülü var (2000/1000/500 jeton) ve sağdaki sütun "Puan" (bizde "Level").
+levhaları süslü. Bunlar görsel işi; yapı ve bilgi tarafı bitti.
 
 ### [~] 21. Profil ekranı düzensiz — İKİ GERÇEK SEBEP BULUNDU
 
