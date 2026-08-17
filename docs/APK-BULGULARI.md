@@ -451,9 +451,30 @@ boyama çarpma olduğu için deseni de renklendirirdi ve her bölümde farklı b
 ton çıkardı. Doku BEYAZ üstüne yalnız parlaklık farkı olarak çiziliyor;
 bölüm rengi tint ile veriliyor. Tek doku üç bölümde de doğru çalışıyor.
 
-### [ ] 12. Mağaza başlığı ve panel köşe yarıçapları
-"Mağaza" yazısının yeri, üst bandın duruşu, panellerin radius'u ve genel
-oturuşu yeniden ölçülüp kıyaslanacak.
+### [~] 12. Mağaza başlığı ve üst bant — ÖLÇÜLDÜ ve DÜZELTİLDİ
+
+Referanstan (`market.jpeg`) ölçülenler ve uygulananlar:
+
+| öğe | referans | bizde (önce) |
+|---|---|---|
+| jeton ikonu | X 0.036-0.123 | 0.030-0.135 ✓ zaten doğru |
+| jeton kapsülü | X **0.112-0.338** | 0.055-0.315 ✗ sola kaçmış |
+| başlık merkezi | **0.524** | 0.575 ✗ sağa kaçmış |
+| başlık büyük harf yüksekliği | ekranın **%3.37**'si | %3.15 ✗ küçük |
+
+**Kapsül sola kaçtığı için jeton ikonu tamamen kapsülün ÜSTÜNDE kalıyordu;**
+referansta jeton kapsülün SOL UCUNDAN taşıyor. Kapsül 0.112'ye çekildi,
+başlık 0.524 merkezine oturtuldu, punto 84 → 90.
+
+**AYNI TUZAK, İKİNCİ EKRAN:** Mağaza başlığında da kontur uygulanmıyordu —
+`CreateTitle`'a verilen renk paylaşılan materyal yüzünden yok sayılıyor.
+`SetOutline` ile referanstan örneklenen lacivert (`#0A0F55`) kalın kontur
+eklendi. Yolculuk'ta da aynısı vardı; **başlık kuran her yerde bu kontrol
+edilmeli.**
+
+#### 12'DE KALAN
+Tente şeritlerinin kontrastı ve harf kalınlığı (font ağırlığı) referanstan
+biraz hafif. Panel köşe yarıçapları gözle kıyaslandı, belirgin fark yok.
 
 ### [ ] 13. Ayarlar — düğme/ikon/yazı kalitesi + alt menü çıkmamalı
 Orijinalde ayarlar ekranında alt sekme çubuğu YOK (referansta doğrulandı).

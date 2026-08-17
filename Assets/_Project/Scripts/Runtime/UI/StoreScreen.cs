@@ -243,9 +243,13 @@ namespace BlockOut.Runtime.UI
             cloth.type = Image.Type.Simple;
             cloth.raycastTarget = true;      // tenteye dokunmak içeriği kaydırmasın
 
-            // Jeton göstergesi: krem kapsül + üstüne taşan jeton.
+            // Jeton göstergesi: krem kapsül + SOL UCUNDAN taşan jeton.
+            // Ölçü referanstan (`market.jpeg`): kapsül X 0.112-0.338,
+            // jeton X 0.036-0.123 — yani jeton kapsülün soluna taşıyor,
+            // kapsülün altında başlamıyor. Bizimki 0.055'ten başlıyordu ve
+            // jetonun tamamı kapsülün üstünde kalıyordu (12. APK bulgusu).
             var pill = Capsule("CoinPill", bar, new Color(1f, 0.976f, 0.925f));
-            UiKit.Place(pill, 0.055f, 0.50f, 0.315f, 0.70f);
+            UiKit.Place(pill, 0.112f, 0.50f, 0.338f, 0.70f);
 
             _coinLabel = UiKit.CreateLabel("Coins", pill.transform, "0", 40, Cocoa);
             UiKit.Place(_coinLabel, 0.28f, 0.04f, 0.92f, 0.96f);
@@ -253,9 +257,21 @@ namespace BlockOut.Runtime.UI
             var coin = UiKit.CreateIcon("Coin", bar, UiSkin.Get(Art.Coin));
             UiKit.Place(coin, 0.030f, 0.475f, 0.135f, 0.725f);
 
-            var title = UiKit.CreateTitle("Title", bar, "Shop", 84,
+            // Başlık ekranın ortasında DEĞİL: referansta merkezi 0.524'te,
+            // yani jeton kapsülünün sağında kalan alanın ortasında. Bizimki
+            // 0.575'teydi — sağa kaçmış görünüyordu.
+            // Punto referanstan: "M" harfinin yüksekliği ekranın %3.37'si;
+            // 84 punto %3.15 veriyordu.
+            var title = UiKit.CreateTitle("Title", bar, "Shop", 90,
                 new Color(1f, 0.99f, 0.96f), TitleShade);
-            UiKit.Place(title, 0.20f, 0.44f, 0.95f, 0.76f);
+            UiKit.Place(title, 0.300f, 0.44f, 0.748f, 0.76f);
+
+            // KONTUR — Yolculuk başlığındaki aynı tuzak burada da vardı:
+            // `CreateTitle`'a verilen kontur rengi paylaşılan materyal
+            // yüzünden sessizce yok sayılıyor, başlık düz beyaz kalıyor.
+            // Referansta kalın lacivert kontur var (#0A0F55, örneklendi) ve
+            // başlığa "baskılı" görünümünü veren şey o.
+            UiKit.SetOutline(title, new Color(0.039f, 0.059f, 0.333f), 0.50f);
 
             // Satın alma sonucu: referansta böyle bir satır yok, ama sonucu
             // hiç söylememek de yok. Kısa süre görünüp kayboluyor.
