@@ -545,9 +545,29 @@ basınca puanların nasıl hesaplandığını söyleyen kısa bir açıklama ç�
 (düğme gibi duran şey bir şey yapmalı). Geri sayım rozeti de yuvanın sol alt
 köşesine hizalandı.
 
+#### LİSTE KAYDIRILABİLİR OLDU
+Ekranda beş satır görünüyordu ve o kadarı SABİTTİ — elimizde sekiz rakip
+olmasına rağmen kalan üçüne ulaşmanın yolu yoktu.
+
+**DERS (liste, sığdığı kadarından ibaret değildir):** Sıralama listesi doğası
+gereği kaydırılır; sığan kadarını gösterip gerisini atmak, listeyi bir
+CETVEL olmaktan çıkarıp vitrine çevirir.
+
+Yolculuk'ta öğrenilen kural burada baştan uygulandı: görünmez dokunuş yüzeyi
+**içeriğin ilk çocuğu** (viewport'a konsa kardeş öğeleri örterdi).
+
+**DERS (kaydırılabilir alan, ekranın SERBEST kısmı kadardır):** İlk kurulumda
+görüntü alanını beş satır yüksekliğinde yaptım ve sabit "You" satırı sekme
+çubuğunun ARKASINA düştü. Çubuk ekranın alt %9.9'unu kaplıyor; kaydırma alanı
+sabit satır + çubuk payı DÜŞÜLDÜKTEN sonra kalan yere kadar uzayabilir.
+
+**Doğrulama:** 8 satır, içerik 1456 > görüntü 522, boş zeminden sürükleme
+ScrollRect'e ulaşıyor, "You" satırı çubuğun üstünde sabit duruyor.
+
 #### 16'DA KALAN
-Liste kaydırma, podyumun yeşil park zemini, ilk üç için madalya rozetleri ve
-sağdaki "Puan" sütunu (bizde "Level" yazıyor).
+Podyumun yeşil park zemini, ilk üç için madalya rozetleri ve sağdaki sütun
+(referansta "Puan", bizde "Level"). Referansta ilk üç satırda ayrıca ÖDÜL
+kapsülü var (2000/1000/500 jeton) — 4-5. satırlarda yok.
 
 ### [~] 21. Profil ekranı düzensiz — İKİ GERÇEK SEBEP BULUNDU
 

@@ -321,11 +321,60 @@ namespace BlockOut.Runtime.UI
         /// </summary>
         void BuildRows(Transform root)
         {
-            const float rowH = 158f, gap = 24f, top = 1006f;
-            for (int i = 0; i < RowCount; i++)
+            const float rowH = 158f, gap = 24f, step = rowH + gap;
+            const float top = 1006f;
+
+            // KAYDIRILABİLİR LİSTE.
+            //
+            // DERS (liste, sığdığı kadarından ibaret değildir): Ekranda beş
+            // satır görünüyordu ve o kadarı sabitti — elimizde sekiz rakip
+            // olmasına rağmen kalan üçüne ulaşmanın yolu yoktu. Kullanıcı
+            // "sıralamadaki insanları hareket ettiremiyoruz" derken bunu
+            // gördü. Sıralama listesi doğası gereği kaydırılır; sığan kadarını
+            // gösterip gerisini atmak, listeyi bir CETVEL olmaktan çıkarıp
+            // vitrine çevirir.
+            // GÖRÜNTÜ ALANI SEKME ÇUBUĞUNDA BİTMELİ.
+            //
+            // DERS (kaydırılabilir alan, ekranın SERBEST kısmı kadardır):
+            // İlk kurulumda görüntü alanını beş satır yüksekliğinde yaptım ve
+            // sabit "You" satırı ekranın en altına, sekme çubuğunun ARKASINA
+            // düştü. Çubuk ekranın alt %9.9'unu kaplıyor; kaydırma alanı
+            // oraya kadar değil, sabit satır + çubuk payı DÜŞÜLDÜKTEN sonra
+            // kalan yere kadar uzayabilir.
+            //
+            // Çubuğun üstü 1730, sabit satır 158 + payları → görüntü alanı
+            // 1528'de bitiyor.
+            const float viewportBottom = 1528f;
+            var viewport = MenuPage.Row("RowsViewport", root, top,
+                viewportBottom - top, 0f, 1f);
+            viewport.gameObject.AddComponent<RectMask2D>();
+
+            var content = UiKit.CreateRect("Rows", viewport);
+            content.anchorMin = new Vector2(0f, 1f);
+            content.anchorMax = new Vector2(1f, 1f);
+            content.pivot = new Vector2(0.5f, 1f);
+            content.sizeDelta = new Vector2(0f, Rivals.Length * step);
+            content.anchoredPosition = Vector2.zero;
+
+            // Görünmez dokunuş yüzeyi — içeriğin İLK çocuğu. (Yolculuk'ta
+            // öğrenildi: viewport'a koymak kardeş öğeleri örtüyor.)
+            var catcher = UiKit.CreatePanel("TouchCatcher", content,
+                new Color(0f, 0f, 0f, 0f));
+            catcher.raycastTarget = true;
+
+            var scroll = viewport.gameObject.AddComponent<ScrollRect>();
+            scroll.content = content;
+            scroll.viewport = viewport;
+            scroll.horizontal = false;
+            scroll.movementType = ScrollRect.MovementType.Elastic;
+            scroll.elasticity = 0.08f;
+            scroll.scrollSensitivity = 45f;
+            scroll.decelerationRate = 0.12f;
+
+            for (int i = 0; i < Rivals.Length; i++)
             {
                 var rival = Rivals[i];
-                var row = MenuPage.Row("Row" + i, root, top + i * (rowH + gap), rowH,
+                var row = MenuPage.Row("Row" + i, content, i * step, rowH,
                     0.035f, 0.965f);
                 var (_, nameText, scoreText, levelText) =
                     BuildRowContent(row, (i + 1).ToString(), rival.name, rival.score,
@@ -334,12 +383,13 @@ namespace BlockOut.Runtime.UI
             }
         }
 
-        /// <summary>Referansta beş rakip satırı görünüyor.</summary>
+        /// <summary>Aynı anda görünen satır sayısı (referansta beş).</summary>
         const int RowCount = 5;
 
         void BuildSelfRow(Transform root)
         {
-            var row = MenuPage.Row("Self", root, 1006f + RowCount * 182f, 158f, 0.035f, 0.965f);
+            // Kaydırılan listenin ALTINDA, sekme çubuğunun ÜSTÜNDE sabit.
+            var row = MenuPage.Row("Self", root, 1552f, 158f, 0.035f, 0.965f);
             // Oyuncunun satırında puan rozeti yok (score < 0), o yüzden
             // dönen puan yazısı null; bilerek atılıyor.
             var (rankText, nameText, _, levelText) =
