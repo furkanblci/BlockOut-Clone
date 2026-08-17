@@ -30,15 +30,28 @@ namespace BlockOut.Runtime.UI
             ("First Try Wins",      Art.Trophy),
             ("Sky Jump Wins",       Art.Ufo),
             ("Streak Race Wins",    Art.Rocket),
-            ("Block League Wins",   Art.RewardBadge),
+            // `badge_reward` BURAYA UYMUYOR: o görsel içi boş turuncu bir
+            // ÇERÇEVE (ortasında mor pencere), tek başına konunca "yüklenmemiş
+            // ikon" gibi duruyor. Referanstaki amblem elimizde yok; küre
+            // "lig" fikrine en yakın olan.
+            ("Block League Wins",   Art.Globe),
             ("Star Blast Cleared",  Art.Star),
             ("Weekly Cup Wins",     Art.Trophy),
             ("Rocket Race Wins",    Art.Rocket),
             ("Max Ufo Climb",       Art.Ufo)
         };
 
-        static readonly Color CardFace = new Color(0.541f, 0.518f, 0.965f);
-        static readonly Color BoxFace  = new Color(0.129f, 0.110f, 0.325f);
+        // RENKLER REFERANSTAN ÖLÇÜLDÜ (`profil.jpeg`, 2026-08-17):
+        // kart #A79BFD, kutu dolgusu #1D1450, kutu kenarlığı #2A1E74.
+        //
+        // DERS (kenarlık dolgudan AÇIK, zeminden KOYU): Kutuların ince
+        // kenarlığı yoktu ve koyu kutular açık mor zeminin üstünde "kesilmiş
+        // delik" gibi duruyordu. Referansta 4 pikselik bir ara ton var:
+        // zeminden koyu, dolgudan açık. O tek şerit kutuyu delik olmaktan
+        // çıkarıp YÜZEY yapıyor.
+        static readonly Color CardFace = new Color(0.655f, 0.608f, 0.992f);
+        static readonly Color BoxFace  = new Color(0.114f, 0.078f, 0.314f);
+        static readonly Color BoxEdge  = new Color(0.165f, 0.118f, 0.455f);
 
         TextMeshProUGUI _name, _level;
         readonly TextMeshProUGUI[] _values = new TextMeshProUGUI[Stats.Length];
@@ -53,22 +66,27 @@ namespace BlockOut.Runtime.UI
             var screen = root.gameObject.AddComponent<ProfileScreen>();
 
             // --- Kimlik kartı ---
-            var card = MenuPage.Row("Card", root, 330f, 340f, 0.055f, 0.945f);
+            // ÖLÇÜ REFERANSTAN: kart y 413-702 (946×2048) → bizim tuvalde
+            // üst 387, yükseklik 271; X 0.058-0.941. Eskisi 330/340'tı, yani
+            // hem yukarıda başlıyor hem 69 birim fazla uzuyordu.
+            var card = MenuPage.Row("Card", root, 387f, 271f, 0.058f, 0.941f);
             var face = UiKit.CreateRoundedPanel("Face", card, CardFace);
             face.pixelsPerUnitMultiplier = 0.30f;
             UiKit.Place(face, 0f, 0f, 1f, 1f);
 
             // Avatar çerçevesi karttan YUKARI taşar (referansta da öyle).
             var frame = UiKit.CreateRect("Avatar", card);
-            UiKit.Place(frame, 0.105f, 0.36f, 0.405f, 1.46f);
+            UiKit.Place(frame, 0.173f, 0.446f, 0.492f, 1.417f);
             var frameSprite = UiSkin.Get(Art.AvatarFrame);
             if (frameSprite != null)
             {
                 var frameImage = UiKit.CreateIcon("Frame", frame, frameSprite);
                 UiKit.Place(frameImage, 0f, 0f, 1f, 1f);
             }
+            // Portre çerçevenin İÇİNDE kalmalı: 0.13 payında karakterin başı
+            // çerçevenin üst çubuğunun üstüne taşıyordu.
             var portrait = UiKit.CreateIcon("Portrait", frame, UiSkin.Get(Art.Avatar));
-            UiKit.Place(portrait, 0.13f, 0.13f, 0.87f, 0.87f);
+            UiKit.Place(portrait, 0.17f, 0.17f, 0.83f, 0.83f);
 
             // Yeşil kalem rozeti: çerçevenin sağ alt köşesine biner.
             //
@@ -78,47 +96,61 @@ namespace BlockOut.Runtime.UI
             // altında Button bile yoktu. Mekanik denetimde çıkan dördüncü ölü
             // kontrol. Referansta rozet VAR, yani kaldırmak görünüşü bozardı;
             // doğru çözüm ona gerçek işini vermek.
+            // ÖLÇÜ REFERANSTAN: rozet 70×66 piksel (daire), çerçevenin sağ alt
+            // köşesinde. Bizimki 121×105 birimlik bir kutuydu; hem büyüktü hem
+            // düz `Image` olduğu için daire ELİPSE geriliyordu.
             var pencil = UiKit.CreateRect("Edit", frame);
-            UiKit.Place(pencil, 0.66f, -0.04f, 1.06f, 0.36f);
-            var pencilFace = pencil.gameObject.AddComponent<Image>();
-            pencilFace.sprite = GameKit.UI.UiSprites.Circle;
-            pencilFace.color = MenuPage.Green;
-            var pencilButton = pencil.gameObject.AddComponent<Button>();
-            pencilButton.targetGraphic = pencilFace;
-            pencilButton.transition = Selectable.Transition.None;
-            pencil.gameObject.AddComponent<GameKit.UI.UiButtonFeel>();
-            pencilButton.onClick.AddListener(screen.OpenNamePanel);
+            UiKit.Place(pencil, 0.779f, 0.029f, 1.043f, 0.333f);
+            var pencilFace = UiKit.CreateIcon("Face", pencil,
+                GameKit.UI.UiSprites.Circle, MenuPage.Green);
+            UiKit.Place(pencilFace, 0f, 0f, 1f, 1f);
+            UiKit.MakeClickable(pencil.gameObject, pencilFace, screen.OpenNamePanel);
             // Kalem bir YAZI DEĞİL: "✎" Baloo 2'de yok, TMP boş kutu çizer
             // (bu projede beşinci tekrar). Eğik beyaz bir kapsül, o boyutta
             // kalem olarak okunuyor ve her cihazda aynı çıkıyor.
+            // İNCE bir çizgi olmalı, kapsül değil: 0.26-0.74 × 0.42-0.58
+            // kutusu 110 birimlik rozette 53×17 veriyordu ve ekranda kalem
+            // değil BEYAZ BİR OVAL olarak okunuyordu. Kalemi kalem yapan şey
+            // uzunluk/kalınlık oranı; 62×11 o oranı veriyor.
             var pencilMark = MenuPage.Capsule("Mark", pencil, MenuPage.Ink);
-            UiKit.Place(pencilMark, 0.26f, 0.42f, 0.74f, 0.58f);
+            UiKit.Place(pencilMark, 0.20f, 0.455f, 0.80f, 0.545f);
             pencilMark.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -45f);
 
+            // Ucu: kalemin sivri tarafı. Küçük koyu bir üçgen yerine kısa bir
+            // koyu çizgi — o boyutta ikisi aynı şeyi anlatıyor.
+            var pencilTip = MenuPage.Capsule("Tip", pencil, new Color(0.20f, 0.14f, 0.05f));
+            UiKit.Place(pencilTip, 0.20f, 0.455f, 0.32f, 0.545f);
+            pencilTip.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -45f);
+
+            // Ad kapsülü avatarın ALTINDA ve ondan geniş (referansta X
+            // 0.119-0.590 ekran, avatar 0.211-0.492): levha avatarın iki
+            // yanından da taşıyor, yani ikisi tek bir kimlik bloğu okunuyor.
             var namePlate = MenuPage.Capsule("NamePlate", card, new Color(0.318f, 0.290f, 0.694f));
-            UiKit.Place(namePlate, 0.050f, 0.10f, 0.560f, 0.40f);
+            UiKit.Place(namePlate, 0.069f, 0.089f, 0.602f, 0.380f);
             screen._name = UiKit.CreateTitle("Name", namePlate.transform, "", 48,
                 MenuPage.Ink, MenuPage.InkDark);
             UiKit.Place(screen._name, 0.05f, 0.06f, 0.95f, 0.94f);
 
             var divider = UiKit.CreatePanel("Divider", card, new Color(1f, 1f, 1f, 0.30f));
-            UiKit.Place(divider, 0.596f, 0.16f, 0.601f, 0.84f);
+            UiKit.Place(divider, 0.663f, 0.16f, 0.669f, 0.84f);
 
-            var caption = UiKit.CreateTitle("LevelCaption", card, "Level", 44,
+            // PUNTO REFERANSTAN: "Seviye" cap yüksekliği 35 birim (→ ~52
+            // punto), sayı 53 birim (→ ~74). 44/64 idi.
+            var caption = UiKit.CreateTitle("LevelCaption", card, "Level", 52,
                 MenuPage.InkDark, new Color(0.70f, 0.68f, 0.98f));
-            UiKit.Place(caption, 0.62f, 0.50f, 0.97f, 0.86f);
+            UiKit.Place(caption, 0.707f, 0.531f, 0.933f, 0.727f);
 
-            screen._level = UiKit.CreateTitle("Level", card, "1", 64,
+            screen._level = UiKit.CreateTitle("Level", card, "1", 74,
                 MenuPage.Ink, MenuPage.InkDark);
-            UiKit.Place(screen._level, 0.62f, 0.12f, 0.97f, 0.52f);
+            UiKit.Place(screen._level, 0.707f, 0.247f, 0.933f, 0.480f);
 
             // --- Başlık + ayraç ---
-            var heading = MenuPage.Row("StatsTitle", root, 764f, 92f, 0.05f, 0.95f);
+            var heading = MenuPage.Row("StatsTitle", root, 700f, 92f, 0.05f, 0.95f);
             var headingText = UiKit.CreateTitle("Text", heading, "General Stats", 50,
                 MenuPage.Ink, MenuPage.InkDark);
             UiKit.Place(headingText, 0f, 0f, 1f, 1f);
 
-            var rule = MenuPage.Row("Rule", root, 866f, 4f, 0.055f, 0.945f);
+            var rule = MenuPage.Row("Rule", root, 790f, 4f, 0.055f, 0.945f);
             var ruleImage = rule.gameObject.AddComponent<Image>();
             ruleImage.color = new Color(1f, 1f, 1f, 0.18f);
             ruleImage.raycastTarget = false;
@@ -134,11 +166,18 @@ namespace BlockOut.Runtime.UI
             // görünüyordu ve tablo düzensiz okunuyordu (21. APK bulgusu).
             // Taşma 0.34 × kutu yüksekliği kadar, aralık en az o kadar olmalı.
             //
-            // SATIR ADIMI REFERANSTAN: ızgara Y 0.053-0.536 arasında dört
-            // satır taşıyor, yani adım ekranın %12.1'i = 232 birim. Kutuyu
-            // 214'te bırakıp aralığı açmak ızgarayı ekrandan taşırıyordu;
-            // ikisi birlikte ayarlandı (152 + 80 = 232).
-            const float boxH = 152f, gapY = 80f, top = 902f;
+            // SATIR ADIMI REFERANSTAN — DİKEY TARAMAYLA ÖLÇÜLDÜ.
+            //
+            // İlk ölçüm gözle yapılmıştı ve 152 + 80 = 232 vermişti. Kutu
+            // dolgusunun koyu olduğunu bilerek yapılan dikey tarama gerçek
+            // sayıları verdi: kutular orijinalde y 950-1123, 1219-1391,
+            // 1495-1667, 1767-1939 → yükseklik 172, adım 272 (bizim tuvalde
+            // 161 ve 255). Yani hem kutular hem aralık %6 küçüktü ve dördüncü
+            // satır referanstan 40 birim yukarıda kalıyordu.
+            //
+            // Aralık ikonun taşmasını da karşılıyor: ikon kutunun üstünden
+            // %34 taşıyor (161 × 0.34 = 55), aralık 94.
+            const float boxH = 161f, gapY = 94f, top = 891f;
             for (int i = 0; i < Stats.Length; i++)
             {
                 int col = i % 2, rowIndex = i / 2;
@@ -147,9 +186,15 @@ namespace BlockOut.Runtime.UI
 
                 var box = MenuPage.Row("Stat_" + i, root, top + rowIndex * (boxH + gapY),
                     boxH, x0, x1);
+                var boxEdge = UiKit.CreateRoundedPanel("Edge", box, BoxEdge);
+                boxEdge.pixelsPerUnitMultiplier = 0.34f;
+                boxEdge.raycastTarget = false;
+                UiKit.Place(boxEdge, 0f, 0f, 1f, 1f);
+
                 var boxFace = UiKit.CreateRoundedPanel("Face", box, BoxFace);
-                boxFace.pixelsPerUnitMultiplier = 0.34f;
-                UiKit.Place(boxFace, 0f, 0f, 1f, 1f);
+                boxFace.pixelsPerUnitMultiplier = 0.36f;
+                boxFace.raycastTarget = false;
+                UiKit.Place(boxFace, 0f, 0f, 1f, 1f, padding: 5f);
 
                 var icon = UiKit.CreateIcon("Icon", box, UiSkin.Get(Stats[i].icon));
                 UiKit.Place(icon, 0.33f, 0.66f, 0.67f, 1.34f);

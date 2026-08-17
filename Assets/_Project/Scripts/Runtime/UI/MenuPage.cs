@@ -154,21 +154,29 @@ namespace BlockOut.Runtime.UI
         /// </summary>
         public static Button Close(Transform band, UnityEngine.Events.UnityAction onClick)
         {
+            // ÖLÇÜ REFERANSTAN (`profil.jpeg`): çarpı 104×105 piksel, yani
+            // TAM DAİRE; ekranda X 0.803-0.913, bandın alt yarısında.
+            // Bizimki 162×125 birimlik bir kutuya konuyordu ve daire o kutuya
+            // gerilip ELİPSE dönüyordu — kullanıcının "çarpı işareti de çok
+            // basık gibi" dediği şey buydu.
+            //
+            // DERS (bu projede aynı hata ÜÇÜNCÜ kez): Yeşil artı düğmesi,
+            // liderlik madalyası ve şimdi kapatma çarpısı. Düz bir `Image`
+            // sprite'ı kutuya GERER; `CreateIcon` en-boy oranını KORUR.
+            // Daire çizen her yerde ikincisi kullanılmalı — kutu kare
+            // olmadığında hatanın görünmesi için ekranın ölçülmesi gerekiyor,
+            // oysa doğru bileşen seçilirse hata hiç doğmuyor.
             var root = UiKit.CreateRect("Close", band);
-            UiKit.Place(root, 0.795f, 0.32f, 0.945f, 0.84f);
+            UiKit.Place(root, 0.823f, 0.117f, 0.913f, 0.529f);
 
-            var ring = UiKit.CreateRect("Ring", root);
-            var ringImage = ring.gameObject.AddComponent<Image>();
-            ringImage.sprite = GameKit.UI.UiSprites.Circle;
-            ringImage.color = new Color(0.42f, 0.05f, 0.09f);
-            UiKit.Place(ring, 0f, 0f, 1f, 1f);
+            var ringImage = UiKit.CreateIcon("Ring", root, GameKit.UI.UiSprites.Circle,
+                new Color(0.42f, 0.05f, 0.09f));
+            ringImage.raycastTarget = true;
+            UiKit.Place(ringImage, 0f, 0f, 1f, 1f);
 
-            var face = UiKit.CreateRect("Face", root);
-            var faceImage = face.gameObject.AddComponent<Image>();
-            faceImage.sprite = GameKit.UI.UiSprites.Circle;
-            faceImage.color = CloseRed;
-            faceImage.raycastTarget = false;
-            UiKit.Place(face, 0.07f, 0.09f, 0.93f, 0.95f);
+            var faceImage = UiKit.CreateIcon("Face", root, GameKit.UI.UiSprites.Circle, CloseRed);
+            UiKit.Place(faceImage, 0.07f, 0.09f, 0.93f, 0.95f);
+            var face = faceImage.rectTransform;
 
             var cross = UiKit.CreateIcon("Cross", face.transform, GameKit.UI.UiSprites.Cross);
             UiKit.Place(cross, 0.26f, 0.26f, 0.74f, 0.74f);

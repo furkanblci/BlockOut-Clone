@@ -643,7 +643,7 @@ gizliyor" tuzağının kaçıncı tekrarı olduğunu artık saymıyorum.
 Referansta kürsüler oymalı sütunlar, avatarlar altın çerçeveli ve isim
 levhaları süslü. Bunlar görsel işi; yapı ve bilgi tarafı bitti.
 
-### [~] 21. Profil ekranı düzensiz — İKİ GERÇEK SEBEP BULUNDU
+### [x] 21. Profil ekranı düzensiz — BİTTİ
 
 **1. Zemin yanlıştı, kutular değil.** Referansta menü sayfalarının zemini
 her ekranda AYNI DEĞİL: Ayarlar/Liderlik/Koleksiyon koyu lacivert
@@ -665,9 +665,51 @@ Aralığı açmak ızgarayı ekrandan taşırdı; **satır adımı referanstan �
 (ızgara Y 0.053-0.536 arasında dört satır → adım ekranın %12.1'i = 232
 birim) ve kutu ile aralık birlikte ayarlandı: 214+30 → **152+80**.
 
-#### 21'DE KALAN
-Ad kapsülü referansta avatarın ALTINDA, bizde yanında. Kutuların ince açık
-kenarlığı yok.
+#### 21 — İKİNCİ TUR (2026-08-17): HER ŞEY DİKEY TARAMAYLA ÖLÇÜLDÜ
+
+İlk turdaki ölçüler GÖZLE yapılmıştı. Kutu dolgusunun koyu olduğunu bilerek
+yapılan dikey tarama gerçek sayıları verdi ve ilk turun neredeyse tamamının
+%6 küçük olduğu çıktı:
+
+| ölçü | eski | referans (ölçüldü) |
+|---|---|---|
+| kart üst / yükseklik | 330 / 340 | **387 / 271** |
+| kart X | 0.055-0.945 | 0.058-0.941 |
+| kutu yüksekliği | 152 | **161** |
+| satır adımı | 232 | **255** |
+| ızgara üstü | 902 | **891** |
+| "Seviye" puntosu | 44 | **52** |
+| seviye sayısı | 64 | **74** |
+| kart rengi | #8A84F6 | **#A79BFD** |
+| kutu dolgusu | #211C53 | **#1D1450** |
+
+**Kutulara kenarlık geldi.** Referansta 4 pikselik bir ara ton var
+(**#2A1E74**): zeminden koyu, dolgudan açık. O şerit olmadan koyu kutular
+açık mor zeminde "kesilmiş delik" gibi duruyordu.
+
+**Ad kapsülü zaten avatarın altındaydı** — ilk turun notu yanlıştı. Ölçüm
+doğruladı: referansta plaka X 0.119-0.590, avatar 0.211-0.492, yani plaka
+avatarın iki yanından da taşıyor ve ikisi tek bir kimlik bloğu okunuyor.
+
+#### DAİRE/ELİPS HATASI — BU PROJEDE ÜÇÜNCÜ KEZ (kullanıcı yakaladı)
+*"profildeki şu kısımı düzelt çarpı işareti de çok basık gibi"*.
+
+Kapatma çarpısı 162×125 birimlik bir kutuya konuyordu ve `UiSprites.Circle`
+düz bir `Image` olarak kutuya GERİLİYORDU → elips. Aynısı kalem rozetinde
+de vardı (121×105). Referansta çarpı 104×105 piksel, yani tam daire.
+
+**DERS:** `Image` sprite'ı kutuya gerer, `UiKit.CreateIcon` en-boy oranını
+KORUR. Daire çizen her yerde ikincisi kullanılmalı. Aynı hata daha önce
+yeşil artı düğmesinde ve liderlik madalyasında da çıktı — üçünde de sebep
+"kutu kare sanılıyordu" idi. Doğru bileşen seçilirse hata hiç doğmuyor.
+
+Kalem de düzeldi: 53×17'lik kapsül ekranda BEYAZ BİR OVAL okunuyordu;
+62×11 + koyu uç ile kalem gibi duruyor.
+
+**`badge_reward` "Blok Ligi" ikonundan kaldırıldı:** o görsel içi boş
+turuncu bir çerçeve (ortasında mor pencere) ve tek başına konunca
+"yüklenmemiş ikon" gibi duruyor. Yerine küre kondu. (Aynı görsel ana
+ekranın ödül şeridinde de yanlış kullanılıyordu — 22. madde.)
 
 ### [~] 5. Koleksiyon — YAZI ve BAŞLIK düzeltildi, GÖRSEL bekliyor
 
