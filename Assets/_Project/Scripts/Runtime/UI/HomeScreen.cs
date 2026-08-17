@@ -176,25 +176,33 @@ namespace BlockOut.Runtime.UI
 
             BuildAvatar(root, 0.058f, 0.201f, bottom - 0.018f, top + 0.018f);
 
-            // Tek koyu kapsül: iki kaynağı birden taşıyor.
+            // İKİ AYRI ÇUBUK, kapsül değil DİKDÖRTGEN.
             //
-            // GENİŞLİK REFERANSTAN DEĞİL, ESKİ HÂLİMİZDEN: Referansta kapsül
-            // 0.303'te başlıyor ve jeton ikonu onun SOLUNDA kalıyor. Bunu
-            // birebir uygulayınca jetonun altındaki saydam gri kayboldu ve
-            // kullanıcı haklı olarak "arkaplanı bozdun" dedi. Kapsül artık
-            // eskisi gibi jetonun ALTINDAN başlıyor (0.200) ve son artıya
-            // kadar kesintisiz gidiyor — eski kurulumdaki iki kapsülün
-            // arasındaki boşluk da böylece kapanıyor.
+            // DERS (referansı GERÇEKTEN oku, gevşek eşikle değil): Önce bu iki
+            // çubuğu TEK bir uzun kapsüle birleştirmiştim. Sebep bir ölçüm
+            // hatasıydı: koyu bölgeyi ararken kullandığım eşik jeton ve kalp
+            // ikonlarının GÖLGELERİNİ de "koyu" saydı ve iki çubuğu tek parça
+            // gibi gösterdi. Referansı yakınlaştırıp yazıların ALTINDAN geçen
+            // bir satırı taradığımda gerçek çıktı: iki ayrı çubuk var
+            // (X 0.296-0.511 ve 0.616-0.825), üstelik köşeleri kapsül gibi
+            // değil, hafif yuvarlatılmış DİKDÖRTGEN.
             //
-            // DERS (referansa uymak, İYİ OLANI bozmak pahasına olmaz):
-            // Ölçüm bir araç, amaç değil. Bu şeritte bizim çözümümüz daha
-            // iyiydi; referansın X değeri uğruna onu feda etmek sadakat değil
-            // körlük olurdu.
-            var bar = UiKit.CreateRoundedPanel("ResourceTrack", root,
-                new Color(0.055f, 0.035f, 0.145f, 0.50f));
-            UiKit.Place(bar, 0.200f, bottom, 0.845f, top);
-            bar.pixelsPerUnitMultiplier = 0.16f;
-            bar.raycastTarget = false;
+            // Kullanıcı bunu ekrana bakar bakmaz gördü; ben ölçtüğümü sanıp
+            // yanlış ölçmüştüm. Ölçmek, doğru yeri ölçmek demek.
+            Image ResourceBar(string name, float x0, float x1)
+            {
+                var panel = UiKit.CreateRoundedPanel(name, root,
+                    new Color(0.055f, 0.035f, 0.145f, 0.50f));
+                UiKit.Place(panel, x0, bottom, x1, top);
+                // ppu BÜYÜDÜKÇE köşe KÜÇÜLÜR: 0.16 kapsül yapıyordu,
+                // 1.4 referanstaki dikdörtgen köşeyi veriyor.
+                panel.pixelsPerUnitMultiplier = 1.4f;
+                panel.raycastTarget = false;
+                return panel;
+            }
+
+            ResourceBar("Track_Coin", 0.296f, 0.511f);
+            ResourceBar("Track_Lives", 0.616f, 0.825f);
 
             // --- jeton ---
             var coinIcon = UiKit.CreateIcon("Icon_Coin", root, UiSkin.Get(Art.Coin));
