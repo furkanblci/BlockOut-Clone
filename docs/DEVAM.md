@@ -45,14 +45,15 @@ Kart çıkmazsa hata gameplay'e girmeden önce (menü/akış tarafında) demekti
    ama ikon Unity'nin varsayılanı olur.**
 2. **Koleksiyon görseli (5. madde)** — açık kitap + albüm sekme ikonu
    (`docs/art-prompts.md` §11). Yerine şimdilik sandık duruyor.
-3. **Mağaza (12. madde) — tente şerit kontrastı ve harf kalınlığı.** Tek kalan
-   kod işi; bu oturumda sıra gelmedi.
+3. ~~Mağaza (12. madde)~~ — **BİTTİ.** Tente şerit kontrastı ölçülüp
+   düzeltildi (1.32 → 1.43, referansla birebir).
 
-**Karar bekleyen ekonomi sorunu:** `LivesService.Grant` üst sınırı aşmıyor.
-Canı doluyken can ödülü alan oyuncu kalbi KAYBEDİYOR (5 → 5 ölçüldü). Günlük
-ödülün 5. ve 7. günü, ödüllü reklam ve mağazadan can alımı — üçü de aynı
-yoldan geçiyor. Çözümü taşan canı saklayacak bir alan; ekonomiye dokunduğu
-için tek başıma değiştirmedim.
+~~Karar bekleyen ekonomi sorunu~~ — **BİTTİ (26. madde).** Canı doluyken
+alınan can ödülü kayboluyordu; fazlası artık `BankedLives`'da bekliyor ve
+can harcandıkça geri veriliyor. Denge sayıları değişmedi.
+
+**KOD İŞİ KALMADI.** Geriye yalnız senden gelecek iki görsel ve cihaz
+doğrulaması var.
 
 **Bu oturumda öğrenilen iki büyük ders:**
 - **Yakalama yöntemi hatayı GİZLİYORDU.** Aşağıdaki "Yakalama/doğrulama
