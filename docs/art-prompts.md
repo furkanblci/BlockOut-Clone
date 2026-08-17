@@ -492,3 +492,29 @@ A chunky golden stopwatch seen from the front, round gold case with a cream dial
 
 `art_raw/` yoluna girer (kesim gerekir). Gelince `ContinueOffer.BuildStage1`
 içindeki `Art.Clock` yerine yeni anahtar konur, düzen değişmez.
+
+## 11. KOLEKSİYON görselleri (2026-08-17)
+
+### 11.1 `collection_book.png` — açık kitap + bloklar
+
+Referans: `collections.jpeg`. Ekranın ortasında açık bir kitap, sayfalarında
+küçük kart/rozet resimleri, altında yuvarlak bir kaide ve çevresinde dağılmış
+renkli bloklar. Bizde şu an sandık (`icon_chest`) duruyor — yakın ama
+"koleksiyon" fikrini kitap kadar iyi anlatmıyor.
+
+```
+An open storybook standing upright on a round pedestal, its two pages showing small colorful collectible cards in frames, with chunky toy building blocks scattered around the base in pink purple blue and green, glossy 3D plastic toy style, front view, mobile casual puzzle game UI asset, soft studio lighting from top-left, subtle ambient occlusion, strong specular highlight on the pages, thick rounded edges, no outlines, highly saturated candy colors, single centered object on a plain solid light grey background, no text, no letters, no numbers, no drop shadow on the background, square 1024x1024, plenty of empty margin around the object, object occupies only the middle 80% of the frame, clean edges for game asset cutout
+```
+
+`art_raw/` yoluna girer (kesim gerekir). Gelince `CollectionScreen`'deki
+`Art.Chest` anahtarı değişir, düzen aynı kalır.
+
+### 11.2 Koleksiyon SEKME ikonu
+
+Referansta alt çubuktaki koleksiyon sekmesi kırmızı-altın çerçeveli, içinde
+dört küçük kare olan bir "albüm" simgesi; bizde sandık kullanılıyor.
+Aynı istem, kare albüm biçiminde:
+
+```
+A square photo-album icon with a thick ornate gold frame and a deep red cover, showing four small colorful square tiles arranged in a two by two grid on its face, glossy 3D plastic toy style, front view, mobile casual puzzle game UI asset, soft studio lighting from top-left, subtle ambient occlusion, thick rounded edges, no outlines, highly saturated candy colors, single centered object on a plain solid light grey background, no text, no letters, no numbers, no drop shadow on the background, square 1024x1024, plenty of empty margin around the object, clean edges for game asset cutout
+```

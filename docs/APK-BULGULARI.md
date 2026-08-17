@@ -575,10 +575,30 @@ birim) ve kutu ile aralık birlikte ayarlandı: 214+30 → **152+80**.
 Ad kapsülü referansta avatarın ALTINDA, bizde yanında. Kutuların ince açık
 kenarlığı yok.
 
-### [ ] 5. Koleksiyon ikonu, içerik görseli, yazı biçimi ve başlık
-Referansta: kitap + bloklar görseli, "Koleksiyonu **Seviye 95'de** Aç!"
-(vurgulu kısım altın). Sekme ikonu da değişecek.
-Referans: `collections.jpeg`
+### [~] 5. Koleksiyon — YAZI ve BAŞLIK düzeltildi, GÖRSEL bekliyor
+
+**Başlık** ortak `MenuPage.Header` düzeltmesiyle zaten düzeldi (punto + kontur).
+
+**Yazı ölçüldü:** referansta cümle ekranın neredeyse tamamını kaplıyor
+(X 0.044-0.957), büyük harf yüksekliği ekranın **%2.69**'u, Y 0.271-0.299.
+Bizdeki 40 punto **%1.5** veriyordu — yarı yarıya küçüktü ve ekranın
+ortasında kaybolmuş bir alt yazı gibi duruyordu. 40 → **72**.
+
+**Seviye kısmı ALTIN oldu** (`#FCC21E`, referanstan örneklendi). Referansta
+cümlenin tamamı beyaz değil: "Koleksiyonu **Seviye 95'de** Aç!" — ortadaki
+koşul vurgulu. Tek renkte yazınca cümle bir duyuru gibi okunuyor;
+vurgulanınca oyuncunun aradığı SAYI öne çıkıyor. TMP zengin metniyle.
+
+**İngilizce metin Türkçesinden uzun** olduğu için 72 puntoda sağdan taşıyordu;
+otomatik küçültme eklendi (72 üst sınır, 46 alt sınır).
+**DERS (yine):** `enableAutoSizing` tek başına çalışmaz — `overflowMode`
+kısıtlayıcı olmazsa TMP küçültmek yerine kutudan taşırır.
+
+#### 5'TE KALAN — GÖRSEL İSTEĞİ
+Referansta ortadaki görsel **açık bir kitap + çevresinde bloklar**; bizde
+sandık duruyor. Sekme ikonu da referansta kırmızı-altın çerçeveli bir
+"albüm". İki istem `docs/art-prompts.md` §11'e yazıldı. Gelince yalnız
+anahtar değişecek, düzen aynı kalacak.
 
 ### [ ] 4. Günlük ödül (Daily Reward) paneli
 Ödüllerin arkasındaki "day" yazısı okunmuyor ve oyunun konseptine uymuyor.
