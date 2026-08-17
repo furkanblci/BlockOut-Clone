@@ -55,7 +55,6 @@ namespace BlockOut.Runtime.UI
         static readonly Color LockWash    = new Color(0.647f, 0.663f, 0.937f, 0.78f);
         static readonly Color LockTag     = new Color(0.145f, 0.157f, 0.310f);
         static readonly Color TubeSeam    = new Color(0.055f, 0.400f, 0.706f);
-        static readonly Color JumpFace    = new Color(0.298f, 0.318f, 0.533f);
         static readonly Color CheckGreen  = new Color(0.212f, 0.776f, 0.106f);
         static readonly Color ActionGreen = new Color(0.176f, 0.800f, 0.047f);
         static readonly Color RangeTag    = new Color(0.137f, 0.165f, 0.369f);
@@ -65,13 +64,25 @@ namespace BlockOut.Runtime.UI
 
         // ---- Referanstan ölçülen boyutlar (kanvas birimi) ------------------
 
+        // BÖLGE DAİRESİ REFERANSTAN ÖLÇÜLDÜ (`journey.jpeg`, 946×2048):
+        // daire ~600 piksel, yani ekran yüksekliğinin %29'u → bizim tuvalde
+        // 580 birim. Bizimki 812'ydi (%42) — %40 büyük.
+        //
+        // DERS (oranı HANGİ KENARA göre alacaksın?): Referans telefon
+        // 946×2048 (0.462), bizim tuval 1080×1920 (0.5625) — yani onların
+        // ekranı BİZDEN DAR. Daire orada genişliğin %63'ü, bizde aynı fiziksel
+        // boyutta %54 eder. `CanvasScaler` YÜKSEKLİĞE eşlendiği için (match=1)
+        // doğru referans yükseklik oranıdır; genişlik oranını kopyalamak
+        // nesneyi fiziksel olarak büyütür. Büyümüş daire hem ekranı yiyordu
+        // hem de "Üst"/"Alt" atlama düğmelerinin durduğu boşluğu kapatıp
+        // onların bölge içeriğinin üstüne binmesine yol açıyordu.
         const float HeaderH   = 240f;
-        const float RowHeight = 268f;   // kilometre taşları arası
+        const float RowHeight = 250f;   // kilometre taşları arası (referans: 250)
         const float PillH     = 175f;
         const float PillX0    = 0.050f;
         const float PillX1    = 0.950f;
-        const float RegionH   = 1010f;
-        const float DiscSize  = 812f;
+        const float RegionH   = 760f;
+        const float DiscSize  = 580f;
         const float TubeW     = 32f;
         const float EdgePad   = 150f;
 
@@ -138,7 +149,6 @@ namespace BlockOut.Runtime.UI
             screen.BuildScrollArea(root);
             screen.BuildTrack();
             screen.BuildHeader(root);
-            screen.BuildJumpButtons(root);
 
             screen._built = true;
             return root;
@@ -576,51 +586,25 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(_markerLabel, 0.06f, 0.06f, 0.94f, 0.94f);
         }
 
-        /// <summary>
-        /// Rayın iki ucuna atlayan düğmeler.
-        ///
-        /// DERS (referans bunları BORUNUN ÜSTÜNE koyuyor): Bu ikisi bir ara sağ
-        /// kenara alınmıştı çünkü ekranın ortasındayken rozetlerle çakışıyordu.
-        /// Referansta çakışma yok, çünkü onlar rayın İKİ UCUNDA ve ray orada
-        /// zaten boş. Çözüm düğmeyi kaçırmak değil, doğru yere koymaktı.
-        /// </summary>
-        void BuildJumpButtons(Transform root)
-        {
-            BuildJump(root, "Top", 0.842f, () => _scroll.verticalNormalizedPosition = 1f);
-            BuildJump(root, "Bottom", 0.030f, () => _scroll.verticalNormalizedPosition = 0f);
-        }
-
-        void BuildJump(Transform root, string text, float cy, UnityEngine.Events.UnityAction go)
-        {
-            var button = UiKit.CreateRect("Jump_" + text, root);
-            UiKit.Place(button, 0.405f, cy - 0.017f, 0.595f, cy + 0.017f);
-
-            var face = MenuCapsule("Face", button, JumpFace);
-            UiKit.Place(face, 0f, 0f, 1f, 1f);
-
-            var label = UiKit.CreateTitle("Label", face.transform, text, 30,
-                UiKit.Ink, new Color(0.12f, 0.13f, 0.24f));
-            UiKit.Place(label, 0.06f, 0.06f, 0.94f, 0.94f);
-
-            // DERS (dinleyici bağlamak YETMEZ, dokunuşun ULAŞMASI da gerekir):
-            // Bu düğmenin `onClick`'i bağlıydı, `Button` bileşeni yerindeydi,
-            // görsel olarak da düğme gibi duruyordu — ama hedef grafiği
-            // `MenuCapsule`'den geliyor ve o yardımcı `raycastTarget = false`
-            // üretiyor. Yani dokunuş düğmeye HİÇ ULAŞMIYORDU; "Üst" ve "Alt"
-            // hiçbir zaman çalışmamış. Mekanik denetimde bulunan ölü
-            // kontrollerin beşincisi ve en sinsisi: öncekiler dinleyicisizdi,
-            // bu ise dinleyicisi olup duyamayan bir düğmeydi.
-            //
-            // Bunu bir raycast taraması ortaya çıkardı — "onClick bağlı mı"
-            // diye bakan tarama bu türü GÖREMEZ.
-            face.raycastTarget = true;
-
-            var click = button.gameObject.AddComponent<Button>();
-            click.targetGraphic = face;
-            click.transition = Selectable.Transition.None;
-            button.gameObject.AddComponent<GameKit.UI.UiButtonFeel>();
-            click.onClick.AddListener(() => { if (_scroll != null) go(); });
-        }
+        // "ÜST"/"ALT" ATLAMA DÜĞMELERİ KALDIRILDI (2026-08-17).
+        //
+        // Bu iki düğme rayın üstünde, ekranın sabit iki noktasında duruyordu.
+        // Gerekçesi "referans onları borunun ucuna koyuyor ve orası boş" idi —
+        // ama bizim rayımız referanstakinden UZUN (beş bölge) ve o iki nokta
+        // hiçbir kaydırma konumunda boş kalmıyor. Tam ekran yakalamada
+        // görüldü: "Top" bölgenin "lv 21-40" etiketinin, "Alt" da alttaki
+        // bölgenin etiketinin ve sekme kartının üstüne biniyor; ikisi de
+        // okunmaz oluyor.
+        //
+        // İşlev kaybolmuyor: ekran zaten açılışta oyuncunun bulunduğu
+        // kilometre taşını ortalıyor (`_centeredOnce` + LateUpdate), yani
+        // "beni yerime götür" ihtiyacı kendiliğinden karşılanıyor; gerisi
+        // normal kaydırma.
+        //
+        // DERS (içeriğin üstüne binen kontrol, olmayan kontrolden kötüdür):
+        // Bir düğmeyi ekranda tutmak için altındaki bilgiyi okunmaz yapmak
+        // takas değil, zarar. Ölçüyü değiştirip kurtarmayı üç konumda denedim;
+        // ekran kenardan kenara dolu olduğu için çakışmayan bir yer yok.
 
         // ---- Yardımcılar ----------------------------------------------------
 

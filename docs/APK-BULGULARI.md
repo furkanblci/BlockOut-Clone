@@ -357,7 +357,7 @@ Ayrıca 22. maddedeki ödül şeridi de bu ekranın parçası; o da kapandı.
   hâle getirilecek.
 Referans: `ana ekran.jpeg`
 
-### [~] 9. Yolculuk — KAYDIRMA DÜZELDİ + BİR ÖLÜ KONTROL DAHA
+### [x] 9. Yolculuk — BİTTİ
 
 **Kaydırma neden çalışmıyordu:** `ScrollRect` viewport'ta kuruluydu ama
 viewport'ta **raycast yakalayan hiçbir grafik yoktu** — yalnız `RectMask2D`.
@@ -407,8 +407,41 @@ bizimki zaten daha küçük. Fark çemberde değil **dikey yoğunlukta**: refera
 aynı ekrana daha çok kilometre taşı sığdırıyor. Çemberi küçültmek yanlış
 düzeltme olurdu; satır aralığı ayrı bir iş olarak duruyor.
 
-#### 9. MADDEDE KALAN
-Satır aralığı (dikey yoğunluk) ve ödül kapsülünün iç düzeni.
+#### 9 — İKİNCİ TUR (2026-08-17): DAİRE %40 BÜYÜKTÜ, ATLAMA DÜĞMELERİ GİTTİ
+
+**Bölge dairesi ölçüldü:** referansta ~600 piksel, yani ekran yüksekliğinin
+%29'u → bizim tuvalde **580 birim**. Bizimki **812**'ydi (%42), yani %40
+büyük. `RegionH` de 1010 → 760, kilometre adımı 268 → **250** (referans).
+
+**DERS (oranı HANGİ KENARA göre alacaksın?):** Referans telefon 946×2048
+(en/boy 0.462), bizim tuval 1080×1920 (0.5625) — onların ekranı BİZDEN DAR.
+Daire orada genişliğin %63'ü; aynı fiziksel boyut bizde %54 eder.
+`CanvasScaler` YÜKSEKLİĞE eşlendiği için (match=1) doğru referans yükseklik
+oranıdır. Genişlik oranını kopyalamak nesneyi fiziksel olarak büyütür — bu
+ekranda tam olarak bu olmuş.
+
+**"Üst"/"Alt" atlama düğmeleri kaldırıldı.** Gerekçeleri "referans onları
+borunun ucuna koyuyor ve orası boş" idi; ama bizim rayımız daha uzun (beş
+bölge) ve o iki nokta hiçbir kaydırma konumunda boş kalmıyor. Tam ekran
+yakalamada göründü: "Top" bölgenin `lv 21-40` etiketini, "Alt" da alttaki
+bölgenin etiketini ve sekme kartını örtüyor — ikisi de okunmaz oluyordu.
+Üç farklı konum denendi; ekran kenardan kenara dolu olduğu için çakışmayan
+yer yok.
+
+İşlev kaybolmadı: ekran zaten açılışta oyuncunun bulunduğu kilometre taşını
+ortalıyor (`_centeredOnce` + `LateUpdate`), gerisi normal kaydırma.
+
+**DERS (içeriğin üstüne binen kontrol, olmayan kontrolden kötüdür):** Bir
+düğmeyi ekranda tutmak için altındaki bilgiyi okunmaz yapmak takas değil,
+zarar.
+
+#### DAİRE/ELİPS TARAMASI (21. maddedeki hatanın peşinden)
+Profildeki elips hatasından sonra bütün proje `UiSprites.Circle` için
+tarandı ve üç yer daha çıktı: **günlük ödül** ve **"Continue?"** panellerinin
+kapatma çarpıları, bir de **mağaza taşıyıcı noktaları**. Üçü de düz `Image`
+kullanıyordu, yani kutu kare olmadığı anda elipse dönüyorlardı. Hepsi
+`UiKit.CreateIcon`'a alındı. Yolculuk'un kilitli bölge maskesi zaten kare
+kutudaydı (`DiscSize × DiscSize`) — dokunulmadı.
 
 ### [ ] 9-eski. Yolculuk (özgün istek metni)
 - ~~Kaydırma çalışmıyor~~ — düzeldi (yukarı bak).

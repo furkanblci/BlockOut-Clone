@@ -193,27 +193,20 @@ namespace BlockOut.Runtime.UI
             var root = UiKit.CreateRect("Close", page);
             UiKit.Place(root, 0.854f, y0, 0.958f, y1);
 
-            var ring = UiKit.CreateRect("Ring", root);
-            var ringImage = ring.gameObject.AddComponent<Image>();
-            ringImage.sprite = UiSprites.Circle;
-            ringImage.color = new Color(0.42f, 0.05f, 0.09f);
-            UiKit.Place(ring, 0f, 0f, 1f, 1f);
+            // DAİRE `CreateIcon` İLE: düz bir `Image` sprite'ı kutuya gerer ve
+            // kutu kare olmadığı anda daire elipse döner (bkz. MenuPage.Close).
+            var ringImage = UiKit.CreateIcon("Ring", root, UiSprites.Circle,
+                new Color(0.42f, 0.05f, 0.09f));
+            UiKit.Place(ringImage, 0f, 0f, 1f, 1f);
 
-            var face = UiKit.CreateRect("Face", root);
-            var faceImage = face.gameObject.AddComponent<Image>();
-            faceImage.sprite = UiSprites.Circle;
-            faceImage.color = new Color(0.855f, 0.145f, 0.180f);
-            faceImage.raycastTarget = false;
-            UiKit.Place(face, 0.07f, 0.09f, 0.93f, 0.95f);
+            var faceImage = UiKit.CreateIcon("Face", root, UiSprites.Circle,
+                new Color(0.855f, 0.145f, 0.180f));
+            UiKit.Place(faceImage, 0.07f, 0.09f, 0.93f, 0.95f);
 
-            var cross = UiKit.CreateIcon("Cross", face.transform, UiSprites.Cross);
+            var cross = UiKit.CreateIcon("Cross", faceImage.transform, UiSprites.Cross);
             UiKit.Place(cross, 0.26f, 0.26f, 0.74f, 0.74f);
 
-            var button = root.gameObject.AddComponent<Button>();
-            button.targetGraphic = ringImage;
-            button.transition = Selectable.Transition.None;
-            root.gameObject.AddComponent<GameKit.UI.UiButtonFeel>();
-            button.onClick.AddListener(onClick);
+            UiKit.MakeClickable(root.gameObject, ringImage, onClick);
         }
 
         /// <summary>

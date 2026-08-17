@@ -493,10 +493,11 @@ namespace BlockOut.Runtime.UI
 
             for (int i = 0; i < count; i++)
             {
-                var dot = UiKit.CreateRect("Dot" + i, row);
-                var image = dot.gameObject.AddComponent<Image>();
-                image.sprite = UiSprites.Circle;
-                image.raycastTarget = false;
+                // `CreateIcon` en-boy oranını korur: kutu kare olmasa da nokta
+                // daire kalır (bkz. MenuPage.Close — bu projede üç kez elips
+                // çıktı).
+                var image = UiKit.CreateIcon("Dot" + i, row, UiSprites.Circle);
+                var dot = image.rectTransform;
                 // Başlangıç rengi KURULUMDA verilir. Taşıyıcı bunu her kare
                 // güncelliyor ama ilk karede henüz çalışmamış olur; üstelik
                 // düzenleyici kipinde Update hiç çalışmaz ve ekran görüntüsünde
