@@ -35,7 +35,18 @@ namespace BlockOut.Runtime.Flow
                 return;
             }
 
-            GameKit.Flow.SceneRouter.Load(AppRouter.MainScene);
+            // Açılış zinciri: stüdyo ekranı → yükleme ekranı → Main.
+            //
+            // DERS (sahne yüklemesini PERDENİN ARKASINA al): Main doğrudan
+            // yüklenseydi oyuncu birkaç yüz milisaniye siyah ekran görürdü.
+            // Yükleme ekranı zaten kurulu durduğu için o boşluk artık
+            // illüstrasyonun arkasında geçiyor.
+            BootSplash splash = null;
+            splash = BootSplash.Create(() =>
+            {
+                GameKit.Flow.SceneRouter.Load(AppRouter.MainScene);
+                splash.Dismiss();          // perde, Main ayağa kalktıktan sonra açılır
+            });
         }
     }
 }

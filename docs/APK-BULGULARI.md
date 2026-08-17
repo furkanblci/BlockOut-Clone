@@ -207,17 +207,38 @@ kapalıyken de açıkken de hatasız çalışıyor.
 
 ## C — AÇILIŞ ZİNCİRİ
 
-### [ ] 1. Uygulama ikonu yok
-Orijinal oyunun ikonu kullanılabilir.
+### [ ] 1. Uygulama ikonu yok — SENDEN BİR DOSYA BEKLİYOR
+Karar: **orijinal oyunun ikonu** kullanılacak (kullanıcı seçimi, 2026-08-17).
+Bende o dosya yok; referans videolardan çıkarılabilecek en büyük hâli ~60
+piksel, ikon için 512 gerekiyor.
 
-### [ ] 3. Grand Games açılışı yok
-Referans: `grand açılış.jpeg` — bordo zemin, ortada beyaz küçük harf "grand".
-Oyun açılışından ÖNCE gelir.
+**Yapman gereken:** oyunun mağaza ikonunu `art_raw/icon_app.png` olarak koy
+(kare, en az 512×512). Gerisini ben hallederim: `ProjectSettings` Android
+ikon yuvaları + adaptive icon ön/arka katmanı.
 
-### [ ] 2. Oyun açılış/yükleme ekranı yok
-Referans: `oyun açılış.jpeg` — gökyüzü + bulutlar, "BLOCK OUT!" blok harfli
-logo, roketli karakterler, altta "Yükleniyor...". **Aynı ekran yükleme ekranı
-olarak da çalışacak.**
+### [x] 3. Grand Games açılışı — KURULDU
+`BootSplash.cs`. Bordo degrade zemin (köşe `#81001F`, dikey orta `#C50133` —
+referanstan örneklendi), ortada beyaz küçük harf kelime işareti,
+X 0.235-0.762 · Y(alttan) 0.453-0.549. 1.4 saniye durup yumuşakça sönüyor.
+
+> Kullanıcı birebir "grand" yazmasını seçti (portfolyo/marka uyarısı yapıldı,
+> karar tekrarlandı).
+
+### [x] 2. Oyun açılış/yükleme ekranı — KURULDU
+`BootSplash.cs`'in ikinci aşaması. **`splash_art.png` zaten üretilmiş ama
+koda hiç bağlanmamıştı** (`Art.Splash`'in tek kullanımı yoktu) — referansın
+illüstrasyonuna çok yakın: gökyüzü, bulutlar, roketli üç karakter, uçuşan
+bloklar. Üstte "BLOCK OUT!", altta "Loading…" (Y 0.100-0.155).
+
+**DERS (yükleme ekranı, yükleme BAŞLARKEN ölmemeli):** İlk hâlde splash Boot
+sahnesinin nesnesiydi; `SceneRouter.Load(Main)` çağrıldığı anda Boot
+boşaltılıyor ve perde tam da işe yarayacağı anda kayboluyordu. Artık
+`DontDestroyOnLoad` ile sahne geçişini aşıyor ve Main ayağa kalktıktan sonra
+açılıyor.
+
+**Kalan fark:** referansta logo BLOK HARFLİ bir görsel; bizde başlık
+malzemesiyle yazılmış altın metin. Gerçek logo görseli gelirse tek bir
+`Image`'a iner, düzen değişmez.
 
 ---
 
