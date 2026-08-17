@@ -155,31 +155,60 @@ namespace BlockOut.Runtime.UI
         // ---------------------------------------------------------------- üst bar
 
         /// <summary>
-        /// Üst bar: avatar · jeton çubuğu · can çubuğu · ayarlar.
+        /// Üst bar — X oranları `ana ekran.jpeg`'ten (946×2048) BİREBİR alındı.
         ///
-        /// DERS (tek kapsül İKİ ayrı bilgiyi taşıyamaz): Jeton ve can tek bir
-        /// uzun kapsülün içindeydi. İki bağımsız kaynak aynı kutuya girince göz
-        /// nereden nereye kadar neyin olduğunu ayıramıyor ve şerit "kalabalık"
-        /// görünüyor. Her kaynağın KENDİ çubuğu var; aralarındaki boşluk,
-        /// ayırıcı çizgiye gerek bırakmadan ayrımı yapıyor.
+        /// DERS (iki kap değil, TEK kap): Burası eskiden jeton ve can için iki
+        /// AYRI koyu kapsül kuruyordu ve aralarında bir boşluk kalıyordu.
+        /// Referansta tek bir kapsül var (X 0.303-0.866); jeton ikonu onun SOL
+        /// UCUNDAN taşıyor, kalp de içinde duruyor. Fark küçük görünür ama üst
+        /// bar bir "kaynak çubuğu" olarak okunuyor — ikiye bölünce iki ayrı
+        /// gösterge gibi duruyor ve ekranın üstü dağınık görünüyordu.
         ///
-        /// DERS (ikonun arkasında kutu YOK): İkonlar önce kendi zeminleriyle
-        /// duruyordu; iki katman üst üste gelince şerit kalınlaşıyordu. İkon
-        /// artık doğrudan çubuğun BAŞINDA, kaydırıcı topuzu gibi kenardan
-        /// taşarak duruyor — arkasında ayrı bir yüzey yok.
+        /// Ölçülen yerleşim (ekran genişliğine oran):
+        ///   avatar 0.058-0.201 · kapsül 0.303-0.866
+        ///   jeton ikonu 0.220-0.308 · sayı 0.345-0.419 · artı 0.457-0.511
+        ///   kalp 0.529-0.628 · durum 0.650-0.752 · artı 0.772-0.827
+        ///   dişli 0.872-0.962
         /// </summary>
         void BuildTopBar(Transform root)
         {
             const float top = 0.976f, bottom = 0.936f;
 
-            BuildAvatar(root, 0.030f, 0.146f, bottom - 0.016f, top + 0.016f);
+            BuildAvatar(root, 0.058f, 0.201f, bottom - 0.018f, top + 0.018f);
 
-            _coinLabel = Track(root, Art.Coin, 0.200f, 0.474f, bottom, top,
-                out var coinPlus, out _);
+            // Tek koyu kapsül: iki kaynağı birden taşıyor.
+            var bar = UiKit.CreateRoundedPanel("ResourceTrack", root,
+                new Color(0.055f, 0.035f, 0.145f, 0.50f));
+            UiKit.Place(bar, 0.303f, bottom, 0.866f, top);
+            bar.pixelsPerUnitMultiplier = 0.16f;
+            bar.raycastTarget = false;
+
+            // --- jeton ---
+            var coinIcon = UiKit.CreateIcon("Icon_Coin", root, UiSkin.Get(Art.Coin));
+            UiKit.Place(coinIcon, 0.220f, bottom - 0.004f, 0.308f, top + 0.004f);
+
+            _coinLabel = UiKit.CreateTitle("Value_Coin", root, "", 40, CoinInk,
+                new Color(0.10f, 0.07f, 0.24f));
+            UiKit.Place(_coinLabel, 0.330f, bottom + 0.003f, 0.445f, top - 0.003f);
+
+            var coinPlus = UiKit.CreateIconButton("Plus_Coin", root, UiSkin.Get(Art.Plus));
+            UiKit.Place(coinPlus, 0.457f, bottom + 0.002f, 0.511f, top - 0.002f);
             coinPlus.onClick.AddListener(() => MenuShell.Instance?.Show("store"));
 
-            _livesLabel = Track(root, Art.Heart, 0.532f, 0.806f, bottom, top,
-                out var lifePlus, out _livesTimer);
+            // --- can ---
+            var heart = UiKit.CreateIcon("Icon_Heart", root, UiSkin.Get(Art.Heart));
+            UiKit.Place(heart, 0.529f, bottom - 0.005f, 0.628f, top + 0.005f);
+
+            // Sayı kalbin ÜSTÜNDE ortalanır — referansta da öyle.
+            _livesLabel = UiKit.CreateTitle("Value_Heart", heart.transform, "", 46,
+                CoinInk, new Color(0.42f, 0.03f, 0.03f));
+            UiKit.Place(_livesLabel, 0f, 0.04f, 1f, 0.92f);
+
+            _livesTimer = UiKit.CreateLabel("Status_Heart", root, "", 39, CoinInk);
+            UiKit.Place(_livesTimer, 0.640f, bottom + 0.003f, 0.762f, top - 0.003f);
+
+            var lifePlus = UiKit.CreateIconButton("Plus_Heart", root, UiSkin.Get(Art.Plus));
+            UiKit.Place(lifePlus, 0.772f, bottom + 0.002f, 0.827f, top - 0.002f);
             lifePlus.onClick.AddListener(() => MenuShell.Instance?.Show("store"));
 
             // Sınırsız can hakkı sürerken sayının yerini ∞ GÖRSELİ alır.
@@ -197,70 +226,9 @@ namespace BlockOut.Runtime.UI
             badge.offsetMax = number.offsetMax;
             _livesInfinity.enabled = false;
 
-            var gear = SquareButton(root, "Gear", Art.Gear, 0.850f, 0.968f, bottom, top);
+            var gear = SquareButton(root, "Gear", Art.Gear, 0.872f, 0.962f, bottom, top);
             gear.onClick.AddListener(() => MenuShell.Instance?.Show("settings"));
         }
-
-        /// <summary>
-        /// Tek bir kaynak çubuğu: ikon (başta, taşarak) · değer · artı (sonda).
-        ///
-        /// Can çubuğunda sayı KALBİN ÜSTÜNDE ortalanır, çubukta geri sayım
-        /// yazar. Sayıyı kalbin yanına koymak çubuğu uzatıyordu; üstüne koymak
-        /// hem yer kazandırıyor hem "bu sayı canın kendisi" diyor.
-        /// </summary>
-        TextMeshProUGUI Track(Transform root, string icon, float x0, float x1,
-            float y0, float y1, out Button plus, out TextMeshProUGUI status)
-        {
-            bool isLives = icon == Art.Heart;
-            float span = x1 - x0;
-
-            var bar = UiKit.CreateRoundedPanel($"Track_{icon}", root,
-                new Color(0.055f, 0.035f, 0.145f, 0.50f));
-            UiKit.Place(bar, x0, y0, x1, y1);
-            bar.pixelsPerUnitMultiplier = 0.16f;
-            bar.raycastTarget = false;
-
-            // İkon çubuğun SOL UCUNDA, kenardan taşarak — kaydırıcı topuzu gibi.
-            var badge = UiKit.CreateIcon($"Icon_{icon}", root, UiSkin.Get(icon));
-            UiKit.Place(badge, x0 - span * 0.075f, y0 - 0.013f,
-                              x0 + span * 0.265f, y1 + 0.013f);
-
-            status = null;
-            TextMeshProUGUI value;
-
-            // PUNTOLAR REFERANSTAN ÖLÇÜLDÜ (`ana ekran.jpeg`, 2026-08-17).
-            // Yöntem: yazının büyük harf yüksekliğini KOYU KAPSÜLÜN
-            // yüksekliğine oranla. Referans kapsül 85 piksel; oranlar:
-            //   jeton sayısı  29/85 = 0.341   → bizde 0.34, ZATEN DOĞRUYDU
-            //   kalp adedi    37/85 = 0.435   → bizde 0.32, %27 küçüktü
-            //   "Dolu"        31/85 = 0.365   → bizde 0.27, %26 küçüktü
-            // Yani kullanıcının işaret ettiği iki yazı gerçekten küçüktü,
-            // jeton sayısı ise değildi — göz "hepsi küçük" diyordu, ölçüm
-            // hangisinin olduğunu söyledi.
-            if (isLives)
-            {
-                value = UiKit.CreateTitle($"Value_{icon}", badge.transform, "", 46,
-                    CoinInk, new Color(0.42f, 0.03f, 0.03f));
-                UiKit.Place(value, 0f, 0.04f, 1f, 0.92f);
-
-                status = UiKit.CreateLabel($"Status_{icon}", bar.transform, "", 39, CoinInk);
-                UiKit.Place(status, 0.24f, 0.08f, 0.82f, 0.92f);
-            }
-            else
-            {
-                // "5000" dört hane; 40 puntoda ~105 piksel, ayrılan alan ~154.
-                value = UiKit.CreateTitle($"Value_{icon}", bar.transform, "", 40, CoinInk,
-                    new Color(0.10f, 0.07f, 0.24f));
-                UiKit.Place(value, 0.24f, 0.08f, 0.82f, 0.92f);
-            }
-
-            plus = UiKit.CreateIconButton($"Plus_{icon}", root, UiSkin.Get(Art.Plus));
-            UiKit.Place(plus, x1 - span * 0.235f, y0 - 0.006f,
-                             x1 + span * 0.075f, y1 + 0.006f);
-
-            return value;
-        }
-
 
         void BuildAvatar(Transform root, float x0, float x1, float y0, float y1)
         {

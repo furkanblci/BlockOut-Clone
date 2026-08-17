@@ -122,19 +122,38 @@ namespace BlockOut.Runtime.UI
             var bar = barSprite != null
                 ? UiKit.CreateSlicedPanel("TabBar", root, barSprite)
                 : UiKit.CreateRoundedPanel("TabBar", root, BarColor);
-            UiKit.Place(bar, 0f, 0f, 1f, 0.086f);
-            bar.rectTransform.offsetMin = new Vector2(0f, -220f);
+            // Yükseklik referanstan: çubuğun üst kenarı ekranın altından
+            // %9.9'da (bizde %8.6'ydı).
+            UiKit.Place(bar, 0f, 0f, 1f, 0.099f);
+
+            // Boya HER ÜÇ KENARDAN taşar. Aşağısı güvenli alan için (eskiden
+            // beri), YANLAR ise çubuk görselinin YUVARLAK UÇLARI yüzünden:
+            // referansta çubuk kenardan kenara DÜZ gidiyor, bizde iki yanda
+            // yuvarlanıp arkasındaki manzarayı gösteriyordu.
+            bar.rectTransform.offsetMin = new Vector2(-90f, -220f);
+            bar.rectTransform.offsetMax = new Vector2(90f, 0f);
 
             // Seçili kartın taşacağı alan çubuğun üstünde; bu yüzden kartlar
             // çubuğun DEĞİL kökün çocuğu, yoksa çubuk onları kırpar.
             float slot = 1f / Tabs.Length;
+
+            // Sekmeler arasındaki ince dikey ayraçlar — referansta her komşu
+            // sekme çifti arasında var. Çubuğu bölünmüş gösteriyor, yoksa beş
+            // ikon tek bir şeridin üstünde yüzüyormuş gibi duruyor.
+            for (int i = 1; i < Tabs.Length; i++)
+            {
+                var divider = UiKit.CreatePanel($"Divider_{i}", root, DividerColor);
+                divider.raycastTarget = false;
+                UiKit.Place(divider, i * slot - 0.0015f, 0.020f, i * slot + 0.0015f, 0.078f);
+            }
+
             for (int i = 0; i < Tabs.Length; i++)
             {
                 var (label, key, icon) = Tabs[i];
 
                 var button = UiKit.CreateSpriteButton($"Tab_{key}", root, null,
                     null, 0, UiKit.Ink);
-                UiKit.Place(button, i * slot, 0f, (i + 1) * slot, 0.082f);
+                UiKit.Place(button, i * slot, 0f, (i + 1) * slot, 0.095f);
 
                 // Seçiliyken görünen kart: normalde saydam.
                 // Kart, çubuktan AÇIK bir tonda: koyu zemin üstünde koyu bir
@@ -143,7 +162,10 @@ namespace BlockOut.Runtime.UI
                 var card = cardSprite != null
                     ? UiKit.CreateSlicedPanel("Card", button.transform, cardSprite)
                     : UiKit.CreateRoundedPanel("Card", button.transform, CardColor);
-                UiKit.Place(card, 0.05f, 0.06f, 0.95f, 1.56f);
+                // Kartın ÜST kenarı referansta ekranın altından %16.4'te;
+                // düğme %9.5 yüksek olduğuna göre çarpan 0.164/0.095 = 1.73.
+                // Eskiden 1.56 idi ve kart çubuğun üstüne yeterince çıkmıyordu.
+                UiKit.Place(card, 0.05f, 0.06f, 0.95f, 1.73f);
 
                 // Görünmez ama dokunulabilir yüzey: sekmenin tamamı tıklanabilsin.
                 if (button.targetGraphic is Image face) face.color = new Color(1f, 1f, 1f, 0f);
@@ -165,9 +187,16 @@ namespace BlockOut.Runtime.UI
         // duruyordu. Kontrast ne kadar sertse eleman o kadar "yapıştırılmış"
         // görünür. Çubuk ikonların tonuna yaklaştırıldı ve üst kenarına ince
         // bir ışık şeridi kondu — o çizgi, çubuğu bir YÜZEY yapan şey.
-        static readonly Color BarColor  = new Color(0.318f, 0.243f, 0.612f);
-        static readonly Color CardColor = new Color(0.404f, 0.278f, 0.831f);
-        static readonly Color RimColor  = new Color(0.478f, 0.396f, 0.812f);
+        // RENKLER REFERANSTAN ÖLÇÜLDÜ (`ana ekran.jpeg`, 2026-08-17):
+        // çubuk gövdesi #4F3BD8, üst ışık şeridi #5340EA. Eskisi (#514E9C)
+        // belirgin biçimde DAHA SOLUKTU — kullanıcının "alt menü arkaplanı
+        // güncellenecek" dediği şeyin ölçülebilir kısmı buydu.
+        static readonly Color BarColor  = new Color(0.310f, 0.231f, 0.847f);
+        static readonly Color CardColor = new Color(0.447f, 0.196f, 0.780f);
+        static readonly Color RimColor  = new Color(0.325f, 0.251f, 0.918f);
+
+        /// <summary>Sekmeler arasındaki ince dikey ayraç — referansta var.</summary>
+        static readonly Color DividerColor = new Color(1f, 1f, 1f, 0.13f);
 
         /// <summary>
         /// Sekmeyi değiştirir. ZATEN AÇIK olan sekmeye basmak hiçbir şey yapmaz.

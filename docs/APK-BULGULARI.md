@@ -277,13 +277,34 @@ kartı ve yazısı açık kalıyordu**, hepsi seçiliymiş gibi görünüyordu.
 durumun bir kez UYGULANDIĞINI da bilmek zorunda; yoksa "değişmedi" ile
 "hiç yazılmadı" karışır.**
 
-#### KALAN İKİ İŞ
-1. **Üst bar TEK kapsül olmalı.** Referansta jeton ve kalp AYNI koyu
-   kapsülün içinde (x 0.303-0.866), ikonlar kapsülden taşıyor. Bizde iki
-   ayrı kapsül var ve aralarında boşluk kalıyor.
-2. **Sekme çubuğu cilası.** Referans: çubuk kenardan kenara DÜZ (bizde
-   yuvarlak uçlar + yanlarda boşluk), sekmeler arasında ince dikey ayraçlar,
-   seçili kart daha yüksek, ikonlar daha büyük.
+#### ÜST BAR TEK KAPSÜLE ÇEVRİLDİ
+Referansın X oranları birebir alındı: avatar 0.058-0.201 · kapsül
+0.303-0.866 · jeton ikonu 0.220-0.308 (kapsülün sol ucundan TAŞIYOR) ·
+sayı 0.330-0.445 · artı 0.457-0.511 · kalp 0.529-0.628 · durum 0.640-0.762 ·
+artı 0.772-0.827 · dişli 0.872-0.962. Kullanılmayan `Track` yardımcısı
+kaldırıldı (61 satır).
+
+**Ölçüm bir kez daha "dokunma" dedi:** kapsülün tonu bizde daha soluk
+görünüyordu; ölçünce referansın zemini %46'ya indirdiği, bizim %50 alfamızın
+zaten aynı yerde olduğu çıktı. Fark arkadaki manzaranın renginden geliyor —
+kapsül doğru. (Jeton puntosunda olduğu gibi, gözün "yanlış" dediği şeyin
+ölçüsü doğru çıkabiliyor.)
+
+#### SEKME ÇUBUĞU REFERANSA ÇEKİLDİ
+- **Renk:** gövde `#514E9C` → **`#4F3BD8`**, ışık şeridi → **`#5340EA`**
+  (referanstan örneklendi). Eskisi belirgin biçimde daha soluktu —
+  "alt menü arkaplanı güncellenecek" isteğinin ölçülebilir kısmı buydu.
+- **Kenardan kenara düz:** çubuğun boyası artık YANLARDAN da 90 birim
+  taşıyor. Görselin yuvarlak uçları ekran dışında kalıyor; eskiden iki yanda
+  yuvarlanıp arkasındaki manzarayı gösteriyordu.
+- **Yükseklik:** üst kenar %8.6 → **%9.9** (referans ölçüsü).
+- **Dikey ayraçlar** eklendi (referansta her komşu sekme çifti arasında var).
+- **Seçili kart** çubuğun üstüne daha çok çıkıyor: çarpan 1.56 → **1.73**
+  (referansta kartın üstü ekranın altından %16.4'te).
+
+#### 7. MADDEDE KALAN
+Sekme ikonları referansta bizimkilerden büyük ve seçili kartın tonu çubuktan
+daha belirgin ayrışıyor. İkinci tur cila; yapısal iş bitti.
 
 ### [ ] 7-eski. Ana ekran (özgün istek metni)
 - Üstteki jeton ve kalp yazıları büyüyecek; kalp adedi ve "Dolu" yazısının
