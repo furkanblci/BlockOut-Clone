@@ -136,6 +136,7 @@ namespace BlockOut.Runtime.UI
         public static RectTransform Build(Transform parent)
         {
             var root = UiKit.CreateRect("JourneyScreen", parent);
+            GameKit.UI.UiTweak.Mark(root, "JourneyScreen");
             UiKit.Place(root, 0f, 0f, 1f, 1f);
             var screen = root.gameObject.AddComponent<JourneyScreen>();
 

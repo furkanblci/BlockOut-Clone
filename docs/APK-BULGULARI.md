@@ -1032,3 +1032,55 @@ sürüm yükseltmeye gerek yok.
 **DERS (sınır koymak, aşanı ATMAK demek değildir):** İlk ölçümde bunu bir
 "tasarım tercihi" sanmıştım. Oyuncuya bir şey söz verip vermemek tercih
 değil, hatadır — kural sınırı korumalı ama sözü de tutmalı.
+
+---
+
+### [x] 27. ARAYÜZ TASARIM SİSTEMİ — panelleri elle düzenleme
+Kullanıcı isteği: *"uiları bütün panelleri tasarımları ben elimle
+değiştirebileyim revize edebileyim... profesyonel olsun optimizasyonu
+etkileyecek bir şey de olmasın"*.
+
+**Prefab'a çevirmedik** — bu projenin arayüzü bilerek kodla kuruluyor ve
+ölçülerin hangi referans karesinden, hangi piksel oranından geldiği kodun
+yanındaki yorumda duruyor (bkz. `UiKit` başındaki ders). Prefab'a çevirmek
+o gerekçelerin tamamını çöpe atardı ve prefab YAML'ı birleştirmede çakışır.
+
+Bunun yerine **fark (override) katmanı**: kod hâlâ tek kaynak, elle yapılan
+değişiklik onun ÜSTÜNE binen bir liste. Kod bir ölçüyü değiştirdiğinde elle
+dokunulmamış her şey yeni değeri kendiliğinden alır — donmuş bir kopya
+kalmaz.
+
+**Kullanım** (`Tools > Block Out > Arayüz Tasarımı`, `Ctrl+Shift+U`):
+1. Play moduna gir, düzenleyeceğin ekranı aç
+2. **Referans al**
+3. Hiyerarşide/Sahnede normal Unity araçlarıyla oynat (konum, boyut, renk,
+   punto, aç/kapa)
+4. **Değişiklikleri kaydet** → yalnız FARKLAR
+   `Resources/UiLayout.asset`'e yazılır
+
+Ekran başına "Sıfırla" düğmesi kodun ürettiği hâle döndürür.
+
+**Optimizasyon:** çalışma anında hiçbir karede iş yok. Ekran kurulduktan
+sonra bir kez hiyerarşi geziliyor; kayıtlı düzeltme yoksa `ApplyAll` ilk
+satırda dönüyor. Tasarım penceresi editör kodu, derlemeye hiç girmiyor.
+Ekranlardaki işaret (`UiTweakRoot`) tek bir string alan taşıyor.
+
+**İKİ GERÇEK HATA — ikisi de sınavda çıktı, ikisi de SESSİZ:**
+
+1. **ScriptableObject kendi adıyla aynı dosyada olmak zorunda.**
+   `UiLayoutAsset` önce `UiTweak.cs` içindeydi; kod sorunsuz derlendi ama
+   `AssetDatabase.CreateAsset` "No script asset for UiLayoutAsset" **uyarısı**
+   verip script referansı BOŞ bir varlık üretti. Varlık diske yazılıyor,
+   `Resources.Load` onu buluyor gibi görünüyor, ama veri geri okunamıyor.
+   Uyarı seviyesinde kaldığı için kolayca gözden kaçıyor.
+
+2. **`Start` yetmez, çünkü `Start`'ların sırası tanımsızdır.** Uygulama
+   çağrısı önce doğrudan `AppRoot.Start`'taydı ve düzeltmeler hiç
+   uygulanmadı — üstelik hata da vermedi, çünkü ortada hata yoktu: ekranlar
+   o an henüz kurulmamıştı ve gezilecek çocuk yoktu. "Benden sonra kurulan"
+   bir şeyi beklemenin tek güvenli yolu bir kare geçirmek.
+
+**Doğrulama (uçtan uca):** 7 ekran işaretli bulundu; ana ekrandaki Oyna
+düğmesi "elle" 0.158 → 0.188'e taşındı, kaydedildi, **play yeniden
+başlatıldı** ve değer 0.188 olarak geldi. Sınav düzeltmesi sonra silindi,
+varlık boş bırakıldı.

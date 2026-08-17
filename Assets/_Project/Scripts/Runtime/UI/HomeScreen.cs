@@ -102,6 +102,7 @@ namespace BlockOut.Runtime.UI
             var canvas = UiKit.CreateCanvas("HomeCanvas");
             canvas.transform.SetParent(transform, worldPositionStays: false);
             var root = UiKit.CreateSafeArea(canvas);
+            GameKit.UI.UiTweak.Mark(root, "HomeScreen");
 
             // Manzara, güvenli alanın değil EKRANIN tamamını kaplamalı; çentiğin
             // altında zemin rengi görünmesin diye kanvasa doğrudan bağlanıyor.

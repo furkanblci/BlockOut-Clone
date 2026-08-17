@@ -74,6 +74,10 @@ namespace BlockOut.Runtime.UI
             root.offsetMin = new Vector2(0f, -210f);
 
             var body = UiKit.CreatePanel("Body", root, bodyColor ?? Body);
+
+            // Elle düzenlenebilir ekran olarak işaretle (Tools > Block Out >
+            // Arayüz Tasarımı). Yalnız bir string alan; hiçbir karede iş yok.
+            GameKit.UI.UiTweak.Mark(root, name);
             return root;
         }
 

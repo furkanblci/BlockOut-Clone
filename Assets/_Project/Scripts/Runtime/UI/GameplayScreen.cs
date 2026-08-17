@@ -326,6 +326,7 @@ namespace BlockOut.Runtime.UI
             canvas.transform.SetParent(transform, worldPositionStays: false);
             canvas.sortingOrder = 5;
             var root = UiKit.CreateSafeArea(canvas);
+            GameKit.UI.UiTweak.Mark(root, "GameplayScreen");
 
             // Üst şerit ve combo rozeti KENDİ grubunda: yardımcı istemi
             // açılınca hep birlikte soluyorlar (bkz. SetPromptDim).
@@ -351,6 +352,10 @@ namespace BlockOut.Runtime.UI
             _offer = ContinueOffer.Build(root);
 
             BuildFailurePanel(root);
+
+            // Oynanış ekranı uygulama açılışında DEĞİL, ilk bölümde kuruluyor;
+            // bu yüzden AppRoot'un tek seferlik uygulaması onu kaçırır.
+            GameKit.UI.UiTweak.ApplyAll();
         }
 
         /// <summary>

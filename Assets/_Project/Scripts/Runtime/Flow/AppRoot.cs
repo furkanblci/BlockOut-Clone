@@ -96,6 +96,25 @@ namespace BlockOut.Runtime.Flow
             DevTools.DevMenu.Ensure();
         }
 
+        /// <summary>
+        /// Elle yapılmış arayüz düzeltmelerini uygular — BİR KARE SONRA.
+        ///
+        /// DERS (Start yetmez, çünkü Start'ların sırası tanımsızdır): Bu çağrı
+        /// önce doğrudan `Start` içindeydi ve düzeltmeler hiç uygulanmadı;
+        /// üstelik hata da vermedi, çünkü ortada hata yoktu — ekranlar o an
+        /// henüz kurulmamıştı ve gezilecek çocuk yoktu. Unity `Start`'ları
+        /// belirli bir sırayla çağırmaz; "benden sonra kurulan" bir şeyi
+        /// beklemenin tek güvenli yolu bir kare geçirmek.
+        ///
+        /// Kayıtlı düzeltme yoksa (yayın hâli) `ApplyAll` ilk satırda dönüyor:
+        /// tek seferlik, sıfıra yakın maliyet. (bkz. GameKit.UI.UiTweak)
+        /// </summary>
+        System.Collections.IEnumerator Start()
+        {
+            yield return null;
+            GameKit.UI.UiTweak.ApplyAll();
+        }
+
         void OnDestroy()
         {
             if (Current == this) Current = null;

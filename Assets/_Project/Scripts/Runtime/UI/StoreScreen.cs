@@ -169,6 +169,7 @@ namespace BlockOut.Runtime.UI
         public static RectTransform Build(Transform parent)
         {
             var root = UiKit.CreateRect("StoreScreen", parent);
+            GameKit.UI.UiTweak.Mark(root, "StoreScreen");
             UiKit.Place(root, 0f, 0f, 1f, 1f);
             var screen = root.gameObject.AddComponent<StoreScreen>();
 
