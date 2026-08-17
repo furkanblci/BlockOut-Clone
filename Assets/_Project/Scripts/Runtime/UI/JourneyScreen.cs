@@ -44,8 +44,12 @@ namespace BlockOut.Runtime.UI
         static readonly Color Body        = new Color(0.090f, 0.110f, 0.306f);
         static readonly Color HeaderTop   = new Color(0.275f, 0.216f, 0.886f);
         static readonly Color HeaderLow   = new Color(0.216f, 0.173f, 0.698f);
-        static readonly Color Capsule     = new Color(0.298f, 0.231f, 0.886f);
-        static readonly Color CapsuleRim  = new Color(0.129f, 0.094f, 0.478f);
+        // Kilometre taşı kapsülü — `journey.jpeg`'ten örneklendi (2026-08-17):
+        // yüzey #5846E8, dış kenar #4130B7. Eskisi hem yüzeyde hem kenarda
+        // daha koyuydu; kapsül zeminden yeterince ayrışmıyor ve "sade"
+        // görünüyordu (9. APK bulgusu).
+        static readonly Color Capsule     = new Color(0.345f, 0.275f, 0.910f);
+        static readonly Color CapsuleRim  = new Color(0.255f, 0.184f, 0.718f);
         static readonly Color Tube        = new Color(0.102f, 0.663f, 0.969f);
         static readonly Color TubeDark    = new Color(0.071f, 0.067f, 0.216f);
         static readonly Color LockWash    = new Color(0.647f, 0.663f, 0.937f, 0.78f);
@@ -205,9 +209,22 @@ namespace BlockOut.Runtime.UI
             fadeImage.raycastTarget = false;
             UiKit.Place(fade, 0f, 0f, 1f, 1f);
 
-            var title = UiKit.CreateTitle("Title", band, "Journey", 62,
-                new Color(1f, 0.99f, 0.96f), new Color(0.45f, 0.42f, 0.92f));
-            UiKit.Place(title, 0.05f, 0.30f, 0.95f, 0.86f);
+            // Punto referanstan: başlığın büyük harf yüksekliği ekranın
+            // %2.73'ü. 62 punto %2.32 veriyordu — %18 küçüktü.
+            var title = UiKit.CreateTitle("Title", band, "Journey", 74,
+                new Color(1f, 0.99f, 0.96f), new Color(0.204f, 0.145f, 0.588f));
+            UiKit.Place(title, 0.05f, 0.28f, 0.95f, 0.88f);
+
+            // BASKILI GÖRÜNÜM: referansta başlık beyaz dolgulu ama KALIN koyu
+            // mor konturlu; o kontur ona kabartma hissini veriyor. Bizimki düz
+            // beyazdı (kullanıcının "baskılı görünüm olacak" dediği fark).
+            //
+            // DERS (bu projede yedinci tuzak): `CreateTitle`'a verilen kontur
+            // rengi SESSİZCE YOK SAYILIR — bütün başlıklar tek bir materyali
+            // paylaşıyor. Tek bir başlığa özel kontur istiyorsan `SetOutline`
+            // çağırmak ZORUNDASIN. Yukarıdaki satırdaki renk de bu yüzden tek
+            // başına işe yaramıyordu.
+            UiKit.SetOutline(title, new Color(0.204f, 0.145f, 0.588f), 0.55f);
         }
 
         void BuildScrollArea(Transform root)

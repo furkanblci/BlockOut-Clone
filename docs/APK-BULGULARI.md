@@ -377,8 +377,26 @@ sanal dokunuş atıp ilk çarpanın o düğme olup olmadığına bakmak.
 **Doğrulama:** boş zeminden 9/9 noktada kaydırma çalışıyor, iki atlama
 düğmesi de 2/2 tıklanabilir, kaydırma konumu gerçekten değişiyor.
 
+#### BAŞLIK VE KAPSÜLLER — referanstan ölçüldü
+- **Başlık "baskılı" oldu.** Punto 62 → **74** (referansta başlığın büyük harf
+  yüksekliği ekranın %2.73'ü; 62 punto %2.32 veriyordu). Kontur `SetOutline`
+  ile **kalın** (0.55) ve rengi referanstan örneklendi (`#342596`).
+  **DERS (yedinci tuzak, yine):** `CreateTitle`'a verilen kontur rengi sessizce
+  yok sayılıyor — bütün başlıklar tek materyali paylaşıyor. Başlık düz beyaz
+  görünüyordu çünkü kontur hiç uygulanmamıştı.
+- **Kilometre taşı kapsülü:** yüzey `#5846E8`, dış kenar `#4130B7`
+  (`journey.jpeg`'ten). Eskisi hem yüzeyde hem kenarda daha koyuydu, kapsül
+  zeminden yeterince ayrışmıyor ve "sade" duruyordu.
+
+#### ÖLÇÜM BİR İSTEĞİ ÇÜRÜTTÜ
+"Yuvarlak görseller biraz daha küçük olacak" isteği ölçülünce ters çıktı:
+referans çemberin çapı ekran genişliğinin **%73.2'si**, bizimki **%66.7** —
+bizimki zaten daha küçük. Fark çemberde değil **dikey yoğunlukta**: referans
+aynı ekrana daha çok kilometre taşı sığdırıyor. Çemberi küçültmek yanlış
+düzeltme olurdu; satır aralığı ayrı bir iş olarak duruyor.
+
 #### 9. MADDEDE KALAN
-Çember boyutları, ödül kapsüllerinin sadeliği ve baskılı "Yolculuk" başlığı.
+Satır aralığı (dikey yoğunluk) ve ödül kapsülünün iç düzeni.
 
 ### [ ] 9-eski. Yolculuk (özgün istek metni)
 - ~~Kaydırma çalışmıyor~~ — düzeldi (yukarı bak).
