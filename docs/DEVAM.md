@@ -8,13 +8,36 @@ Bu dosya her oturum sonunda güncellenir. Aşağısı 2026-08-10 itibarıyla ge�
 
 ---
 
-## 2026-08-17 OTURUM SONU — BUILD ALINABİLİR DURUMDA
+## 2026-08-17 OTURUM SONU (güncellendi) — BİR BLOCKER AÇIK
 
 Ayrıntılı kayıt: **`docs/APK-BULGULARI.md`** (21 kullanıcı bulgusu + 2 yeni).
 
 **Bu oturumda kapanan maddeler:** 4 (günlük ödül), 7 (ana ekran), 9 (Yolculuk),
 13 (Ayarlar), 16 (Liderlik), 21 (Profil), 22 (ödül şeridi), 23 (alt sekme
 çubuğu). Konsol **0 hata**, play modundan çıkıldı, asset'ler kaydedildi.
+
+### ⚠️ AÇIK BLOCKER: build'de bölümler gelmiyor (18. madde yeniden açıldı)
+
+Kullanıcı APK'yı test etti: **bölümler gelmiyor.** Önceki turdaki `link.xml`
+yetmemiş. Kod okunarak iki gerçek kusur bulundu (ayrıntı `APK-BULGULARI.md`
+18. madde):
+
+1. `LevelLoader.Validate` içindeki `Dictionary<(int,int), int>` — IL2CPP'de
+   demet anahtarlı sözlük `EqualityComparer<ValueTuple<int,int>>.Default`
+   ister, o da yansımayla üretilir; AOT'ta örneklem yoksa
+   `ExecutionEngineException`. **`link.xml` bunu çözmez** (mesele kırpma
+   değil, kod üretimi). Anahtar tek sayıya çevrildi.
+2. `BuildAndStart` yalnız `Parse`'ı korumaya almıştı; kurulumun geri kalanı
+   (validate, model, tahta, sistemler) korumasızdı — oradan gelen hata
+   `LoadFailure`'ı hiç yazmadan metodu kesiyordu. Artık hepsi tek try/catch.
+3. Hata mesajı 28 puntoluk, tek satır, `NoWrap` bir ipucu satırına
+   basılıyordu; okunamıyordu. Ekranın ortasına hata kartı kondu.
+
+**SONRAKİ BUILD'DE NE YAPILACAK:** Bölüm yine açılmazsa ekranda kırmızı bir
+kart ve hatanın **TÜR ADI** çıkacak. O ad teşhisi tek adımda bitirir:
+`ExecutionEngineException` → hâlâ AOT · `NullReferenceException` → sahnede
+bağlanmamış alan · "Bölüm dosyası bulunamadı" → katalog build'e girmemiş.
+Kart çıkmazsa hata gameplay'e girmeden önce (menü/akış tarafında) demektir.
 
 **Geriye kalan üç şey:**
 1. **Uygulama ikonu (1. madde) — SENDEN BİR DOSYA BEKLİYOR.** `art_raw/icon_app.png`
