@@ -59,9 +59,40 @@ namespace BlockOut.Runtime.UI
             return root;
         }
 
-        /// <summary>Degrade başlık bandı + ortada beyaz konturlu başlık.</summary>
+        /// <summary>
+        /// Degrade başlık bandı + ortada beyaz konturlu başlık.
+        ///
+        /// ÇENTİK ŞERİDİ: Bant, güvenli alanın ÜSTÜNE taşan bir boya şeridiyle
+        /// birlikte kuruluyor.
+        ///
+        /// DERS (aynı hatayı ekranın diğer ucunda görmek): Menü ekranları
+        /// `SafeArea`'nın çocuğu, ana ekranın manzarası ise TAM EKRAN. Çentikli
+        /// bir telefonda menü sayfası çentiğin altında başlıyor ve üstünde
+        /// kalan şeritte ana ekranın manzarası görünüyor — kullanıcının APK
+        /// testinde "ana sayfa dışındaki bütün sayfaların üstünde boşluk"
+        /// dediği şey buydu (2026-08-17, 6. madde).
+        ///
+        /// Bu sorun ALT çubukta zaten çözülmüştü (`MenuShell.BuildTabBar`,
+        /// "boyası aşağı taşar") ama aynı düşünce üst kenara uygulanmamıştı.
+        /// Bir kenarda bulduğun kenar hatasını ÖBÜR kenarda da ara.
+        ///
+        /// Taşan şey yalnız BOYA: başlık yazısı bandın kendi içinde kalıyor,
+        /// yani çentiğin altına girmiyor.
+        /// </summary>
         public static RectTransform Header(Transform root, string title)
         {
+            // Boya şeridi bandın ÜSTÜNDE, kökün dışına taşıyor. Pivot 0
+            // olduğu için köke tepeden yapışıp yukarı doğru uzuyor.
+            var bleed = UiKit.CreateRect("HeaderBleed", root);
+            bleed.anchorMin = new Vector2(0f, 1f);
+            bleed.anchorMax = new Vector2(1f, 1f);
+            bleed.pivot = new Vector2(0.5f, 0f);
+            bleed.sizeDelta = new Vector2(0f, 320f);
+            bleed.anchoredPosition = Vector2.zero;
+            var bleedImage = bleed.gameObject.AddComponent<Image>();
+            bleedImage.color = HeaderTop;
+            bleedImage.raycastTarget = false;
+
             var band = UiKit.CreateRect("Header", root);
             band.anchorMin = new Vector2(0f, 1f);
             band.anchorMax = new Vector2(1f, 1f);

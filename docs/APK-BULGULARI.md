@@ -122,10 +122,28 @@ de yoktur — para gidiyor, hiçbir şey değişmiyor.
 
 ## B — YAPISAL (tek düzeltme bütün ekranları etkiliyor)
 
-### [ ] 6. Ana ekran DIŞINDAKİ bütün sayfaların üstünde boşluk
-Kullanıcının telefonunda tasarım hatası olarak görünüyor. Muhtemelen güvenli
-alan (çentik) + `MenuPage.Screen`'in -210 birimlik kaydırmasının birlikte
-yarattığı bir hata. **Ekran ekran sadakat işinden ÖNCE çözülmeli.**
+### [x] 6. Ana ekran DIŞINDAKİ bütün sayfaların üstünde boşluk — DÜZELTİLDİ
+**Sebep:** Menü ekranları `MenuCanvas → SafeArea → Content` zincirinin altında,
+yani güvenli alanın İÇİNDE. Ana ekranın manzarası ise TAM EKRAN. Çentikli bir
+telefonda menü sayfasının koyu gövdesi çentiğin altında başlıyor, üstünde
+kalan şeritte alttaki ana ekran görünüyor — kullanıcının gördüğü "boşluk" bu.
+
+**Bu hata ALT kenarda zaten çözülmüştü** (`MenuShell.BuildTabBar`:
+"boyası aşağı taşar", `offsetMin = -220`) ama aynı düşünce üst kenara hiç
+uygulanmamıştı. **DERS: bir kenarda bulduğun kenar hatasını öbür kenarda da ara.**
+
+**Düzeltme:** başlık bandının boyası güvenli alanın üstüne 320 birim taşıyor.
+Taşan yalnız BOYA — başlık yazısı bandın içinde kalıyor, çentiğin altına
+girmiyor. Üç yerde:
+- `MenuPage.Header` → Ayarlar, Profil, Liderlik, Koleksiyon (dördü birden)
+- `JourneyScreen.BuildHeader` → kendi başlığı var
+- `StoreScreen.BuildAwning` → kendi tentesi var; şerit tentenin koyu mavisi
+  (`market.jpeg` üst kenarından ölçüldü, `#053AE8`). Çizgili deseni yukarı
+  sürdürmek yerine düz renk: o şerit çentiğin altında kalıyor, festonu yukarı
+  esnetmek tasarımı bozardı.
+
+**Doğrulama:** play modunda güvenli alan üstten %6 kısılarak çentik simüle
+edildi; **altı ekranın da** boya şeridi ekranın tepesini aşıyor.
 
 ### [x] 8. Seçili sekmeye tekrar basınca ekran kapanıp açılıyor — DÜZELTİLDİ
 **Sebep:** `MenuShell.Show` içinde tek satır —

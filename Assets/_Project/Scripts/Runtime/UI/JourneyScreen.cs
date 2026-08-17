@@ -172,6 +172,19 @@ namespace BlockOut.Runtime.UI
 
         void BuildHeader(Transform root)
         {
+            // Çentik şeridi: bandın boyası güvenli alanın ÜSTÜNE taşar, yoksa
+            // çentikli telefonda o şeritte ana ekranın manzarası görünüyor
+            // (bkz. MenuPage.Header'daki ders — 6. APK bulgusu).
+            var bleed = UiKit.CreateRect("HeaderBleed", root);
+            bleed.anchorMin = new Vector2(0f, 1f);
+            bleed.anchorMax = new Vector2(1f, 1f);
+            bleed.pivot = new Vector2(0.5f, 0f);
+            bleed.sizeDelta = new Vector2(0f, 320f);
+            bleed.anchoredPosition = Vector2.zero;
+            var bleedImage = bleed.gameObject.AddComponent<Image>();
+            bleedImage.color = HeaderTop;
+            bleedImage.raycastTarget = false;
+
             // Başlık bandı en son kurulur: içerik onun ALTINDAN kayar.
             var band = UiKit.CreateRect("Header", root);
             band.anchorMin = new Vector2(0f, 1f);

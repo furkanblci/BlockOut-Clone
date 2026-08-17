@@ -220,6 +220,22 @@ namespace BlockOut.Runtime.UI
 
         void BuildAwning(Transform root)
         {
+            // Çentik şeridi: tentenin üstünde kalan güvenli alan dışı boşluk.
+            // Renk referanstaki tentenin KOYU şeridi (`market.jpeg` üst kenarı,
+            // #053AE8). Çizgili deseni yukarı sürdürmek yerine düz renk
+            // kullanıldı: o şerit çentiğin/durum çubuğunun altında kalıyor,
+            // tentenin festonunu yukarı esnetmek ise tasarımı bozardı.
+            // (6. APK bulgusu — bkz. MenuPage.Header'daki ders.)
+            var bleed = UiKit.CreateRect("AwningBleed", root);
+            bleed.anchorMin = new Vector2(0f, 1f);
+            bleed.anchorMax = new Vector2(1f, 1f);
+            bleed.pivot = new Vector2(0.5f, 0f);
+            bleed.sizeDelta = new Vector2(0f, 320f);
+            bleed.anchoredPosition = Vector2.zero;
+            var bleedImage = bleed.gameObject.AddComponent<Image>();
+            bleedImage.color = new Color(0.020f, 0.227f, 0.910f);
+            bleedImage.raycastTarget = false;
+
             var bar = Row("Awning", root, 0f, AwningH);
 
             var cloth = bar.gameObject.AddComponent<Image>();
