@@ -558,9 +558,25 @@ başlığı kullandığı için tek düzeltme dördünü birden etkiledi.
 olmayan üç başlık (Yolculuk %2.73 · Liderlik %2.69 · Profil %2.78) gerçeği
 söyledi. **Punto seçerken ölçülecek şey BÜYÜK HARF yüksekliğidir.**
 
-#### 13'TE KALAN
-Anahtarlar referansta daha küçük ve ince konturlu; kapat çarpısı daha küçük
-ve başlığa daha yakın; kart kenarlığı daha belirgin.
+#### 13 — İKİNCİ TUR (2026-08-17): KÜÇÜK OLAN ANAHTAR DEĞİL, SATIRDI
+
+Ölçüm (`WhatsApp Image ... (2).jpeg`, 946×2048): kart y 387-1031 → bizim
+tuvalde **üst 363, yükseklik 604**, X 0.034-0.966; satır adımı 157 piksel →
+**147 birim**. Bizimki 316 / 856 / 196'ydı — kart %40, satırlar %33 fazla
+yüksekti.
+
+**DERS (yanlış olan şey, şikâyet edilen şey olmayabilir):** "Anahtarlar
+referansta daha küçük" diye not almıştım. Anahtarın SATIR İÇİNDEKİ oranı
+zaten doğruymuş; büyük olan onu taşıyan satırdı. Bir öğe büyük görünüyorsa
+önce kabını ölç.
+
+Bunlar da düzeldi: kart kenarlığı (referansta karttan koyu ince şerit),
+kart rengi #8A84F6 → **#8C7DFE**, anahtar yuvası → **#342B7E**,
+Koşullar/Gizlilik yüksekliği 130 → **148** (referansta yeşil "Destek" ile
+aynı boyda), ve menü zemini **#171C4E → #1E1858** (bizimki G kanalı R'den
+büyük olduğu için yeşile kaçıyordu; referansın her menü zemini mora çalıyor).
+
+Kapat çarpısı 21. maddede düzeldi (elips → daire, referans konumu).
 
 ### [x] 16. Liderlik — BİTTİ (kalan yalnız süsleme görselleri)
 

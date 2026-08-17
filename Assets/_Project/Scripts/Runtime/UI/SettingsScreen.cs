@@ -30,8 +30,9 @@ namespace BlockOut.Runtime.UI
     /// </summary>
     public sealed class SettingsScreen : MonoBehaviour
     {
-        static readonly Color CardFace = new Color(0.541f, 0.518f, 0.965f);
-        static readonly Color SlotDark = new Color(0.220f, 0.184f, 0.463f);
+        // Referanstan ölçüldü: kart #8C7DFE, anahtar yuvası #342B7E.
+        static readonly Color CardFace = new Color(0.549f, 0.490f, 0.996f);
+        static readonly Color SlotDark = new Color(0.204f, 0.169f, 0.494f);
 
         sealed class Toggle
         {
@@ -107,14 +108,32 @@ namespace BlockOut.Runtime.UI
             var screen = root.gameObject.AddComponent<SettingsScreen>();
 
             // --- Ayar kartı: dört satır tek panelde ---
-            const float rowH = 196f;
-            const float cardTop = 316f;
-            float cardH = rowH * 4f + 72f;
+            //
+            // ÖLÇÜ REFERANSTAN (`WhatsApp Image ... (2).jpeg`, 946×2048):
+            // kart y 387-1031 → bizim tuvalde üst **363**, yükseklik **604**;
+            // X 0.034-0.966. Satır adımı 157 piksel → **147 birim**.
+            //
+            // Bizimki 316 / 856 / 196'ydı — yani kart %40, satırlar %33
+            // fazla yüksekti. Kullanıcının "anahtarlar referansta daha küçük"
+            // notunun ölçülebilir hâli: küçük olan anahtar değil, ONU TAŞIYAN
+            // SATIRDI. Anahtarın satır içindeki oranı zaten doğruydu.
+            const float rowH = 147f;
+            const float cardTop = 363f;
+            const float cardH = 604f;
 
-            var card = MenuPage.Row("Card", root, cardTop, cardH, 0.045f, 0.955f);
+            var card = MenuPage.Row("Card", root, cardTop, cardH, 0.034f, 0.966f);
+
+            // Kart kenarlığı: referansta kartın çevresinde ondan koyu ince bir
+            // şerit var ve kartı zeminden ayıran şey o.
+            var edge = UiKit.CreateRoundedPanel("Edge", card,
+                new Color(0.267f, 0.216f, 0.616f));
+            edge.pixelsPerUnitMultiplier = 0.28f;
+            edge.raycastTarget = false;
+            UiKit.Place(edge, 0f, 0f, 1f, 1f);
+
             var face = UiKit.CreateRoundedPanel("Face", card, CardFace);
-            face.pixelsPerUnitMultiplier = 0.28f;
-            UiKit.Place(face, 0f, 0f, 1f, 1f);
+            face.pixelsPerUnitMultiplier = 0.30f;
+            UiKit.Place(face, 0f, 0f, 1f, 1f, padding: 7f);
 
             // DERS (ayarı KAYDA yazmak, ayarı UYGULAMAK değildir): Bu üç satır
             // eskiden doğrudan `Save.Data.Settings`'e yazıyordu. Kayıt doğru
@@ -146,7 +165,9 @@ namespace BlockOut.Runtime.UI
                 () => Application.OpenURL("https://example.com/support"));
 
             // --- İki mavi düğme ---
-            var legal = MenuPage.Row("Legal", root, cardTop + cardH + 330f, 130f, 0.075f, 0.925f);
+            // Referansta iki mavi düğme yeşil "Destek" ile aynı yükseklikte
+            // (149 birim); bizde 130'du ve daha cılız duruyordu.
+            var legal = MenuPage.Row("Legal", root, cardTop + cardH + 324f, 148f, 0.084f, 0.914f);
             var terms = MenuPage.PillButton("Terms", legal, "Terms", MenuPage.Blue, 46,
                 () => Application.OpenURL("https://example.com/terms"));
             UiKit.Place(terms, 0f, 0f, 0.47f, 1f);

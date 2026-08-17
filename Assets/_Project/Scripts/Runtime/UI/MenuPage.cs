@@ -24,7 +24,11 @@ namespace BlockOut.Runtime.UI
     public static class MenuPage
     {
         /// <summary>Referans karelerinden örneklenen ortak renkler.</summary>
-        public static readonly Color Body       = new Color(0.090f, 0.110f, 0.306f);
+        // ZEMİN REFERANSTAN ÖLÇÜLDÜ (2026-08-17): Ayarlar'da #1E1858,
+        // Koleksiyon'da #1B1B4F-#20205C. Bizimki #171C4E idi — biraz daha
+        // YEŞİLE kaçıyordu (G kanalı R'den büyüktü), oysa referansın her
+        // menü zemini mora çalıyor.
+        public static readonly Color Body       = new Color(0.118f, 0.094f, 0.345f);
         public static readonly Color HeaderTop  = new Color(0.275f, 0.216f, 0.886f);
         public static readonly Color HeaderLow  = new Color(0.216f, 0.173f, 0.698f);
         public static readonly Color Panel      = new Color(0.541f, 0.518f, 0.965f);
