@@ -1007,3 +1007,28 @@ Mağaza `Amount()` ile "1 720" yazıyordu, ana ekranın üst çubuğu düz
 binlik ayıracı olarak BOŞLUK kullanıyor — `market.jpeg` paket tutarları).
 Biçim `InvariantCulture` üzerinden gidiyor: `ToString("N0")` tek başına
 cihazın diline bağlı ve Türkçe bir telefonda "1.720" verir.
+
+### [x] 26. Canı doluyken alınan can ödülü KAYBOLUYORDU — düzeltildi
+Bu, 4. maddeyi yaparken bulunmuş ve "ekonomiye dokunuyor" diye açık
+bırakılmıştı. Kullanıcı "eksik ne varsa yap" deyince yapıldı.
+
+`LivesService.Grant` üst sınırı aşan kısmı **sessizce atıyordu**. Canı
+doluyken günlük ödülün 5. veya 7. gününü alan, "can kazan" reklamını izleyen
+ya da mağazadan can satın alan oyuncu, kendisine SÖZ VERİLEN canı hiç
+görmüyordu — üstelik hiçbir uyarı da yoktu (5 → 5 ölçülmüştü).
+
+"Sınırı aşma" kuralı doğru; yanlış olan aşan kısmı yok saymaktı. Artık fazlası
+`ILivesState.BankedLives`'da **bekliyor** ve oyuncu can harcadıkça
+(`TrySpend` → `DrainBank`) geri veriliyor. Denge sayılarının hiçbiri
+değişmedi; yalnız kayıp durdu.
+
+Eski kayıtlarla uyumlu: `bankedLives` alanı yoksa Newtonsoft 0 ile dolduruyor,
+sürüm yükseltmeye gerek yok.
+
+**Doğrulama (play modu):** can 5/5 · banka 0 → doluyken +2 verildi
+(can 5, banka 2) → üç bölüm oynandı → can 4, banka 0.
+**5 + 2 ödül − 3 harcama = 4** ✓ kayıp yok.
+
+**DERS (sınır koymak, aşanı ATMAK demek değildir):** İlk ölçümde bunu bir
+"tasarım tercihi" sanmıştım. Oyuncuya bir şey söz verip vermemek tercih
+değil, hatadır — kural sınırı korumalı ama sözü de tutmalı.

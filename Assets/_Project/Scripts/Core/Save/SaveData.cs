@@ -42,11 +42,22 @@ namespace BlockOut.Core.Save
 
         [JsonProperty("nextLifeAtUtc")] public string NextLifeAtUtcField = "";
 
+        /// <summary>
+        /// Üst sınırı aşıp BEKLEYEN ödül canları. Eski kayıtlarda bu alan yok;
+        /// Newtonsoft eksik alanı varsayılanla (0) doldurduğu için geriye
+        /// dönük uyumluluk kendiliğinden sağlanıyor — sürüm yükseltmeye gerek
+        /// yok (bkz. sınıf başındaki "her alanın makul bir varsayılanı var").
+        /// </summary>
+        [JsonProperty("bankedLives")] public int BankedLivesField;
+
         [JsonIgnore]
         public int Lives { get => LivesField; set => LivesField = value; }
 
         [JsonIgnore]
         public string NextLifeAtUtc { get => NextLifeAtUtcField; set => NextLifeAtUtcField = value; }
+
+        [JsonIgnore]
+        public int BankedLives { get => BankedLivesField; set => BankedLivesField = value; }
 
         /// <summary>Bölüm kayıtları; anahtar = bölüm id'si (level_003 gibi).</summary>
         [JsonProperty("levels")] public Dictionary<string, LevelRecord> Levels

@@ -12,6 +12,19 @@ namespace GameKit.Meta
 
         /// <summary>Bir sonraki canın dolacağı an (UTC, ISO-8601). Boş = sayaç yok.</summary>
         string NextLifeAtUtc { get; set; }
+
+        /// <summary>
+        /// Üst sınırı aşan ve BEKLETİLEN canlar.
+        ///
+        /// DERS (verilen ödül kaybolmamalı): <see cref="LivesService.Grant"/>
+        /// eskiden üst sınırı aşan kısmı sessizce ATIYORDU. Canı doluyken
+        /// günlük ödülün 5. gününü alan, reklam izleyen ya da mağazadan can
+        /// satın alan oyuncu, kendisine SÖZ VERİLEN canı hiç görmüyordu —
+        /// üstelik hiçbir yerde bir uyarı da yoktu. "Sınırı aşma" kuralı
+        /// doğrudur; yanlış olan, aşan kısmı yok saymaktı. Fazlası burada
+        /// bekliyor ve oyuncu can harcadıkça geri veriliyor.
+        /// </summary>
+        int BankedLives { get; set; }
     }
 
     /// <summary>
@@ -144,20 +157,57 @@ namespace GameKit.Meta
             // işlemez; yoksa oyuncu hiç oynamadan can biriktirirdi.
             if (wasFull) _state.NextLifeAtUtc = FormatUtc(_utcNow() + RefillInterval);
 
+            // Yer açıldı: bekleyen ödül canı varsa hemen buraya geçsin.
+            DrainBank();
+
             _persist();
             Changed?.Invoke(Current);
             return true;
         }
 
-        /// <summary>Can ekler (ödül, reklam, satın alma). Üst sınırı aşmaz.</summary>
+        /// <summary>
+        /// Can ekler (ödül, reklam, satın alma). Üst sınırı aşmaz ama AŞAN
+        /// KISMI DA ATMAZ: fazlası <see cref="ILivesState.BankedLives"/>'a
+        /// yazılır ve oyuncu can harcadıkça geri verilir.
+        /// </summary>
         public void Grant(int amount)
         {
             if (amount <= 0) return;
+
             int before = _state.Lives;
-            _state.Lives = Math.Min(MaxLives, _state.Lives + amount);
+            int room = Math.Max(0, MaxLives - _state.Lives);
+            int applied = Math.Min(room, amount);
+
+            _state.Lives += applied;
+            _state.BankedLives += amount - applied;      // taşan kısım beklemede
+
             if (_state.Lives >= MaxLives) _state.NextLifeAtUtc = "";
             _persist();
             if (_state.Lives != before) Changed?.Invoke(Current);
+        }
+
+        /// <summary>Bekleyen can sayısı (arayüz göstermek isterse).</summary>
+        public int Banked => Math.Max(0, _state.BankedLives);
+
+        /// <summary>
+        /// Bekleyen canları boşalan yerlere aktarır.
+        ///
+        /// Can HARCANDIKTAN sonra çağrılır — böylece oyuncu bir bölüm oynayıp
+        /// döndüğünde ödülü orada bulur. Sayaç mantığına dokunmuyor: banka
+        /// zaten "kazanılmış" canı taşıyor, zamanla dolan can değil.
+        /// </summary>
+        void DrainBank()
+        {
+            if (_state.BankedLives <= 0) return;
+
+            int room = MaxLives - _state.Lives;
+            if (room <= 0) return;
+
+            int moved = Math.Min(room, _state.BankedLives);
+            _state.Lives += moved;
+            _state.BankedLives -= moved;
+
+            if (_state.Lives >= MaxLives) _state.NextLifeAtUtc = "";
         }
 
         static DateTime? ParseUtc(string text)
