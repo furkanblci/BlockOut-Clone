@@ -404,7 +404,7 @@ Plastik bir yüzeyin üst kenarında 30 piksel içinde dört ayrı renk var.
 Ayrıca 22. maddedeki ödül şeridi de bu ekranın parçası; o da kapandı.
 **Ana ekran tamam.**
 
-### [ ] 7-eski. Ana ekran (özgün istek metni)
+### [arşiv] 7-eski. Ana ekran (özgün istek metni)
 - Üstteki jeton ve kalp yazıları büyüyecek; kalp adedi ve "Dolu" yazısının
   puntosu artacak.
 - Alttaki "Seviye N" düğmesinin yazısı çok küçük — referanstaki ölçüye çıkacak.
@@ -499,7 +499,7 @@ kullanıyordu, yani kutu kare olmadığı anda elipse dönüyorlardı. Hepsi
 `UiKit.CreateIcon`'a alındı. Yolculuk'un kilitli bölge maskesi zaten kare
 kutudaydı (`DiscSize × DiscSize`) — dokunulmadı.
 
-### [ ] 9-eski. Yolculuk (özgün istek metni)
+### [arşiv] 9-eski. Yolculuk (özgün istek metni)
 - ~~Kaydırma çalışmıyor~~ — düzeldi (yukarı bak).
 - Yuvarlak bölge görselleri biraz daha küçük olacak.
 - Dikdörtgen ödül (kilometre taşı) kapsülleri sade kalmış — kendi UI'ımızı
@@ -552,7 +552,7 @@ boyama çarpma olduğu için deseni de renklendirirdi ve her bölümde farklı b
 ton çıkardı. Doku BEYAZ üstüne yalnız parlaklık farkı olarak çiziliyor;
 bölüm rengi tint ile veriliyor. Tek doku üç bölümde de doğru çalışıyor.
 
-### [~] 12. Mağaza başlığı ve üst bant — ÖLÇÜLDÜ ve DÜZELTİLDİ
+### [x] 12. Mağaza başlığı ve üst bant — BİTTİ (tente kontrastı aşağıda, 12. madde ikinci turu)
 
 Referanstan (`market.jpeg`) ölçülenler ve uygulananlar:
 
@@ -573,9 +573,9 @@ başlık 0.524 merkezine oturtuldu, punto 84 → 90.
 eklendi. Yolculuk'ta da aynısı vardı; **başlık kuran her yerde bu kontrol
 edilmeli.**
 
-#### 12'DE KALAN
-Tente şeritlerinin kontrastı ve harf kalınlığı (font ağırlığı) referanstan
-biraz hafif. Panel köşe yarıçapları gözle kıyaslandı, belirgin fark yok.
+#### 12'DE KALAN — kapandı
+Tente kontrastı ölçülüp düzeltildi (bu dosyanın sonundaki 12. madde ikinci
+turu). Harf kalınlığı için ölçüm bir fark göstermedi; iki taraf da ExtraBold.
 
 ### [x] 13. Ayarlar — alt menü çıkmamalı — DÜZELTİLDİ
 ### [x] 14. Ayarlar — "Hesabımı Sil" görünür oldu + başlık — DÜZELTİLDİ
