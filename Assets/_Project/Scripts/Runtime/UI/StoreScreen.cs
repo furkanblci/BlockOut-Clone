@@ -623,12 +623,11 @@ namespace BlockOut.Runtime.UI
             label.fontStyle = FontStyles.Bold;
             UiKit.Place(label, 0.04f, 0.05f, 0.96f, 0.95f);
 
-            var button = row.gameObject.AddComponent<Button>();
-            button.targetGraphic = shadow;
-            button.transition = Selectable.Transition.None;
-            row.gameObject.AddComponent<GameKit.UI.UiButtonFeel>();
-
-            button.onClick.AddListener(() =>
+            // `Capsule` yardımcısı süs amaçlı olduğu için raycast'i KAPALI
+            // üretiyor; bu düğme de onu hedef grafik olarak kullandığı için
+            // dokunuş hiç ulaşmıyordu. `MakeClickable` raycast'i açmayı
+            // unutulamaz hâle getiriyor (bkz. UiKit'teki ders).
+            UiKit.MakeClickable(row.gameObject, shadow, () =>
             {
                 Toast("Checking purchases…");
                 PurchaseService.Instance.Restore(Toast);

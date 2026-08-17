@@ -240,6 +240,62 @@ namespace GameKit.UI
         /// aynı gerdirme onu ovale çevirir. Yuvarlak çizilmiş bir artı düğmesi
         /// ekranda yumurtaya dönüyordu. İkon düğmesi ayrı bir yardımcı olmalı.
         /// </summary>
+        /// <summary>
+        /// Hazır bir yüzeyi TIKLANABİLİR yapar: raycast'i açar, Button ve
+        /// basma hissini ekler, dinleyiciyi bağlar.
+        ///
+        /// DERS (dinleyici bağlamak YETMEZ, dokunuşun ULAŞMASI da gerekir):
+        /// Bu projede aynı hata ÜÇ ayrı yerde çıktı — Yolculuk'un "Üst"/"Alt"
+        /// atlama düğmeleri, Yolculuk'un bölge oynat düğmeleri ve Mağaza'nın
+        /// "Restore Purchases" düğmesi. Üçünde de `onClick` bağlıydı, `Button`
+        /// yerindeydi, ekranda düğme gibi duruyordu; ama hedef grafik
+        /// `Capsule`/`MenuCapsule` gibi bir yardımcıdan geliyordu ve o
+        /// yardımcılar süs amaçlı üretildikleri için `raycastTarget`'ı KAPALI
+        /// bırakıyor. Dokunuş düğmeye hiç ulaşmıyordu.
+        ///
+        /// Daha sinsi olan şu: "onClick bağlı mı" diye bakan bir tarama bu
+        /// türü GÖREMEZ, ve `onClick.Invoke()` ile yapılan bir play-modu testi
+        /// de raycast'i atladığı için "çalışıyor" der. Bu yüzden düğmeyi elle
+        /// kurmak yerine bu yardımcıdan geçir: burada raycast'i açmayı
+        /// unutmak mümkün değil.
+        /// </summary>
+        public static Button MakeClickable(Graphic face, UnityEngine.Events.UnityAction onClick)
+        {
+            face.raycastTarget = true;
+
+            var button = face.gameObject.GetComponent<Button>();
+            if (button == null) button = face.gameObject.AddComponent<Button>();
+            button.targetGraphic = face;
+            button.transition = Selectable.Transition.None;
+
+            if (face.GetComponent<UiButtonFeel>() == null)
+                face.gameObject.AddComponent<UiButtonFeel>();
+
+            if (onClick != null) button.onClick.AddListener(onClick);
+            return button;
+        }
+
+        /// <summary>
+        /// Düğme başka bir nesnede, tıklanacak yüzey başkasındaysa: yüzeyin
+        /// raycast'ini açar ve düğmeyi ona bağlar.
+        /// </summary>
+        public static Button MakeClickable(GameObject host, Graphic face,
+            UnityEngine.Events.UnityAction onClick)
+        {
+            face.raycastTarget = true;
+
+            var button = host.GetComponent<Button>();
+            if (button == null) button = host.AddComponent<Button>();
+            button.targetGraphic = face;
+            button.transition = Selectable.Transition.None;
+
+            if (host.GetComponent<UiButtonFeel>() == null)
+                host.AddComponent<UiButtonFeel>();
+
+            if (onClick != null) button.onClick.AddListener(onClick);
+            return button;
+        }
+
         public static Button CreateIconButton(string name, Transform parent, Sprite sprite,
             Color? tint = null)
         {

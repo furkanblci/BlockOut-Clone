@@ -514,12 +514,14 @@ namespace BlockOut.Runtime.UI
             // gerçek Button atlama düğmeleriydi. Ekranda yeşil, parlak ve
             // tıklanabilir görünen ama basınca hiçbir şey olmayan bir düğme,
             // oyuncuya "oyun bozuk" dedirtir; eksik bir özellikten beterdir.
+            // DERS (o düzeltme YARIM kalmıştı): Yukarıdaki not `onClick`'in
+            // bağlandığını söylüyor ve o gün play modunda `onClick.Invoke()`
+            // ile doğrulanmıştı — ama `Invoke` raycast'i ATLAR. Hedef grafik
+            // `MenuCapsule`'den geldiği için `raycastTarget` kapalıydı, yani
+            // düğme gerçekte HÂLÂ basılamıyordu. Doğrulama yöntemi hatayı
+            // görmeyi imkânsız kılmıştı.
             int from = region.from, to = region.to;
-            var click = action.gameObject.AddComponent<UnityEngine.UI.Button>();
-            click.targetGraphic = shadow;
-            click.transition = UnityEngine.UI.Selectable.Transition.None;
-            action.gameObject.AddComponent<GameKit.UI.UiButtonFeel>();
-            click.onClick.AddListener(() => PlayRegion(from, to));
+            UiKit.MakeClickable(action.gameObject, shadow, () => PlayRegion(from, to));
 
             view.ActionRoot = action;
             _regions.Add(view);

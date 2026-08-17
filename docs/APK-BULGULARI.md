@@ -47,6 +47,36 @@ sıkıştırma artefaktı az. Ölçüm kuralı aynı: yatayda `piksel/946`, dike
 
 ---
 
+## TÜM OYUN DÜĞME TARAMASI (2026-08-17)
+
+9. maddede bulunan "dinleyicisi var ama dokunuş ulaşmıyor" hatası yeni bir
+tarama yöntemi doğurdu ve o tarama **altı ölü düğme daha** buldu:
+
+| düğme | durum |
+|---|---|
+| Yolculuk "Üst" / "Alt" | hiç çalışmamış |
+| Yolculuk bölge oynat düğmeleri (5 bölge) | **"düzeltildi" sanılıyordu** |
+| Mağaza "Restore Purchases" | hiç çalışmamış |
+
+**En öğretici olanı bölge düğmeleri:** Daha önceki bir oturumda "onClick
+bağlanmamış" diye bulunup düzeltilmiş ve play modunda `onClick.Invoke()` ile
+doğrulanmıştı. Ama **`Invoke` raycast'i ATLAR** — hedef grafik hâlâ
+`raycastTarget = false` olduğu için düğme gerçekte basılamıyordu.
+Doğrulama yöntemi, hatayı görmeyi imkânsız kılmıştı.
+
+**Tarama yöntemi (tekrarlanabilir):** Bir düğme, alt ağacında `raycastTarget`
+açık HİÇBİR grafik yoksa ulaşılamazdır. Sahnedeki bütün `Button`'ları
+(kapalı ekranlar dahil) bu kurala sokmak yeterli — play modunda tıklamaya
+bile gerek yok.
+
+**Kalıcı çözüm:** `UiKit.MakeClickable(...)` eklendi. Yüzeyin raycast'ini
+açıyor, `Button` + `UiButtonFeel` ekliyor, dinleyiciyi bağlıyor. Üç çağrı
+yeri ona geçirildi; burada raycast'i açmayı unutmak mümkün değil.
+
+**Sonuç: 76 düğme, ULAŞILAMAYAN 0, HİSSİZ 0.**
+
+---
+
 ## A — BLOCKER'LAR (test bunlar olmadan ilerlemiyor)
 
 ### [x] 18. Bölüm açılmıyor — bloklar gelmiyor  ⚠️ SEBEP BULUNDU, DÜZELTİLDİ
