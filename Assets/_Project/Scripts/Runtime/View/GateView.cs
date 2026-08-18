@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using BlockOut.Core;
 using BlockOut.Runtime.Board;
 using UnityEngine;
@@ -15,7 +15,6 @@ namespace BlockOut.Runtime.View
     /// </summary>
     public sealed class GateView : MonoBehaviour
     {
-        const float EndInset = 0.10f;
 
         // Kapı ölçüleri: "çerçeveyle aynı" seçiliyse kapı ÇERÇEVE BANDINI
         // birebir doldurur — referans oyunda kapı, çerçevenin renkli bir
@@ -55,10 +54,8 @@ namespace BlockOut.Runtime.View
             var go = ViewKit.CreateShape(PrimitiveType.Cube, "Shape");
             go.name = $"Gate_{model.ActiveColor}_{model.Side.ToId()}";
             go.transform.SetParent(parent, worldPositionStays: false);
-            // Kapı barının kenar boyunca kapladığı aralık. Tahtanın KÖŞESİNE
-            // dayanan uç, çerçevenin yuvarlatılmış köşesinin içine girip
-            // "içinden geçmiş" gibi görünüyordu — o ucu köşeden uzaklaştırıyoruz.
-            ResolveSpan(model, space, out float barMin, out float barMax);
+            // Kapı barının kenar boyunca kapladığı aralık — açıklığın tamamı.
+            ResolveSpan(model, out float barMin, out float barMax);
 
             float spanCenter = (barMin + barMax) * 0.5f;
             float barLength = Mathf.Max(0.25f, barMax - barMin);
@@ -124,38 +121,45 @@ namespace BlockOut.Runtime.View
         }
 
         /// <summary>
-        /// Barın kenar boyunca kaplayacağı aralığı verir.
+        /// Barın kenar boyunca kaplayacağı aralığı verir: açıklığın TAMAMI,
+        /// iki ucundan yalnız kıl payı çıkarılmış hâli.
         ///
-        /// SORUN: Kapı, tahtanın köşesine dayandığında (örneğin üst kenarın en
-        /// solundaki kapı) bar, çerçevenin YUVARLATILMIŞ köşesinin içine giriyor
-        /// ve tepeden bakınca "çerçevenin içinden geçmiş" gibi görünüyordu.
-        ///
-        /// ÇÖZÜM: Serbest uçlar eskisi gibi küçük bir payla kısalır; ama tahta
-        /// KÖŞESİNE dayanan uç, köşe yarıçapı kadar içeri çekilir. Kapı böylece
-        /// köşenin yuvarlak kısmına hiç girmez.
-        ///
-        /// DERS (neden kısaltmak yerine kaydırmıyoruz?): Barı olduğu gibi içeri
-        /// ötelemek onu kapının GERÇEK açıklığından kaydırırdı — oyuncu bloğu
-        /// barın hizasına getirir ama kapı orada değildir. Uzunluğu kısaltmak
-        /// görseli düzeltirken açıklığın konumunu bozmuyor.
+        /// Eski hâli köşeye dayanan ucu köşe yarıçapı kadar içeri çekiyordu;
+        /// gerekçesi barın çerçevenin yuvarlak köşesine girmesiydi. Ölçüm o
+        /// çözümün bedelini gösterdi (aşağıya bakın): kapı açıklığından %25
+        /// dar çiziliyordu. Kozmetik kusur geri geldi, işlevsel yalan gitti.
         /// </summary>
-        static void ResolveSpan(GateModel model, BoardSpace space, out float min, out float max)
+        static void ResolveSpan(GateModel model, out float min, out float max)
         {
             min = model.SpanMin;
             max = model.SpanMax;
 
-            float cfgRadius = VisualSettings.Current != null
-                ? VisualSettings.Current.frameCornerRadius : 0.6f;
-            // Köşeden kaçınma payı: yarıçapın biraz altı yeter, tamamı kadar
-            // çekmek kısa kapılarda barı gereksiz kırpıyor.
-            float clearance = Mathf.Min(cfgRadius * 0.75f, (max - min) * 0.35f);
-
-            float boardSpan = model.EdgeHorizontal ? space.Width : space.Height;
-
-            // Tahta köşesine dayanan uç: köşe payı kadar içeri.
-            // Serbest uç: yalnızca komşu kapıdan ayrışsın diye küçük pay.
-            min += min <= 0.001f ? clearance : EndInset * 0.5f;
-            max -= max >= boardSpan - 0.001f ? clearance : EndInset * 0.5f;
+            // KAPI TAM AÇIKLIĞINI KAPLAR — kırpılmaz.
+            //
+            // Eskiden tahta köşesine dayanan uç `clearance` kadar içeri
+            // alınıyordu ve o pay `min(köşeYarıçapı * 0.75, açıklık * 0.35)`
+            // idi. 2 hücrelik bir kapıda bu **0.45 hücre** ediyor: kapı
+            // ekranda 2 değil 1.5 hücre çiziliyordu.
+            //
+            // DERS (kapının genişliği bir SÖZDÜR): Kapının açıklığı oyuncuya
+            // "bu genişlikte bir blok buradan geçer" der. Barı kısaltmak o
+            // sözü bozuyor — 2 hücrelik blok 2 hücrelik kapının önünde
+            // "sığmayacak" gibi görünüyordu ve oyuncu hizalamayı yanlış
+            // sanıyordu. Referans ölçüldü (`menus,powerups,vs.mp4` 01:25):
+            // 2 hücrelik kapı 95 piksel, hücre 46,4 piksel — tam 2 hücre,
+            // hiç kırpma yok.
+            //
+            // Kırpma KOZMETİK bir sorunu çözmek için konmuştu: köşeye dayanan
+            // ucun çerçevenin yuvarlak köşesinin içine girmesi. Ama kozmetik
+            // bir kusuru, işlevsel bir yalanla değiştirmek kötü bir takas.
+            // Köşeye dayanan kapı çerçeve yayına değebilir; bu, kısa bir
+            // bardan çok daha küçük bir günah.
+            //
+            // Kalan pay yalnız KOMŞU KAPILARI ayırmak için, kıl payı:
+            // yan yana iki kapı aynı renkteyse tek parça gibi okunuyordu.
+            const float SeamInset = 0.02f;
+            min += SeamInset;
+            max -= SeamInset;
         }
 
         /// <summary>
@@ -326,11 +330,97 @@ namespace BlockOut.Runtime.View
         /// </summary>
         public void SetGhost(Material ghostMaterial)
         {
-            _renderer.sharedMaterial = ghostMaterial;
-            if (_arrow == null) return;
+            // GEÇİŞ ANİDEN DEĞİL, SÖNEREK.
+            //
+            // DERS (durum değişimi bir OLAYDIR): Kapı işini bitirdiğinde
+            // materyali tek karede ghost'a çevriliyordu; ekranda renk "pat"
+            // diye değişiyordu ve oyuncu ne olduğunu anlamıyordu — hatta
+            // kapının bozulduğunu sanıyordu. Referansta kapı saydamlaşarak
+            // siliniyor; sönme, "bu kapının işi bitti" cümlesinin ta kendisi.
+            // Bir kare süren değişim bilgi taşımaz, yalnız şaşırtır.
+            if (_fade != null) StopCoroutine(_fade);
+            _fade = StartCoroutine(FadeToGhost(ghostMaterial));
+        }
 
-            var arrowRenderer = _arrow.GetComponent<MeshRenderer>();
-            if (arrowRenderer != null) arrowRenderer.sharedMaterial = ViewKit.ArrowGhostMaterial;
+        Coroutine _fade;
+
+        /// <summary>
+        /// Barı ve oku ghost görünümüne doğru söndürür.
+        ///
+        /// Renk ARADA geçiyor: hedef materyale hemen geçip yalnız alfayı
+        /// indirmek, kapının bir an tam renkli sonra yarı saydam görünmesine
+        /// yol açıyordu. Kaynak rengiyle hedef rengi arasında yürümek geçişi
+        /// tek bir hareket gibi gösteriyor.
+        /// </summary>
+        System.Collections.IEnumerator FadeToGhost(Material ghostMaterial)
+        {
+            const float duration = 0.34f;
+
+            Color from = ReadColor(_renderer.sharedMaterial);
+            Color to = ghostMaterial != null ? ReadColor(ghostMaterial) : from;
+
+            // Kendi örneğimizde çalışıyoruz: paylaşılan materyali boyamak
+            // aynı renkteki BÜTÜN kapıları söndürürdü.
+            var fading = ViewKit.Translucent(from);
+            _renderer.sharedMaterial = fading;
+
+            var arrowRenderer = _arrow != null ? _arrow.GetComponent<MeshRenderer>() : null;
+            Material arrowFading = null;
+            Color arrowFrom = default, arrowTo = default;
+            if (arrowRenderer != null)
+            {
+                arrowFrom = ReadColor(arrowRenderer.sharedMaterial);
+                arrowTo = ViewKit.ArrowGhostMaterial != null
+                    ? ReadColor(ViewKit.ArrowGhostMaterial) : arrowFrom;
+                arrowFading = ViewKit.Translucent(arrowFrom);
+                arrowRenderer.sharedMaterial = arrowFading;
+            }
+
+            for (float t = 0f; t < duration; t += Time.deltaTime)
+            {
+                float k = Mathf.SmoothStep(0f, 1f, t / duration);
+                Paint(fading, Color.Lerp(from, to, k));
+                if (arrowFading != null)
+                    Paint(arrowFading, Color.Lerp(arrowFrom, arrowTo, k));
+                yield return null;
+            }
+
+            // Sonunda PAYLAŞILAN ghost materyaline dönülüyor: geçiş için
+            // yaratılan örnekler burada bırakılırsa her sönen kapı bellekte
+            // iki materyal biriktirir.
+            _renderer.sharedMaterial = ghostMaterial;
+            if (arrowRenderer != null)
+                arrowRenderer.sharedMaterial = ViewKit.ArrowGhostMaterial;
+
+            if (fading != null) Destroy(fading);
+            if (arrowFading != null) Destroy(arrowFading);
+            _fade = null;
+        }
+
+        static void Paint(Material material, Color color)
+        {
+            if (material == null) return;
+            if (material.HasProperty("_Color")) material.color = color;
+            if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
+        }
+
+        /// <summary>
+        /// Materyalin rengini GÜVENLİ okur.
+        ///
+        /// DERS (`Material.color` her gölgecide yok): `.color` aslında
+        /// `_Color` özelliğini okuyor. Okun materyali `BlockOut/Brick`
+        /// gölgecisini kullanıyor ve onda `_Color` YOK — sönmeyi yazdığımda
+        /// konsola iki satır hata düştü ("doesn't have a color property
+        /// '_Color'"). Unity bunu istisnaya çevirmiyor, sessizce siyah
+        /// döndürüyor; yani hata görülmese geçiş siyahtan başlardı.
+        /// URP'de doğru ad `_BaseColor`; ikisini de denemek gerekiyor.
+        /// </summary>
+        static Color ReadColor(Material material)
+        {
+            if (material == null) return Color.white;
+            if (material.HasProperty("_BaseColor")) return material.GetColor("_BaseColor");
+            if (material.HasProperty("_Color")) return material.color;
+            return Color.white;
         }
     }
 }

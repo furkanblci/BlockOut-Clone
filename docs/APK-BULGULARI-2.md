@@ -1307,3 +1307,79 @@ bayrak yok, bu yüzden ad levhası kapsül olarak minderin üstüne biniyor.
 Kapatmanın şartı buydu değil — madde "kürsü çok basit duruyor" diyordu ve
 o giderildi. Ama birebir isteniyorsa istem yeniden yazılmalı: parlak
 magenta puf minder + ön yüzde sarkan bayrak.
+
+---
+
+## 3. TUR — ilk üç bulgu (2026-08-18)
+
+### A. Kapı açıklığından DAR çiziliyordu
+
+> "tam sığmaz hizalı olmaz... kapıyla blok en kötü ihtimalle eşit uzunlukta
+> olmalı, blok kapıdan büyük olamaz"
+
+Önce bölüm verisini şüphelendim: 50 bölümün tüm blok/kapı çiftleri tarandı
+(N/S kapıları X boyunca, E/W Y boyunca; bloğun o eksendeki genişliği ≤ kapı
+uzunluğu). **Kural ihlali: 0.** Yani veri doğruydu, sorun ÇİZİMDE.
+
+`GateView.ResolveSpan` tahta köşesine dayanan ucu `clearance` kadar içeri
+alıyordu ve o pay `min(köşeYarıçapı × 0.75, açıklık × 0.35)` idi. 2 hücrelik
+bir kapıda **0.45 hücre** ediyor: kapı ekranda 2 değil **1.5** hücre
+çiziliyordu. Ölçüm: bar uzunluğu 1.50 → düzeltmeden sonra **1.960**.
+
+Referans ölçüldü (`menus,powerups,vs.mp4` 01:25): 2 hücrelik kapı 95 piksel,
+hücre 46,4 piksel — **tam 2 hücre, hiç kırpma yok.**
+
+**DERS (kapının genişliği bir SÖZDÜR).** Açıklık oyuncuya "bu genişlikte bir
+blok buradan geçer" der. Barı kısaltmak o sözü bozuyor; 2 hücrelik blok 2
+hücrelik kapının önünde sığmayacak gibi görünüyordu. Kırpma KOZMETİK bir
+sorun için konmuştu (bar çerçevenin yuvarlak köşesine giriyordu) — ama
+kozmetik bir kusuru işlevsel bir yalanla değiştirmek kötü bir takas.
+
+### B. Kapı "pat" diye ghost'a dönüyordu
+
+> "kapı efekti kötü, kapı kaybolduğunda transparan bir şekilde kaybolmalı"
+
+Kapı aslında yok olmuyor, rengi tükenince **ghost** oluyor — ve materyal tek
+karede değişiyordu. Artık 0,34 saniyede renk VE alfa birlikte yürüyerek
+sönüyor.
+
+**DERS (durum değişimi bir OLAYDIR).** Bir kare süren değişim bilgi taşımaz,
+yalnız şaşırtır; oyuncu kapının bozulduğunu sanıyordu.
+
+**Yol üstünde bir tuzak:** `Material.color` aslında `_Color` özelliğini
+okuyor ve okun materyali (`BlockOut/Brick`) o özelliği taşımıyor. Konsola
+"doesn't have a color property '_Color'" hatası düştü. Unity bunu istisnaya
+çevirmiyor, **siyah döndürüyor** — hata görülmese geçiş siyahtan başlardı.
+URP'de doğru ad `_BaseColor`; ikisi de denenmeli.
+
+### C. Emme efekti referansla alakasızdı
+
+> "kaybolmadan önce blokları içeri alırken beyaz ışıkla aydınlanmış bir
+> şekilde bloku parçalıyor ve çok daha fazla blok parçası çıkıyor"
+
+Referans ölçüldü (21-30 yürüyüşü, 21. bölüm, 20 fps'te çıkarılıp beyaz
+parlama arayan tarama ile bulundu):
+
+| | referans | bizde (önce) |
+|---|---|---|
+| Parça kenarı | 20-35 px, hücre ~48 px → **%40-70 hücre** | 0.07-0.16 → %7-16 |
+| Parça sayısı | kapı üstünde 13 ayrı küme (değenler tek sayıldı) | 14 + alan×4 |
+| Blok | kapıya girerken **beyaz konturla** aydınlanıyor | hiçbir şey |
+| Yayılma | kapı üstünde ~3,6 hücre genişlik, 2 hücre yükseklik | dar koni |
+
+Yapılan: parça boyu 0.18-0.42, sayı 30 + alan×8, ömür 0,72 sn; bloğa
+kaybolurken beyaz parlama (mevcut kontur 1.16 ölçeğe büyütülüp beyaza
+boyanıyor ve erken sönüyor).
+
+**DERS (kırıntı ile moloz farklı şeyler anlatır).** Küçük parçacık "bir şey
+ufalandı" der, iri parça "bir şey KIRILDI" der. Referansın verdiği his
+ikincisi.
+
+**DERS (ışık, olayın nerede olduğunu söyler).** Blok sessizce küçülünce göz
+onu takip etmiyor; ekranda üç yerde bir şey olurken hangisinin "emilme"
+olduğu belirsiz kalıyor. Bir kare beyazlama gözü tam o bloğa çiviliyor.
+
+**Doğrulama durumu:** kapı genişliği (1.50 → 1.960) ve beyaz parlama ekranda
+doğrulandı; kapı sönümü sayısal olarak doğrulandı (alfa 1.0 → 0.938 → 0.25).
+Kırıntının yeni boyu/sayısı kod düzeyinde ayarlı ama gerçek bir emilme
+tetiklemek yasal bir hamle gerektiriyor — bir sonraki APK'de görülecek.

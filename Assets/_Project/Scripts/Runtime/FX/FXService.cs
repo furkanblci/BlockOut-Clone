@@ -78,8 +78,12 @@ namespace BlockOut.Runtime.FX
             // kırıntılar tahtanın ortasında beliriyordu ve olay "blok patladı"
             // gibi okunuyordu, "kapıdan geçti" gibi değil. Aynı sayıda
             // parçacık, doğru yerde ve doğru yönde, bambaşka bir cümle kuruyor.
+            // SAYI DA REFERANSTAN: aynı karede kapının üstünde 13 ayrı parça
+            // sayıldı ve bunların bir kısmı birbirine değdiği için tek küme
+            // olarak ölçüldü — gerçek sayı daha yüksek. 14 + alan*4 (1x1 blok
+            // için 18) yığın hissini vermiyordu.
             BurstFromGate(gate, ColorOf(block.CurrentColor),
-                          14 + block.W * block.H * 4);
+                          30 + block.W * block.H * 8);
 
             // Sarsıntı bloğun BÜYÜKLÜĞÜNE bağlı: 1x1 bir parçanın emilmesiyle
             // 2x4'lük bir kütlenin emilmesi aynı ağırlıkta hissedilmemeli.
@@ -205,9 +209,19 @@ namespace BlockOut.Runtime.FX
             main.duration = 1f;
             main.loop = false;
             main.playOnAwake = false;
-            main.startLifetime = 0.55f;
+            main.startLifetime = 0.72f;
             main.startSpeed = new ParticleSystem.MinMaxCurve(2.2f, 4.2f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.07f, 0.16f);
+            // PARÇA BOYU REFERANSTAN ÖLÇÜLDÜ (21-30 yürüyüşü, 21. bölümde
+            // sarı blok emilirken): kapının üstündeki yığında parçaların
+            // kenarı 20-35 piksel, hücre ~48 piksel — yani hücrenin
+            // %40-70'i. Bizdeki 0.07-0.16 hücrenin %7-16'sıydı: ekranda
+            // "toz" görünüyordu, referansta ise KOPMUŞ TUĞLA PARÇALARI var.
+            //
+            // DERS (kırıntı ile moloz farklı şeyler anlatır): Küçük parçacık
+            // "bir şey ufalandı" der, iri parça "bir şey KIRILDI" der.
+            // Referansın verdiği his ikincisi; blok kapıdan geçerken
+            // paramparça oluyor ve parçalar HUD'a kadar yükseliyor.
+            main.startSize = new ParticleSystem.MinMaxCurve(0.18f, 0.42f);
             main.startRotation3D = true;
             main.startRotationX = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
             main.startRotationY = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);

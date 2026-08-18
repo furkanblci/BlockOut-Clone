@@ -791,6 +791,29 @@ namespace BlockOut.Runtime.View
 
         IEnumerator VanishRoutine()
         {
+            // BEYAZ IŞIKLA PARÇALANMA (3. tur bulgusu).
+            //
+            // Referansta (21-30 yürüyüşü, 21. bölüm) blok kapıya girerken
+            // BEYAZ bir konturla aydınlanıyor, sonra dağılıyor. Bizde yalnız
+            // küçülüp kayboluyordu; kapıdan çıkan kırıntı dışında "kırıldı"
+            // diyen hiçbir şey yoktu.
+            //
+            // DERS (ışık, olayın nerede olduğunu söyler): Blok sessizce
+            // küçülünce göz onu takip etmiyor — ekranda üç yerde bir şey
+            // olurken hangisinin "emilme" olduğu belirsiz kalıyor. Bir kare
+            // beyazlama, gözü tam o bloğa çiviliyor.
+            EnsureOutline();
+            var flash = _outline != null ? _outline.GetComponent<MeshRenderer>() : null;
+            Material flashMaterial = null;
+            if (flash != null)
+            {
+                // Kontur normalde ince; parlama anında kalınlaşıyor ki
+                // beyaz gerçekten GÖRÜNSÜN.
+                _outline.transform.localScale = Vector3.one * 1.16f;
+                flashMaterial = ViewKit.Translucent(Color.white);
+                flash.sharedMaterial = flashMaterial;
+            }
+
             const float duration = 0.18f;
             Vector3 startScale = transform.localScale;
 
@@ -798,9 +821,20 @@ namespace BlockOut.Runtime.View
             {
                 float k = Mathf.Clamp01(t / duration);
                 transform.localScale = startScale * (1f + 0.25f * k) * (1f - k);
+
+                // Beyaz erken sönüyor: parlama bir VURUŞ, perde değil.
+                if (flashMaterial != null)
+                {
+                    var c = Color.white;
+                    c.a = 1f - Mathf.Clamp01(k * 1.6f);
+                    flashMaterial.color = c;
+                    if (flashMaterial.HasProperty("_BaseColor"))
+                        flashMaterial.SetColor("_BaseColor", c);
+                }
                 yield return null;
             }
 
+            if (flashMaterial != null) Destroy(flashMaterial);
             Destroy(gameObject);
         }
 
