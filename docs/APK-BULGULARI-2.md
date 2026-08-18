@@ -816,7 +816,7 @@ sıralı ve temiz."**
   Olay bağlantısının kendisi tek satırlık bir değişiklik
   (`Burst(blok merkezi)` → `BurstFromGate(gate)`).
 
-- [ ] **55.** > "Genel olarak oyun içi modellerin de detaylıca incelenmesi
+- [x] **55.** > "Genel olarak oyun içi modellerin de detaylıca incelenmesi
   gerekiyor. Özellikle obstacle'ların ve kapıların üzerine sayı geldiğinde ne
   olduğu vs. detaylıca incelenip orijinal oyundaki hale benzemesi gerekiyor.
   **Fakat düzgün gözüken, benim ayarladığım küpleri de bozmayalım.**"
@@ -838,8 +838,66 @@ sıralı ve temiz."**
   **NASIL DOĞRULANDI.** Ayraç `#4E4E59` → **`#0D0D28`**, yani hücreden
   (`#1E1E53`) koyu — referansın yönüyle aynı.
 
-  **AÇIK KALAN:** engellerin ve kapıların üzerindeki SAYILARIN görünümü
-  (buz sayacı, perde sayacı) henüz referansla kıyaslanmadı.
+  **İKİNCİ PARÇA (2026-08-18): sayaçların görünümü.**
+
+  **REFERANS** (`menus,powerups,vs.mp4` 01:25 — aynı karede hem buz blokları
+  hem donmuş kapılar var). Ölçüm:
+
+  | | dolgu | kontur |
+  |---|---|---|
+  | Buz bloğu sayacı | (111, 226, 255) | (0, 67, 176) |
+  | Donmuş kapı sayacı | (246, 231, 217) | (134, 82, 24) |
+
+  İki bulgu: **(1) rakam rengi TEK DEĞİL**, durduğu yüzeye göre değişiyor ve
+  her biri kendi zemininin AÇIK tonu — yani sayaç zeminden kopuk bir rozet
+  değil, aynı malzemenin parlayan yüzü. Bizde hepsi kremdi; kapıda doğru ama
+  koyu mavi buz bloğunun üstünde yabancı bir etiket gibi duruyordu.
+  **(2) Okunurluğu veren şey KONTUR** — rakam kendi zemininin açık tonu
+  olduğu için kontursuz kalınca eriyor.
+
+  **NE YAPILDI.** Sayaçlar Unity'nin eski `TextMesh`'inden TMP'ye taşındı
+  (`ViewKit.CounterStyle`: Ice / Frost / Gold). TextMesh kontur çizemez ve
+  gömülü LegacyRuntime — yani düz Arial — fontuyla gelir; referanstaki
+  rakamlar ise yuvarlak ve şişman. TMP hem konturu hem oyunun kendi fontunu
+  (Baloo2) veriyor.
+
+  **NASIL DOĞRULANDI.** 13. bölüm açıldı, ekran yakalandı, rakam pikselleri
+  ölçüldü: dolgu **(111, 226, 255)**, kontur **(0, 67, 176)** — referansla
+  BİREBİR aynı.
+
+  **TAŞIMA SIRASINDA BEŞ TUZAK ÇIKTI** (hepsi "nesne var ama ekranda yok"
+  belirtisiyle):
+
+  1. **TMP'nin `fontSize`'ı dünya birimi değil.** Hücre 1 birim olduğu için
+     "yarısı olsun" diye `0.72` yazdım; ölçülen sınır `0.04 x 0.06` birim
+     çıktı, hücrenin %5'i. Çevrim ~0.083 birim/punto; gereken değer ~6.
+  2. **Konturda `OUTLINE_ON` anahtarı.** Açık değilse verilen genişlik
+     sessizce yok sayılıyor (başlık gölgesinde `UNDERLAY_ON` ile de aynı
+     tuzağa düşülmüştü).
+  3. **Olmayan özelliğe yazmak sessizce hiçbir şey yapmaz.** `_ZTestMode`'u
+     koşulsuz yazdım; ölçtüğümde materyalde o özelliğin HİÇ OLMADIĞI çıktı —
+     TMP'nin masaüstü gölgecisinde var, projenin kullandığı
+     "Mobile/Distance Field" sürümünde yok. Unity yutuyor, ben de bir sorunu
+     "çözdüm" sanıp gerçek sebebi aramayı bıraktım.
+  4. **Asıl sebep: yükseklik.** Sayaç `shellHeight * 0.5f + 0.06f` ile
+     konumlanıyordu, ama kabuk mesh'i tuğlanın silueti ve dikeyde 1.05
+     ölçekli; gerçek tepe bu hesabın üstünde kaldı ve rakam buzun İÇİNDE
+     doğdu. Nesne vardı, materyali doğruydu, çizicisi açıktı, `isVisible`
+     bile true'ydu — yalnızca derinlik testini geçemiyordu. Artık yükseklik
+     çizicinin KENDİ sınırından (`renderer.bounds.max.y`) alınıyor; mesh ya
+     da ölçek değişse de doğru kalıyor.
+  5. **Yüz ayıklaması.** Sayaç doğru okunabilmesi için kameraya SIRTINI
+     dönmek zorunda (aşağıdaki ders). Eski `TextMesh` bunu Unity'nin gömülü
+     font gölgecisinden hazır alıyordu; TMP'de `_CullMode = Off` açıkça
+     istenmeli.
+
+  **DERS (bir hatayı iki kez "düzeltmek").** Rakamlar hiç görünmeyince
+  hemen dönme açısını suçladım ve çevirdim; ters çıkınca bir daha çevirdim.
+  Oysa açı en baştan doğruydu — görünmemenin sebebi 4. maddedeki yüksekliği.
+  Yön sorusu ancak ÖLÇÜLDÜĞÜNDE kapandı: yazının yerel "yukarı" ve "sağ"
+  eksenlerini ekrana izdüşürüp işaretlerine baktım. İkisinin birden pozitif
+  olduğu tek çerçevede yazının ÖNÜ aşağı bakıyor. Tek bir belirtiye bakıp
+  ilk akla gelen sebebi düzeltmek, doğru olanı bozmanın en kolay yolu.
 
 - [x] **56.** > "İç içe 2 blok feature'ın visualı çok kötü. Orijinal oyundaki
   gibi olması gerekiyor."

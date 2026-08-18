@@ -733,6 +733,28 @@ namespace BlockOut.Runtime.View
         {
             var go = new GameObject("Counter");
             go.transform.SetParent(parent, worldPositionStays: false);
+
+            // YAZI KAMERAYA SIRTINI DÖNER — ve bu DOĞRUDUR.
+            //
+            // Sayacın ekranda düzgün okunması için iki şey aynı anda tutmalı:
+            // yazının üstü ekranda yukarı (dünyada +Z, ölçüldü) ve yazının
+            // sağı ekranda sağa (dünyada +X). `LookRotation` ile bunu denedim;
+            // ikisi asla birlikte tutmadı. Sebep basit: `up` ipucunu +Z
+            // yapınca sağ -X'e düşüyor (yazı aynalanıyor), -Z yapınca yazı
+            // ters dönüyor. İki koşulu birden sağlayan tek çerçevede yazının
+            // ÖNÜ aşağı bakıyor — yani eski `Euler(90,0,0)` en baştan doğruydu.
+            //
+            // DERS (bir hatayı iki kez "düzeltmek"): Rakamlar hiç
+            // görünmeyince açıyı suçladım ve çevirdim; sonra ters çıkınca bir
+            // daha çevirdim. Oysa açı hiç bozuk değildi — görünmemenin sebebi
+            // yüksekliğin geometrinin içinde kalmasıydı. Ekrandaki tek bir
+            // belirtiye bakıp ilk akla gelen sebebi düzeltmek, doğru olanı
+            // bozmanın en kolay yolu. Yön sorusu ancak ÖLÇÜLDÜĞÜNDE
+            // (ekran DX/DY işaretleri) kapandı.
+            //
+            // Arkadan bakılan yazının çizilmesi için yüz ayıklaması materyalde
+            // kapatılıyor (bkz. CounterMaterial) — eski `TextMesh` bunu
+            // gömülü gölgecisinden hazır alıyordu.
             go.transform.SetPositionAndRotation(worldPos, Quaternion.Euler(90f, 0f, 0f));
             go.transform.localScale = Vector3.one;
 
@@ -816,18 +838,27 @@ namespace BlockOut.Runtime.View
             mat.SetColor(TMPro.ShaderUtilities.ID_OutlineColor, outline);
             mat.SetFloat(TMPro.ShaderUtilities.ID_OutlineWidth, 0.22f);
 
-            // DERS (eski fontun görünmesini SAĞLAYAN şey neydi?): Sayaç buz
-            // kalıbının yüzeyinin bir tık üstünde duruyor ve TMP'nin SDF
-            // gölgecisi derinlik testi yapıyor — rakam kalıbın içinde kalıp
-            // hiç çizilmiyordu. Eski `TextMesh` çalışıyordu çünkü Unity'nin
-            // gömülü font gölgecisi `ZTest Always` ile gelir; yani o davranış
-            // bizim seçimimiz değil, kütüphaneden gelen bir armağandı ve
-            // taşınırken sessizce kayboldu. Şimdi AÇIKÇA isteniyor.
+            // Sayaç buz kalıbının yüzeyinin bir tık üstünde duruyor; sıra
+            // numarası NE ZAMAN çizileceğini söyler, derinlik testi ise
+            // ÇİZİLİP çizilmeyeceğini. İkisi ayrı ayarlar.
             //
-            // Sıra numarası (4000) tek başına yetmez: sıra NE ZAMAN
-            // çizileceğini söyler, derinlik testi ise ÇİZİLİP çizilmeyeceğini.
-            mat.SetFloat("_ZTestMode",
-                (float)UnityEngine.Rendering.CompareFunction.Always);
+            // DERS (özellik yoksa yazmak SESSİZCE hiçbir şey yapmaz):
+            // Önce koşulsuz `SetFloat("_ZTestMode", Always)` yazdım. Ölçtüğümde
+            // materyalde o özelliğin HİÇ OLMADIĞI çıktı — `_ZTestMode`
+            // TMP'nin masaüstü gölgecisinde var, projenin kullandığı
+            // "Mobile/Distance Field" sürümünde yok. Unity böyle bir yazmayı
+            // hataya çevirmez, yutar; ben de bir sorunu "çözdüm" sanıp
+            // gerçek sebebi (yanlış dönme açısı) aramayı bıraktım.
+            if (mat.HasProperty("_ZTestMode"))
+                mat.SetFloat("_ZTestMode",
+                    (float)UnityEngine.Rendering.CompareFunction.Always);
+
+            // YÜZ AYIKLAMASI KAPALI: sayaç tahtaya yatık duruyor ve doğru
+            // okunabilmesi için kameraya sırtını dönüyor (bkz. CreateCounter).
+            // Eski `TextMesh` bunu Unity'nin gömülü font gölgecisinden hazır
+            // alıyordu; TMP'de açıkça istemek gerekiyor.
+            if (mat.HasProperty("_CullMode"))
+                mat.SetFloat("_CullMode", (float)UnityEngine.Rendering.CullMode.Off);
 
             _counterMaterials[style] = mat;
             return mat;

@@ -92,8 +92,13 @@ namespace BlockOut.Runtime.View
                 view._renderer.sharedMaterial = ViewKit.Ice;
                 // Donmuş KAPININ sayacı krem: kapının buzu bloğunkinden çok
                 // daha soluk, rakam da onun açık tonunda.
+                //
+                // Yükseklik çizicinin KENDİ sınırından; sabit hesap barın
+                // gerçek tepesini ıskalayıp rakamı buzun içine gömüyordu
+                // (bkz. BlockView'daki aynı ders).
+                float barTop = view._renderer.bounds.max.y;
                 view._iceCounter = ViewKit.CreateCounter(
-                    parent, center + Vector3.up * (BarHeight * 0.5f + 0.12f), model.IceCount,
+                    parent, new Vector3(center.x, barTop + 0.08f, center.z), model.IceCount,
                     ViewKit.CounterStyle.Frost);
             }
             else

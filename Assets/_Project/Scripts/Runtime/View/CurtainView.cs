@@ -50,8 +50,14 @@ namespace BlockOut.Runtime.View
             // Altın rozet artık stilin içinde (konturuyla birlikte); rengi
             // kurulumdan sonra elle yazmak, materyalin yüz rengini es geçip
             // konturu da renklendirmeden bırakıyordu.
+            // Yükseklik perdenin GERÇEK tepesinden; sabit hesap rakamı camın
+            // içine gömüyordu (bkz. BlockView'daki aynı ders).
+            float curtainTop = center.y + PanelHeight * 0.5f;
+            foreach (var r in root.GetComponentsInChildren<MeshRenderer>())
+                if (r.bounds.max.y > curtainTop) curtainTop = r.bounds.max.y;
+
             view._counter = ViewKit.CreateCounter(
-                root.transform, center + Vector3.up * (PanelHeight * 0.5f + 0.12f), model.Count,
+                root.transform, new Vector3(center.x, curtainTop + 0.08f, center.z), model.Count,
                 ViewKit.CounterStyle.Gold);
 
             return view;

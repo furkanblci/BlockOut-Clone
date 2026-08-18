@@ -603,9 +603,21 @@ namespace BlockOut.Runtime.View
 
             // Buz BLOĞUNUN sayacı camgöbeği: referansta rakam kendi zemininin
             // açık tonu, kapının kremi değil (bkz. ViewKit.CounterStyle).
+            //
+            // YÜKSEKLİK ÖLÇÜLEREK BULUNUYOR, HESAPLANARAK DEĞİL.
+            //
+            // DERS (tahmini yükseklik sessizce gömülür): Sayaç önce
+            // `shellHeight * 0.5f + 0.06f` ile konumlanıyordu — kabuğun yarısı
+            // artı biraz. Ama kabuk mesh'i tuğlanın silueti ve dikeyde 1.05
+            // ölçekli; gerçek tepesi bu hesaptan yukarıda kaldı ve rakam buzun
+            // İÇİNDE doğdu. Ekranda hiçbir şey yoktu: nesne vardı, materyali
+            // doğruydu, çizicisi açıktı, hatta `isVisible` bile true'ydu —
+            // yalnızca derinlik testini geçemiyordu. Çizicinin KENDİ sınırını
+            // sormak, mesh ya da ölçek değişse de doğru kalan tek yol.
+            float iceTop = rimRenderer.bounds.max.y;
             _iceCounter = ViewKit.CreateCounter(
                 parent,
-                center + Vector3.up * (shellHeight * 0.5f + 0.06f),
+                new Vector3(center.x, iceTop + 0.08f, center.z),
                 _model.IceCount,
                 ViewKit.CounterStyle.Ice);
         }
