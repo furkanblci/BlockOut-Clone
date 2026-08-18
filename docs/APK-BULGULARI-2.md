@@ -1012,12 +1012,31 @@ sıralı ve temiz."**
   Kutlama kanvası **ilk kazanışta** kuruluyor, ekran kurulurken değil:
   kaybeden ya da bölümü hiç bitirmeyen bir oturumda hiç yaratılmıyor.
 
-  ⚠️ **GÖRSEL DOĞRULAMA BEKLİYOR.** Kod yazıldı ama oyun modunda yakalanıp
-  referansla kıyaslanamadı: `Debug/DevMenu.cs` şu an derlenmiyor
-  (`DrawPlay`, `HookLogs`, `EntryKind`, `AddEntry`, `_logErrors` hiçbir
-  dosyada tanımlı değil — dosyayı parçalara bölme işi yarım). Bu benim
-  dokunduğum bir dosya değil; o derleme düzelince kutlama yakalanıp
-  ölçülmeli.
+  **YAKALANDI VE İKİ HATA ÇIKTI.**
+
+  **1) Kıvılcımlar ekranda HİÇ çizilmiyordu.** Sayaç "60 kıvılcım var"
+  diyordu; ölçek, alfa ve konum doğruydu; ekran bomboştu. Sebep
+  `CreateRoundedPanel` + `SetSliceScale(0.10f)` idi — uçları yuvarlak olsun
+  diye. O çarpan sprite'ın 18 piksellik kenar payını 180 piksele çıkarıyor,
+  dikdörtgen ise 30x7. Kenar payları dikdörtgenin kendisinden kat kat büyük
+  olunca Unity bozuk bir ağ üretiyor ve hiçbir şey çizilmiyor.
+  **DERS: 9-dilim kenar payı, dikdörtgenden büyük olamaz.** Düz dikdörtgene
+  geçildi.
+
+  **2) Patlama değil SAAT KADRANI çıkıyordu.** Her kıvılcım sabit boyda
+  küçük bir çizgiydi ve hepsi aynı yarıçapa gidiyordu; ekranda eşit
+  aralıklı, eşit boyda çizgilerden oluşan düzgün bir halka oluşuyordu.
+  Referansta ise her ışın merkezden başlayıp dışa doğru UZUYOR.
+  **DERS: havai fişek kopuk noktalardan değil İZLERDEN oluşur.** Düzeltme
+  iki parça: pivot sol uca alındı (iz dışa doğru uzasın) ve uzunluk kat
+  edilen yola bağlandı — hızlı giden uzun, yavaş giden kısa iz bırakıyor ve
+  halka kendiliğinden bozuluyor. Konfeti de 70'ten 190'a çıkarıldı; 70 parça
+  "kutlama" değil "birkaç kağıt düştü" gibi okunuyordu.
+
+  Not: editörde adım adım ilerlerken `unscaledDeltaTime` gerçek zamandan
+  hızlı akıyor, bu yüzden yakalanan karede tek patlama ve az konfeti
+  görünüyor. Oyunun kendi kare hızında kıvılcım ömrü 0,95 sn ve patlama
+  aralığı 0,26 sn — yani her an üç dört patlama üst üste biniyor.
 
 - [ ] **38. Yeniden oyna ikonu.**
   > "Yeniden Oyna ikonu değiştirilmesi lazım. Bunu da butonu yapay zekâya
