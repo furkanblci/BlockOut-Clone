@@ -161,10 +161,28 @@ namespace BlockOut.Runtime.View
                     "IceGloss", new Color(1f, 1f, 1f, 0.42f), 3020));
 
         /// <summary>Zemindeki hücre ızgarası çizgisi — çok soluk.</summary>
+        /// <summary>
+        /// Tahtanın hücre ayraçları — BEYAZ DEĞİL, KOYU.
+        ///
+        /// DERS (ayracın yönü referanstan okunur, sezgiden değil): Bu çizgiler
+        /// "%7 beyaz" ile kuruluydu; gerekçe "sınırı sezdir, dikkat çekme"
+        /// idi ve tek başına makul. Ama referans ölçüldüğünde (oynanış videosu,
+        /// 00:28 karesi) tam tersi çıktı: hücre `#1E1B50`, ayraç `#120F2F`
+        /// — yani ayraç hücreden KOYU. Bizde ekranda `#4E4E59` ölçüldü, yani
+        /// hem yanlış yönde hem beklenenden parlak.
+        ///
+        /// Neden koyu doğru: tahta zaten koyu bir kuyu; açık çizgi orada bir
+        /// ÇIKINTI gibi okunuyor ve boş hücreler "ızgara kâğıdı" gibi
+        /// görünüyor. Koyu çizgi ise bir OLUK — hücreler kabartma kalıyor ve
+        /// bloklar oraya oturuyormuş hissi doğuyor.
+        ///
+        /// %34 siyah, `#1E1E53` hücrenin üstünde ekranda ~`#141436` veriyor:
+        /// referansın `#120F2F`'ine yakın.
+        /// </summary>
         public static Material GridLine =>
             _gridLine != null ? _gridLine
                 : (_gridLine = CreateTransparent(
-                    "GridLine", new Color(1f, 1f, 1f, 0.07f), 2990));
+                    "GridLine", new Color(0f, 0f, 0f, 0.34f), 2990));
 
         /// <summary>Buzlu camın üstündeki ışık çizgisi — hafif parlak, saydam.</summary>
         public static Material CurtainStreak =>
@@ -310,6 +328,48 @@ namespace BlockOut.Runtime.View
                     _arrowGhost.SetColor("_BaseColor", new Color(0.42f, 0.40f, 0.50f));
                 }
                 return _arrowGhost;
+            }
+        }
+
+        static Material _outline;
+
+        /// <summary>
+        /// Tutulan bloğun etrafındaki BEYAZ kontur (2. tur, 51. madde).
+        ///
+        /// DERS (3B konturun ucuz ve doğru yolu — KABUK): Bir mesh'in
+        /// silüetini çizmenin akla ilk gelen yolu ayrı bir "outline" geçişi
+        /// yazmaktır; URP'de bu bir Renderer Feature demek ve tek bir blok
+        /// için fazlasıyla ağır. Klasik ve bedava yöntem KABUK: aynı mesh
+        /// biraz büyütülüp ÖN YÜZLERİ kırpılarak (Cull Front) çizilir. Geriye
+        /// yalnız arka yüzler kalır, onlar da bloğun arkasında olduğu için
+        /// ekranda yalnızca kenardan taşan ince bir çerçeve görünür.
+        ///
+        /// Işıksız (Unlit) olmalı: kontur bir yüzey değil bir İŞARET; sahnenin
+        /// ışığından etkilenirse bir yüzü parlak diğeri sönük çıkar ve
+        /// "çerçeve" okuması bozulur.
+        ///
+        /// Sıra numarası bloğunkinden KÜÇÜK: kabuk önce çizilsin ki blok onun
+        /// üstüne otursun ve kontur yalnız dışarıda kalan kısımda görünsün.
+        /// </summary>
+        public static Material Outline
+        {
+            get
+            {
+                if (_outline == null)
+                {
+                    // BackgroundView de bu shader'ı kullanıyor, yani derlemeye
+                    // GİRDİĞİ zaten sahada doğrulanmış durumda (18. maddenin
+                    // dersi: Shader.Find editörde her zaman çalışır).
+                    var shader = Shader.Find("Universal Render Pipeline/Unlit")
+                                 ?? Shader.Find("Sprites/Default");
+                    _outline = new Material(shader) { name = "BlockOutline" };
+                    _outline.SetColor("_BaseColor", Color.white);
+                    if (_outline.HasProperty("_Color")) _outline.SetColor("_Color", Color.white);
+                    if (_outline.HasProperty("_Cull"))
+                        _outline.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Front);
+                    _outline.renderQueue = 2000;
+                }
+                return _outline;
             }
         }
 

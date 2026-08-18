@@ -221,10 +221,54 @@ namespace BlockOut.Runtime.View
         Vector3 WorldPosition(float lift) =>
             _space.RectCenterToWorld(_model.Position, _model.W, _model.H, lift);
 
+        /// <summary>
+        /// Tutulan bloğun BEYAZ konturu (2. tur, 51. madde).
+        ///
+        /// Kullanıcı: "Orijinal oyunda hangi bloku tutuyorsak onun etrafında
+        /// beyaz bir outline oluyor."
+        ///
+        /// DERS (tutma geri bildirimi ÖLÇEKTEN ibaret değil): Burada tek geri
+        /// bildirim bloğu %5 büyütmekti. Tek başına bu, kalabalık bir tahtada
+        /// hangi bloğun elde olduğunu söylemiyor — özellikle aynı renkten
+        /// birkaç blok yan yanayken. Kontur o soruyu tek bakışta cevaplıyor.
+        ///
+        /// Kabuk İLK İSTENDİĞİNDE kuruluyor: tahtada 20 blok var ve
+        /// çoğu hiç tutulmayacak; her birine baştan ikinci bir mesh vermek
+        /// bedava değil.
+        /// </summary>
+        void EnsureOutline()
+        {
+            if (_outline != null) return;
+
+            _outline = new GameObject("Outline");
+            _outline.transform.SetParent(transform, worldPositionStays: false);
+            _outline.transform.localPosition = Vector3.zero;
+            _outline.transform.localRotation = Quaternion.identity;
+            // Kalınlık ölçekten geliyor: %4 büyütme, blok boyundan bağımsız
+            // olarak ekranda ince ve tutarlı bir çerçeve veriyor.
+            _outline.transform.localScale = Vector3.one * 1.04f;
+
+            // SAPLAMASIZ mesh: kabuk yalnız silüeti çizmeli. Tuğlanın kendi
+            // mesh'i kullanılınca her saplama da büyüyüp kendi konturunu
+            // üretiyor ve blok "beyaz benekli" görünüyordu (denendi, ölçüldü).
+            _outline.AddComponent<MeshFilter>().sharedMesh =
+                BrickMeshBuilder.GetSilhouette(_model);
+
+            var renderer = _outline.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = ViewKit.Outline;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+        }
+
+        GameObject _outline;
+
         public void SetHighlight(bool on)
         {
             if (_highlighted == on) return;
             _highlighted = on;
+
+            if (on) EnsureOutline();
+            if (_outline != null) _outline.SetActive(on);
 
             StopTween();
             if (on)

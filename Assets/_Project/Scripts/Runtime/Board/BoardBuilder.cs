@@ -236,6 +236,17 @@ namespace BlockOut.Runtime.Board
             for (int y = 1; y < board.Height; y++)
                 Line(space.CornerToWorld(board.Width * 0.5f, y, 0.012f),
                      new Vector3(board.Width, 0.02f, thickness));
+
+            // KESİŞİM NOKTALARI — referansta her iç kesişimde küçük koyu bir
+            // nokta var (oynanış videosu, 00:28 karesi). Tek başına küçük bir
+            // ayrıntı ama tahtayı "çizilmiş ızgara" olmaktan çıkarıp
+            // "dökülmüş bir kalıp" gibi gösteren şey o: göz noktaları hücre
+            // köşelerinin perçini olarak okuyor.
+            const float dot = thickness * 2.6f;
+            for (int x = 1; x < board.Width; x++)
+                for (int y = 1; y < board.Height; y++)
+                    Line(space.CornerToWorld(x, y, 0.013f),
+                         new Vector3(dot, 0.02f, dot));
         }
 
         static Mesh BuildFloorMesh(BoardModel board, BoardSpace space)

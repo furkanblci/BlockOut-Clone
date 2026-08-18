@@ -746,14 +746,63 @@ sıralı ve temiz."**
 
 ### D8 — Oyun içi görsel/his
 
-- [ ] **51.** > "Orijinal oyunda hangi bloku tutuyorsak / basılı tutuyorsak onun
+- [x] **51.** > "Orijinal oyunda hangi bloku tutuyorsak / basılı tutuyorsak onun
   etrafında beyaz bir outline oluyor."
+
+  **NE YAPILDI.** Tutma geri bildirimi yalnız bloğu %5 büyütmekti; kalabalık
+  bir tahtada — özellikle aynı renkten birkaç blok yan yanayken — hangisinin
+  elde olduğunu söylemiyordu. `ViewKit.Outline` + `BlockView.EnsureOutline`
+  eklendi.
+
+  **YÖNTEM: KABUK.** Bir mesh'in silüetini çizmenin doğru yolu URP'de ayrı bir
+  Renderer Feature yazmak olurdu — tek bir blok için fazlasıyla ağır. Klasik ve
+  bedava yol: aynı şekil %4 büyütülüp **ön yüzleri kırpılarak** (`Cull Front`)
+  çizilir; geriye kalan arka yüzler bloğun arkasında olduğu için ekranda
+  yalnız kenardan taşan ince beyaz bir çerçeve görünür. Işıksız (Unlit)
+  materyal: kontur bir yüzey değil bir İŞARET.
+
+  **BULUNAN VE DÜZELTİLEN ARTEFAKT.** İlk denemede kabuk tuğlanın KENDİ
+  mesh'iyle kuruldu. Silüet doğru çıktı ama SAPLAMALAR da büyüdü ve her
+  saplamanın üstünde beyaz bir hilal belirdi — blok "beyaz benekli" göründü.
+  `BrickMeshBuilder.GetSilhouette` eklendi (aynı gövde, saplamasız, ayrı
+  önbellek anahtarı).
+  **DERS: kontur kabuğu gövdenin AYNISI olmamalı — taşıdığı her ayrıntı kendi
+  konturunu üretir.**
+
+  Kabuk ilk tutulduğunda kuruluyor: tahtada 20 blok var, çoğu hiç tutulmayacak.
+
+  **NASIL DOĞRULANDI.** Kontur açık/kapalı kareler piksel piksel kıyaslandı:
+  fark kutusu **tam olarak tutulan bloğun bölgesi** (3022 piksel), tahtanın
+  geri kalanında sıfır fark. Yakınlaştırılmış karede silüet temiz, saplamalarda
+  artefakt yok.
+
 - [ ] **53.** > "Kapıya giren blokun partikülünü iyi ayarlamak lazım. Tam girdiği
   yöne doğru partikül çıkıyor. Orijinal oyuna bakalım, yine aynı şekilde yapalım."
 - [ ] **55.** > "Genel olarak oyun içi modellerin de detaylıca incelenmesi
   gerekiyor. Özellikle obstacle'ların ve kapıların üzerine sayı geldiğinde ne
   olduğu vs. detaylıca incelenip orijinal oyundaki hale benzemesi gerekiyor.
   **Fakat düzgün gözüken, benim ayarladığım küpleri de bozmayalım.**"
+
+  **KISMİ İLERLEME (2026-08-18): tahta ızgarası düzeltildi.**
+
+  Hücre ayraçları "%7 BEYAZ" ile kuruluydu; gerekçe "sınırı sezdir, dikkat
+  çekme" idi ve tek başına makul. Referans ölçüldüğünde (oynanış videosu,
+  00:28) tam TERSİ çıktı: hücre `#1E1B50`, ayraç `#120F2F` — ayraç hücreden
+  **KOYU**. Bizde ekranda `#4E4E59` ölçüldü: hem yanlış yönde hem parlak.
+
+  **DERS: ayracın yönü referanstan okunur, sezgiden değil.** Tahta zaten koyu
+  bir kuyu; açık çizgi orada ÇIKINTI gibi okunuyor ve boş hücreler "ızgara
+  kâğıdı" gibi görünüyor. Koyu çizgi bir OLUK — hücreler kabartma kalıyor ve
+  bloklar oraya oturuyormuş hissi doğuyor.
+
+  Ayrıca referansta her iç kesişimde küçük koyu bir NOKTA var; eklendi.
+
+  **NASIL DOĞRULANDI.** Ayraç `#4E4E59` → **`#0D0D28`**, yani hücreden
+  (`#1E1E53`) koyu — referansın yönüyle aynı.
+
+  **AÇIK KALAN:** engellerin ve kapıların üzerindeki SAYILARIN görünümü
+  (buz sayacı, perde sayacı) henüz referansla kıyaslanmadı.
+
 - [ ] **56.** > "İç içe 2 blok feature'ın visualı çok kötü. Orijinal oyundaki
   gibi olması gerekiyor."
 

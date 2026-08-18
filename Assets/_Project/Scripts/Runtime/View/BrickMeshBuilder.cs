@@ -53,7 +53,30 @@ namespace BlockOut.Runtime.View
             int key = ShapeKey(block);
             if (Cache.TryGetValue(key, out var cached) && cached != null) return cached;
 
-            var mesh = Build(block.W, block.H, block.Cells);
+            var mesh = Build(block.W, block.H, block.Cells, withStuds: true);
+            Cache[key] = mesh;
+            return mesh;
+        }
+
+        /// <summary>
+        /// Aynı şeklin SAPLAMASIZ hâli — tutma konturunun kabuğu için.
+        ///
+        /// DERS (kontur kabuğu, gövdenin AYNISI olmamalı): Kontur ilk denemede
+        /// tuğlanın kendi mesh'ini %4 büyüterek kuruldu. Silüet doğru çıktı ama
+        /// SAPLAMALAR da büyüdü ve her saplamanın üstünde beyaz bir hilal
+        /// belirdi — blok "beyaz benekli" göründü. Kabuğun işi silüeti
+        /// çizmek; yüzeydeki ayrıntıyı taşımasına gerek yok, taşırsa da her
+        /// ayrıntı kendi konturunu üretiyor.
+        ///
+        /// Ayrı önbellek anahtarı: aynı şeklin iki farklı mesh'i var.
+        /// </summary>
+        public static Mesh GetSilhouette(BlockOut.Core.BlockModel block)
+        {
+            int key = ShapeKey(block) ^ unchecked((int)0x5D1E0000);
+            if (Cache.TryGetValue(key, out var cached) && cached != null) return cached;
+
+            var mesh = Build(block.W, block.H, block.Cells, withStuds: false);
+            mesh.name += "_Silhouette";
             Cache[key] = mesh;
             return mesh;
         }
@@ -67,7 +90,7 @@ namespace BlockOut.Runtime.View
             return key;
         }
 
-        static Mesh Build(int w, int h, List<Vector2Int> cells)
+        static Mesh Build(int w, int h, List<Vector2Int> cells, bool withStuds)
         {
             var cfg = VisualSettings.Current;
             float height = cfg != null ? cfg.brickHeight : 0.40f;
@@ -161,7 +184,9 @@ namespace BlockOut.Runtime.View
                         new Vector3(x0, height, z0), new Vector3(x0, height, z1), side, face);
                 }
 
-                // Saplamalar — hücre başına perCell²
+                // Saplamalar — hücre başına perCell². Silüet mesh'inde atlanır.
+                if (!withStuds) continue;
+
                 float step = 1f / perCell;
                 float first = step * 0.5f;
                 for (int sx = 0; sx < perCell; sx++)
