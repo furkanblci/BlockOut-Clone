@@ -8,6 +8,45 @@ Bu dosya her oturum sonunda güncellenir. Aşağısı 2026-08-10 itibarıyla ge�
 
 ---
 
+## 2026-08-18 — 2. TUR BAŞLADI (56 madde)
+
+**Tek doğruluk kaynağı: `docs/APK-BULGULARI-2.md`.** Kullanıcının ikinci test
+turundaki 56 maddesi oraya numaralı biçimde döküldü; her kapanan maddenin
+altında NE YAPILDI + NASIL DOĞRULANDI yazıyor.
+
+**Durum: 23 kapalı / 33 açık.**
+
+Kapananlar: 3, 4, 5, 24, 30 (köşe yarıçapı + başlık konturu) · 8, 9, 10, 11,
+13, 15, 16, 17, 18, 19 (Liderlik) · 52 (KRİTİK: kapı–blok boyutu) ·
+41, 42, 43, 44, 45, 46, 47 (oyun içi HUD + yardımcı düğmeleri).
+
+### Bu turda çıkan üç genel ders
+
+1. **Yarıçap sabit piksel değil ORANDIR.** Referansta her yüzeyde yarıçap kısa
+   kenarın **%22'si**, ~34 pikselde tavanlı. Bizde sabit ~36 piksel vardı ve
+   kısa kutularda hap üretiyordu. `GameKit.UI.UiCornerFit` bunu uyguluyor.
+   Elle yarıçap veren yerler `UiKit.SetSliceScale` ile hesabı KAPATIYOR.
+2. **Bir sayıyı on yere elle yazarsan on ayrı sayı olur.** Başlık konturu
+   dokuz çağrı yerinde 0.22-0.55 arası yazılmıştı; referansta tek oran var.
+   `UiKit.TitleOutlineWidth` ev değeri oldu.
+3. **Kapının KONUMU bulmacanın geometrisidir.** Kapı daraltırken "merkezi
+   koru" sezgiseli level_030'u çözülemez hâle getirdi; "özgün başlangıcı
+   koru" 51 kapının hepsinde sorunsuz.
+
+### Doğrulama döngüsü (tekrarlanabilir)
+
+Unity MCP ile: play moduna gir → `MenuShell.Instance.Show(key)` →
+ekranı yerine oturt → `UiCaptureTool.CaptureOf<T>(ad)` → PNG'yi oku/ölç.
+
+> **TUZAK:** Ekranı yerine oturturken `anchoredPosition = Vector2.zero`
+> YAZMA. Menü ekranlarının kökü asimetrik offset'li (tabanı 210 birim aşağı
+> taşıyor); anchoredPosition'ı sıfırlamak dikdörtgeni ORTALAR ve ekranı 105
+> birim yukarı kaydırır — başlık ekranın üstünden taşıp kırpılır. Yalnız X
+> sıfırlanmalı (oyunun kendi `SlideSwap`'i de öyle yapıyor). Bu tuzak bir
+> oturum içinde "oyunda hata var" sanılmasına yol açtı; hata araçtaydı.
+
+---
+
 ## 2026-08-17 OTURUM SONU — BLOCKER ÇÖZÜLDÜ, YENİ TUR BEKLİYOR
 
 Ayrıntılı kayıt: **`docs/APK-BULGULARI.md`** (21 kullanıcı bulgusu + 6 yeni,
