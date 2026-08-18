@@ -776,8 +776,46 @@ sıralı ve temiz."**
   geri kalanında sıfır fark. Yakınlaştırılmış karede silüet temiz, saplamalarda
   artefakt yok.
 
-- [ ] **53.** > "Kapıya giren blokun partikülünü iyi ayarlamak lazım. Tam girdiği
+- [x] **53.** > "Kapıya giren blokun partikülünü iyi ayarlamak lazım. Tam girdiği
   yöne doğru partikül çıkıyor. Orijinal oyuna bakalım, yine aynı şekilde yapalım."
+
+  **KÖK SEBEP.** Patlama bloğun **MERKEZİNDE** ve **küresel** doğuyordu. Yani
+  blok kapıya girerken kırıntılar tahtanın ortasında beliriyordu ve olay
+  "blok patladı" gibi okunuyordu, "kapıdan geçti" gibi değil.
+  **DERS: parçacık nerede doğduğunu anlatır.** Aynı sayıda parçacık, doğru
+  yerde ve doğru yönde, bambaşka bir cümle kuruyor.
+
+  **REFERANS.** `Levels.mp4` 00:28 karesi: sarı blok KUZEY kapısından
+  emilirken kırıntılar tahtanın **DIŞINDA**, kapının üstünde ve **yukarı doğru
+  bir koni** hâlinde saçılıyor. Kırıntılar bloğun renginde küçük küpler.
+
+  **NE YAPILDI.** `FXService.BurstFromGate` eklendi; emilme ve katman soyulma
+  artık onu çağırıyor.
+  - Konum: kapı açıklığı **boyunca** rastgele (tek noktadan değil — 3 hücrelik
+    bir kapıdan çıkan blok kapının tamamından toz kaldırır) ve kapının biraz
+    **dışında** (tam çizgide doğarsa yarısı çerçevenin arkasında kalıyor).
+  - Hız: dışa doğru 2.4-4.6, yanlara ±1.5, yukarı 1.2-3.4 → koni.
+
+  **DERS (tek `Emit` çağrısı tek hız verir).** `EmitParams.velocity` bütün
+  partiye uygulanır; tek çağrıyla koni yapılamaz, hepsi aynı yöne fırlar ve
+  "havai fişek" değil "sprey" olur. Parçacıklar tek tek yayılıyor
+  (`EmitParams` struct olduğu için döngü çöp üretmiyor).
+
+  **NASIL DOĞRULANDI — ve doğrulamanın SINIRI.** Gerçek bir emilmeyi dışarıdan
+  tetikleyecek açık bir API yok (`DragController`'ın sürükleme yolu private).
+  Bu yüzden doğrulama iki parçalı:
+  1. *Görsel:* Sahnedeki GERÇEK kapı görselinin dünya konumundan, GERÇEK
+     kırıntı sisteminden, aynı hız formülüyle 40 parçacık basıldı ve kare
+     yakalandı — kırıntılar tahtanın dışında, güney kapısının altında, aşağı
+     doğru koni hâlinde. Konum ve yön doğru.
+  2. *Yapısal:* `BurstFromGate` girdileri (`EdgeCoord`, `OutwardSign`,
+     `SpanMin/SpanMax`, `_space.CornerToWorld`) `OnGateIceShattered`'ın zaten
+     kullandığı girdilerle aynı; `GateView.Create` de kapıyı tam olarak bu
+     formülle konumlandırıyor.
+
+  Olay bağlantısının kendisi tek satırlık bir değişiklik
+  (`Burst(blok merkezi)` → `BurstFromGate(gate)`).
+
 - [ ] **55.** > "Genel olarak oyun içi modellerin de detaylıca incelenmesi
   gerekiyor. Özellikle obstacle'ların ve kapıların üzerine sayı geldiğinde ne
   olduğu vs. detaylıca incelenip orijinal oyundaki hale benzemesi gerekiyor.

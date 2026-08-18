@@ -67,9 +67,19 @@ namespace BlockOut.Runtime.FX
 
         void OnBlockAbsorbed(BlockModel block, GateModel gate)
         {
-            Vector3 at = _space.RectCenterToWorld(
-                block.Position, block.W, block.H, BrickHeightHalf);
-            Burst(at, ColorOf(block.CurrentColor), 14 + block.W * block.H * 4);
+            // PARÇACIK KAPIDAN, ÇIKIŞ YÖNÜNE DOĞRU ÇIKAR (2. tur, 53. madde).
+            //
+            // Referans (`Levels.mp4`, 00:28): sarı blok KUZEY kapısından
+            // emilirken kırıntılar tahtanın DIŞINDA, kapının üstünde ve
+            // yukarı doğru bir koni hâlinde saçılıyor.
+            //
+            // DERS (parçacık nerede doğduğunu anlatır): Bizde patlama bloğun
+            // MERKEZİNDE ve küresel doğuyordu; yani blok kapıya girerken
+            // kırıntılar tahtanın ortasında beliriyordu ve olay "blok patladı"
+            // gibi okunuyordu, "kapıdan geçti" gibi değil. Aynı sayıda
+            // parçacık, doğru yerde ve doğru yönde, bambaşka bir cümle kuruyor.
+            BurstFromGate(gate, ColorOf(block.CurrentColor),
+                          14 + block.W * block.H * 4);
 
             // Sarsıntı bloğun BÜYÜKLÜĞÜNE bağlı: 1x1 bir parçanın emilmesiyle
             // 2x4'lük bir kütlenin emilmesi aynı ağırlıkta hissedilmemeli.
@@ -79,9 +89,8 @@ namespace BlockOut.Runtime.FX
         void OnLayerPeeled(BlockModel block, GateModel gate)
         {
             // Soyulan katmanın rengi zaten listeden çıktı; kapının rengi doğru olan.
-            Vector3 at = _space.RectCenterToWorld(
-                block.Position, block.W, block.H, BrickHeightHalf);
-            Burst(at, ColorOf(gate.ActiveColor), 12);
+            // Soyulma da kapıda olur — kırıntı orada doğmalı, blok yerinde kalır.
+            BurstFromGate(gate, ColorOf(gate.ActiveColor), 12);
         }
 
         void OnIceShattered(BlockModel block)
@@ -123,6 +132,61 @@ namespace BlockOut.Runtime.FX
                 startColor = color
             };
             _crumbs.Emit(emit, count);
+        }
+
+        /// <summary>
+        /// Kapıdan ÇIKIŞ YÖNÜNE saçılan kırıntı konisi.
+        ///
+        /// Parçacıklar kapı AÇIKLIĞI boyunca doğuyor (tek bir noktadan değil):
+        /// 3 hücrelik bir kapıdan çıkan blok, kapının tamamından toz kaldırır.
+        ///
+        /// DERS (tek `Emit` çağrısı tek hız verir): `EmitParams.velocity` bütün
+        /// partiye uygulanır, yani tek çağrıyla koni yapılamaz — hepsi aynı
+        /// yöne fırlar ve "havai fişek" değil "sprey" olur. Parçacıklar tek tek
+        /// yayılıyor; `EmitParams` bir struct olduğu için döngü çöp üretmiyor.
+        /// </summary>
+        void BurstFromGate(GateModel gate, Color color, int count)
+        {
+            // Kapının kenar üzerindeki orta noktası ve dışa bakan yönü.
+            float spanCenter = (gate.SpanMin + gate.SpanMax) * 0.5f;
+            float half = (gate.SpanMax - gate.SpanMin) * 0.5f;
+
+            Vector3 outward = gate.EdgeHorizontal
+                ? new Vector3(0f, 0f, -gate.OutwardSign)
+                : new Vector3(gate.OutwardSign, 0f, 0f);
+
+            // Kırıntı kapının bir tık DIŞINDA doğuyor: tam çizgide doğarsa
+            // yarısı tahtanın içinde kalıyor ve çerçevenin arkasına giriyor.
+            const float outset = 0.35f;
+
+            for (int i = 0; i < count; i++)
+            {
+                float alongOffset = Random.Range(-half, half);
+                float outOffset = Random.Range(0f, 0.25f);
+
+                float spanPos = spanCenter + alongOffset;
+                float edgePos = gate.EdgeCoord + gate.OutwardSign * (outset + outOffset);
+
+                Vector3 at = gate.EdgeHorizontal
+                    ? _space.CornerToWorld(spanPos, edgePos, BrickHeightHalf)
+                    : _space.CornerToWorld(edgePos, spanPos, BrickHeightHalf);
+
+                // Koni: ana yön dışarı, yanlara ve yukarı serpinti.
+                Vector3 sideways = new Vector3(-outward.z, 0f, outward.x);
+                Vector3 velocity =
+                    outward * Random.Range(2.4f, 4.6f) +
+                    sideways * Random.Range(-1.5f, 1.5f) +
+                    Vector3.up * Random.Range(1.2f, 3.4f);
+
+                var emit = new ParticleSystem.EmitParams
+                {
+                    position = at,
+                    velocity = velocity,
+                    applyShapeToPosition = false,
+                    startColor = color
+                };
+                _crumbs.Emit(emit, 1);
+            }
         }
 
         /// <summary>
