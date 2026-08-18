@@ -53,6 +53,22 @@ namespace BlockOut.Runtime.UI
         /// <summary>Referanstaki "Hard Level" satırının pembesi.</summary>
         static readonly Color HardPink = new Color(0.910f, 0.278f, 0.608f);
 
+        // ---- OYUN İÇİ HUD, REFERANSTAN ÖLÇÜLDÜ (2026-08-18) ----------------
+        //
+        // Kaynak: `Block Out Color Sort Puzzle Levels.mp4`, 00:28 karesi
+        // (592×1280). Piksel örneklendi, göz kararı değil.
+        //
+        // DERS (beyaz sandığımız yazı beyaz DEĞİLDİ): Jeton ve "Level"
+        // yazılarını `Ink` (neredeyse beyaz) ile yazıyorduk. Referansta ikisi
+        // de **#9C91FF** — açık MOR. Kullanıcı "sol üstteki para yazısı mor
+        // renkte olmalı" derken bunu gördü. Süre yazısı ise gerçekten krem
+        // beyaz (#FFFDF6) ve belirgin biçimde DAHA BÜYÜK; yani üç yazı üç
+        // ayrı rol taşıyor, hepsini beyaz yapmak o ayrımı siliyordu.
+        static readonly Color HudInk    = new Color(0.612f, 0.569f, 1.000f);  // #9C91FF
+        static readonly Color HudPlate  = new Color(0.094f, 0.078f, 0.220f);  // #18143 8
+        static readonly Color HudClockInk = new Color(1.000f, 0.992f, 0.965f); // #FFFDF6
+        static readonly Color HudGlyph  = new Color(0.816f, 0.784f, 1.000f);  // #D0C8FF
+
         const float WinCardX0 = 0.060f, WinCardX1 = 0.940f;
         const float WinCardY0 = 0.300f, WinCardY1 = 0.755f;
 
@@ -428,19 +444,31 @@ namespace BlockOut.Runtime.UI
         void BuildTopBar(Transform root)
         {
             // --- 1. satır: jeton | bölüm ---
+            //
+            // JETON SAYACININ KENDİ PLAKASI VAR (kullanıcı bulgusu 44).
+            // Bizde yazı doğrudan zeminin üstündeydi; referansta koyu lacivert,
+            // yuvarlak köşeli bir plakanın içinde duruyor ve jeton simgesi
+            // plakanın SOL UCUNDAN taşıyor. Plaka olmayınca sayı, arkasındaki
+            // tahtanın rengine göre bazen okunmuyordu.
+            var coinPlate = UiKit.CreateRoundedPanel("CoinPlate", root, HudPlate);
+            UiKit.Place(coinPlate, 0.075f, 0.944f, 0.365f, 0.986f);
+            coinPlate.raycastTarget = false;
+
             var coin = UiKit.CreateIcon("Coin", root, UiSkin.Get(Art.Coin));
-            UiKit.Place(coin, 0.035f, 0.944f, 0.115f, 0.984f);
+            UiKit.Place(coin, 0.035f, 0.940f, 0.125f, 0.990f);
 
-            _coinLabel = UiKit.CreateTitle("Coins", root, "", 34, Ink,
+            _coinLabel = UiKit.CreateTitle("Coins", coinPlate.transform, "", 34, HudInk,
                 new Color(0.10f, 0.07f, 0.24f));
-            UiKit.Place(_coinLabel, 0.125f, 0.944f, 0.420f, 0.984f);
-            _coinLabel.alignment = TextAlignmentOptions.Left;
+            UiKit.Place(_coinLabel, 0.20f, 0.06f, 0.94f, 0.94f);
+            _coinLabel.alignment = TextAlignmentOptions.Center;
 
-            var levelPill = UiKit.CreateSlicedPanel("LevelPill", root,
-                UiSkin.Get(Art.PanelDark), Periwinkle);
-            UiKit.Place(levelPill, 0.700f, 0.946f, 0.965f, 0.986f);
+            // BÖLÜM PLAKASI: hazır `panel_dark` görseli MOR ve boyandığında
+            // bile referansın koyu lacivertine inmiyordu (boyama çarpma).
+            // Prosedürel yuvarlak panel doğru rengi birebir veriyor.
+            var levelPill = UiKit.CreateRoundedPanel("LevelPill", root, HudPlate);
+            UiKit.Place(levelPill, 0.700f, 0.944f, 0.965f, 0.986f);
 
-            _levelLabel = UiKit.CreateTitle("Level", levelPill.transform, "", 28, Ink,
+            _levelLabel = UiKit.CreateTitle("Level", levelPill.transform, "", 28, HudInk,
                 new Color(0.12f, 0.09f, 0.30f));
             UiKit.Place(_levelLabel, 0.05f, 0.06f, 0.95f, 0.94f);
 
@@ -449,14 +477,16 @@ namespace BlockOut.Runtime.UI
             BuildRestartGlyph(restart.transform);
             restart.onClick.AddListener(() => _session.Restart());
 
-            var timer = UiKit.CreateSlicedPanel("TimerPill", root,
-                UiSkin.Get(Art.PanelDark), new Color(0.18f, 0.15f, 0.38f));
+            // SÜRE PLAKASI: jeton/bölüm plakasıyla AYNI koyu lacivert, ama
+            // yazısı krem beyaz ve daha büyük — referansta üç yazı üç ayrı rol
+            // taşıyor (jeton ve bölüm açık mor bilgi, süre ise ana gösterge).
+            var timer = UiKit.CreateRoundedPanel("TimerPill", root, HudPlate);
             UiKit.Place(timer, 0.300f, 0.878f, 0.700f, 0.936f);
 
             var clock = UiKit.CreateIcon("Clock", timer.transform, UiSkin.Get(Art.Clock));
             UiKit.Place(clock, 0.05f, 0.14f, 0.24f, 0.86f);
 
-            _timerLabel = UiKit.CreateTitle("Timer", timer.transform, "", 38, Ink,
+            _timerLabel = UiKit.CreateTitle("Timer", timer.transform, "", 42, HudClockInk,
                 new Color(0.12f, 0.09f, 0.30f));
             UiKit.Place(_timerLabel, 0.26f, 0.06f, 0.94f, 0.94f);
 
@@ -473,7 +503,10 @@ namespace BlockOut.Runtime.UI
             // tipinin harf aralığı iki çubuğu eşit yapmıyor ve simge eğri duruyor.
             for (int bar = 0; bar < 2; bar++)
             {
-                var stripe = UiKit.CreateRoundedPanel($"Bar_{bar}", pause.transform, Ink);
+                // Çubuklar SAF BEYAZ değil: referansta #D0C8FF, yani menekşe
+                // yüzeyin üstünde açık lavanta. Beyaz simge o yüzeyde fazla
+                // sert kalıyor ve düğmeyi "yapıştırılmış" gösteriyordu.
+                var stripe = UiKit.CreateRoundedPanel($"Bar_{bar}", pause.transform, HudGlyph);
                 UiKit.SetSliceScale(stripe, 1.4f);
                 stripe.raycastTarget = false;
                 float x0 = bar == 0 ? 0.30f : 0.56f;
@@ -507,12 +540,12 @@ namespace BlockOut.Runtime.UI
             circle.sprite = GameKit.UI.UiSprites.RoundedOutline;
             circle.type = Image.Type.Sliced;
             UiKit.SetSliceScale(circle, 0.10f);
-            circle.color = Ink;
+            circle.color = HudGlyph;
             circle.raycastTarget = false;
 
             // Ok başı: halkanın sağ üstünde küçük bir üçgen. Döndürülmüş bir
             // kare, üçgen sprite'ı üretmeden aynı okumayı veriyor.
-            var head = UiKit.CreateRoundedPanel("Head", ring, Ink);
+            var head = UiKit.CreateRoundedPanel("Head", ring, HudGlyph);
             UiKit.SetSliceScale(head, 1.2f);
             head.raycastTarget = false;
             UiKit.Place(head, 0.56f, 0.62f, 1.02f, 1.08f);
@@ -573,26 +606,54 @@ namespace BlockOut.Runtime.UI
                 // Krem kart doğru cevap: neredeyse beyaz olduğu için parlak
                 // yeşil veriyor, kendi alt bandı da düğmenin 3B kalınlığı gibi
                 // okunuyor — küçük bir düğmede bu istenen şey.
-                var button = UiKit.CreateSpriteButton($"Power_{i}", root,
-                    UiSkin.Get(Art.PanelCard), null, 0, Ink);
+                // DÜĞME ÜÇ KATMAN — referans karesi büyütülerek okundu
+                // (`menus,powerups,vs` ve oynanış videosu 00:28, yardımcı
+                // düğmesi 98×90 piksel).
+                //
+                // DERS (tek düz yeşil bir DÜĞME değil, bir LEKEDİR): Buraya
+                // uzun süre tek bir yeşil yüzey konuldu ve "ikonlar güzel ama
+                // arkasındaki butonlar çok kötü" bulgusu buradan geldi.
+                // Referansta üç yeşil var ve üçü de iş yapıyor:
+                //   1) koyu dış kenar  → düğmeye hacim verir,
+                //   2) orta gövde      → asıl renk,
+                //   3) açık iç kuyu    → ikonu içine oturtur, "yuva" hissi.
+                // Yarıçap referansta kısa kenarın %22'si; `UiCornerFit`
+                // varsayılanı zaten o.
+                var button = UiKit.CreateSpriteButton($"Power_{i}", root, null, null, 0, Ink);
                 UiKit.Place(button, x0, 0.028f, x0 + 0.150f, 0.122f);
+
                 var face = button.targetGraphic as Image;
-                if (face != null)
-                {
-                    face.color = PowerGreen;
-                    UiKit.SetSliceScale(face, 1.5f);
-                }
+                if (face != null) face.color = new Color(0.106f, 0.451f, 0.031f);  // koyu kenar
 
-                var icon = UiKit.CreateIcon("Icon", button.transform, UiSkin.Get(icons[i]));
-                UiKit.Place(icon, 0.12f, 0.18f, 0.88f, 0.94f);
+                var body = UiKit.CreateRoundedPanel("Body", button.transform, PowerGreen);
+                body.raycastTarget = false;
+                UiKit.Place(body, 0f, 0f, 1f, 1f, padding: 7f);
 
-                // Rozet düğmenin sağ alt köşesinden TAŞAR — referanstaki gibi.
-                var badge = UiKit.CreateRoundedPanel("Badge", button.transform,
-                    new Color(0.91f, 0.16f, 0.16f));
-                UiKit.SetSliceScale(badge, 0.10f);
-                UiKit.Place(badge, 0.62f, -0.06f, 1.04f, 0.34f);
+                var well = UiKit.CreateRoundedPanel("Well", body.transform,
+                    new Color(0.298f, 0.831f, 0.114f));
+                well.raycastTarget = false;
+                UiKit.Place(well, 0.10f, 0.10f, 0.90f, 0.90f);
 
-                var count = UiKit.CreateTitle("Count", badge.transform, "", 24, Ink,
+                var icon = UiKit.CreateIcon("Icon", well.transform, UiSkin.Get(icons[i]));
+                UiKit.Place(icon, 0.02f, 0.04f, 0.98f, 1.00f);
+
+                // ADET ROZETİ: sağ alt KÖŞEDEN taşan, koyu kenarlı KIRMIZI
+                // YUVARLAK KARE.
+                //
+                // DERS (yarıçapı elle 0.10 vermek rozeti HAPA çeviriyordu):
+                // `SetSliceScale(0.10f)` köşeyi 18/0.10 = 180 piksele çıkarıyor,
+                // yani kutu ne olursa olsun tamamen yuvarlanıyor. Referansta
+                // rozet 45×50 ve yarıçapı 10 piksel — belirgin biçimde KARE.
+                // Oransal hesabı (varsayılan %22) kapatmaya gerek yok.
+                var badgeRim = UiKit.CreateRoundedPanel("BadgeRim", button.transform,
+                    new Color(0.541f, 0.055f, 0.055f));
+                UiKit.Place(badgeRim, 0.60f, -0.14f, 1.10f, 0.36f);
+
+                var badge = UiKit.CreateRoundedPanel("Badge", badgeRim.transform,
+                    new Color(0.937f, 0.161f, 0.161f));
+                UiKit.Place(badge, 0f, 0f, 1f, 1f, padding: 5f);
+
+                var count = UiKit.CreateTitle("Count", badge.transform, "", 26, Ink,
                     new Color(0.40f, 0.03f, 0.03f));
                 UiKit.Place(count, 0.04f, 0.06f, 0.96f, 0.94f);
 
@@ -604,10 +665,16 @@ namespace BlockOut.Runtime.UI
                 // sahip olduğun, öbürü ödemen gereken. Referans ikisini biçimle
                 // ayırıyor: adet küçük kırmızı daire, fiyat geniş sarı kapsül
                 // ve içinde jeton simgesi. Simge "bu bir PARA" diyor.
-                var price = UiKit.CreateRoundedPanel("Price", button.transform,
+                // Fiyat kapsülü de HAP değil yuvarlak kutu: aynı
+                // `SetSliceScale(0.10f)` hatası buradaydı. Rozetle aynı
+                // ailedenler, aynı yarıçap kuralına uymalılar.
+                var priceRim = UiKit.CreateRoundedPanel("PriceRim", button.transform,
+                    new Color(0.639f, 0.416f, 0.031f));
+                UiKit.Place(priceRim, 0.02f, -0.14f, 1.02f, 0.26f);
+
+                var price = UiKit.CreateRoundedPanel("Price", priceRim.transform,
                     new Color(1f, 0.780f, 0.140f));
-                UiKit.SetSliceScale(price, 0.10f);
-                UiKit.Place(price, 0.02f, -0.10f, 1.02f, 0.24f);
+                UiKit.Place(price, 0f, 0f, 1f, 1f, padding: 5f);
 
                 var priceCoin = UiKit.CreateIcon("PriceCoin", price.transform,
                     UiSkin.Get(Art.Coin));
@@ -618,8 +685,11 @@ namespace BlockOut.Runtime.UI
                     new Color(0.32f, 0.16f, 0.55f), new Color(1f, 0.93f, 0.70f));
                 UiKit.Place(priceText, 0.34f, 0.06f, 0.96f, 0.94f);
 
-                _powerBadge[i] = badge.rectTransform;
-                _powerPrice[i] = price.rectTransform;
+                // Göster/gizle artık KENARLIĞA bakıyor: rozet ve fiyat birer
+                // katman kazandı, yalnız iç yüzeyi gizlemek kenarlığı ekranda
+                // bırakırdı.
+                _powerBadge[i] = badgeRim.rectTransform;
+                _powerPrice[i] = priceRim.rectTransform;
                 _powerPriceText[i] = priceText;
 
                 var kind = (PowerUpKind)i;

@@ -372,17 +372,58 @@ sıralı ve temiz."**
 
 ### D7 — Oyun içi HUD
 
-- [ ] **43.** > "Oyun içi ekranda sol üstteki para yazısı mor renkte olmalı."
-- [ ] **44.** > "Sol üstteki para yazısının dikdörtgen arka planı ayarlanmalı."
-- [ ] **45.** > "Süre görünümü, süre ikonu, text rengi ve boyutu orijinaliyle
+- [x] **43.** > "Oyun içi ekranda sol üstteki para yazısı mor renkte olmalı."
+
+  **NE YAPILDI.** Referans karesi (`Levels.mp4` 00:28, 592×1280) piksel
+  örneklendi: jeton ve "Level" yazılarının ikisi de **#9C91FF** — açık MOR.
+  Biz ikisini de `Ink` (neredeyse beyaz) ile yazıyorduk. Süre yazısı ise
+  gerçekten krem beyaz (#FFFDF6) ve belirgin biçimde daha büyük.
+  **DERS: üç yazı üç ayrı rol taşıyor; hepsini beyaz yapmak o ayrımı siliyor.**
+
+- [x] **44.** > "Sol üstteki para yazısının dikdörtgen arka planı ayarlanmalı."
+
+  **NE YAPILDI.** Jeton sayacının plakası HİÇ YOKTU — yazı doğrudan zeminin
+  üstündeydi ve tahtanın rengine göre bazen okunmuyordu. Referanstaki koyu
+  lacivert (#181437) yuvarlak plaka eklendi; jeton simgesi plakanın sol
+  ucundan taşıyor.
+
+- [x] **45.** > "Süre görünümü, süre ikonu, text rengi ve boyutu orijinaliyle
   birebir aynı olmalı. Buna kontrol."
-- [ ] **46.** > "Yine oyun içi sağ üst level yazısı, texti ve arka planı
+
+  **NE YAPILDI.** Süre plakası `panel_dark` görselinin boyanmış haliydi; o
+  görsel MOR ve boyama çarpma olduğu için referansın koyu lacivertine hiç
+  inmiyordu. Prosedürel yuvarlak panele geçildi (renk birebir). Yazı 38→42
+  punto ve krem beyaz.
+
+- [x] **46.** > "Yine oyun içi sağ üst level yazısı, texti ve arka planı
   ayarlanmalı."
-- [ ] **47.** > "Durdur butonunun rengi ve görünümü ayarlanmalı."
-- [ ] **41.** > "Power-up ikonları güzel ama arkasındaki butonlar çok kötü.
+
+  **NE YAPILDI.** 44/45 ile aynı: plaka rengi #181437, yazı #9C91FF.
+
+- [x] **47.** > "Durdur butonunun rengi ve görünümü ayarlanmalı."
+
+  **NE YAPILDI.** Duraklat çubukları ve yeniden başlat simgesi SAF BEYAZDI;
+  referansta **#D0C8FF** (açık lavanta). Beyaz simge menekşe yüzeyin üstünde
+  fazla sert kalıyor ve düğmeyi "yapıştırılmış" gösteriyordu.
+
+- [x] **41.** > "Power-up ikonları güzel ama arkasındaki butonlar çok kötü.
   Onların güncellenmesi lazım. Yine referanstakilere bak."
-- [ ] **42.** > "Power-up ikonları butonlarının alt kısmında kaç para oldukları
+
+  **NE YAPILDI.** Düğme tek düz yeşil bir yüzeydi. Referans karesi büyütülerek
+  okundu: üç yeşil katman var ve üçü de iş yapıyor — koyu dış kenar (hacim),
+  orta gövde (asıl renk), açık iç kuyu (ikonu içine oturtan yuva).
+  Üçü de kuruldu; yarıçap `UiCornerFit` varsayılanı (%22) ile referansa uyuyor.
+
+- [x] **42.** > "Power-up ikonları butonlarının alt kısmında kaç para oldukları
   yazısı da orijinaldekiyle aynı olmalı."
+
+
+  **NE YAPILDI.** Adet rozeti ve fiyat kapsülünün ikisi de
+  `SetSliceScale(0.10f)` ile kuruluyordu — bu köşeyi 18/0.10 = **180 piksele**
+  çıkarıyor, yani kutu ne olursa olsun tamamen yuvarlanıyordu. Referansta
+  rozet 45×50 ve yarıçapı 10 piksel, yani belirgin biçimde KARE. İkisi de
+  oransal yarıçapa döndürüldü ve koyu kenarlık kazandı (rozet koyu kırmızı,
+  fiyat koyu altın).
 
 ### D8 — Oyun içi görsel/his
 
