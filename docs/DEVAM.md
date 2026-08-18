@@ -8,6 +8,74 @@ Bu dosya her oturum sonunda güncellenir. Aşağısı 2026-08-10 itibarıyla ge�
 
 ---
 
+## 2026-08-18 — GELİŞTİRİCİ KONSOLU YENİDEN YAZILDI + KİTE TAŞINDI
+
+Eski gizli "dev menu" (4 sekme, tek ızgarada 50 bölüm, arama yok) yerini
+altı sekmeli bir KONSOLA bıraktı.
+
+**Kabuk artık GameKit'te**, çünkü sonraki oyunlarda da kullanılacak:
+`Assets/GameKit/Runtime/DevTools/` → `DevConsole` (gizli açılış, siyah panel,
+S/M/L boyut, üst/alt yaslama, rozete indirme, sekme çubuğu),
+`DevUi` (tema + parçalar), `DevPage` (genişletme noktası), `DevLog` (log
+akışı), hazır `DevLogPage` + `DevSystemPage`. Kurulum örneği
+`Assets/GameKit/README.md` içinde.
+
+**Oyuna özel sekmeler** `Assets/_Project/Scripts/Runtime/Debug/` altında:
+`DevMenu.cs` (kurulum + `IDevConsoleHost`: duraklatma / girdi kilidi / başlık
+bağlamı), `DevLevelsPage`, `DevPlayPage`, `DevSavePage`, `DevDataPage`,
+`DevLevelIndex`.
+
+**Panel ekranı KAPLAMIYOR (SRDebugger tarzı):** varsayılan S = ekranın sol üst
+köşesine yaslı, ~%56 genişlik × %46 yükseklik. Başlıktaki düğmeler: S/M/L boyut,
+köşe değiştir (sol üst → sağ üst → sağ alt → sol alt), "—" ile köşedeki DEV
+rozetine indir, "✕" kapat. Rozetteyken oyun akıyor ve oynanıyor (doğrulandı:
+sayaç 176.7 → 175.9), panel açılınca tekrar duruyor. Tercih PlayerPrefs'te.
+
+**Tema:** Unity konsolu tonları — siyah/koyu gri yüzeyler, tek vurgu rengi
+(seçili = mavi, iyi = yeşil, uyarı = sarı, hata = kırmızı). Neon yeşil/mavi
+karışımı ilk sürümden vazgeçildi: her şey vurguluyken hiçbir şey vurgulanmıyor.
+
+**Sadeleştirme:** mekanik süzgeç çipleri (arama kutusu zaten yapıyor), oyuncu
+kimliği/günlük ödül satırları, yardımcı verme düğmelerinin OYUN'daki kopyası,
+"analitiği loga dök", cihaz künyesindeki işlemci/güvenli alan satırları ve alt
+şeritteki tetik ipucu kaldırıldı.
+
+**Dar panelde düzen dersi:** IMGUI kaydırma alanı içindeki en geniş öğeye göre
+genişler; tek bir uzun düğme satırı bile sağa hizalı bütün değerleri görünmez
+alana kaydırıyordu. `DevUi.ScrollBegin` artık içeriği panel genişliğinde bir
+sütuna kilitliyor (`AreaWidth`), etiketler de kısaltıldı.
+
+- **BÖLÜM**: arama kutusu (numara / renk / mekanik / zorluk, TR+EN),
+  numara tuş takımı, süzgeç çipleri (geçildi, kilitli, zor+, buz, perde,
+  makine, katman, şekil, eksen), sıralama (sıra/zorluk/deneme/oran) ve satır
+  başına açılan detay (kayıt + analitik + "buraya kadar aç", "kaydı sil").
+  Dizin 50 bölümü bir kez ayrıştırıp önbelleğe alıyor (`DevLevelIndex`,
+  kareye yayılmış eşyordam).
+- **OYUN**: canlı bölüm künyesi + **sonuç panelini zorla**: KAZAN 1★ / 2★ /
+  3★ PERFECT / olduğu gibi ve KAYBETTİR. Yıldız, süre ayarlanıp oturumun
+  GERÇEK bitiş yolu çağrılarak üretiliyor (`GameSession.DebugForceWin(stars)`,
+  `DebugForceLose()`). Ayrıca canlı tahta dökümü: renk başına kalan blok,
+  kapı yön/renk/buz sayacı, perde ve makine kuyruğu.
+- **KAYIT**: cüzdan/can/∞ can/reklamsız/envanter/ilerleme okuma + düzenleme.
+  Yıkıcı düğmeler iki adımlı onay istiyor.
+- **VERİ**: bölüm bölüm başlangıç/geçme/kayıp tablosu, oran çubuğu, sıralama.
+- **LOG**: cihaz üstü Unity konsolu (Application.logMessageReceived) +
+  konsolda yapılan her işlem "İŞLEM" satırı olarak aynı akışta.
+- **SİSTEM**: cihaz künyesi, FPS sondası, zaman ölçeği (x0.25…x2), konsol
+  ayarları, gizli tetik açıklaması.
+
+Tetik artık **iki üst köşeden biri** (5 dokunuş / 2 sn), editörde F8 + Esc.
+Panel açıkken oyun DURUYOR, oynanış girdisi (`PointerInputService.Blocked`)
+ve uGUI olayları kilitli — eskiden panele basan parmak arkadaki bloğu
+sürüklüyordu.
+
+Doğrulama: play mode'da altı sekme de çizdirildi (hata yok), duraklatma
+sayaç üzerinden ölçüldü (180.00 sn sabit), 2★ zorlaması `LastStars=2,
+LastReward=20` verdi ve PERFECT paneli açıldı, KAYBETTİR `Lost + 0:00` verdi,
+rozet–panel geçişi duraklat/kilit durumlarıyla birlikte ölçüldü.
+
+---
+
 ## 2026-08-18 — 2. TUR BAŞLADI (56 madde)
 
 **Tek doğruluk kaynağı: `docs/APK-BULGULARI-2.md`.** Kullanıcının ikinci test
@@ -503,6 +571,59 @@ hiçbir görsel etkisi yoktu.**
 
 Ayrıca `BlockView`'daki kullanılmayan `SideInset` sabiti kaldırıldı (derleme
 uyarısı basıyordu). Konsol şu an **0 hata, 0 uyarı**.
+
+**DENETİM TURU — 8 GERÇEK HATA BULUNDU VE KAPATILDI (2026-08-17)**
+
+Editör baştan sona denetlendi. Hepsi sessiz hatalardı: hiçbiri konsola bir şey
+basmıyordu, bu yüzden test etmeden fark edilmeleri mümkün değildi.
+
+1. **Bayat seçim indeksi — SESSİZ VERİ BOZULMASI.** Seçim "Blocks listesinin 3.
+   elemanı" gibi bir İNDEKS tutuyor. Sağ tıkla silme yollarının hiçbiri
+   (`EraseAt` blok, `EraseAt` perde içeriği, `PlaceGate` silme, `PlaceGate`
+   üzerine koyma, `EraseCurtain`) seçimi temizlemiyordu; liste kayınca denetçi
+   hiç hata vermeden BAŞKA nesneyi düzenliyordu. Hepsi artık `DropSelection()`
+   çağırıyor. **DERS: indeksle tutulan seçim, liste değişince yalan söyler.**
+2. **Üreteç denetçisi tür kontrolü yoktu.** Perde ve üreteç aynı `obstacles`
+   listesinde. Seçim bir perdeye denk gelirse üreteç denetçisi perdenin üstünde
+   çalışıyor ve "sıraya ekle" perdeye `queue` alanı yazıyordu. Artık
+   `Type != "generator"` ise seçim bırakılıyor; `ShowQueueMenu` de indeks/tür
+   sınırlarını doğruluyor (`IndexOf` -1 dönerse tıklamada istisna atıyordu).
+3. **Çözüm ve Referans sekmelerinde tuval DÜZENLENEBİLİYORDU.** Aynı
+   `DrawCanvas` üç sekmede kullanılıyor ve `HandleInput` her yerde koşuyordu —
+   Çözüm sekmesinde dalgın bir sürükleme bloğu oynatıp incelenen çözümü
+   geçersiz kılıyordu. `DrawCanvas(interactive)` eklendi; o iki sekme salt
+   okunur ve tıklayınca durum çubuğunda sebebini söylüyor.
+   **DERS: görünüm paylaşılabilir, yetki paylaşılamaz.**
+4. **`Playable()` kısa satırda çöküyordu.** `Rows[y][x]` uzunluk kontrolsüzdü;
+   elle düzenlenmiş bir JSON'da kısa satır editörü her karede
+   IndexOutOfRange'e sokardı. Artık kapalı hücre sayılıyor.
+5. **Önizleme her karede bölümün TAM JSON'unu üretiyordu** — imza olarak. Layout,
+   olay, Repaint ve her fare hareketi için ayrı ayrı. `_revision` sayacına
+   geçildi (`Ensure(data, palette, key, revision)`).
+6. **Çoğaltılan bölüm katalogda yer almıyordu** → oyunda açılmıyor, listede
+   sırasız görünüyordu. `LevelLibrary.Register` eklendi; çoğaltma artık sete
+   gerçekten ekliyor. **DERS: yarım kalan işlem, olmayan işlemden kötüdür.**
+7. **Sıra değiştirmek bölüm NUMARASINI güncellemiyordu.** Oynanış sırası
+   katalogda, oyuncuya gösterilen numara ise her JSON'un `displayNumber`
+   alanında (GameplayScreen onu okuyor). ▲▼ ile taşımak 7. sıradaki bölümün
+   ekranda "Level 12" demesine yol açardı. `RenumberFromCatalog` eklendi;
+   yalnız DEĞİŞEN dosyaları yazıyor.
+8. **Araç kısayolu 1–6'da kalmıştı**, 7. araç (Üreteç) eklendiği hâlde. Sınır
+   artık `ToolInfo.Length`'ten okunuyor. Ayrıca `FromJson` perde içeriğini
+   normalleştirirken ÜRETEÇ SIRASINI atlıyordu (üreteç şemaya sonradan
+   eklenmiş, döngü güncellenmemişti) ve `AssetDatabase.GetAssetPath(int)`
+   Unity 6.3'te obsolete olmuştu — ikisi de düzeltildi.
+
+**DOĞRULAMA (sayıyla)**
+- **Kaydetme veri kaybettirmiyor:** 50 bölüm gidiş-dönüş geçirildi
+  (`FromJson → ToJson → FromJson → ToJson`). İkinci kayıtta **sürüklenme 0**.
+  Blok/kapı/engel/perde içeriği/üreteç sırası/kapı renk kuyruğu/duvar/buz
+  toplamı/eksen/maske sayıları ham dosyalardan BAĞIMSIZ olarak (Python)
+  yeniden hesaplanıp karşılaştırıldı — **50/50 birebir eşleşti**.
+- **Fonksiyonel tarama:** 50 bölümde model kurma 0 hata, önizleme kurma 0 hata,
+  tepeden render'da boş hücre 0, minyatür 0 hata. Önbellek testi (aynı
+  revizyonu tekrar istemek yeniden kurmamalı) geçti.
+- **Dokuz sekmenin hepsi** canlı pencerede çizdirildi: **0 hata, 0 uyarı.**
 
 **İKİ IMGUI TUZAĞI — tekrarlama**
 1. **Sekmeyi/aracı çizim sırasının ORTASINDA değiştirme.** OnGUI bir karede
@@ -1344,3 +1465,71 @@ Referans kareler `C:/Users/CPN12/AppData/Local/Temp/claude/.../scratchpad/shop/j
 altında; kaybolursa `menus,powerups,vs.mp4` içinden şu saniyelerden çıkarılır:
 Mağaza 8-14 · Liderlik 16-22 · Yolculuk 24-42 · Koleksiyon 43-45 ·
 Ayarlar 54-56 · Profil 57-60.
+
+---
+
+## 2026-08-18 (akşam) — 2. TUR KAPANDI (56/56), 3. TUR BAŞLADI
+
+### Durum
+
+`docs/APK-BULGULARI-2.md` — **56/56 madde kapalı.** Aynı dosyanın SONUNDA
+"3. TUR" bölümü var; oradan devam edilecek.
+
+Son commitler: `1d05035` (denetim), `12ee4c8` (3. tur A/B/C),
+`203e2da` (2. tur kapanış), `c0c56a2` (logolar + kutlama).
+
+### Kullanıcı ne yapıyor
+
+Yeni bir APK aldı ve test ediyor; **çok sayıda not çıkardı, yarın sabah
+hepsi tek tek yapılacak.** Yeni oturumda ilk iş: kullanıcının listesini al,
+`docs/APK-BULGULARI-3.md` diye numaralandırılmış bir dosya aç ve
+2. turdaki düzeni birebir uygula (her madde: NE YAPILDI + NASIL DOĞRULANDI,
+ölçümler referans karelerden).
+
+### Yarın sabah devralınacak AÇIK İŞLER
+
+1. **27 bölümde süre yetmiyor** (karar kullanıcının, ölçüm hazır).
+   Çözücünün bulduğu çözüm verilen süreye sığmıyor. En kötüleri:
+   `level_038` 351/180 (**171 sn eksik**), `041` 295/180, `049` 271/180,
+   `030` 223/150, `026` ve `034` 247/180, `047` 239/180.
+   Tam tablo: `APK-BULGULARI-2.md` → "3. TUR" → bölüm D.
+   Süreler TASARIM kararı olduğu için değiştirilmedi.
+
+2. **`DeviceErrorOverlay.Enabled = true`** — `Runtime/Flow/DeviceErrorOverlay.cs`
+   satır 33. Yayına çıkarken `false`. Şu an bilerek açık (test için).
+
+3. **Kürsü görseli referansla birebir değil.** Referansta minder parlak
+   magenta ve puf gibi; gövdenin ön yüzünde ismin asıldığı SARKAN BİR BAYRAK
+   var ve madalya ondan sarkıyor. Bizimkinde minder koyu mor kadife, bayrak
+   yok — ad levhası kapsül olarak minderin üstüne biniyor. İstenirse istem
+   yeniden yazılmalı: *parlak magenta puf minder + ön yüzde sarkan bayrak*.
+
+4. **Emme kırıntısı ekranda doğrulanmadı.** Boyu (0.18-0.42) ve sayısı
+   (30 + alan×8) referanstan ölçülüp koda yazıldı ama gerçek bir emilme
+   yasal bir hamle gerektirdiği için editörde tetiklenemedi. Kullanıcının
+   test ettiği APK'de ilk kez görülecek — oranlar tutmazsa ölçüme göre
+   yeniden ayarlanacak (ölçüm: parça kenarı hücrenin %40-70'i).
+
+### Bu oturumda yapılan 3. tur işleri (bitti)
+
+- **A · Kapı açıklığından %25 dar çiziliyordu.** `GateView.ResolveSpan`
+  köşeye dayanan ucu 0.45 hücre içeri alıyordu; 2 hücrelik kapı 1.5 hücre
+  görünüyordu. Bar 1.50 → 1.960. Bölüm verisinde ihlal YOK (50 bölüm
+  tarandı), sorun tamamen çizimdeydi.
+- **B · Kapı artık sönerek ghost'a dönüyor** (0,34 sn, renk+alfa birlikte).
+- **C · Emme efekti**: blok beyaz konturla parlıyor, kırıntı irileşti.
+
+### Denetim aracında düzeltilen hata
+
+`LevelValidationTool.WarnUnreachableIce` üreteç kuyruklarını ve katman
+soyulmalarını saymıyordu; `level_037` için üç sahte "buz hiç kırılmaz"
+uyarısı veriyordu. Düzeltildi, sahte uyarı 3 → 0. **Bölüm verisi temiz:**
+683 blok, 16 polyomino, çözücü 50/50, 0 hata.
+
+### Uyarılar (değişmedi)
+
+- **Level editörüne DOKUNMA** (`Scripts/Editor/LevelEditor/`) ve
+  `Runtime/Debug/`, `GameKit/Runtime/DevTools/` — kullanıcının paralel işi.
+- **`git add -A` KULLANMA.** Yalnız kendi dosyalarını tek tek stage'le.
+- Kullanıcının dosyaları yarım kaldığında derleme kırılabiliyor; bu
+  oturumda dört kez oldu. Beklemek yeterli, düzeltmeye kalkışma.
