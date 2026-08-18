@@ -158,5 +158,28 @@ namespace BlockOut.Runtime.UI
         public const string Shop    = "icon_shop";
         public const string Home    = "icon_home";
         public const string Globe   = "icon_globe";
+        public const string Restart = "icon_restart";
+        public const string Album   = "icon_album";
+
+        /// <summary>
+        /// Oyunun logosu ve stüdyo yazısı (49. ve 35. madde).
+        ///
+        /// İkisi de ÜRETİLMEDİ, referans ekran görüntülerinden kesildi:
+        /// yapay zekâ ile üretilen logo referansa benzemedi ve kullanıcı
+        /// birebir olanı istedi. Harf biçimi bir markanın kimliği; "aynı
+        /// tarzda" üretmek burada yaklaşmıyor bile.
+        /// </summary>
+        public const string GameLogo   = "logo_game";
+        public const string StudioLogo = "logo_studio";
+
+        /// <summary>Liderlik kürsüsü — 1., 2., 3. için ayrı kaide.</summary>
+        public static string Podium(int rank) =>
+            rank == 1 ? "podium_gold" : rank == 2 ? "podium_silver" : "podium_bronze";
+
+        /// <summary>Liderlik ekranının park sahnesi (arka plan, kesilmez).</summary>
+        public const string BoardScene = "board_scene";
+
+        /// <summary>Koleksiyon ekranının ortasındaki kitap + albüm paketleri.</summary>
+        public const string CollectionBook = "collection_book";
     }
 }

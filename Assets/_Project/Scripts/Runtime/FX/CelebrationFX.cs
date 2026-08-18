@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using UiKit = GameKit.UI.UiKit;
@@ -144,12 +144,17 @@ namespace BlockOut.Runtime.FX
         public static IEnumerator Show(RectTransform root, int bursts,
                                        float interval, int sparks = 18)
         {
+            // ORTA ŞERİT BOŞ: logo ekranın dikey ortasında duruyor ve oraya
+            // patlayan bir fişek harflerin üstünü kapatıyor. Referansta da
+            // patlamalar logonun ÜSTÜNDE ve ALTINDA; hiçbiri onun üzerinde
+            // değil. Konumlar |y| >= 0.20 seçildi.
             var spots = new[]
             {
-                new Vector2(-0.24f,  0.20f), new Vector2( 0.26f,  0.05f),
-                new Vector2(-0.06f, -0.22f), new Vector2( 0.30f,  0.28f),
-                new Vector2(-0.30f, -0.05f), new Vector2( 0.08f,  0.32f),
-                new Vector2(-0.14f,  0.34f), new Vector2( 0.20f, -0.26f),
+                new Vector2(-0.24f,  0.26f), new Vector2( 0.26f,  0.21f),
+                new Vector2(-0.06f, -0.24f), new Vector2( 0.30f,  0.34f),
+                new Vector2(-0.30f, -0.32f), new Vector2( 0.08f,  0.36f),
+                new Vector2(-0.14f,  0.34f), new Vector2( 0.20f, -0.28f),
+                new Vector2(-0.28f, -0.20f), new Vector2( 0.14f, -0.36f),
             };
 
             for (int burst = 0; burst < bursts; burst++)
@@ -176,31 +181,69 @@ namespace BlockOut.Runtime.FX
         /// </summary>
         public static IEnumerator Rain(RectTransform root, int count, float duration)
         {
-            float gap = duration / Mathf.Max(1, count);
+            // KARE BAŞINA BİR DEĞİL, KARE BAŞINA PAY.
+            //
+            // DERS (`yield` en az bir kare bekler): Önce her parça için
+            // `WaitForSecondsRealtime(duration / count)` yazıyordum. 300 parça
+            // 1,2 saniyeye yayılınca aralık 4 milisaniye çıkıyor — ama bir
+            // coroutine bir karede en fazla bir kez ilerleyebilir. 60 fps'te
+            // 1,2 saniye 72 kare demek, yani ekrana 300 değil 72 konfeti
+            // düşüyordu ve fark ölçülene kadar görünmedi. Süreye yayılan bir
+            // üretim, kare başına DÜŞEN PAY olarak yazılmalı.
+            // İLK PARTİ EKRANA YAYILARAK DOĞAR, tepeden değil.
+            //
+            // Referansta kutlama başladığı anda konfeti ekranın TAMAMINDA var.
+            // Hepsini tepeden yağdırınca ilk saniye boyunca yalnız üst üçte
+            // bir doluyor; oyuncu kutlamanın "kurulmasını" izliyor. Üçte biri
+            // baştan dağıtılınca perde açılır açılmaz ekran dolu görünüyor.
+            int prefill = count / 3;
+            for (int i = 0; i < prefill; i++) Spawn(root, spread: true);
 
-            for (int i = 0; i < count; i++)
+            float budget = 0f;
+            int made = prefill;
+            float perSecond = (count - prefill) / Mathf.Max(0.01f, duration);
+
+            while (made < count)
             {
                 if (root == null) yield break;
 
-                var piece = UiKit.CreatePanel("Confetti", root,
-                    Palette[Random.Range(0, Palette.Length)]);
-                piece.raycastTarget = false;
+                // Borç YEREL sayaçla tutuluyor, kökteki çocuklar sayılarak
+                // değil: konfeti ömrü doluyor ve ölüyor, çocuk sayısı düşünce
+                // "az doğurmuşum" sanılıp fazladan üretilirdi.
+                budget += perSecond * Time.unscaledDeltaTime;
+                while (made < count && budget >= 1f)
+                {
+                    Spawn(root, spread: false);
+                    budget -= 1f;
+                    made++;
+                }
 
-                var rect = piece.rectTransform;
-                rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
-                rect.pivot = new Vector2(0.5f, 0.5f);
-
-                // Ölçüm: kısa kenarın ~%1'i. Referans kare 384 geniş, bizim
-                // tuval 1080 — oran korunuyor, piksel değeri değil.
-                float size = Random.Range(9f, 16f);
-                rect.sizeDelta = new Vector2(size, size * Random.Range(0.5f, 1.1f));
-                rect.anchoredPosition = new Vector2(
-                    Random.Range(-560f, 560f), Random.Range(1000f, 1400f));
-                rect.localRotation = Quaternion.Euler(0f, 0f, Random.Range(0f, 360f));
-
-                GameKit.FX.Juice.Run(Flutter(rect));
-                yield return new WaitForSecondsRealtime(gap);
+                yield return null;
             }
+        }
+
+        static void Spawn(RectTransform root, bool spread)
+        {
+            var piece = UiKit.CreatePanel("Confetti", root,
+                Palette[Random.Range(0, Palette.Length)]);
+            piece.raycastTarget = false;
+
+            var rect = piece.rectTransform;
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+
+            // ÖLÇÜM: referans karelerde parça alanı medyanı 17 piksel², yani
+            // kenarı ~4,1 piksel — 384 genişlikteki karede ekranın %1,07'si.
+            // Bizim tuval 1080 geniş; oran korunuyor, piksel değeri değil.
+            float size = Random.Range(9f, 16f);
+            rect.sizeDelta = new Vector2(size, size * Random.Range(0.5f, 1.1f));
+            // `spread` ilk parti: ekranın her yerinde. Değilse tepeden.
+            rect.anchoredPosition = new Vector2(
+                Random.Range(-560f, 560f),
+                spread ? Random.Range(-900f, 1000f) : Random.Range(1000f, 1400f));
+            rect.localRotation = Quaternion.Euler(0f, 0f, Random.Range(0f, 360f));
+
+            GameKit.FX.Juice.Run(Flutter(rect));
         }
 
         /// <summary>

@@ -37,6 +37,8 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: f8b9cddeda589a447884f18b672ccba7, type: 3}
   - name: bg_menu
     sprite: {fileID: 21300000, guid: 6d90d003216f2a44b94174419c553a4f, type: 3}
+  - name: board_scene
+    sprite: {fileID: 21300000, guid: ff04ee82ae9987748b512ff2e1367a98, type: 3}
   - name: btn_green
     sprite: {fileID: 21300000, guid: 854c6c437ec15d94c899516478ca3485, type: 3}
   - name: btn_purple
@@ -61,6 +63,8 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: ba98049a9d0755c4f9e2db167618f787, type: 3}
   - name: coin_pile_6
     sprite: {fileID: 21300000, guid: caf01fd7f6d8f7e428886f3a86cf3836, type: 3}
+  - name: collection_book
+    sprite: {fileID: 21300000, guid: 6e310dc615712824593c22b1699e8309, type: 3}
   - name: confetti_sheet
     sprite: {fileID: 21300000, guid: 29a5d3bc96f626c4c894abc04d06ddf6, type: 3}
   - name: frame_avatar
@@ -69,6 +73,8 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: e071130c96de5b847b8dbb75529a4b5d, type: 3}
   - name: home_characters
     sprite: {fileID: 21300000, guid: 368a8b47efa916a4dbf22a365c1f2db9, type: 3}
+  - name: icon_album
+    sprite: {fileID: 21300000, guid: 56061cbfbdb6b384998c62ce651cd738, type: 3}
   - name: icon_chest
     sprite: {fileID: 21300000, guid: 4c0cd0f8d3c31bd4e9398065ce0ed976, type: 3}
   - name: icon_clock
@@ -95,6 +101,8 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: eab8d24c3bbc28048bfc6a9a957c54d6, type: 3}
   - name: icon_plus
     sprite: {fileID: 21300000, guid: 6f1b3dd2db02e744fbd60c7348b913e4, type: 3}
+  - name: icon_restart
+    sprite: {fileID: 21300000, guid: 709ee46971e847c4ba2e8e23c2d9a2b3, type: 3}
   - name: icon_rocket
     sprite: {fileID: 21300000, guid: 6cf2baa78159469418178a639e8067b3, type: 3}
   - name: icon_shop
@@ -105,6 +113,10 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: 9825628e5a1f50346b482390ba5fc3cb, type: 3}
   - name: icon_ufo
     sprite: {fileID: 21300000, guid: 7407bc207dbed814b9fb8882a6039604, type: 3}
+  - name: logo_game
+    sprite: {fileID: 21300000, guid: 025f52b6deccbcb409eab138dfcd0e28, type: 3}
+  - name: logo_studio
+    sprite: {fileID: 21300000, guid: cc58af8ef0eeade49a262eef993c9557, type: 3}
   - name: node_level
     sprite: {fileID: 21300000, guid: abf0e23ee5f5f964a99539b7786dbe3e, type: 3}
   - name: pack_1
@@ -121,6 +133,12 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: 7b88331eeb28f1344ac90649014dc2fb, type: 3}
   - name: panel_dark
     sprite: {fileID: 21300000, guid: 0ddf8f4a66fa66749b20c966f67fefeb, type: 3}
+  - name: podium_bronze
+    sprite: {fileID: 21300000, guid: 0da246370a55c1e49bcac38b0c1c3868, type: 3}
+  - name: podium_gold
+    sprite: {fileID: 21300000, guid: 7e9f2180e5e779f44b7b88c99362a7a7, type: 3}
+  - name: podium_silver
+    sprite: {fileID: 21300000, guid: e18733c1dec46f1469faeab87bdec1c0, type: 3}
   - name: region_1
     sprite: {fileID: 21300000, guid: c7e63a69e4ccb4e43bda7b7afd170f79, type: 3}
   - name: region_2

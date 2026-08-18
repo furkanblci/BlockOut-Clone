@@ -133,9 +133,22 @@ namespace BlockOut.Runtime.Flow
             down.localRotation = Quaternion.Euler(0f, 0f, 180f);
 
             // Kelime işareti. Referansta X 0.235-0.762, Y(alttan) 0.453-0.549.
-            var mark = UiKit.CreateLabel("Wordmark", page, "grand", 150, Ink);
-            mark.fontStyle = FontStyles.Normal;
-            UiKit.Place(mark, 0.235f, 0.453f, 0.762f, 0.549f);
+            // Görsel referans karesinden kesildi (35. madde); yoksa yazıya
+            // düşülür.
+            var markArt = UiSkin.Get(Art.StudioLogo);
+            if (markArt != null)
+            {
+                var markImage = UiKit.CreateIcon("Wordmark", page, markArt);
+                UiKit.Place(markImage, 0.235f, 0.453f, 0.762f, 0.549f);
+                markImage.preserveAspect = true;
+                markImage.raycastTarget = false;
+            }
+            else
+            {
+                var mark = UiKit.CreateLabel("Wordmark", page, "grand", 150, Ink);
+                mark.fontStyle = FontStyles.Normal;
+                UiKit.Place(mark, 0.235f, 0.453f, 0.762f, 0.549f);
+            }
 
             return group;
         }
@@ -178,11 +191,23 @@ namespace BlockOut.Runtime.Flow
                 cover.raycastTarget = false;
             }
 
-            // Logo: gerçek blok harfli görselimiz yok, başlık malzemesiyle
-            // yazılıyor. Görsel gelirse burası tek bir Image'a iner.
-            var logo = UiKit.CreateTitle("Logo", page, "BLOCK OUT!", 150,
-                new Color(1f, 0.847f, 0.180f), new Color(0.153f, 0.075f, 0f));
-            UiKit.Place(logo, 0.08f, 0.775f, 0.92f, 0.885f);
+            // Logo artık GERÇEK GÖRSEL (49. madde) — referans açılış
+            // karesinden kesildi. Yazıyla kurulan eski hâli yalnız görsel
+            // bulunamazsa devreye giriyor.
+            var logoArt = UiSkin.Get(Art.GameLogo);
+            if (logoArt != null)
+            {
+                var logoImage = UiKit.CreateIcon("Logo", page, logoArt);
+                UiKit.Place(logoImage, 0.08f, 0.760f, 0.92f, 0.900f);
+                logoImage.preserveAspect = true;
+                logoImage.raycastTarget = false;
+            }
+            else
+            {
+                var logo = UiKit.CreateTitle("Logo", page, "BLOCK OUT!", 150,
+                    new Color(1f, 0.847f, 0.180f), new Color(0.153f, 0.075f, 0f));
+                UiKit.Place(logo, 0.08f, 0.775f, 0.92f, 0.885f);
+            }
 
             var status = UiKit.CreateTitle("Status", page, "Loading…", 54,
                 Ink, new Color(0.10f, 0.18f, 0.36f));

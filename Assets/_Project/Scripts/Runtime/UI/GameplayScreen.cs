@@ -576,6 +576,18 @@ namespace BlockOut.Runtime.UI
         /// </summary>
         static void BuildRestartGlyph(Transform parent)
         {
+            // Gerçek ikon geldiyse (38. madde) tek görsel yeter; prosedürel
+            // halka + döndürülmüş kare yalnız yedek.
+            var art = UiSkin.Get(Art.Restart);
+            if (art != null)
+            {
+                var icon = UiKit.CreateIcon("Glyph", parent, art);
+                UiKit.Place(icon, 0.18f, 0.18f, 0.82f, 0.82f);
+                icon.preserveAspect = true;
+                icon.raycastTarget = false;
+                return;
+            }
+
             var ring = UiKit.CreateRect("Glyph", parent);
             UiKit.Place(ring, 0.20f, 0.20f, 0.80f, 0.80f);
 
