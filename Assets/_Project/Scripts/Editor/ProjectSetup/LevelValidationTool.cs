@@ -293,25 +293,54 @@ namespace BlockOut.Editor.ProjectSetup
         /// </summary>
         static void WarnUnreachableIce(LevelData data, LevelReport report)
         {
-            // Renk -> o renkte kaç blok (perde içerikleri dahil, katmanlar hariç:
-            // yalnız DIŞ katman bir çıkış üretir).
+            // Renk -> o renkten kaç ÇIKIŞ üretilebilir.
+            //
+            // İKİ SAYIM HATASI DÜZELTİLDİ (3. tur):
+            //
+            // 1) HER KATMAN BİR ÇIKIŞTIR. Buradaki eski yorum "yalnız DIŞ
+            //    katman bir çıkış üretir" diyordu ve yalnız son katmanı
+            //    sayıyordu. Ama `GateSystem.PeelLayer` de
+            //    `_obstacles.NotifyBlockExit()` çağırıyor — yani iki katmanlı
+            //    bir blok sayaçları İKİ kez düşürüyor. Yorum bir varsayımı
+            //    anlatıyordu, kodun gerçeğini değil.
+            //
+            // 2) ÜRETEÇ KUYRUKLARI DA HAVUZA GİRER. Kuyruktaki bloklar er ya
+            //    da geç tahtaya itilir ve kapıdan çıkar; sayılmadıkları için
+            //    havuz olduğundan küçük görünüyordu.
+            //
+            // DERS (ucuz denetim YANLIŞ sayarsa pahalı olandan beter): Bu iki
+            // eksik yüzünden araç `level_037` için üç ayrı "buz hiç kırılmaz"
+            // uyarısı veriyordu; oysa çözücü aynı bölümü hatasız çözüyor.
+            // Sahte alarm, tasarımcıyı bozuk olmayan bir bölümü "düzeltmeye"
+            // gönderir — sessiz kalmaktan daha pahalıya mal olur.
             var pool = new Dictionary<BlockColor, int>();
             void Add(BlockData block)
             {
-                if (block.Layers.Count == 0) return;
-                if (!BlockColorUtil.TryParse(block.Layers[block.Layers.Count - 1], out var color)) return;
-                pool.TryGetValue(color, out int n);
-                pool[color] = n + 1;
+                foreach (var layerName in block.Layers)
+                {
+                    if (!BlockColorUtil.TryParse(layerName, out var color)) continue;
+                    pool.TryGetValue(color, out int n);
+                    pool[color] = n + 1;
+                }
             }
 
             foreach (var block in data.Blocks) Add(block);
             foreach (var obstacle in data.Obstacles)
             {
-                if (obstacle.Type != "curtain" || obstacle.Extra == null) continue;
-                if (!obstacle.Extra.TryGetValue("contents", out var token)) continue;
-                var hidden = token.ToObject<List<BlockData>>();
-                if (hidden == null) continue;
-                foreach (var block in hidden) Add(block);
+                if (obstacle.Extra == null) continue;
+
+                if (obstacle.Type == "curtain" &&
+                    obstacle.Extra.TryGetValue("contents", out var contents))
+                {
+                    var hidden = contents.ToObject<List<BlockData>>();
+                    if (hidden != null) foreach (var block in hidden) Add(block);
+                }
+                else if (obstacle.Type == "generator" &&
+                         obstacle.Extra.TryGetValue("queue", out var queue))
+                {
+                    var queued = queue.ToObject<List<BlockData>>();
+                    if (queued != null) foreach (var block in queued) Add(block);
+                }
             }
 
             var pending = new List<GateData>();

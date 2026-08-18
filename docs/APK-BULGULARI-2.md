@@ -1383,3 +1383,65 @@ olduğu belirsiz kalıyor. Bir kare beyazlama gözü tam o bloğa çiviliyor.
 doğrulandı; kapı sönümü sayısal olarak doğrulandı (alfa 1.0 → 0.938 → 0.25).
 Kırıntının yeni boyu/sayısı kod düzeyinde ayarlı ama gerçek bir emilme
 tetiklemek yasal bir hamle gerektiriyor — bir sonraki APK'de görülecek.
+
+### D. Bölüm verisi denetimi (kullanıcı APK'yi test ederken yapıldı)
+
+**Veri tarafı temiz.** 683 blok, 16 polyomino, 50 bölüm tarandı:
+sınır dışı blok, üst üste binen blok, oynanmaz hücrede blok, kapısı olmayan
+renk — **hepsi sıfır**. Çözücü de 50 bölümün hepsini çözüyor: **0 hata.**
+
+Yol üstünde kendi denetimimde iki kez yanıldım ve ikisi de öğretici:
+
+1. **Blokların `cells` maskesi var.** Hepsini dolu dikdörtgen sayınca 9 sahte
+   "üst üste blok" uyarısı çıktı. Maske hesaba katılınca sıfıra indi.
+2. **Perde açılışı zincirleme.** "Perde sayacı > perde öncesi bütçe" diye 7
+   bölüm işaretledim; oysa bir perdenin açılması diğerinin sayacını besliyor.
+   Sabit nokta hesabı: 21. bölümde 6 → 13 → 15 sırayla açılıyor (bütçe
+   10 → 16 → 22). Doğru cevap sıfır.
+
+**DERS (denetim yazarken önce KENDİ modelini doğrula).** İki turda da elimde
+"7 bozuk bölüm" listesi vardı ve ikisi de yanlıştı. Ölçüm aracı, ölçtüğü
+şeyden daha az güvenilirse hiç yokmuş gibidir.
+
+#### DENETİM ARACINDA GERÇEK HATA BULUNDU
+
+`LevelValidationTool.WarnUnreachableIce` `level_037` için üç ayrı
+"buz hiç kırılmaz" uyarısı veriyordu — ama çözücü aynı bölümü hatasız
+çözüyor. Sebep, havuzu **eksik sayması**:
+
+- **Üreteç kuyrukları sayılmıyordu.** 37. bölümde 6 bloklu mavi kuyruk var;
+  o bloklar da kapıdan çıkıp bütün sayaçları düşürüyor.
+- **Katman soyulmaları sayılmıyordu.** Kodun yorumu "yalnız DIŞ katman bir
+  çıkış üretir" diyordu, ama `GateSystem.PeelLayer` de
+  `NotifyBlockExit()` çağırıyor — iki katmanlı blok sayaçları İKİ kez
+  düşürüyor. Yorum bir varsayımı anlatıyordu, kodun gerçeğini değil.
+
+İkisi düzeltildi; sahte uyarı sayısı 3 → **0**.
+
+**DERS (ucuz denetim YANLIŞ sayarsa pahalı olandan beter).** Sahte alarm,
+tasarımcıyı bozuk olmayan bir bölümü "düzeltmeye" gönderir; sessiz kalmaktan
+daha pahalıya mal olur.
+
+#### AÇIK KALAN: 27 bölümde süre yetmiyor
+
+Çözücünün bulduğu çözüm, verilen süreye SIĞMIYOR (tahmin = okuma payı +
+hamle × hamle başına süre):
+
+| bölüm | tahmin | süre | eksik |
+|---|---|---|---|
+| level_038 | 351 | 180 | **171 sn** |
+| level_041 | 295 | 180 | 115 |
+| level_049 | 271 | 180 | 91 |
+| level_030 | 223 | 150 | 73 |
+| level_026 / 034 | 247 | 180 | 67 |
+| level_047 | 239 | 180 | 59 |
+| level_017 / 019 | 231 | 180 | 51 |
+| level_037 | 223 | 180 | 43 |
+| level_021 / 046 | 215 | 180 | 35 |
+
+…ve 3-27 sn eksiği olan 16 bölüm daha. Toplam **27 bölüm**.
+
+Bu bir TASARIM kararı olduğu için süreleri kendiliğinden değiştirmedim:
+tahmin bir modeldir (hamle başına sabit süre), gerçek oyuncu daha hızlı da
+olabilir. Ama 38. bölümde açık iki katına yakın — orada model yanılsa bile
+süre yetmez. Karar kullanıcının.
