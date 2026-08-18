@@ -96,6 +96,20 @@ namespace BlockOut.Runtime.View
                 // Yükseklik çizicinin KENDİ sınırından; sabit hesap barın
                 // gerçek tepesini ıskalayıp rakamı buzun içine gömüyordu
                 // (bkz. BlockView'daki aynı ders).
+                // DONMUŞ KAPIDA OK YOK, SAYI VAR.
+                //
+                // Referans (`menus,powerups,vs.mp4` 01:25 ve 01:47): buzlu
+                // kapıların üstünde yalnız sayaç duruyor; ok ancak buz
+                // kırılınca beliriyor. Bizde ikisi birden çiziliyordu ve ok
+                // sayacın ÜSTÜNDE kalıyordu (ölçüm: ok y=0.97, sayaç y=0.90),
+                // yani rakamın yarısını kapatıyordu.
+                //
+                // DERS (aynı yere iki şey koyma): Buz zaten "bu kapı şu an
+                // kullanılamaz" diyor; ok ise "buradan çıkabilirsin" diyor.
+                // İkisi aynı anda doğru olamaz. `BlockView` donmuş blokta
+                // eksen okunu zaten gizliyordu; kapıda bu adım atlanmıştı.
+                if (view._arrow != null) view._arrow.SetActive(false);
+
                 float barTop = view._renderer.bounds.max.y;
                 view._iceCounter = ViewKit.CreateCounter(
                     parent, new Vector3(center.x, barTop + 0.08f, center.z), model.IceCount,
@@ -285,12 +299,16 @@ namespace BlockOut.Runtime.View
                 _iceCounter.text = _model.IceCount.ToString();
         }
 
-        /// <summary>Buz kırıldı: gizli renk ortaya çıkar.</summary>
+        /// <summary>Buz kırıldı: gizli renk ve ok ortaya çıkar.</summary>
         public void RevealColor()
         {
             if (_iceCounter != null) Destroy(_iceCounter.gameObject);
             _iceCounter = null;
             _renderer.sharedMaterial = _colorMaterial;
+
+            // Ok buz boyunca gizliydi; kapı artık kullanılabilir olduğuna göre
+            // "buradan çıkabilirsin" işareti geri gelmeli.
+            if (_arrow != null) _arrow.SetActive(true);
         }
 
         /// <summary>Kuyruk ilerledi: yeni aktif rengin materyali (L21+ olasılığı).</summary>

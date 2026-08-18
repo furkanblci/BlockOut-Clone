@@ -891,6 +891,20 @@ sıralı ve temiz."**
      font gölgecisinden hazır alıyordu; TMP'de `_CullMode = Off` açıkça
      istenmeli.
 
+  **ÜÇÜNCÜ BULGU: donmuş kapıda OK ile SAYI çakışıyordu.** Sayaçlar
+  görününce ortaya çıktı — referansta (`menus,powerups,vs.mp4` 01:25 ve
+  01:47) buzlu kapıların üstünde yalnız sayaç var, ok ancak buz kırılınca
+  beliriyor. Bizde ikisi birden çiziliyordu ve ölçüm okun sayacın ÜSTÜNDE
+  kaldığını gösterdi (ok y=0.97, sayaç y=0.90) — rakamın yarısı kapalıydı.
+  **DERS (aynı yere iki şey koyma):** Buz "bu kapı şu an kullanılamaz"
+  diyor, ok ise "buradan çıkabilirsin" diyor; ikisi aynı anda doğru olamaz.
+  `BlockView` donmuş blokta eksen okunu zaten gizliyordu, kapıda bu adım
+  atlanmıştı. Ok artık buz boyunca gizli, `RevealColor`'da geri geliyor.
+
+  **DÖRT SAYAÇ TÜRÜ DE YAKALANDI:** buz bloğu (13. bölüm), donmuş kapı
+  (6. bölüm), perde ve üreteç (20. ve 23. bölüm). Kapı sayacı da ölçüldü:
+  dolgu **(246, 231, 217)**, kontur **(134, 82, 24)** — referansla birebir.
+
   **DERS (bir hatayı iki kez "düzeltmek").** Rakamlar hiç görünmeyince
   hemen dönme açısını suçladım ve çevirdim; ters çıkınca bir daha çevirdim.
   Oysa açı en baştan doğruydu — görünmemenin sebebi 4. maddedeki yüksekliği.
