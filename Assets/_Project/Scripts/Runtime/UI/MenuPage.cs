@@ -261,19 +261,44 @@ namespace BlockOut.Runtime.UI
         {
             var root = UiKit.CreateRect(name, parent);
 
+            // DÖRT KATMAN — referans (`settings.jpg`) büyütülerek okundu.
+            //
+            // DERS (kalınlık gölgeden değil KONTURDAN geliyor): Bu düğmenin üç
+            // katmanı vardı — koyu kopya (kalınlık), yüz, yazı — ve ekranda
+            // yine "düz renkli bir dikdörtgen" gibi duruyordu. Kullanıcı
+            // "Support, Terms, Privacy butonlarının koyu gölgesi yok" dedi.
+            // Referansta gölge ZATEN var; eksik olan onu çevreleyen KOYU
+            // ÇERÇEVE ve yüzeydeki üst parlaklık. Çerçeve düğmeyi zeminden
+            // kesiyor, parlaklık ona hacim veriyor; ikisi olmadan koyu kopya
+            // yalnız "biraz aşağı kaymış aynı renk" olarak okunuyor.
+            var edge = Capsule("Edge", root, Darken(color, 0.28f));
+            UiKit.Place(edge, 0f, 0f, 1f, 1f);
+            edge.raycastTarget = true;
+
             var shadow = Capsule("Shadow", root, Darken(color, 0.58f));
-            UiKit.Place(shadow, 0f, 0f, 1f, 1f);
-            shadow.raycastTarget = true;
+            UiKit.Place(shadow, 0f, 0f, 1f, 1f, padding: 6f);
+            shadow.raycastTarget = false;
 
             var face = Capsule("Face", root, color);
-            UiKit.Place(face, 0.012f, 0.16f, 0.988f, 1f);
+            UiKit.Place(face, 0.016f, 0.18f, 0.984f, 0.985f);
+
+            var gloss = UiKit.CreateRect("Gloss", face.transform);
+            var glossImage = gloss.gameObject.AddComponent<Image>();
+            glossImage.sprite = MenuSprites.FadeDown;
+            glossImage.type = Image.Type.Sliced;
+            glossImage.color = new Color(1f, 1f, 1f, 0.28f);
+            glossImage.raycastTarget = false;
+            UiKit.Place(gloss, 0.04f, 0.46f, 0.96f, 0.94f);
+            gloss.localRotation = Quaternion.Euler(0f, 0f, 180f);
 
             var label = UiKit.CreateTitle("Label", face.transform, text, fontSize,
                 Ink, Darken(color, 0.28f));
             UiKit.Place(label, 0.05f, 0.06f, 0.95f, 0.94f);
 
+            // Hedef grafik artık EN DIŞTAKİ katman: dokunmayı yakalayan da o
+            // (gölge artık raycast almıyor, kenarın altında kalıyor).
             var button = root.gameObject.AddComponent<Button>();
-            button.targetGraphic = shadow;
+            button.targetGraphic = edge;
             button.transition = Selectable.Transition.None;
             root.gameObject.AddComponent<GameKit.UI.UiButtonFeel>();
             if (onClick != null) button.onClick.AddListener(onClick);

@@ -500,13 +500,71 @@ sıralı ve temiz."**
 
 ### D5 — Ayarlar (Settings)
 
-- [ ] **31.** > "Ayarlarda Delete My Account dikdörtgen şeklinde değil. Arka
+- [x] **31.** > "Ayarlarda Delete My Account dikdörtgen şeklinde değil. Arka
   planı kötü duruyor ve çok aşağıda taşmış."
-- [ ] **32.** > "Support, Terms, Privacy butonlarının koyu gölgesi yok.
+
+  **NE YAPILDI — iki ayrı hata vardı.**
+
+  *Konum:* Düğme 1770'teydi ve dünya koordinatında **y[62..150]**'ye
+  düşüyordu — ekranın en alt şeridinde ve altındaki oyuncu kimliği yazısıyla
+  **ÜST ÜSTE** (kimlik y[30..98]). Referansta düğme ekranın dibinden %6-%9,4
+  yukarıda. Düğme 1672'ye alındı → **y[156..248]**; kimlik yazısı düğmenin
+  ÜSTÜNE taşındı → y[277..339]. Çakışma yok.
+
+  *Biçim:* Referansta bu düğme **dolgusuz** — yalnız açık mor ince bir çerçeve
+  ve içinde yazı. Yıkıcı bir eylemin dolu bir düğme gibi davetkâr görünmemesi
+  bilinçli bir karar; biz onu dolu lavanta bir kutu yapınca diğer düğmelerle
+  aynı ağırlığa gelmişti. `UiKit.CreateOutlinedBox`'a çevrildi.
+
+- [x] **32.** > "Support, Terms, Privacy butonlarının koyu gölgesi yok.
   Orijinaldekine benzetilsin."
-- [ ] **33.** > "Yine Notifications taşmış."
-- [ ] **34.** > "Off / On butonları çok oval. Orijinalinde gölgeli, parlak, şık,
+
+  **NE YAPILDI.** Düğmenin üç katmanı vardı — koyu kopya (kalınlık), yüz,
+  yazı — ve ekranda yine "düz renkli bir dikdörtgen" gibi duruyordu.
+  **Referansta gölge ZATEN vardı; eksik olan onu çevreleyen KOYU ÇERÇEVE ve
+  yüzeydeki üst parlaklıktı.** Çerçeve düğmeyi zeminden kesiyor, parlaklık ona
+  hacim veriyor; ikisi olmadan koyu kopya yalnız "biraz aşağı kaymış aynı
+  renk" olarak okunuyor.
+
+  `MenuPage.PillButton` dört katmana çıkarıldı (kenar → gölge → yüz →
+  parlaklık). Ortak yardımcı olduğu için Ayarlar, Yolculuk ve günlük ödül
+  düğmelerini birden düzeltiyor. Dokunmayı artık en dıştaki katman yakalıyor.
+
+- [x] **33.** > "Yine Notifications taşmış."
+
+  **NE YAPILDI.** Anahtar yuvası satırın %60-%95,8'indeydi ve etiket de tam
+  %60'ta bitiyordu — arada sıfır boşluk. Referans ölçüldü: yuva ekranın
+  **0.617-0.894**'ü. Yuva bu orana çekildi → dünya x[666..966], kart yüzeyinin
+  (x[44..1036]) 70 birim içinde. Etiketle arasında da nefes payı oluştu.
+
+- [x] **34.** > "Off / On butonları çok oval. Orijinalinde gölgeli, parlak, şık,
   dikdörtgene benzer tasarımlar mevcut."
+
+
+  **KÖK SEBEP İKİ KATMANLIYDI.** Birincisi hap şekliydi — 5. maddedeki
+  `UiCornerFit` düzeltmesiyle çözüldü. İkincisi referansı yanlış okumaktı.
+
+  Referans büyütülerek incelendi: **yeşil çip yuvanın SAĞ UCUNDAN TAŞIYOR** —
+  kabartılmış bir tuş gibi duruyor, yuvanın içine gömülü değil. Üstelik
+  "Açık" yazısı **beyaz değil KOYU YEŞİL**; parlak yeşilin üstünde beyaz
+  okunuyor ama referansın kontrastı tersine kurulmuş.
+
+  Ölçülen renkler: yuva içi `#342B7E`, yuvanın dış bileziği `#9081FE`, çip
+  yüzeyi `#39D510`, çipin üst parlaklığı `#B5FC60`.
+
+  Çip üç katmana çıkarıldı (koyu kontur → yüzey → üst parlaklık), yuvaya dış
+  bilezik eklendi, çip sağda ve dikeyde yuvayı aşacak şekilde konumlandı.
+
+  **BULUNAN YAN HATA.** İlk denemede kurulum doğru görünüyordu ama ilk
+  tazelemede çip düz yeşile dönüyordu: `Apply()` hâlâ tek bir `OnFace.color`
+  yazıyordu ve o alan artık KONTUR katmanını gösteriyordu.
+  **DERS: katman eklerken tazeleme kodunu da güncelle; görünüm kurulumda
+  değil, tazelemeden SONRA doğrulanmalı.**
+
+  **NASIL DOĞRULANDI.** Ölçüm: yuva x[666..966], çip x[845..980] — çip
+  yuvanın sağ kenarını 14 birim aşıyor ve dikeyde de taşıyor. Görsel: Müzik
+  satırı kapatılıp iki durum aynı karede yakalandı; açıkken çip kabarık ve
+  parlak, kapalıyken yuvaya gömülüyor ve "Off" yarısı kabarıyor.
 
 ### D6 — Ana ekran (Menü)
 

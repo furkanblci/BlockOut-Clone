@@ -32,12 +32,30 @@ namespace BlockOut.Runtime.UI
     {
         // Referanstan ölçüldü: kart #8C7DFE, anahtar yuvası #342B7E.
         static readonly Color CardFace = new Color(0.549f, 0.490f, 0.996f);
-        static readonly Color SlotDark = new Color(0.204f, 0.169f, 0.494f);
+        // ANAHTAR RENKLERİ REFERANSTAN ÖLÇÜLDÜ (2026-08-18, `settings.jpg`).
+        static readonly Color SlotDark = new Color(0.204f, 0.169f, 0.494f);  // #342B7E
+        static readonly Color SlotRim  = new Color(0.565f, 0.506f, 0.996f);  // #9081FE
+        static readonly Color OnGreen  = new Color(0.224f, 0.835f, 0.063f);  // #39D510
+        static readonly Color OnGloss  = new Color(0.710f, 0.988f, 0.376f, 0.85f); // #B5FC60
+        static readonly Color OnEdge   = new Color(0.075f, 0.400f, 0.020f);  // koyu kontur
+        static readonly Color OnInk    = new Color(0.055f, 0.239f, 0.020f);  // "On" KOYU yeşil
 
+        /// <summary>
+        /// Bir anahtarın çalışma anında değişen parçaları.
+        ///
+        /// DERS (katman eklerken TAZELEME kodunu da güncelle): "Açık" çipi üç
+        /// katmana çıkarıldı (koyu kontur → yüzey → üst parlaklık) ama
+        /// <see cref="Apply"/> hâlâ tek bir `OnFace.color` yazıyordu — ve o
+        /// alan artık KONTUR katmanını gösteriyordu. Sonuç: kurulumda doğru
+        /// görünen çip, ilk tazelemede düz yeşile geri dönüyordu. Görünüm
+        /// kurulumda değil, tazelemeden SONRA doğrulanmalı.
+        /// </summary>
         sealed class Toggle
         {
             public System.Func<bool> Get;
-            public Image OffFace, OnFace;
+            public Image OffFace;
+            public Image OnEdgeImage, OnBody;
+            public RectTransform OnGlossRect;
             public TextMeshProUGUI OffText, OnText;
         }
 
@@ -176,8 +194,23 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(privacy, 0.53f, 0f, 1f, 1f);
 
             // --- Soluk hesap silme ---
-            var danger = MenuPage.Row("Delete", root, 1770f, 88f, 0.28f, 0.72f);
-            var deleteFace = MenuPage.Capsule("Face", danger, new Color(0.44f, 0.42f, 0.78f));
+            //
+            // KONUM VE BİÇİM REFERANSTAN (2026-08-18): düğme `946×2048` karede
+            // y 1855-1925, yani ekranın DİBİNDEN %6-%9,4 yukarıda. Bizimki
+            // 1770'teydi ve dünya koordinatında y[62..150]'ye düşüyordu —
+            // ekranın en alt şeridinde, altındaki oyuncu kimliği yazısıyla
+            // ÜST ÜSTE (kimlik y[30..98]). Kullanıcının "Delete My Account...
+            // çok aşağıda taşmış" bulgusu buydu.
+            //
+            // Biçim de yanlıştı: referansta bu düğme DOLGUSUZ — yalnız açık
+            // mor ince bir çerçeve ve içinde yazı. Yıkıcı bir eylemin dolu bir
+            // düğme gibi davetkâr görünmemesi bilinçli bir tasarım kararı;
+            // biz onu dolu lavanta bir kutu yapınca diğer düğmelerle aynı
+            // ağırlığa gelmişti.
+            var danger = MenuPage.Row("Delete", root, 1672f, 92f, 0.28f, 0.72f);
+            var deleteFace = UiKit.CreateOutlinedBox("Face", danger,
+                new Color(0.44f, 0.42f, 0.78f, 0.16f),
+                new Color(0.71f, 0.69f, 0.98f, 0.85f), borderInset: 0f);
             UiKit.Place(deleteFace, 0f, 0f, 1f, 1f);
             var deleteLabel = UiKit.CreateTitle("Label", deleteFace.transform, "Delete My Account",
                 34, MenuPage.Ink, MenuPage.InkDark);
@@ -203,9 +236,14 @@ namespace BlockOut.Runtime.UI
             deleteButton.onClick.AddListener(screen.OnDeleteAccount);
 
             // Oyuncu kimliği: destek talebinde tek işe yarayan bilgi.
+            //
+            // Silme düğmesinin ALTINDA duruyordu ve ikisi çakışıyordu (kimlik
+            // y[30..98], düğme y[62..150]). Artık düğmenin ÜSTÜNDE, kendi
+            // şeridinde: çakışma yok ve kimlik silmeden önce okunabiliyor —
+            // destek talebi zaten hesabı silmeden ÖNCE yazılır.
             screen._playerId = UiKit.CreateLabel("PlayerId", root, "", 24,
                 new Color(1f, 1f, 1f, 0.38f));
-            UiKit.Place(screen._playerId, 0.05f, 0.02f, 0.95f, 0.055f);
+            UiKit.Place(screen._playerId, 0.05f, 0.148f, 0.95f, 0.180f);
 
             var band = MenuPage.Header(root, "Settings");
             MenuPage.Close(band, () => MenuShell.Instance?.Show("home"));
@@ -240,23 +278,54 @@ namespace BlockOut.Runtime.UI
             label.fontStyle = FontStyles.Bold;
             UiKit.Place(label, 0.23f, 0.16f, 0.60f, 0.84f);
 
-            // İkili anahtar: koyu bir yuva, içinde iki yarı.
-            var slot = MenuPage.Capsule("Slot", row, SlotDark);
-            UiKit.Place(slot, 0.600f, 0.14f, 0.958f, 0.86f);
+            // İKİLİ ANAHTAR — referanstan yeniden ölçüldü (2026-08-18).
+            //
+            // Ölçüm (`WhatsApp Image ... (2).jpeg`, 946×2048): koyu yuva
+            // ekranın 0.617-0.894'ü, yeşil çip 0.783-0.913'ü. Yani **çip
+            // yuvanın SAĞ UCUNDAN TAŞIYOR** — kabartılmış bir tuş gibi
+            // duruyor, yuvanın içine gömülü değil. Bizde çip yuvanın
+            // içindeydi ve anahtar "iki renkli düz bir şerit" gibi
+            // okunuyordu; kullanıcının "Off/On butonları... orijinalinde
+            // gölgeli, parlak, şık" notunun yapısal kısmı bu.
+            //
+            // Renkler: yuva içi #342B7E, yuvanın dış bileziği #9081FE,
+            // çip yüzeyi #39D510, çipin üst parlaklığı #B5FC60.
+            // "Açık" yazısı BEYAZ DEĞİL, koyu yeşil — parlak yeşilin üstünde
+            // beyaz yazı okunuyor ama referansın kontrastı tersine kurulmuş.
+            var rim = MenuPage.Capsule("SlotRim", row, SlotRim);
+            UiKit.Place(rim, 0.625f, 0.14f, 0.923f, 0.86f);
+
+            var slot = MenuPage.Capsule("Slot", rim.transform, SlotDark);
+            UiKit.Place(slot, 0f, 0f, 1f, 1f, padding: 5f);
 
             var toggle = new Toggle { Get = get };
 
-            toggle.OffFace = MenuPage.Capsule("Off", slot.transform,
-                SlotDark);
-            UiKit.Place(toggle.OffFace, 0.045f, 0.08f, 0.495f, 0.92f);
+            toggle.OffFace = MenuPage.Capsule("Off", slot.transform, SlotDark);
+            UiKit.Place(toggle.OffFace, 0.03f, 0.08f, 0.58f, 0.92f);
             toggle.OffText = UiKit.CreateTitle("OffText", toggle.OffFace.transform, "Off", 32,
                 MenuPage.InkSoft, new Color(0.12f, 0.10f, 0.28f));
             UiKit.Place(toggle.OffText, 0.04f, 0.06f, 0.96f, 0.94f);
 
-            toggle.OnFace = MenuPage.Capsule("On", slot.transform, MenuPage.Green);
-            UiKit.Place(toggle.OnFace, 0.505f, 0.08f, 0.955f, 0.92f);
-            toggle.OnText = UiKit.CreateTitle("OnText", toggle.OnFace.transform, "On", 36,
-                MenuPage.Ink, new Color(0.05f, 0.26f, 0.03f));
+            // Çip: koyu kontur → yüzey → üst parlaklık. Kutusu yuvayı
+            // sağda ve dikeyde AŞIYOR (referanstaki kabartma).
+            toggle.OnEdgeImage = MenuPage.Capsule("On", slot.transform, OnEdge);
+            UiKit.Place(toggle.OnEdgeImage, 0.60f, -0.06f, 1.065f, 1.06f);
+
+            toggle.OnBody = MenuPage.Capsule("Body", toggle.OnEdgeImage.transform, OnGreen);
+            UiKit.Place(toggle.OnBody, 0f, 0f, 1f, 1f, padding: 6f);
+
+            var onGloss = UiKit.CreateRect("Gloss", toggle.OnBody.transform);
+            var onGlossImage = onGloss.gameObject.AddComponent<Image>();
+            onGlossImage.sprite = MenuSprites.FadeDown;
+            onGlossImage.type = Image.Type.Sliced;
+            onGlossImage.color = OnGloss;
+            onGlossImage.raycastTarget = false;
+            UiKit.Place(onGloss, 0.07f, 0.46f, 0.93f, 0.94f);
+            onGloss.localRotation = Quaternion.Euler(0f, 0f, 180f);
+            toggle.OnGlossRect = onGloss;
+
+            toggle.OnText = UiKit.CreateTitle("OnText", toggle.OnEdgeImage.transform, "On", 36,
+                OnInk, new Color(0.63f, 1f, 0.45f));
             UiKit.Place(toggle.OnText, 0.04f, 0.06f, 0.96f, 0.94f);
 
             _toggles.Add(toggle);
@@ -273,7 +342,10 @@ namespace BlockOut.Runtime.UI
             // suçlar; üstelik yazının söylediğinin tersini yapan bir düğme
             // tek başına da yanlış.
             AddHalfClick(toggle.OffFace, false, set);
-            AddHalfClick(toggle.OnFace, true, set);
+            // Tıklanan yüzey EN DIŞTAKİ katman (koyu kontur): çip artık üç
+            // katman ve dokunmayı en dıştaki yakalamalı, yoksa konturun
+            // taşan 6 birimlik şeridi ölü alan olurdu.
+            AddHalfClick(toggle.OnEdgeImage, true, set);
         }
 
         /// <summary>Anahtarın bir yarısı: basınca o duruma GEÇER, ters çevirmez.</summary>
@@ -300,10 +372,22 @@ namespace BlockOut.Runtime.UI
             {
                 bool on = toggle.Get();
 
-                // AKTİF olan yarı renkli, diğeri yuvayla aynı tonda kaybolur.
-                toggle.OnFace.color = on ? MenuPage.Green : SlotDark;
+                // AKTİF olan yarı KABARIK ve renkli, diğeri yuvaya gömülür.
+                //
+                // Üç katmanın üçü de tazeleniyor: kontur, yüzey ve üst
+                // parlaklık. Kapalıyken parlaklık tamamen kapanıyor — sönük
+                // bir yüzeyde duran ışık, yüzeyi "yarı açık" gösteriyordu.
+                toggle.OnEdgeImage.color = on ? OnEdge : SlotDark;
+                toggle.OnBody.color = on ? OnGreen : SlotDark;
+                if (toggle.OnGlossRect != null)
+                    toggle.OnGlossRect.gameObject.SetActive(on);
+
                 toggle.OffFace.color = on ? SlotDark : new Color(0.36f, 0.32f, 0.60f);
-                toggle.OnText.color = on ? MenuPage.Ink : MenuPage.InkSoft;
+
+                // "On" yazısı açıkken KOYU YEŞİL: referansta parlak yeşilin
+                // üstündeki yazı beyaz değil, kendinden koyu. Kapalıyken
+                // okunurluk için soluk lavantaya dönüyor.
+                toggle.OnText.color = on ? OnInk : MenuPage.InkSoft;
                 toggle.OffText.color = on ? MenuPage.InkSoft : MenuPage.Ink;
             }
         }
