@@ -49,6 +49,16 @@ namespace BlockOut.Runtime.UI
 
         float _nextTick;
 
+        /// <summary>Can göstergesinin nabzı için (37. madde).</summary>
+        RectTransform _heartRect;
+        PrimeTween.Tween _heartPulse;
+
+        /// <summary>Sayaçların dokunma yüzeyleri — teşhis ve testte aranıyor.</summary>
+        Image[] _coinHitAreas, _livesHitAreas;
+
+        RectTransform _livesPopup;
+        TextMeshProUGUI _livesPopupCount, _livesPopupTimer;
+
         DailyRewardPanel _daily;
 
         RectTransform _slideRoot, _slideCover;
@@ -95,6 +105,11 @@ namespace BlockOut.Runtime.UI
 
             if (MetaServices.Ready) MetaServices.Lives.Refresh();
             Refresh();
+
+            // Baloncuk açıkken geri sayım da her saniye yenilenmeli; yoksa
+            // panel açıldığı andaki süreyi donmuş gibi gösterir.
+            if (_livesPopup != null && _livesPopup.gameObject.activeSelf)
+                RefreshLivesPopup();
         }
 
         void BuildUi()
@@ -121,6 +136,7 @@ namespace BlockOut.Runtime.UI
             BuildTopBar(root);
             BuildPlayButton(root);
             BuildAdOffer(root);
+            BuildLivesPopup(root);
 
             // Günlük ödül: ana ekran açılınca hediye varsa kendiliğinden gelir.
             _daily = DailyRewardPanel.Build(canvas.transform);
@@ -202,12 +218,34 @@ namespace BlockOut.Runtime.UI
                 return panel;
             }
 
-            ResourceBar("Track_Coin", 0.296f, 0.511f);
-            ResourceBar("Track_Lives", 0.616f, 0.825f);
+            var coinTrack = ResourceBar("Track_Coin", 0.296f, 0.511f);
+            var livesTrack = ResourceBar("Track_Lives", 0.616f, 0.825f);
+
+            // TÜM SAYAÇ DOKUNULABİLİR, yalnız artı değil.
+            //
+            // DERS (küçük bir hedefe basmak zorunda bırakma): Mağazaya giden
+            // tek yol 54 birim genişliğindeki artı düğmesiydi. Oyuncu jeton
+            // sayısına ya da simgeye basıyor, hiçbir şey olmuyor ve arayüzü
+            // "tepkisiz" buluyor — kullanıcının "paraya tıklarsak direkt
+            // ikona veya para yazısına mağazaya yönlendirsin" bulgusu.
+            // Referansta sayacın TAMAMI bir düğme; artı yalnız oraya ne
+            // olacağını söyleyen bir işaret.
+            //
+            // Çubuk şeridin ARKASINDA duruyor ve simge/yazı onun üstünde;
+            // ikisi de raycast almadığı için dokunuş çubuğa düşüyor.
+            UiKit.MakeClickable(coinTrack, () => MenuShell.Instance?.Show("store"));
+            UiKit.MakeClickable(livesTrack, ShowLivesPopup);
+
+            // Simge ve yazı çubuğun DIŞINDA kalan kısımlarda da çalışsın diye
+            // ayrıca tıklanabilir yapılıyor (jeton simgesi çubuğun soluna
+            // taşıyor, kalp de öyle).
+            _coinHitAreas = new[] { coinTrack };
+            _livesHitAreas = new[] { livesTrack };
 
             // --- jeton ---
             var coinIcon = UiKit.CreateIcon("Icon_Coin", root, UiSkin.Get(Art.Coin));
             UiKit.Place(coinIcon, 0.220f, bottom - 0.004f, 0.308f, top + 0.004f);
+            UiKit.MakeClickable(coinIcon, () => MenuShell.Instance?.Show("store"));
 
             _coinLabel = UiKit.CreateTitle("Value_Coin", root, "", 40, CoinInk,
                 new Color(0.10f, 0.07f, 0.24f));
@@ -220,6 +258,20 @@ namespace BlockOut.Runtime.UI
             // --- can ---
             var heart = UiKit.CreateIcon("Icon_Heart", root, UiSkin.Get(Art.Heart));
             UiKit.Place(heart, 0.529f, bottom - 0.005f, 0.628f, top + 0.005f);
+            UiKit.MakeClickable(heart, ShowLivesPopup);
+            _heartRect = heart.rectTransform;
+
+            // CAN GÖSTERGESİ NABIZ ATIYOR (kullanıcı: "orası küçülüp büyüsün,
+            // minik hareket ediyor gibi olsun, orijinal oyunda var").
+            //
+            // DERS (nabız DAVET eder, nefes yalnız canlı tutar): Karakterlerdeki
+            // `Breathe` %1.8 genlikle "ekran ölü değil" diyor. Buradaki hareket
+            // başka bir iş yapıyor — dokunulabilir olduğunu söylüyor — o yüzden
+            // biraz daha belirgin (%5) ve daha yavaş. %10'u geçerse sayacın
+            // rakamı okunmaz hâle geliyor, denendi.
+            _heartPulse = PrimeTween.Tween.Scale(_heartRect, 1f, 1.05f, 0.95f,
+                PrimeTween.Ease.InOutSine, cycles: -1,
+                cycleMode: PrimeTween.CycleMode.Yoyo, useUnscaledTime: true);
 
             // Sayı kalbin ÜSTÜNDE ortalanır — referansta da öyle.
             _livesLabel = UiKit.CreateTitle("Value_Heart", heart.transform, "", 46,
@@ -471,6 +523,103 @@ namespace BlockOut.Runtime.UI
         /// yükselir hem oyuncu rahatsız olmaz. Bu yüzden teklif yalnızca can
         /// bittiğinde ve tam OYNA düğmesinin yerinde beliriyor.
         /// </summary>
+        // ---- Can baloncuğu (2. tur, 37. madde) -----------------------------
+
+        /// <summary>
+        /// Cana dokununca çıkan küçük bilgi baloncuğu.
+        ///
+        /// Kullanıcı: "Cana tıkladığımızda artıya değil, direkt cana ve 'dolu'
+        /// yazan kısma, örneğin popup gibi olsun."
+        ///
+        /// DERS (artı düğmesi bir KISAYOL, tek yol değil): Can sayacına
+        /// dokunmanın tek sonucu mağazaya atlamaktı ve o da yalnız 55 birimlik
+        /// artı düğmesinden. Oyuncunun sorduğu soru "nasıl can alırım" değil,
+        /// "canım ne zaman dolacak" — mağazaya atmak sorunun cevabı değil,
+        /// konuyu değiştirmek. Baloncuk önce CEVABI veriyor (kaç can var, ne
+        /// zaman dolacak), satın alma yolunu ikincil bırakıyor.
+        /// </summary>
+        void BuildLivesPopup(Transform root)
+        {
+            _livesPopup = UiKit.CreateRect("LivesPopup", root);
+            UiKit.Place(_livesPopup, 0f, 0f, 1f, 1f);
+
+            var scrim = UiKit.CreatePanel("Scrim", _livesPopup,
+                new Color(0.03f, 0.02f, 0.08f, 0.62f));
+            scrim.raycastTarget = true;
+            UiKit.MakeClickable(scrim, HideLivesPopup);
+
+            var card = UiKit.CreateOutlinedBox("Card", _livesPopup,
+                MenuPage.Panel, new Color(0.204f, 0.145f, 0.573f), borderInset: 0f);
+            UiKit.Place(card, 0.13f, 0.545f, 0.87f, 0.795f);
+
+            var heart = UiKit.CreateIcon("Heart", card.transform, UiSkin.Get(Art.Heart));
+            UiKit.Place(heart, 0.36f, 0.50f, 0.64f, 0.94f);
+
+            _livesPopupCount = UiKit.CreateTitle("Count", heart.transform, "", 52,
+                CoinInk, new Color(0.42f, 0.03f, 0.03f));
+            UiKit.Place(_livesPopupCount, 0f, 0.06f, 1f, 0.92f);
+
+            _livesPopupTimer = UiKit.CreateTitle("Timer", card.transform, "", 36,
+                MenuPage.Ink, MenuPage.InkDark);
+            UiKit.Place(_livesPopupTimer, 0.06f, 0.28f, 0.94f, 0.46f);
+
+            var shop = MenuPage.PillButton("Shop", card.transform, "Get More",
+                MenuPage.Green, 38, () => { HideLivesPopup(); MenuShell.Instance?.Show("store"); });
+            UiKit.Place(shop, 0.20f, 0.06f, 0.80f, 0.26f);
+
+            var close = UiKit.CreateIconButton("Close", card.transform,
+                GameKit.UI.UiSprites.Circle, MenuPage.CloseRed);
+            UiKit.Place(close, 0.845f, 0.80f, 1.015f, 1.09f);
+            close.onClick.AddListener(HideLivesPopup);
+            var mark = UiKit.CreateIcon("Mark", close.transform,
+                GameKit.UI.UiSprites.Cross, CoinInk);
+            mark.raycastTarget = false;
+            UiKit.Place(mark, 0.26f, 0.26f, 0.74f, 0.74f);
+
+            _livesPopup.gameObject.SetActive(false);
+        }
+
+        void ShowLivesPopup()
+        {
+            if (_livesPopup == null) return;
+            RefreshLivesPopup();
+            _livesPopup.gameObject.SetActive(true);
+            GameKit.FX.Juice.Replace(_livesPopup,
+                GameKit.FX.Juice.CardEntrance(_livesPopup.GetChild(1)));
+            Services.AudioService.PanelOpen();
+        }
+
+        void HideLivesPopup()
+        {
+            if (_livesPopup == null) return;
+            _livesPopup.gameObject.SetActive(false);
+            Services.AudioService.PanelClose();
+        }
+
+        void RefreshLivesPopup()
+        {
+            if (_livesPopupCount == null || !MetaServices.Ready) return;
+
+            var lives = MetaServices.Lives;
+            _livesPopupCount.text = lives.Current.ToString();
+
+            // Sınırsız can hakkı varken geri sayım yanıltıcı olur: can zaten
+            // eksilmiyor. O durumda hakkın kalan süresi yazılıyor.
+            if (MetaServices.Progress.HasInfiniteLives)
+            {
+                var left = MetaServices.Progress.InfiniteLivesLeft;
+                _livesPopupTimer.text = left.TotalHours >= 1d
+                    ? $"Unlimited for {(int)left.TotalHours}h {left.Minutes}m"
+                    : $"Unlimited for {left.Minutes}m {left.Seconds}s";
+                return;
+            }
+
+            var refill = lives.TimeToNextLife;
+            _livesPopupTimer.text = lives.IsFull
+                ? "Lives are full!"
+                : $"Next life in {refill.Minutes:00}:{refill.Seconds:00}";
+        }
+
         void BuildAdOffer(Transform root)
         {
             _adRow = UiKit.CreateRect("AdOffer", root).gameObject;

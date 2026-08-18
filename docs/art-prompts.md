@@ -493,31 +493,57 @@ A chunky golden stopwatch seen from the front, round gold case with a cream dial
 `art_raw/` yoluna girer (kesim gerekir). Gelince `ContinueOffer.BuildStage1`
 içindeki `Art.Clock` yerine yeni anahtar konur, düzen değişmez.
 
-## 11. KOLEKSİYON görselleri (2026-08-17)
+## 11. KOLEKSİYON görselleri (2026-08-17, **2026-08-18'de düzeltildi**)
 
-### 11.1 `collection_book.png` — açık kitap + bloklar
+> **ÖNEMLİ DÜZELTME (2026-08-18).** Bu bölümdeki iki istem `collections.jpeg`
+> yeniden ve büyütülerek incelenince YANLIŞ çıktı. Eski istem kitabın
+> çevresine "chunky toy building blocks" (oyuncak yapı taşları) koyuyordu;
+> referansta oradaki nesneler yapı taşı DEĞİL, **turuncu köşe kapaklı,
+> pembe kayış-tokalı sarılmış ALBÜM PAKETLERİ**. Sekme ikonu da "deep red
+> cover" diye tarif edilmişti; referansta yüz **pembe-magenta**, çerçeve
+> altın. Eski istemler kullanılsaydı ekrana referansla alakasız iki görsel
+> girecekti.
+>
+> **DERS: bir istemi yazmadan önce referansa BÜYÜTEREK bak.** Küçük karede
+> "renkli bloklar" gibi görünen şey, büyütünce tamamen başka bir nesne çıktı.
 
-Referans: `collections.jpeg`. Ekranın ortasında açık bir kitap, sayfalarında
-küçük kart/rozet resimleri, altında yuvarlak bir kaide ve çevresinde dağılmış
-renkli bloklar. Bizde şu an sandık (`icon_chest`) duruyor — yakın ama
-"koleksiyon" fikrini kitap kadar iyi anlatmıyor.
+### 11.1 `collection_book.png` — açık kitap + albüm paketleri
+
+Referans: `collections.jpeg`, ekranın ortası (y 620-1250 / 2048).
+Sahnenin tarifi:
+
+- Ortada **açık bir kitap**, dik duruyor. Kapağı magenta-pembe, köşelerinde
+  turuncu metal kapaklar, sırtında pembe-mor bir kayış ve toka var.
+  Sayfaları krem; sol sayfada kırmızı, sağ sayfada mavi bir yer imi şeridi.
+  Sayfalarda üç küçük **çerçeveli koleksiyon kartı** duruyor (altın taçlı).
+- Kitap **mor silindirik bir kaidenin** üstünde; kaidenin üst yüzü krem,
+  gövdesi koyu mor, alt kenarı altın bir halka.
+- Kaidenin iki yanında **üç sarılmış albüm paketi** yatıyor: solda mor
+  çizgili, sağda mavi çizgili ve yeşil çizgili. Her birinin dört köşesinde
+  turuncu kapaklar ve üstünde pembe bir kayış-toka.
 
 ```
-An open storybook standing upright on a round pedestal, its two pages showing small colorful collectible cards in frames, with chunky toy building blocks scattered around the base in pink purple blue and green, glossy 3D plastic toy style, front view, mobile casual puzzle game UI asset, soft studio lighting from top-left, subtle ambient occlusion, strong specular highlight on the pages, thick rounded edges, no outlines, highly saturated candy colors, single centered object on a plain solid light grey background, no text, no letters, no numbers, no drop shadow on the background, square 1024x1024, plenty of empty margin around the object, object occupies only the middle 80% of the frame, clean edges for game asset cutout
+An open storybook with a magenta pink cover and orange metal corner caps standing upright on a purple cylindrical pedestal with a cream top and a gold rim, its cream pages showing three small framed collectible cards with tiny gold crowns, a red bookmark ribbon on the left page and a blue one on the right, and three wrapped album boxes lying around the base in striped purple striped blue and striped green, each box with orange corner caps and a pink strap and buckle across its lid, glossy 3D plastic toy style, front view, mobile casual puzzle game UI asset, soft studio lighting from top-left, subtle ambient occlusion, strong specular highlight on the pages, thick rounded edges, no outlines, highly saturated candy colors, single centered arrangement on a plain solid light grey background, no text, no letters, no numbers, no drop shadow on the background, square 1024x1024, plenty of empty margin around the object, object occupies only the middle 80% of the frame, clean edges for game asset cutout
 ```
 
 `art_raw/` yoluna girer (kesim gerekir). Gelince `CollectionScreen`'deki
-`Art.Chest` anahtarı değişir, düzen aynı kalır.
+`Art.Chest` anahtarı `collection_book`'a döner, düzen aynı kalır —
+**56. maddedeki plaka ve yazı zaten referansa göre yerinde.**
 
-### 11.2 Koleksiyon SEKME ikonu
+### 11.2 `icon_album.png` — Koleksiyon SEKME ikonu
 
-Referansta alt çubuktaki koleksiyon sekmesi kırmızı-altın çerçeveli, içinde
-dört küçük kare olan bir "albüm" simgesi; bizde sandık kullanılıyor.
-Aynı istem, kare albüm biçiminde:
+Referansta alt çubuktaki koleksiyon sekmesi, kitabın yanındaki albüm
+paketlerinin küçük hâli: **altın yuvarlak köşeli çerçeve**, içinde
+**pembe-magenta** bir yüz ve o yüzde **iki-iki dizilmiş dört küçük nokta**.
+Sandıkla (`icon_chest`) hiç ilgisi yok — kullanıcının "menü ikonu da
+alakasız duruyor" bulgusu.
 
 ```
-A square photo-album icon with a thick ornate gold frame and a deep red cover, showing four small colorful square tiles arranged in a two by two grid on its face, glossy 3D plastic toy style, front view, mobile casual puzzle game UI asset, soft studio lighting from top-left, subtle ambient occlusion, thick rounded edges, no outlines, highly saturated candy colors, single centered object on a plain solid light grey background, no text, no letters, no numbers, no drop shadow on the background, square 1024x1024, plenty of empty margin around the object, clean edges for game asset cutout
+A square album case icon with a thick rounded gold frame and a bright magenta pink face, showing four small round studs arranged in a two by two grid on the face, glossy 3D plastic toy style, front view, mobile casual puzzle game tab bar icon, soft studio lighting from top-left, subtle ambient occlusion, thick rounded edges, no outlines, highly saturated candy colors, single centered object on a plain solid light grey background, no text, no letters, no numbers, no drop shadow on the background, square 1024x1024, plenty of empty margin around the object, clean edges for game asset cutout
 ```
+
+Gelince `MenuShell.Tabs` dizisindeki `Art.Chest` → `Art.Album` olur ve
+`UiSkin`'e `icon_album` anahtarı eklenir.
 
 ---
 

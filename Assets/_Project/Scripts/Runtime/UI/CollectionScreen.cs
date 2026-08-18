@@ -46,9 +46,27 @@ namespace BlockOut.Runtime.UI
             // ekranın %2.69'u ve Y 0.271-0.299'da duruyor. Bizdeki 40 punto
             // %1.5 veriyordu — yarı yarıya küçüktü ve ekranın ortasında
             // kaybolmuş bir alt yazı gibi duruyordu (5. APK bulgusu).
-            screen._hint = UiKit.CreateTitle("Hint", root, "", 72,
+            // YAZI ÇIPLAK DEĞİL, ÇERÇEVELİ BİR PLAKANIN İÇİNDE.
+            //
+            // DERS (referansta "sade" olan şey BOŞ değildi): Bu ekranı
+            // kurarken referansın sadeliği doğru okunmuştu — ızgara yok,
+            // filtre yok — ama cümlenin ALTINDAKİ yüzey gözden kaçmıştı.
+            // Referansta yazı, kendi koyu plakasının içinde duruyor ve
+            // plakanın açık mor ince bir çerçevesi var. Çıplak yazı ekranın
+            // ortasında "yüzüyor"; kullanıcının "Collection kısmının
+            // dikdörtgeninin çerçevesi, dış kenarı, gölgesi vs. yok, kötü
+            // duruyor" bulgusu buydu.
+            //
+            // ÖLÇÜLDÜ (`collections.jpeg`, 946×2048): plaka X 0.030-0.970,
+            // Y(alttan) 0.259-0.317; dolgu #161C4C, çerçeve #52517D.
+            var plate = UiKit.CreateOutlinedBox("HintPlate", root,
+                new Color(0.086f, 0.110f, 0.298f),
+                new Color(0.322f, 0.318f, 0.490f), borderInset: 0f);
+            UiKit.Place(plate, 0.030f, 0.256f, 0.970f, 0.320f);
+
+            screen._hint = UiKit.CreateTitle("Hint", plate.transform, "", 72,
                 MenuPage.Ink, MenuPage.InkDark);
-            UiKit.Place(screen._hint, 0.044f, 0.262f, 0.957f, 0.308f);
+            UiKit.Place(screen._hint, 0.022f, 0.06f, 0.978f, 0.94f);
             UiKit.SetOutline(screen._hint, new Color(0.075f, 0.055f, 0.235f));
 
             // İngilizce cümle Türkçesinden UZUN ("Unlock Collection at Level

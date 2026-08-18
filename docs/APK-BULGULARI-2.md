@@ -482,10 +482,48 @@ sıralı ve temiz."**
 
 - [ ] **20.** > "Collection kısmında referans görsele benzetmemişiz. Gerekirse
   prompt çıkartalım dedim bunun için."
+
+  **DURUM: İSTEM HAZIR, GÖRSEL BEKLİYOR.** `docs/art-prompts.md` §11 yeniden
+  yazıldı — **eski istemler YANLIŞTI.** Referans büyütülerek incelenince
+  kitabın çevresindeki nesnelerin "oyuncak yapı taşı" değil, **turuncu köşe
+  kapaklı, pembe kayış-tokalı albüm paketleri** olduğu; sekme ikonunun da
+  koyu kırmızı değil **pembe-magenta yüzlü altın çerçeveli** olduğu çıktı.
+  Eski istem kullanılsaydı ekrana referansla alakasız iki görsel girecekti.
+  **DERS: bir istemi yazmadan önce referansa BÜYÜTEREK bak.**
+
 - [ ] **21.** > "Şu an sandık alakasız duruyor."
+
+  **DURUM: İSTEM HAZIR, GÖRSEL BEKLİYOR.** `docs/art-prompts.md` §11 yeniden
+  yazıldı — **eski istemler YANLIŞTI.** Referans büyütülerek incelenince
+  kitabın çevresindeki nesnelerin "oyuncak yapı taşı" değil, **turuncu köşe
+  kapaklı, pembe kayış-tokalı albüm paketleri** olduğu; sekme ikonunun da
+  koyu kırmızı değil **pembe-magenta yüzlü altın çerçeveli** olduğu çıktı.
+  Eski istem kullanılsaydı ekrana referansla alakasız iki görsel girecekti.
+  **DERS: bir istemi yazmadan önce referansa BÜYÜTEREK bak.**
+
 - [ ] **22.** > "Menü ikonu da alakasız duruyor."
-- [ ] **23.** > "Collection kısmının dikdörtgeninin yine çerçevesi, dış kenarı,
+
+  **DURUM: İSTEM HAZIR, GÖRSEL BEKLİYOR.** `docs/art-prompts.md` §11 yeniden
+  yazıldı — **eski istemler YANLIŞTI.** Referans büyütülerek incelenince
+  kitabın çevresindeki nesnelerin "oyuncak yapı taşı" değil, **turuncu köşe
+  kapaklı, pembe kayış-tokalı albüm paketleri** olduğu; sekme ikonunun da
+  koyu kırmızı değil **pembe-magenta yüzlü altın çerçeveli** olduğu çıktı.
+  Eski istem kullanılsaydı ekrana referansla alakasız iki görsel girecekti.
+  **DERS: bir istemi yazmadan önce referansa BÜYÜTEREK bak.**
+
+- [x] **23.** > "Collection kısmının dikdörtgeninin yine çerçevesi, dış kenarı,
   gölgesi vs. yok. Kötü duruyor."
+
+
+  **NE YAPILDI.** Referansta yazı ÇIPLAK DEĞİL: kendi koyu plakasının içinde
+  duruyor ve plakanın açık mor ince bir çerçevesi var.
+  **DERS: referansta "sade" olan şey BOŞ değildi.** Bu ekranı kurarken
+  referansın sadeliği doğru okunmuştu (ızgara yok, filtre yok) ama cümlenin
+  ALTINDAKİ yüzey gözden kaçmıştı.
+
+  Ölçüldü (`collections.jpeg`, 946×2048): plaka X 0.030-0.970, Y(alttan)
+  0.259-0.317; dolgu `#161C4C`, çerçeve `#52517D`. `CreateOutlinedBox` ile
+  kuruldu, yazı içine alındı.
 
 ### D4 — Yolculuk (Journey)
 
@@ -612,11 +650,44 @@ sıralı ve temiz."**
 
 ### D6 — Ana ekran (Menü)
 
-- [ ] **36.** > "Menüdeki paraya tıklarsak direkt ikona veya para yazısına
+- [x] **36.** > "Menüdeki paraya tıklarsak direkt ikona veya para yazısına
   mağazaya yönlendirsin, geçişli bir şekilde."
-- [ ] **37.** > "Cana tıkladığımızda artıya değil, direkt cana ve 'dolu' yazan
+
+  **NE YAPILDI.** Mağazaya giden tek yol 54 birim genişliğindeki artı
+  düğmesiydi; oyuncu jeton sayısına ya da simgeye basıyor, hiçbir şey
+  olmuyordu. **DERS: küçük bir hedefe basmak zorunda bırakma.** Referansta
+  sayacın TAMAMI bir düğme, artı yalnız oraya ne olacağını söyleyen bir
+  işaret. Sayaç şeridi ve jeton simgesi `UiKit.MakeClickable` ile bağlandı.
+
+  **NASIL DOĞRULANDI.** `Track_Coin` tıklandı → aktif ekran `store`;
+  `Icon_Coin` tıklandı → `store`.
+
+- [x] **37.** > "Cana tıkladığımızda artıya değil, direkt cana ve 'dolu' yazan
   kısma, örneğin popup gibi olsun. Orası küçülüp büyüsün, minik hareket
   ediyor gibi olsun. Yani orijinal oyunda var."
+
+
+  **NE YAPILDI — iki parça.**
+
+  *Baloncuk:* Can sayacına dokunmanın tek sonucu mağazaya atlamaktı.
+  **DERS: oyuncunun sorduğu soru "nasıl can alırım" değil, "canım ne zaman
+  dolacak" — mağazaya atmak sorunun cevabı değil, konuyu değiştirmek.**
+  Yeni `LivesPopup`: kalp + sayı, geri sayım ("Next life in 02:33") ya da
+  "Lives are full!", yeşil "Get More" ve köşede kırmızı çarpı. Sınırsız can
+  hakkı varken geri sayım yerine hakkın kalan süresi yazıyor — o durumda
+  geri sayım yanıltıcı olurdu. Baloncuk açıkken sayaç her saniye yenileniyor.
+
+  *Nabız:* Can göstergesi 1.0↔1.05 arası sürekli nabız atıyor (kullanıcı:
+  "orası küçülüp büyüsün, minik hareket ediyor gibi olsun"). Karakterlerdeki
+  `Breathe` %1.8 ile "ekran ölü değil" diyor; buradaki hareket başka bir iş
+  yapıyor — dokunulabilir olduğunu söylüyor — o yüzden %5 ve daha yavaş.
+  %10'u geçince sayacın rakamı okunmaz oluyor, denendi.
+
+  **NASIL DOĞRULANDI.** `Track_Lives` tıklandı → baloncuk açıldı ve aktif
+  ekran `home` KALDI (mağazaya atlamadı). Perde ayrıca ölçüldü: tam ekran
+  (x[0..1080] y[0..1920]), raycast açık, ve açık/kapalı kareler piksel piksel
+  kıyaslandı — kart dışındaki her nokta belirgin biçimde koyulaşıyor
+  (`#D98CAF` → `#8D5972`, toplam parlaklıkta -188).
 
 ### D7 — Oyun içi HUD
 
