@@ -53,6 +53,11 @@ namespace BlockOut.Runtime.UI
         /// <summary>Referanstaki "Hard Level" satırının pembesi.</summary>
         static readonly Color HardPink = new Color(0.910f, 0.278f, 0.608f);
 
+        // ---- Yeniden başlat onayı, `Game over .mp4` 15. sn'den ölçüldü -----
+        static readonly Color RetryViolet = new Color(0.373f, 0.125f, 0.729f);  // #5F20BA
+        static readonly Color RetryWell   = new Color(0.184f, 0.078f, 0.353f);  // #2F145A
+        static readonly Color RetryLip    = new Color(0.443f, 0.208f, 0.827f);  // #7135D3
+
         // ---- OYUN İÇİ HUD, REFERANSTAN ÖLÇÜLDÜ (2026-08-18) ----------------
         //
         // Kaynak: `Block Out Color Sort Puzzle Levels.mp4`, 00:28 karesi
@@ -359,6 +364,7 @@ namespace BlockOut.Runtime.UI
             BuildComboBadge(hud);
             BuildPowerUpBar(root);
             BuildPausePanel(root);
+            BuildRetryConfirmPanel(root);
             BuildPowerUpPrompt(root);
             BuildResultPanel(root);
 
@@ -475,7 +481,9 @@ namespace BlockOut.Runtime.UI
             // --- 2. satır: yeniden başlat | süre | duraklat ---
             var restart = SquareButton(root, "Restart", 0.035f, 0.165f, 0.878f, 0.936f);
             BuildRestartGlyph(restart.transform);
-            restart.onClick.AddListener(() => _session.Restart());
+            // ARTIK DOĞRUDAN YENİDEN BAŞLATMIYOR — önce onay paneli açılıyor.
+            // Gerekçe için bkz. GameSession.GiveUp ve BuildRetryConfirmPanel.
+            restart.onClick.AddListener(ShowRetryConfirm);
 
             // SÜRE PLAKASI: jeton/bölüm plakasıyla AYNI koyu lacivert, ama
             // yazısı krem beyaz ve daha büyük — referansta üç yazı üç ayrı rol
@@ -795,6 +803,155 @@ namespace BlockOut.Runtime.UI
             _promptTitle.text = PowerUpInfo.Label(kind);
             _promptText.text = text;
             _promptPanel.gameObject.SetActive(true);
+        }
+
+        // ---- Yeniden başlat ONAYI (2. tur, 39. madde) ----------------------
+
+        RectTransform _retryPanel, _retryHeart;
+        TextMeshProUGUI _retryTitle;
+        PrimeTween.Tween _retryPulse;
+
+        /// <summary>
+        /// "Bu bölümü baştan alırsan bir can gider" onayı.
+        ///
+        /// REFERANS: `Game over .mp4`, 15. saniye — oyundaki "Devam Et?"
+        /// paneliyle AYNI kalıp (384×832 karede ölçüldü):
+        ///   • Panel TAM GENİŞLİK bir bant, y 192-581 (ekranın %30.2-%76.9'u).
+        ///   • Üstte mor bir şerit: başlık.
+        ///   • Ortada **KOYU GÖMME KUYU** (#2F145A) ve içinde büyük kırık kalp.
+        ///     Bu kuyu detayı panelin bütün karakteri: kalp düz mor zemine
+        ///     konunca "yapıştırılmış sticker" gibi duruyor.
+        ///   • Altta mor şerit: uyarı yazısı + yeşil düğme.
+        ///   • Sağ ÜST köşede kırmızı yuvarlak çarpı, panelin kenarına biner.
+        ///
+        /// Kullanıcının istediği tek fark: başlıkta "Devam Et?" yerine HANGİ
+        /// SEVİYEDE olduğumuz yazıyor ve düğme "Tekrar Dene".
+        ///
+        /// DERS (onay paneli oyunu DURDURMALI): Panel açıkken sayaç işlemeye
+        /// devam ederse oyuncu "düşüneyim" derken bölümü kaybediyor — onay
+        /// istemek cezaya dönüşüyor. Panel `GameSession.SetPaused(true)` ile
+        /// açılıyor, çarpı kapatınca kaldığı yerden devam ediyor.
+        /// </summary>
+        void BuildRetryConfirmPanel(Transform root)
+        {
+            _retryPanel = UiKit.CreateRect("RetryConfirm", root);
+            UiKit.Place(_retryPanel, 0f, 0f, 1f, 1f);
+
+            var scrim = UiKit.CreatePanel("Scrim", _retryPanel, new Color(0.02f, 0.02f, 0.05f, 0.72f));
+            scrim.raycastTarget = true;
+
+            // Bant tam genişlik: referansta kart değil, ekranı kesen bir şerit.
+            var band = UiKit.CreateRect("Band", _retryPanel);
+            UiKit.Place(band, 0f, 0.302f, 1f, 0.769f);
+
+            var bandFill = band.gameObject.AddComponent<Image>();
+            bandFill.color = RetryViolet;
+            bandFill.raycastTarget = true;
+
+            // Üst kenardaki ışık şeridi (referansta #7135D3, 4 piksel).
+            var lip = UiKit.CreateRect("Lip", band);
+            var lipImage = lip.gameObject.AddComponent<Image>();
+            lipImage.color = RetryLip;
+            lipImage.raycastTarget = false;
+            lip.anchorMin = new Vector2(0f, 1f);
+            lip.anchorMax = new Vector2(1f, 1f);
+            lip.pivot = new Vector2(0.5f, 1f);
+            lip.sizeDelta = new Vector2(0f, 9f);
+            lip.anchoredPosition = Vector2.zero;
+
+            _retryTitle = UiKit.CreateTitle("Title", band, "", 54, Ink, TitleOutline);
+            UiKit.Place(_retryTitle, 0.08f, 0.855f, 0.92f, 0.995f);
+            UiKit.SetOutline(_retryTitle, TitleOutline);
+
+            // KOYU GÖMME KUYU — referansta y 236-414, yani bandın %45-%88'i.
+            var well = UiKit.CreatePanel("Well", band, RetryWell);
+            UiKit.Place(well, 0f, 0.428f, 1f, 0.855f);
+            well.raycastTarget = false;
+
+            _retryHeart = UiKit.CreateIcon("Heart", well.transform,
+                UiSkin.Get(Art.HeartBroken)).rectTransform;
+            UiKit.Place(_retryHeart, 0.34f, 0.08f, 0.66f, 0.92f);
+
+            var warning = UiKit.CreateTitle("Warning", band, "You will lose 1 life!", 38,
+                Ink, TitleOutline);
+            UiKit.Place(warning, 0.06f, 0.290f, 0.94f, 0.400f);
+
+            var retry = UiKit.CreateSpriteButton("Retry", band,
+                UiSkin.Get(Art.ButtonGreen), "Try Again", 46, Ink);
+            UiKit.Place(retry, 0.185f, 0.055f, 0.815f, 0.255f);
+            retry.onClick.AddListener(ConfirmRetry);
+
+            // Çarpı bandın sağ ÜST köşesine biner (referansta y=183, bandın
+            // üst kenarının hemen üstü).
+            var close = UiKit.CreateIconButton("Close", _retryPanel, UiSprites.Circle, CloseRed);
+            UiKit.Place(close, 0.845f, 0.742f, 0.955f, 0.804f);
+            close.onClick.AddListener(CancelRetry);
+
+            var closeMark = UiKit.CreateIcon("Mark", close.transform, UiSprites.Cross, Ink);
+            closeMark.raycastTarget = false;
+            UiKit.Place(closeMark, 0.24f, 0.24f, 0.76f, 0.76f);
+
+            _retryPanel.gameObject.SetActive(false);
+        }
+
+        /// <summary>Onayı açar: oyunu durdurur, kalbi nabız gibi attırır.</summary>
+        void ShowRetryConfirm()
+        {
+            if (_session == null || _session.State != GameState.Playing) return;
+
+            _session.SetPaused(true);
+            _retryTitle.text = _scratch.Clear().Append("Level ")
+                .Append(_session.DisplayNumber).ToString();
+            _retryPanel.gameObject.SetActive(true);
+            Services.AudioService.PanelOpen();
+
+            // KALP BÜYÜYÜP KÜÇÜLÜYOR (kullanıcının açık isteği). Sonsuz
+            // döngü: panel kapanınca durduruluyor, yoksa tween arkada yaşamaya
+            // devam eder ve panel bir daha açıldığında ikinci bir tween daha
+            // eklenip kalp titrer.
+            if (_retryPulse.isAlive) _retryPulse.Stop();
+            _retryPulse = PrimeTween.Tween.Scale(_retryHeart, 1f, 1.12f, 0.55f,
+                PrimeTween.Ease.InOutSine, cycles: -1,
+                cycleMode: PrimeTween.CycleMode.Yoyo, useUnscaledTime: true);
+        }
+
+        void StopRetryPulse()
+        {
+            if (_retryPulse.isAlive) _retryPulse.Stop();
+            if (_retryHeart != null) _retryHeart.localScale = Vector3.one;
+        }
+
+        /// <summary>Çarpı: hiçbir şey olmadı, oyun kaldığı yerden devam.</summary>
+        void CancelRetry()
+        {
+            StopRetryPulse();
+            _retryPanel.gameObject.SetActive(false);
+            Services.AudioService.PanelClose();
+            _session?.SetPaused(false);
+        }
+
+        /// <summary>
+        /// "Tekrar Dene": bölüm kaybedilmiş sayılır ve BAŞARISIZ paneli açılır.
+        ///
+        /// DERS (aynı sonuca iki ayrı yol yapma): Buradan doğrudan
+        /// `_session.Restart()` çağırmak cazipti — kısa ve çalışıyor. Ama o
+        /// zaman "kaybettim" ile "pes ettim" iki ayrı akış olurdu ve panel,
+        /// ses, analitik, can harcaması dört yerde ayrı ayrı doğru tutulmak
+        /// zorunda kalırdı. Pes etmek zaten bir kaybetmedir; mevcut Lost
+        /// akışına giriyoruz.
+        ///
+        /// `_offerShown` önceden işaretleniyor: kullanıcı "Tekrar Dene dersek
+        /// BU SEFER başarısız paneli çıkacak" dedi, yani süre teklifleri
+        /// (Süre Doldu → Devam Et?) atlanmalı. O teklifler süre dolduğunda
+        /// anlamlı; kendi isteğiyle vazgeçen oyuncuya "30 saniye ister misin"
+        /// diye sormak saçma olurdu.
+        /// </summary>
+        void ConfirmRetry()
+        {
+            StopRetryPulse();
+            _retryPanel.gameObject.SetActive(false);
+            _offerShown = true;
+            _session?.GiveUp();
         }
 
         void BuildPausePanel(Transform root)

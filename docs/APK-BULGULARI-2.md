@@ -159,7 +159,7 @@ sıralı ve temiz."**
 
 ## C — YENİ PANEL AKIŞLARI (oyun içi)
 
-- [ ] **39. Yeniden başlat → ONAY paneli.**
+- [x] **39. Yeniden başlat → ONAY paneli.**
   > "bizde tıklayınca direkt oyun yeniden başlıyor. Öyle olmaması lazım.
   > Direkt hangi seviyede olduğumuzu üstünde yazan bir panel olacak.
   > Panelin yan çaprazında kapatma işareti olacak. Panelin içinde '1 can
@@ -168,7 +168,40 @@ sıralı ve temiz."**
   > butonunu da altta olacak şekilde yapmamız lazım. Kapatırsak direkt oyuna
   > devam edeceğiz."
 
-- [ ] **40. Tekrar Dene → BAŞARISIZ paneli.**
+
+  **REFERANS BULUNDU.** `Game over .mp4` (24 sn) ilk kez tarandı — 50 kare
+  çıkarılıp kontak sayfası yapıldı. Kaybetme zinciri tamamen görünüyor:
+  **Süre Doldu → Devam Et? → BAŞARISIZ**. 39. maddenin istediği panel,
+  oyundaki **"Devam Et?"** paneliyle aynı kalıp.
+
+  **ÖLÇÜLDÜ (384×832 kare):** Panel tam genişlik bir bant, y 192-581
+  (ekranın %30.2-%76.9'u). İçinde üç şerit var:
+  | bölüm | y | renk |
+  |---|---|---|
+  | üst ışık dudağı | 192-196 | `#7135D3` |
+  | başlık şeridi | 196-235 | `#5F20BA` |
+  | **koyu gömme kuyu (kalp burada)** | 236-414 | `#2F145A` |
+  | uyarı + düğme şeridi | 416-564 | `#5F20BA` |
+
+  Kuyu detayı panelin bütün karakteri: kalp düz mor zemine konunca
+  "yapıştırılmış sticker" gibi duruyor.
+
+  **NE YAPILDI.** `BuildRetryConfirmPanel` eklendi (bant + kuyu + kırık kalp +
+  "You will lose 1 life!" + yeşil "Try Again" + sağ üstte kırmızı çarpı).
+  Başlıkta kullanıcının istediği gibi bulunulan seviye yazıyor. Kalp
+  `PrimeTween` ile 1.0↔1.12 arası sonsuz yoyo — kullanıcının açık isteği.
+  Panel açılırken `SetPaused(true)`; **onay istemek cezaya dönüşmemeli**,
+  panel açıkken sayaç işlerse oyuncu düşünürken bölümü kaybeder.
+
+  `GameSession.GiveUp()` eklendi: pes etmek YENİ bir durum değil, mevcut
+  `Lost` durumuna girme. **DERS: aynı sonuca iki ayrı yol yapma** — yoksa
+  panel, ses, analitik ve can harcaması dört yerde ayrı ayrı doğru tutulurdu.
+
+  **NASIL DOĞRULANDI (play modunda, ölçümle).**
+  - Restart → panel açık, durum `Paused`, başlık "Level 4" ✓
+  - Çarpı → panel kapalı, durum `Playing` ✓ (oyun kaldığı yerden devam)
+
+- [x] **40. Tekrar Dene → BAŞARISIZ paneli.**
   > "Tekrar Dene dersek bu sefer başarısız paneli çıkacak. Üstte 'Başarısız'
   > yazısı olacak. Hemen altında kırık kalp olacak. Yine kapatma işareti
   > olacak. Hangi seviye olduğu ve zorluğu yazacak. Altında kaç para
@@ -176,6 +209,29 @@ sıralı ve temiz."**
   > kalbi kaybedeceğiz."
 
   Referans: **`Game over .mp4`** — bu video hiç kıyaslanmadı, kaynak burada.
+
+
+  **PANEL ZATEN VARDI, ZİNCİR YOKTU.** BAŞARISIZ kartı önceki bir oturumda
+  aynı referanstan kurulmuş (altın başlık, kırık kalp, seviye, kaçırılan
+  jeton + kırmızı çarpı, "Rewards x3", yeşil düğme, kapatma çarpısı).
+  Eksik olan, 39. maddedeki onaydan buraya giden yoldu.
+
+  **NE YAPILDI.** `ConfirmRetry` `_offerShown = true` işaretleyip
+  `GiveUp()` çağırıyor. İşaretleme bilinçli: kullanıcı "Tekrar Dene dersek
+  BU SEFER başarısız paneli çıkacak" dedi, yani süre teklifleri
+  (Süre Doldu → Devam Et?) atlanmalı. O teklifler süre dolduğunda anlamlı;
+  kendi isteğiyle vazgeçen oyuncuya "30 saniye ister misin" diye sormak
+  saçma olurdu.
+
+  **NASIL DOĞRULANDI (play modunda, ölçümle).**
+  - 17. bölüm (SuperHard) ile: panelde **"Super Hard" / "Level 17"** yan yana
+    çıkıyor — referanstaki "Zor / Seviye 54" ile birebir. (Normal bölümlerde
+    etiket yok; `LevelDifficultyRule.Label(Normal)` boş dönüyor ve referans da
+    yalnız zor bölümlerde gösteriyor.)
+  - **Can harcaması sayıyla ölçüldü:** bölüm açık 4 → onay paneli 4 →
+    başarısız paneli 4 → gerçek yeniden başlatma **3**. Yani can tam olarak
+    kullanıcının dediği yerde gidiyor: "Yeniden Dene butonuna yeniden
+    basarsak da kalbi kaybedeceğiz".
 
 ---
 

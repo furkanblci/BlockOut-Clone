@@ -717,6 +717,37 @@ namespace BlockOut.Runtime.Flow
             }
         }
 
+        /// <summary>
+        /// Oyuncu BİLİNÇLİ olarak pes etti (yeniden başlat onayı verildi).
+        ///
+        /// DERS (yeniden başlatmak ücretsiz DEĞİLDİR): Üst bardaki yeniden
+        /// başlat düğmesi doğrudan <see cref="Restart"/> çağırıyordu ve bölüm
+        /// anında baştan kuruluyordu. Oyuncunun bakış açısından bu "bedava
+        /// geri al" demek; oysa `Restart` zaten `_lifeSpent`'ı sıfırlayıp yeni
+        /// bir can harcıyor. Yani bedel ÖDENİYOR ama oyuncuya hiç sorulmuyor
+        /// ve hiç gösterilmiyordu — parmağın kayması bir can yakıyordu.
+        ///
+        /// Referans oyun bunu kaybetme akışına bağlıyor: pes etmek "kaybettim"
+        /// ile aynı şeydir, aynı paneli açar ve canı orada kaybedersin.
+        /// Bu yüzden burada yeni bir durum icat etmiyoruz, mevcut Lost
+        /// durumuna giriyoruz — panel, ses, analitik, hepsi zaten bağlı.
+        /// </summary>
+        public void GiveUp()
+        {
+            if (State != GameState.Playing && State != GameState.Paused) return;
+
+            SetPaused(false);
+            State = GameState.Lost;
+            _audio?.PlayLose();
+            _haptics?.Play(GameKit.Services.HapticStrength.Heavy);
+
+            if (Services.MetaServices.Ready)
+                GameKit.Services.Analytics.LevelFailed(
+                    _levelIndex,
+                    Services.MetaServices.Progress.Record(LevelId).Attempts,
+                    "restart");
+        }
+
         void OnTimeExpired()
         {
             if (State != GameState.Playing) return;
