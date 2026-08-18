@@ -210,6 +210,118 @@ namespace BlockOut.Runtime.UI
                 SpriteMeshType.FullRect);
         }
 
+        // ---- Madalya ışını -------------------------------------------------
+
+        static Sprite _sunburst, _foliage;
+
+        /// <summary>
+        /// Madalyanın arkasındaki DİŞLİ ÇELENK — referanstaki altın madalyanın
+        /// kenarındaki yapraklı taç.
+        ///
+        /// DERS (madalya bir DAİRE değildir): Podyumdaki madalyalar iki iç içe
+        /// düz daireydi; altın rengi verilse bile ekranda "sarı bir nokta"
+        /// olarak okunuyordu ve kullanıcı "madalyamız yok" dedi — teknik olarak
+        /// vardı, görsel olarak yoktu. Bir madalyayı madalya yapan şey dairenin
+        /// kendisi değil, kenarındaki DÜZENLİ ÇIKINTILAR: göz onları taç/kurdele
+        /// olarak okuyor.
+        ///
+        /// Yarıçapı açıya göre dalgalandırıyoruz; 12 diş referanstaki taçla
+        /// aynı sıklıkta. Ayrı bir görsele gerek yok, her boyutta temiz.
+        /// </summary>
+        public static Sprite Sunburst => _sunburst != null ? _sunburst
+            : (_sunburst = BuildSunburst());
+
+        static Sprite BuildSunburst()
+        {
+            const int s = 256;
+            const int teeth = 12;
+            var tex = NewTexture("MenuSunburst", s, s);
+            var pixels = new Color32[s * s];
+
+            float half = s * 0.5f;
+            float baseRadius = half * 0.74f;
+            float toothDepth = half * 0.22f;
+
+            for (int y = 0; y < s; y++)
+                for (int x = 0; x < s; x++)
+                {
+                    float dx = x + 0.5f - half, dy = y + 0.5f - half;
+                    float d = Mathf.Sqrt(dx * dx + dy * dy);
+                    float angle = Mathf.Atan2(dy, dx);
+
+                    // Dişler yuvarlak uçlu: kosinüsün kendisi zaten yumuşak,
+                    // keskin üçgen "vektör klibi" gibi duruyor.
+                    float wave = 0.5f + 0.5f * Mathf.Cos(angle * teeth);
+                    float radius = baseRadius + toothDepth * wave;
+
+                    float alpha = 1f - Step(radius - 1.6f, radius, d);
+                    pixels[y * s + x] = new Color(1f, 1f, 1f, alpha);
+                }
+
+            tex.SetPixels32(pixels);
+            tex.Apply(false, true);
+            return Sprite.Create(tex, new Rect(0, 0, s, s), new Vector2(0.5f, 0.5f), 100f, 0,
+                SpriteMeshType.FullRect);
+        }
+
+        // ---- Ağaç tacı -----------------------------------------------------
+
+        /// <summary>
+        /// Yapraklı ağaç tacı — tek daire DEĞİL, birbirine geçmiş kabarcıklar.
+        ///
+        /// DERS (doğada düz kenar yoktur): Liderlik sahnesindeki ağaçlar iki
+        /// düz daireydi ve "ağaç" değil "yeşil top" okunuyordu; kullanıcı
+        /// "o ağaçları kendimiz çizdirmek yerine ağaçlık bir alan çizdirelim"
+        /// dedi. Referansta taç, kenarları TIRTIKLI bir kütle: yaprak
+        /// kümelerinin silueti.
+        ///
+        /// Yedi kabarcığın birleşimi (mesafe alanlarının minimumu) tek bir
+        /// düzgün siluet veriyor; kenar hâlâ yumuşak, ama artık daire değil.
+        /// </summary>
+        public static Sprite Foliage => _foliage != null ? _foliage
+            : (_foliage = BuildFoliage());
+
+        static Sprite BuildFoliage()
+        {
+            const int s = 256;
+            var tex = NewTexture("MenuFoliage", s, s);
+            var pixels = new Color32[s * s];
+
+            // (merkez x, merkez y, yarıçap) — hepsi 0-1 aralığında, dokuya göre.
+            var blobs = new[]
+            {
+                new Vector3(0.50f, 0.62f, 0.30f),
+                new Vector3(0.28f, 0.52f, 0.22f),
+                new Vector3(0.72f, 0.52f, 0.22f),
+                new Vector3(0.38f, 0.34f, 0.21f),
+                new Vector3(0.62f, 0.34f, 0.21f),
+                new Vector3(0.50f, 0.28f, 0.24f),
+                new Vector3(0.50f, 0.80f, 0.20f)
+            };
+
+            for (int y = 0; y < s; y++)
+                for (int x = 0; x < s; x++)
+                {
+                    float px = (x + 0.5f) / s, py = (y + 0.5f) / s;
+
+                    // Siluete olan en KISA mesafe: kabarcıkların birleşimi.
+                    float best = 1f;
+                    foreach (var b in blobs)
+                    {
+                        float dx = px - b.x, dy = py - b.y;
+                        best = Mathf.Min(best, Mathf.Sqrt(dx * dx + dy * dy) - b.z);
+                    }
+
+                    float alpha = 1f - Step(0f, 1.6f / s, best);
+                    pixels[y * s + x] = new Color(1f, 1f, 1f, alpha);
+                }
+
+            tex.SetPixels32(pixels);
+            tex.Apply(false, true);
+            return Sprite.Create(tex, new Rect(0, 0, s, s), new Vector2(0.5f, 0.5f), 100f, 0,
+                SpriteMeshType.FullRect);
+        }
+
         // ---- Flama --------------------------------------------------------
 
         static Sprite _pennant;
@@ -450,7 +562,7 @@ namespace BlockOut.Runtime.UI
         public static void ClearCache()
         {
             _capsule = _capsuleOutline = _awning = _infinity = _noAds = null;
-            _fadeDown = _pennant = _ring = null;
+            _fadeDown = _pennant = _ring = _sunburst = _foliage = null;
         }
     }
 }

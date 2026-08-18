@@ -134,6 +134,34 @@ namespace BlockOut.Runtime.UI
             fadeImage.raycastTarget = false;
             UiKit.Place(fade, 0f, 0f, 1f, 1f);
 
+            // BANDIN ALT DUDAĞI — iki ince şerit.
+            //
+            // DERS (bir bant nerede BİTTİĞİNİ söylemeli): Bant düz bir renk
+            // dikdörtgeniydi ve altındaki içerikle arasında hiçbir sınır yoktu;
+            // kullanıcı "en üstte yine dikdörtgen var, detaysız" derken bunu
+            // gördü. Referansta bandın alt kenarında önce KOYU bir çizgi, onun
+            // hemen üstünde İNCE bir ışık var — plastik bir kapağın kalınlığı.
+            // Bantı bir yüzey yapan şey degrade değil, bu iki piksellik kenar.
+            var lipLight = UiKit.CreateRect("LipLight", band);
+            var lipLightImage = lipLight.gameObject.AddComponent<Image>();
+            lipLightImage.color = new Color(0.435f, 0.376f, 0.976f, 0.55f);
+            lipLightImage.raycastTarget = false;
+            lipLight.anchorMin = new Vector2(0f, 0f);
+            lipLight.anchorMax = new Vector2(1f, 0f);
+            lipLight.pivot = new Vector2(0.5f, 0f);
+            lipLight.sizeDelta = new Vector2(0f, 9f);
+            lipLight.anchoredPosition = new Vector2(0f, 7f);
+
+            var lipDark = UiKit.CreateRect("LipDark", band);
+            var lipDarkImage = lipDark.gameObject.AddComponent<Image>();
+            lipDarkImage.color = new Color(0.098f, 0.071f, 0.318f, 0.85f);
+            lipDarkImage.raycastTarget = false;
+            lipDark.anchorMin = new Vector2(0f, 0f);
+            lipDark.anchorMax = new Vector2(1f, 0f);
+            lipDark.pivot = new Vector2(0.5f, 0f);
+            lipDark.sizeDelta = new Vector2(0f, 7f);
+            lipDark.anchoredPosition = Vector2.zero;
+
             // PUNTO REFERANSTAN (2026-08-17): dört ekranın da başlığı ölçüldü
             // ve büyük harf yüksekliği tutarlı biçimde ekranın **%2.7**'si:
             // Yolculuk 0.0273 · Liderlik 0.0269 · Profil 0.0278.

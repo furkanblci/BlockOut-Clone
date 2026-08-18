@@ -30,9 +30,17 @@ namespace BlockOut.Runtime.UI
     {
         static readonly string[] TabNames = { "Weekly", "World", "Country" };
 
-        static readonly Color TabSlot   = new Color(0.220f, 0.184f, 0.463f);
-        static readonly Color TabIdle   = new Color(0.357f, 0.294f, 0.847f);
-        static readonly Color TabActive = new Color(0.098f, 0.612f, 0.976f);
+        // SEKME RENKLERİ REFERANSTAN YENİDEN ÖLÇÜLDÜ (2026-08-18, `sıralama.jpeg`).
+        // Eskiler göz kararıydı ve üçü de referanstan koyu/soluk kalıyordu;
+        // kullanıcının "Weekly/World/Country kısmı çok detaysız" bulgusunun
+        // yarısı renk, yarısı katman eksikliğiydi.
+        static readonly Color TabSlot   = new Color(0.212f, 0.157f, 0.631f);  // #3628A1 koyu kuyu
+        static readonly Color TabRim    = new Color(0.396f, 0.325f, 0.929f);  // kuyunun dış bileziği
+        static readonly Color TabIdle   = new Color(0.396f, 0.325f, 0.992f);  // #6553FD
+        static readonly Color TabActive = new Color(0.000f, 0.522f, 0.996f);  // #0085FE
+        static readonly Color TabGloss  = new Color(0.012f, 0.831f, 1.000f);  // #03D4FF üst ışık
+        static readonly Color InfoFill  = new Color(0.400f, 0.331f, 1.000f);  // #6654FF — MOR, mavi değil
+        static readonly Color BadgeLilac = new Color(0.678f, 0.635f, 0.996f); // #ADA2FE geri sayım
         static readonly Color RowFace   = new Color(0.424f, 0.361f, 0.910f);
         static readonly Color SelfFace  = new Color(0.176f, 0.800f, 0.047f);
         static readonly Color ScoreRed  = new Color(0.690f, 0.071f, 0.263f);
@@ -76,6 +84,10 @@ namespace BlockOut.Runtime.UI
         /// </summary>
         static readonly (string name, int score)[][] Boards =
         {
+            // HAFTALIK LİSTE DOKUZ KİŞİ — oyuncunun kendi satırıyla birlikte
+            // tam 10 sıra eder. Referansta haftalık sıralama 1'den 10'a kadar
+            // gösteriliyor (bkz. SelfRankLabel); sekiz rakiple en fazla 9. sıra
+            // oluşabiliyordu ve "ilk 10" hiç dolmuyordu.
             new[]
             {
                 ("mira",         412),
@@ -85,6 +97,7 @@ namespace BlockOut.Runtime.UI
                 ("zzz",          274),
                 ("polat",        236),
                 ("dotsang",      198),
+                ("selin",        176),
                 ("player_2u1hw", 157)
             },
             new[]
@@ -129,6 +142,9 @@ namespace BlockOut.Runtime.UI
 
         readonly List<(Image face, TextMeshProUGUI label, int index)> _tabs =
             new List<(Image, TextMeshProUGUI, int)>();
+
+        /// <summary>Seçili sekmenin üst ışığı; <see cref="Refresh"/> açıp kapatıyor.</summary>
+        readonly List<RectTransform> _tabGloss = new List<RectTransform>();
         TextMeshProUGUI _selfRank, _selfName, _selfScore, _countdown;
 
         // Sekme değişince yenilenecek yazılar.
@@ -196,8 +212,16 @@ namespace BlockOut.Runtime.UI
             // Bizimki 0.075-0.925 ile neredeyse tam genişlikti; üç sekme
             // birbirinden kopuk üç düğme gibi duruyordu (17. APK bulgusu).
             var slotRow = MenuPage.Row("Tabs", root, 336f, 112f, 0.107f, 0.803f);
+
+            // ÜÇ KATMAN — referansta seçici tek bir kutu değil, GÖMÜLÜ bir yuva:
+            // dıştan açık mor bir bilezik, içinde koyu bir kuyu, kuyunun içinde
+            // sekmeler. Bizde tek koyu kutu vardı ve sekmeler onun üstünde
+            // yüzüyordu; "çok basit kalmış" bulgusunun yapısal kısmı bu.
+            var rim = MenuPage.Capsule("Rim", slotRow, TabRim);
+            UiKit.Place(rim, 0f, 0f, 1f, 1f);
+
             var slot = MenuPage.Capsule("Slot", slotRow, TabSlot);
-            UiKit.Place(slot, 0f, 0f, 1f, 1f);
+            UiKit.Place(slot, 0f, 0f, 1f, 1f, padding: 7f);
 
             for (int i = 0; i < TabNames.Length; i++)
             {
@@ -205,6 +229,19 @@ namespace BlockOut.Runtime.UI
                 var face = MenuPage.Capsule("Tab" + i, slot.transform, TabIdle);
                 UiKit.Place(face, x0, 0.10f, x0 + 0.3213f, 0.90f);
                 face.raycastTarget = true;
+
+                // Üstte toplanan ışık: seçili sekmeyi "cam düğme" yapan şey.
+                // Seçili olmayanda da duruyor ama Refresh onu kapatıyor —
+                // burada kurulması, sonradan yaratmaya göre daha ucuz.
+                var gloss = UiKit.CreateRect("Gloss", face.transform);
+                var glossImage = gloss.gameObject.AddComponent<Image>();
+                glossImage.sprite = MenuSprites.FadeDown;
+                glossImage.type = Image.Type.Sliced;
+                glossImage.color = TabGloss;
+                glossImage.raycastTarget = false;
+                UiKit.Place(gloss, 0.03f, 0.46f, 0.97f, 0.97f);
+                gloss.localRotation = Quaternion.Euler(0f, 0f, 180f);
+                gloss.gameObject.SetActive(false);
 
                 var label = UiKit.CreateTitle("Label", face.transform, TabNames[i], 40,
                     MenuPage.Ink, MenuPage.InkDark);
@@ -218,6 +255,7 @@ namespace BlockOut.Runtime.UI
                 int captured = i;
                 button.onClick.AddListener(() => { _activeTab = captured; Refresh(); });
                 _tabs.Add((face, label, i));
+                _tabGloss.Add(gloss);
             }
 
             // Geri sayım rozeti sekmelerin ALT kenarına biner; referansta
@@ -225,16 +263,30 @@ namespace BlockOut.Runtime.UI
             var badge = MenuPage.Row("Countdown", root, 424f, 62f, 0.107f, 0.375f);
             var badgeFace = MenuPage.Capsule("Face", badge, TabSlot);
             UiKit.Place(badgeFace, 0f, 0f, 1f, 1f);
+
+            // Rozetin solunda küçük bir daire simge (referansta beyaz bir
+            // işaret taşıyan açık mor disk). Rozet yazıdan ibaret olunca
+            // "sekmelerden kopmuş bir etiket" gibi duruyordu.
+            var badgeDot = UiKit.CreateIcon("Dot", badgeFace.transform,
+                GameKit.UI.UiSprites.Circle, BadgeLilac);
+            UiKit.Place(badgeDot, 0.03f, 0.13f, 0.19f, 0.87f);
+
             _countdown = UiKit.CreateTitle("Text", badgeFace.transform, "", 26,
                 MenuPage.Ink, MenuPage.InkDark);
-            UiKit.Place(_countdown, 0.06f, 0.06f, 0.94f, 0.94f);
+            UiKit.Place(_countdown, 0.22f, 0.06f, 0.94f, 0.94f);
 
             // "i" bilgi düğmesi: referansta yuvanın SAĞINDA, aynı hizada.
-            // Sıralamanın nasıl hesaplandığını anlatan kısa bir bilgi.
+            //
+            // RENK REFERANSTAN ÖLÇÜLDÜ: dolgu #6654FF, yani MOR. Bizimki
+            // #2C8BFE ile MAVİYDİ — kullanıcının "yuvarlak içindeki İ orijinal
+            // oyunda mor, bizde mavi" bulgusu. Etrafında ayrıca bir bilezik
+            // var; tek düz daire referansta olduğundan yassı kalıyordu.
             var info = MenuPage.Row("Info", root, 344f, 96f, 0.836f, 0.936f);
-            var infoFace = UiKit.CreateIcon("Face", info, GameKit.UI.UiSprites.Circle,
-                new Color(0.173f, 0.545f, 0.996f));
-            UiKit.Place(infoFace, 0f, 0f, 1f, 1f);
+            var infoRim = UiKit.CreateIcon("Rim", info, GameKit.UI.UiSprites.Circle,
+                MenuPage.Darken(InfoFill, 0.62f));
+            UiKit.Place(infoRim, 0f, 0f, 1f, 1f);
+            var infoFace = UiKit.CreateIcon("Face", info, GameKit.UI.UiSprites.Circle, InfoFill);
+            UiKit.Place(infoFace, 0.08f, 0.08f, 0.92f, 0.92f);
             var infoText = UiKit.CreateTitle("Text", infoFace.transform, "i", 46,
                 MenuPage.Ink, MenuPage.InkDark);
             UiKit.Place(infoText, 0f, 0f, 1f, 1f);
@@ -308,23 +360,38 @@ namespace BlockOut.Runtime.UI
             // neredeyse tamamen kaplıyor, aradaki bir ağaç hiç görünmezdi.
             // İlk denemede dört ağaç kondu ve ikisi kürsülerin arkasında
             // kayboldu — görünmeyen bir süs, olmayan bir süstür.
+            // ÇALILIK ŞERİDİ: ağaçların dibinde, çimin üstünde. Referansta
+            // kürsülerin arkası boş çim değil — budanmış bir çit var ve sahneye
+            // derinlik veren şey o. Tek renk çim, kürsüleri yine "arayüz
+            // öğesi" gibi bırakıyordu.
+            foreach (float cx in new[] { 0.10f, 0.30f, 0.50f, 0.70f, 0.90f })
+            {
+                var hedge = UiKit.CreateIcon("Hedge", band, MenuSprites.Foliage,
+                    new Color(0.165f, 0.451f, 0.157f));
+                hedge.raycastTarget = false;
+                UiKit.Place(hedge, cx - 0.16f, 0.20f, cx + 0.16f, 0.40f);
+            }
+
+            // AĞAÇLAR: taç artık DAİRE değil, tırtıklı yaprak silueti
+            // (`MenuSprites.Foliage`). İki katman — koyu alt taç, açık üst taç —
+            // hacim veriyor; tek düz yeşil top "ağaç" okunmuyordu.
             foreach (float cx in new[] { 0.045f, 0.955f })
             {
-                const float w = 0.115f, h = 0.46f;
+                const float w = 0.125f, h = 0.50f;
 
                 var trunk = UiKit.CreatePanel("Trunk", band, new Color(0.451f, 0.278f, 0.125f));
                 trunk.raycastTarget = false;
-                UiKit.Place(trunk, cx - w * 0.16f, 0.16f, cx + w * 0.16f, 0.40f);
+                UiKit.Place(trunk, cx - w * 0.15f, 0.16f, cx + w * 0.15f, 0.42f);
 
-                var crownLow = UiKit.CreateIcon("CrownLow", band, GameKit.UI.UiSprites.Circle,
-                    new Color(0.192f, 0.545f, 0.180f));
+                var crownLow = UiKit.CreateIcon("CrownLow", band, MenuSprites.Foliage,
+                    new Color(0.125f, 0.396f, 0.118f));
                 crownLow.raycastTarget = false;
-                UiKit.Place(crownLow, cx - w, 0.34f, cx + w, 0.34f + h * 0.66f);
+                UiKit.Place(crownLow, cx - w, 0.32f, cx + w, 0.32f + h * 0.72f);
 
-                var crownTop = UiKit.CreateIcon("CrownTop", band, GameKit.UI.UiSprites.Circle,
-                    new Color(0.310f, 0.694f, 0.243f));
+                var crownTop = UiKit.CreateIcon("CrownTop", band, MenuSprites.Foliage,
+                    new Color(0.267f, 0.639f, 0.204f));
                 crownTop.raycastTarget = false;
-                UiKit.Place(crownTop, cx - w * 0.74f, 0.50f, cx + w * 0.74f, 0.50f + h * 0.62f);
+                UiKit.Place(crownTop, cx - w * 0.80f, 0.40f, cx + w * 0.80f, 0.40f + h * 0.68f);
             }
 
             // (x merkezi, yarım genişlik, yükseklik, madalya no)
@@ -397,8 +464,23 @@ namespace BlockOut.Runtime.UI
                     UiSkin.Get(Art.Rival(place - 1)));
                 UiKit.Place(portrait, 0.14f, 0.14f, 0.86f, 0.86f);
 
+                // AD LEVHASI: gölge + kenar + yüzey.
+                //
+                // DERS (krem üstüne krem sınır vermez): Levha tek düz krem
+                // dikdörtgendi ve kürsünün gövdesi de kremdi — ikisi ekranda
+                // tek kütle olarak okunuyordu. Kullanıcı "ismin kapladığı arka
+                // plan detaysız ve gölgesiz gözüküyor" derken bunu gördü.
+                // Altına düşen koyu bir kopya levhayı gövdeden koparıyor.
+                var plateShadow = MenuPage.Capsule("NameShadow", pillar,
+                    new Color(0.42f, 0.33f, 0.26f, 0.55f));
+                UiKit.Place(plateShadow, 0.02f, 0.44f, 0.98f, 0.70f);
+
+                var plateRim = MenuPage.Capsule("NameRim", pillar,
+                    new Color(0.769f, 0.686f, 0.573f));
+                UiKit.Place(plateRim, 0.02f, 0.46f, 0.98f, 0.72f);
+
                 var plate = MenuPage.Capsule("Name", pillar, new Color(0.949f, 0.902f, 0.824f));
-                UiKit.Place(plate, 0.02f, 0.46f, 0.98f, 0.72f);
+                UiKit.Place(plate, 0.02f, 0.46f, 0.98f, 0.72f, padding: 6f);
                 // PUNTO REFERANSTAN: ad levhasındaki yazının büyük harf
                 // yüksekliği ekranın %1.27'si → ~34 punto. 24 idi.
                 // Kürsüler dar olduğu için uzun adlarda küçülmesine izin var.
@@ -423,17 +505,37 @@ namespace BlockOut.Runtime.UI
                 // dönüyordu. `CreateIcon` en-boy oranını koruduğu için aynı
                 // kutuda daire kalıyor — bu projede aynı hata yeşil artı
                 // düğmesinde de yaşanmıştı.
+                // MADALYA — dişli çelenk + koyu bilezik + yüzey + parlaklık.
+                //
+                // DERS (iki iç içe daire madalya DEĞİLDİR): Burada iki düz
+                // daire vardı; altın/gümüş/bronz rengi doğruydu ama ekranda
+                // "renkli bir nokta" olarak okunuyordu ve kullanıcı
+                // "madalyamız yok" dedi. Bir madalyayı madalya yapan şey
+                // kenarındaki DÜZENLİ ÇIKINTILAR (taç) ve yüzeyindeki ışık.
+                // `MenuSprites.Sunburst` o tacı çiziyor.
                 var disc = UiKit.CreateRect("Medal", pillar);
-                UiKit.Place(disc, 0.20f, 0.08f, 0.80f, 0.44f);
+                UiKit.Place(disc, 0.18f, 0.06f, 0.82f, 0.46f);
+
+                var wreath = UiKit.CreateIcon("Wreath", disc, MenuSprites.Sunburst,
+                    MenuPage.Darken(medal[place], 0.80f));
+                UiKit.Place(wreath, 0f, 0f, 1f, 1f);
+
                 var rimDisc = UiKit.CreateIcon("Rim", disc, GameKit.UI.UiSprites.Circle,
-                    MenuPage.Darken(medal[place], 0.70f));
-                UiKit.Place(rimDisc, 0f, 0f, 1f, 1f);
+                    MenuPage.Darken(medal[place], 0.62f));
+                UiKit.Place(rimDisc, 0.11f, 0.11f, 0.89f, 0.89f);
+
                 var discImage = UiKit.CreateIcon("Face", disc, GameKit.UI.UiSprites.Circle,
                     medal[place]);
-                UiKit.Place(discImage, 0.09f, 0.09f, 0.91f, 0.91f);
+                UiKit.Place(discImage, 0.17f, 0.17f, 0.83f, 0.83f);
+
+                // Sol üstte toplanan ışık: metali "parlak" yapan tek şey.
+                var shine = UiKit.CreateIcon("Shine", disc, GameKit.UI.UiSprites.Circle,
+                    new Color(1f, 1f, 1f, 0.38f));
+                UiKit.Place(shine, 0.22f, 0.46f, 0.50f, 0.74f);
+
                 var number = UiKit.CreateTitle("No", disc, place.ToString(), 40,
                     new Color(0.32f, 0.20f, 0.04f), new Color(1f, 0.94f, 0.72f));
-                UiKit.Place(number, 0f, 0f, 1f, 1f);
+                UiKit.Place(number, 0.17f, 0.17f, 0.83f, 0.83f);
             }
         }
 
@@ -481,7 +583,15 @@ namespace BlockOut.Runtime.UI
             //
             // Çubuğun üstü 1730, sabit satır 158 + payları → görüntü alanı
             // 1528'de bitiyor.
-            const float viewportBottom = 1528f;
+            //
+            // DÜZELTME (2026-08-18): Sabit "You" satırı 1552'den 1470'e
+            // ALINDI (alt çubuğun seçili kartı 250 birime kadar yükseliyor ve
+            // satırı örtüyordu). Görüntü alanı eskisi gibi 1528'de bitince bu
+            // sefer liste sabit satırın ALTINDAN görünmeye başladı — üçüncü
+            // sıra yeşil satırın arkasında yarı yarıya kaldı.
+            // DERS: sabit bir öğeyi yukarı almak, üstündeki kaydırma alanını
+            // AYNI KADAR kısaltmayı gerektirir; ikisi tek bir bütçeyi paylaşıyor.
+            const float viewportBottom = 1446f;
             var viewport = MenuPage.Row("RowsViewport", root, top,
                 viewportBottom - top, 0f, 1f);
             viewport.gameObject.AddComponent<RectMask2D>();
@@ -533,10 +643,56 @@ namespace BlockOut.Runtime.UI
             new Color(0.827f, 0.518f, 0.267f)
         };
 
+        /// <summary>
+        /// Avatarların arkasındaki zemin renkleri.
+        ///
+        /// Kullanıcı "avatarların arka planı hiç yok, hiç değilse farklı renkte
+        /// kullanalım" dedi. Renkler sırayla dağıtılıyor — rastgele olsaydı
+        /// aynı oyuncu her açılışta başka renk alırdı ve liste tanınmaz olurdu.
+        /// Doygunlukları kasten orta: portrenin kendisiyle yarışmamalılar.
+        /// </summary>
+        static readonly Color[] AvatarWells =
+        {
+            new Color(0.988f, 0.749f, 0.290f),   // amber
+            new Color(0.408f, 0.729f, 0.973f),   // gök mavisi
+            new Color(0.945f, 0.478f, 0.502f),   // mercan
+            new Color(0.545f, 0.780f, 0.365f),   // fıstık yeşili
+            new Color(0.706f, 0.573f, 0.949f),   // leylak
+            new Color(0.976f, 0.612f, 0.298f),   // turuncu
+            new Color(0.376f, 0.784f, 0.741f),   // camgöbeği
+            new Color(0.925f, 0.573f, 0.788f),   // pembe
+            new Color(0.851f, 0.788f, 0.412f)    // hardal
+        };
+
         void BuildSelfRow(Transform root)
         {
+            // ALT KENAR ÇERÇEVESİ: satırların bittiği yerle sekme çubuğu
+            // arasındaki şerit çıplak koyu laciverttı ve ekran orada
+            // "kesilmiş" gibi bitiyordu (kullanıcı: "en altta dış kısımları
+            // boş, orijinalde çerçeve gibi gözüküyor"). Referansta liste
+            // alanının altında bir kenarlık var; onu iki şeritle kuruyoruz.
+            var footer = MenuPage.Row("Footer", root, 1650f, 290f, 0f, 1f);
+            var footerFill = footer.gameObject.AddComponent<Image>();
+            footerFill.color = new Color(0.098f, 0.086f, 0.286f);
+            footerFill.raycastTarget = false;
+
+            var footerLip = UiKit.CreateRect("Lip", footer);
+            var footerLipImage = footerLip.gameObject.AddComponent<Image>();
+            footerLipImage.color = new Color(0.263f, 0.220f, 0.596f);
+            footerLipImage.raycastTarget = false;
+            footerLip.anchorMin = new Vector2(0f, 1f);
+            footerLip.anchorMax = new Vector2(1f, 1f);
+            footerLip.pivot = new Vector2(0.5f, 1f);
+            footerLip.sizeDelta = new Vector2(0f, 8f);
+            footerLip.anchoredPosition = Vector2.zero;
+
             // Kaydırılan listenin ALTINDA, sekme çubuğunun ÜSTÜNDE sabit.
-            var row = MenuPage.Row("Self", root, 1552f, 158f, 0.035f, 0.965f);
+            //
+            // YÜKSEKLİK DÜZELTİLDİ (2026-08-18): satır 1552'de duruyordu ve
+            // dünya koordinatında 210-368 arasına düşüyordu; alt sekme
+            // çubuğunun SEÇİLİ KARTI ~250'ye kadar yükseliyor, yani kartın
+            // altında kalıyordu. Ölçüldü, 1470'e alındı (292-450).
+            var row = MenuPage.Row("Self", root, 1470f, 158f, 0.035f, 0.965f);
             // Oyuncu ilk üçte olmadığı için ödül kapsülü YOK (prize = 0);
             // puanı ise sağdaki sütunda, herkesle aynı yerde.
             var (rankText, nameText, scoreText) =
@@ -567,8 +723,28 @@ namespace BlockOut.Runtime.UI
             bool medalled = int.TryParse(rank, out int place) && place >= 1 && place <= 3;
             var slotColor = medalled ? MedalColors[place] : MenuPage.Darken(faceColor, 0.72f);
 
-            var rankSlot = MenuPage.Capsule("RankSlot", face.transform, slotColor);
-            UiKit.Place(rankSlot, -0.005f, 0.04f, 0.155f, 0.96f);
+            // ROZET ÜÇ KATMAN: koyu bilezik → yüzey → üst ışık.
+            //
+            // DERS (düz renk bir MADALYA değildir): Rozet tek düz dikdörtgendi;
+            // altın rengi bile verilse ekranda "sarı bir kutu" olarak okunuyordu
+            // — kullanıcının "1., 2., 3. sıralaması da kötü gözüküyor" bulgusu.
+            // Metalin okunması için üç şey gerekiyor: koyu bir kenar (hacim),
+            // yüzey rengi ve üstte toplanan bir ışık (parlaklık).
+            var rankRim = MenuPage.Capsule("RankRim", face.transform,
+                MenuPage.Darken(slotColor, 0.62f));
+            UiKit.Place(rankRim, -0.005f, 0.04f, 0.155f, 0.96f);
+
+            var rankSlot = MenuPage.Capsule("RankSlot", rankRim.transform, slotColor);
+            UiKit.Place(rankSlot, 0f, 0f, 1f, 1f, padding: 6f);
+
+            var rankGloss = UiKit.CreateRect("Gloss", rankSlot.transform);
+            var rankGlossImage = rankGloss.gameObject.AddComponent<Image>();
+            rankGlossImage.sprite = MenuSprites.FadeDown;
+            rankGlossImage.type = Image.Type.Sliced;
+            rankGlossImage.color = new Color(1f, 1f, 1f, medalled ? 0.42f : 0.18f);
+            rankGlossImage.raycastTarget = false;
+            UiKit.Place(rankGloss, 0.06f, 0.50f, 0.94f, 0.94f);
+            rankGloss.localRotation = Quaternion.Euler(0f, 0f, 180f);
 
             // Madalyalı rozette yazı KOYU: altın/gümüş üstünde beyaz okunmuyor.
             var rankInk = medalled ? new Color(0.24f, 0.14f, 0.03f) : MenuPage.Ink;
@@ -580,16 +756,44 @@ namespace BlockOut.Runtime.UI
 
             // Avatar KARE çerçevede (referansta da öyle); çerçevesiz portre
             // satırın içinde yüzüyor gibi duruyordu.
+            // AVATAR: ÇERÇEVE + KENDİ ZEMİN RENGİ.
+            //
+            // DERS (aynı zemin, farklı yüz = tek kişi gibi okunur): Sekiz
+            // satırın avatar zemini de aynı açık mordu ve çerçevesi yoktu;
+            // portreler satırın içinde yüzüyordu. Referansta her avatarın
+            // süslü bir çerçevesi ve çerçevenin içinde KENDİ zemin rengi var
+            // — göz listeyi okumadan önce yüzleri birbirinden ayırıyor
+            // (kullanıcı bulguları 13 ve 17).
+            //
+            // Renk sıradan türetiliyor, rastgele değil: aynı oyuncu her
+            // açılışta aynı rengi alsın.
             var avatar = UiKit.CreateRect("Avatar", face.transform);
             UiKit.Place(avatar, 0.175f, 0.06f, 0.305f, 0.94f);
+
+            Color wellColor = avatarIndex < 0
+                ? new Color(0.298f, 0.784f, 0.667f)      // oyuncu: turkuaz, listede tek
+                : AvatarWells[avatarIndex % AvatarWells.Length];
+
+            // Dış çerçeve (koyu) → iç çerçeve (açık) → zemin → portre.
+            // Üç katman, referanstaki oymalı çerçevenin ucuz ama okunur hâli.
+            var frameRim = UiKit.CreateRoundedPanel("FrameRim", avatar,
+                MenuPage.Darken(wellColor, 0.52f));
+            UiKit.SetSliceScale(frameRim, 0.55f);
+            UiKit.Place(frameRim, 0f, 0f, 1f, 1f);
+
             var frame = UiKit.CreateRoundedPanel("Frame", avatar,
-                new Color(0.788f, 0.769f, 0.976f));
-            UiKit.SetSliceScale(frame, 0.55f);
-            UiKit.Place(frame, 0f, 0f, 1f, 1f);
+                new Color(0.859f, 0.847f, 0.988f));
+            UiKit.SetSliceScale(frame, 0.60f);
+            UiKit.Place(frame, 0f, 0f, 1f, 1f, padding: 5f);
+
+            var well = UiKit.CreateRoundedPanel("Well", frame.transform, wellColor);
+            UiKit.SetSliceScale(well, 0.75f);
+            UiKit.Place(well, 0.09f, 0.09f, 0.91f, 0.91f);
+
             // avatarIndex < 0 => OYUNCUNUN kendi satırı; kendi avatarını taşır.
-            var portrait = UiKit.CreateIcon("Portrait", frame.transform,
+            var portrait = UiKit.CreateIcon("Portrait", well.transform,
                 UiSkin.Get(avatarIndex < 0 ? Art.Avatar : Art.Rival(avatarIndex)));
-            UiKit.Place(portrait, 0.10f, 0.10f, 0.90f, 0.90f);
+            UiKit.Place(portrait, 0.04f, 0.04f, 0.96f, 0.96f);
 
             var nameText = UiKit.CreateTitle("Name", face.transform, name, 44,
                 MenuPage.Ink, MenuPage.InkDark);
@@ -665,6 +869,39 @@ namespace BlockOut.Runtime.UI
 
         void OnEnable() => Refresh();
 
+        /// <summary>
+        /// Oyuncunun kendi satırındaki sıra etiketi.
+        ///
+        /// REFERANS KURALI (kullanıcı bulgusu 19): Haftalık listede sıralama
+        /// 1'den 10'a kadar GERÇEK bir sayı; Dünya ve Ülke listelerinde
+        /// "1000+" yazıyor. Bizde üçünde de "1000+" sabitti.
+        ///
+        /// Neden mantıklı: haftalık liste küçük bir havuz (hafta yeni başladı,
+        /// az kişi oynadı) — oyuncu gerçekten onuncu olabilir ve bunu görmek
+        /// oynatan şey. Dünya listesi milyonlarca kişilik; oradaki gerçek sıra
+        /// hem hesaplanamaz hem de motive etmez, o yüzden eşiğin altı tek bir
+        /// kovaya toplanıyor.
+        ///
+        /// Havuz sahte olduğu için sıra da rakiplerin puanlarından hesaplanıyor;
+        /// sabit bir sayı yazmak, oyuncu ilerledikçe yalan söylerdi.
+        /// </summary>
+        string SelfRankLabel(int selfScore)
+        {
+            if (_activeTab != WeeklyTab) return "1000+";
+
+            int rank = 1;
+            foreach (var rival in Boards[WeeklyTab])
+                if (rival.score > selfScore) rank++;
+
+            return rank <= WeeklyVisibleRanks ? rank.ToString() : WeeklyVisibleRanks + "+";
+        }
+
+        /// <summary>Haftalık sekmenin dizideki yeri (<see cref="TabNames"/> ile aynı sıra).</summary>
+        const int WeeklyTab = 0;
+
+        /// <summary>Referansta haftalık sıralama 1..10 gösteriliyor.</summary>
+        const int WeeklyVisibleRanks = 10;
+
         public void Refresh()
         {
             if (!_built) return;
@@ -674,6 +911,11 @@ namespace BlockOut.Runtime.UI
                 bool on = index == _activeTab;
                 face.color = on ? TabActive : TabIdle;
                 label.color = on ? MenuPage.Ink : new Color(1f, 1f, 1f, 0.78f);
+
+                // Üst ışık YALNIZ seçilide: referansta seçili sekme camdan
+                // bir düğme gibi parlıyor, diğer ikisi mat kalıyor.
+                if (index < _tabGloss.Count && _tabGloss[index] != null)
+                    _tabGloss[index].gameObject.SetActive(on);
             }
 
             // Sekmenin ASIL işi: listeyi değiştirmek. Renk yalnız hangisinin
@@ -701,8 +943,9 @@ namespace BlockOut.Runtime.UI
             string playerName = MetaServices.Save.Data.PlayerName;
 
             _selfName.text = string.IsNullOrEmpty(playerName) ? "You" : playerName;
-            _selfScore.text = Score(level, MetaServices.Progress).ToString();
-            _selfRank.text = "1000+";
+            int selfScore = Score(level, MetaServices.Progress);
+            _selfScore.text = selfScore.ToString();
+            _selfRank.text = SelfRankLabel(selfScore);
         }
     }
 }

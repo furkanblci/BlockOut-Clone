@@ -199,28 +199,97 @@ sıralı ve temiz."**
 
 ### D2 — Liderlik (Leaderboard)
 
-- [ ] **8.** > "Leaderboard kısmında en üstte yine leaderboardun olduğu
+- [x] **8.** > "Leaderboard kısmında en üstte yine leaderboardun olduğu
   dikdörtgen var; detaysız."
-- [ ] **9.** > "En altta dış kısımları boş. Orijinalde çerçeve gibi gözüküyor,
+
+  **NE YAPILDI.** Bant düz bir renk dikdörtgeniydi ve altındaki içerikle
+  arasında hiçbir sınır yoktu. Referansta bandın alt kenarında ÖNCE koyu bir
+  çizgi, hemen üstünde İNCE bir ışık var — plastik bir kapağın kalınlığı.
+  `MenuPage.Header`'a iki şeritlik alt dudak eklendi; ortak kabuk olduğu için
+  Liderlik, Yolculuk, Koleksiyon, Ayarlar ve Profil'i BİRDEN düzeltiyor.
+
+- [x] **9.** > "En altta dış kısımları boş. Orijinalde çerçeve gibi gözüküyor,
   daha güzel bir tasarım var."
-- [ ] **10.** > "Yuvarlak içindeki 'İ' orijinal oyunda mor, bizde mavi."
-- [ ] **11.** > "Weekly / World / Country kısmı çok detaysız. Orijinalinde daha
+
+  **NE YAPILDI.** Satırların bittiği yerle sekme çubuğu arasındaki şerit çıplak
+  koyu laciverttı; ekran orada "kesilmiş" gibi bitiyordu. Alt kenara koyu bir
+  taban + üstünde açık bir dudak çizgisi eklendi (`Footer`).
+
+  **BONUS HATA.** Sabit "You" satırı 1552'deydi ve dünya koordinatında 210-368
+  arasına düşüyordu; alt çubuğun SEÇİLİ KARTI ~250 birime kadar yükseliyor,
+  yani satırın üstünü örtüyordu. Satır 1470'e alındı. Bu tek başına yetmedi:
+  kaydırma alanı 1528'de bittiği için liste bu sefer sabit satırın ALTINDAN
+  görünmeye başladı. **DERS: sabit bir öğeyi yukarı almak, üstündeki kaydırma
+  alanını AYNI KADAR kısaltmayı gerektirir — ikisi tek bütçeyi paylaşıyor.**
+  Görüntü alanı 1446'ya çekildi.
+
+- [x] **10.** > "Yuvarlak içindeki 'İ' orijinal oyunda mor, bizde mavi."
+
+  **NE YAPILDI.** Referanstan ölçüldü: dolgu **#6654FF** — mor. Bizimki
+  `#2C8BFE` ile maviydi. Ayrıca tek düz daire yassı kalıyordu; dışına koyu bir
+  bilezik eklendi.
+
+- [x] **11.** > "Weekly / World / Country kısmı çok detaysız. Orijinalinde daha
   güzel bir tasarımla sarılmış durumda, çok basit kalmış. Bizimki daha iyi
   yapalım. Gerekirse yapay zekâya yeni assetler ürettirelim."
+
+  **NE YAPILDI.** Referansta seçici tek kutu değil GÖMÜLÜ bir yuva: dıştan açık
+  mor bilezik → koyu kuyu → sekmeler. Bizde tek koyu kutu vardı ve sekmeler
+  üstünde yüzüyordu. Üç katman kuruldu; seçili sekmeye üst ışık (gloss) eklendi
+  ve `Refresh` onu yalnız seçilide açıyor. Renkler `sıralama.jpeg`'ten yeniden
+  ölçüldü: kuyu #3628A1, pasif #6553FD, aktif #0085FE, ışık #03D4FF.
+
 - [ ] **12.** > "Yine sıralama kürsüsü kısmı da çok basit duruyor. Bizimki orası
   için tasarım çıkartmamız lazım. Yapay zekâya kürsüyü yaptırmalıyız."
-- [ ] **13.** > "Avatarların arka planı hiç yok. Hiç değilse farklı renkte
+- [x] **13.** > "Avatarların arka planı hiç yok. Hiç değilse farklı renkte
   kullanalım avatarların arka planını."
+
+  **NE YAPILDI.** Sekiz satırın avatar zemini de aynı açık mordu. Dokuz renkli
+  bir palet eklendi (`AvatarWells`) ve sıraya göre dağıtılıyor — rastgele
+  olsaydı aynı oyuncu her açılışta başka renk alırdı. Oyuncunun kendi satırı
+  turkuaz, listede tek.
+
 - [ ] **14.** > "Arka planı da kendimiz çizmişiz. Yapay zekâya uyumlu bir görsel
   yaptıralım. O ağaçları kendimiz çizdirmek yerine ağaçlık bir alan çizdirelim."
-- [ ] **15.** > "Yine 1., 2., 3. sıralaması da kötü gözüküyor."
-- [ ] **16.** > "Madalyamız yok. Madalya yaptıralım, daha iyi gözüksün."
-- [ ] **17.** > "Avatarların çerçeveleri yok."
-- [ ] **18.** > "İsmin kapladığı arka plan detaysız ve gölgesiz gözüküyor.
+- [x] **15.** > "Yine 1., 2., 3. sıralaması da kötü gözüküyor."
+
+  **NE YAPILDI.** Rozet tek düz dikdörtgendi; altın rengi verilse bile "sarı
+  kutu" okunuyordu. Üç katman yapıldı: koyu bilezik (hacim) → yüzey →
+  üstte toplanan ışık (parlaklık). Madalyalı rozetlerde ışık daha güçlü.
+
+- [x] **16.** > "Madalyamız yok. Madalya yaptıralım, daha iyi gözüksün."
+
+  **NE YAPILDI.** Podyum madalyası iki iç içe DÜZ DAİREYDİ — teknik olarak
+  vardı, görsel olarak yoktu. Bir madalyayı madalya yapan şey dairenin kendisi
+  değil kenarındaki DÜZENLİ ÇIKINTILAR. `MenuSprites.Sunburst` eklendi: yarıçapı
+  açıya göre kosinüsle dalgalandıran 12 dişli, yuvarlak uçlu bir çelenk.
+  Madalya artık çelenk → koyu bilezik → yüzey → sol üstte ışık → numara.
+
+- [x] **17.** > "Avatarların çerçeveleri yok."
+
+  **NE YAPILDI.** Liste satırlarındaki portrelerin çerçevesi yoktu. Üç katman
+  eklendi: koyu dış çerçeve → açık iç çerçeve → renkli zemin → portre.
+
+- [x] **18.** > "İsmin kapladığı arka plan detaysız ve gölgesiz gözüküyor.
   Bunun için de yapay zekâya yaptıralım."
-- [ ] **19.** > "Orijinal oyunda haftalıkta sıralamayı 1'den 10'a kadar
+
+  **NE YAPILDI.** Levha tek düz kremdi ve kürsü gövdesi de kremdi — ikisi tek
+  kütle olarak okunuyordu. **DERS: krem üstüne krem sınır vermez.** Altına
+  düşen koyu bir gölge kopyası + kenarlık eklendi.
+
+- [x] **19.** > "Orijinal oyunda haftalıkta sıralamayı 1'den 10'a kadar
   görebiliyoruz. Dünyada ve ülkede 1000+ gösteriliyor. Bizde hepsinde öyle;
   haftalık için ilk 10 yapalım."
+
+
+  **NE YAPILDI.** `_selfRank` üç sekmede de sabit "1000+" yazıyordu.
+  `SelfRankLabel` eklendi: Haftalık'ta oyuncunun sırası rakiplerin puanlarından
+  HESAPLANIYOR (sabit sayı yazmak oyuncu ilerledikçe yalan söylerdi), 10'u
+  aşarsa "10+". Dünya ve Ülke'de "1000+" kalıyor. Haftalık liste 8'den 9 kişiye
+  çıkarıldı — oyuncuyla birlikte tam 10 sıra etsin.
+
+  **NASIL DOĞRULANDI.** Play modunda Haftalık sekmesine geçilip yakalandı:
+  kendi satırı **"5"** gösteriyor; Dünya sekmesinde "1000+".
 
 ### D3 — Koleksiyon (Collection)
 
