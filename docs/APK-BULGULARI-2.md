@@ -905,6 +905,53 @@ sıralı ve temiz."**
   (6. bölüm), perde ve üreteç (20. ve 23. bölüm). Kapı sayacı da ölçüldü:
   dolgu **(246, 231, 217)**, kontur **(134, 82, 24)** — referansla birebir.
 
+  **DÖRDÜNCÜ PARÇA: PERDE BAŞTAN AŞAĞI YANLIŞTI.**
+
+  Kodda perde baştan beri "buzlu cam" diye anılıyordu ve bütün süsleri o
+  benzetme üzerine kurulmuştu: gri panel, rastgele açılı ışık çizikleri,
+  yarı saydam lekeler. Referansa bakıldığında (21-30 yürüyüşü, 22. bölümün
+  büyük perdesi) ortada cam falan yok.
+
+  | | referans | bizde (önce) |
+  |---|---|---|
+  | Panel | `(58, 37, 188)` doygun mor | `(0.22,0.16,0.38)` koyu gri-mor |
+  | Yüzey dokusu | düzenli YATAY çizgiler, 20 px arayla | rastgele açılı çizikler |
+  | Çizgi tonu | `(48, 29, 152)` — dolgudan KOYU | beyaz, α 0.22 — AÇIK |
+  | Parıltılar | serpilmiş açık eşkenar dörtgenler | yok |
+  | Çerçeve | ~%17 hücre kalınlığında turuncu | ~%5, sarıya çalan |
+  | Sayaç | koyu rozet + altın çerçeve + BEYAZ rakam | panele yazılmış altın rakam |
+
+  **DERS (malzemeyi ADLANDIRMAK, onu görmek değildir).** "Buzlu cam" bizim
+  uydurduğumuz bir benzetmeydi ve bir kez kabul edilince sonraki her ayrıntı
+  ona hizmet etti — çizikler, saydamlık, gri ton. Referansa bakmak yerine
+  benzetmeye baktıkça, her yeni ayrıntı bizi biraz daha uzaklaştırdı.
+
+  **DERS (AYNI HATA, İKİNCİ YÜZEY).** Tahta ızgarasında ayraçları "%7 beyaz"
+  yapmıştık; ölçüm ayracın hücreden KOYU olması gerektiğini söylemişti.
+  Perdede aynı yanılgıya yeniden düştüm: çizgiyi açık sandım ve yalnızca
+  alfasını düşürdüm. Büyüklüğü düzeltmek yönü düzeltmez. Açık çizgi yüzeyde
+  ÇIKINTI, koyu çizgi OLUK okunur.
+
+  **DERS (büyüterek kenar yapılmaz).** Çerçeve perdeden BÜYÜK bir kutuydu;
+  taşan pay kenar olarak görünsün diye. Kalınlığı üç katına çıkardığımda da
+  hiçbir şey değişmedi. Sebep ölçünce çıktı: 22. bölümün perdesi tahtanın
+  neredeyse tamamını kaplıyor (5.96 / 6.00) ve taşan çerçeve tahtanın KENDİ
+  kenarının altında kalıyor (0.80 > 0.44). Dışarı taşan hiçbir pay,
+  dışarısı doluyken görünmez. Doğrusu çerçeveyi bölgenin tam boyutunda
+  tutup PANELİ içeri çekmek.
+
+  **DERS (aynı hata, ÜÇÜNCÜ kez).** Paneli çerçeveden ayırmak için 0.02
+  yükselttim ve tırtıllar ile parıltılar panelin içinde kalıp görünmez oldu —
+  sayaçlarda ve iç katmanda olanın aynısı. Bir yüzeyin üstüne konan her şey
+  o yüzeyin ÖLÇÜLEN tepesine bağlanmalı; hesapla varsayılan tepe, ilk
+  taşımada yalan olur.
+
+  **NASIL DOĞRULANDI.** 22. bölüm yakalandı, panelden dikey dilim alındı:
+  dolgu **(62, 47, 187)** (referans 58,37,188), çizgi **(49, 37, 154)**
+  (referans 48,29,152). Materyal rengi hedefin ışık ÖNCESİ hâline
+  ayarlandı — sahne ışığı yüzeyi açtığı için `#3A25BC` yazınca ekranda
+  `(71, 58, 210)` çıkıyordu.
+
   **DERS (bir hatayı iki kez "düzeltmek").** Rakamlar hiç görünmeyince
   hemen dönme açısını suçladım ve çevirdim; ters çıkınca bir daha çevirdim.
   Oysa açı en baştan doğruydu — görünmemenin sebebi 4. maddedeki yüksekliği.

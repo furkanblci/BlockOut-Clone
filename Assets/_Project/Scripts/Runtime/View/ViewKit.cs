@@ -301,10 +301,38 @@ namespace BlockOut.Runtime.View
                     "GridLine", new Color(0f, 0f, 0f, 0.34f), 2990));
 
         /// <summary>Buzlu camın üstündeki ışık çizgisi — hafif parlak, saydam.</summary>
+        /// <summary>
+        /// Perde yüzeyindeki yatay tırtıl çizgileri — AÇIK DEĞİL, KOYU.
+        ///
+        /// ÖLÇÜM (22. bölümün perdesinden dikey dilim): dolgu `(58, 37, 188)`,
+        /// ayırıcı çizgi `(48, 29, 152)`, tekrar aralığı 20 piksel (hücrenin
+        /// üçte biri). Çizgi dolgudan KOYU; siyahın α ≈ 0.19 ile bindirilmiş
+        /// hâli.
+        ///
+        /// DERS (AYNI HATA, İKİNCİ YÜZEY): Tahta ızgarasında da ayraçları
+        /// "%7 beyaz" yapmıştık ve ölçüm tam tersini söylemişti — ayraç
+        /// hücreden koyu olmalıydı. Burada aynı yanılgıya perdede düştüm:
+        /// çizgiyi beyaz sandım, yalnızca alfasını düşürdüm. Büyüklüğü
+        /// düzeltmek yönü düzeltmez. Açık çizgi yüzeyde ÇIKINTI, koyu çizgi
+        /// OLUK okunur; perde bir levha olduğu için doğru olan oluk.
+        /// </summary>
         public static Material CurtainStreak =>
             _curtainStreak != null ? _curtainStreak
                 : (_curtainStreak = CreateTransparent(
-                    "CurtainStreak", new Color(1f, 1f, 1f, 0.22f), 3010));
+                    "CurtainStreak", new Color(0f, 0f, 0f, 0.34f), 3010));
+
+        static Material _curtainSparkle;
+
+        /// <summary>
+        /// Yüzeye serpilen parıltılar — çizgilerin tersine AÇIK.
+        ///
+        /// Çizgi ile parıltı aynı materyali paylaşamaz: biri oluk, diğeri
+        /// ışık. Aynı yüzeyde ikisi de var ve zıt yönde çalışıyorlar.
+        /// </summary>
+        public static Material CurtainSparkle =>
+            _curtainSparkle != null ? _curtainSparkle
+                : (_curtainSparkle = CreateTransparent(
+                    "CurtainSparkle", new Color(1f, 1f, 1f, 0.10f), 3011));
 
         /// <summary>
         /// URP için doğru kurulmuş yarı saydam materyal.
@@ -557,6 +585,8 @@ namespace BlockOut.Runtime.View
             _counterMaterials.Clear();
             _curtainPanel = null;
             _curtainFrame = null;
+            _curtainStreak = _curtainSparkle = null;
+            _badgeRim = _badgeFace = null;
             _generatorBody = null;
             _arrow = null;
             _axisArrow = null;
@@ -632,25 +662,65 @@ namespace BlockOut.Runtime.View
             }
         }
 
+        /// <summary>
+        /// Perde yüzeyi — BUZLU CAM DEĞİL, DOYGUN MOR PANEL.
+        ///
+        /// REFERANS ÖLÇÜMÜ (21-30 yürüyüşü, 22. bölümün büyük perdesi):
+        /// dolgu `(58, 37, 188)`. Bizimki `(0.22, 0.16, 0.38)` idi — hem çok
+        /// koyu hem gri. Ekranda "buzlu cam" değil "kirli gri kutu" gibi
+        /// duruyordu.
+        ///
+        /// DERS (malzemeyi ADLANDIRMAK, onu görmek değildir): Kodda perde
+        /// baştan beri "buzlu cam" diye anılıyordu ve bütün süsler o benzetme
+        /// üzerine kuruldu — rastgele açılı ışık çizgileri, yarı saydam
+        /// lekeler. Referansa bakıldığında ortada cam falan yok: perde,
+        /// tahtanın kuyusuyla aynı aileden DOYGUN MOR bir levha, üstünde
+        /// düzenli yatay tırtıllar ve serpilmiş parıltılar var. Benzetmeyi
+        /// referanstan almak yerine kendi kafamızdan kurunca, sonraki her
+        /// ayrıntı o yanlış benzetmeye hizmet etti.
+        /// </summary>
         public static Material CurtainPanel
         {
             get
             {
                 if (_curtainPanel == null)
-                    _curtainPanel = MakeLit("CurtainPanel_TEMP", new Color(0.22f, 0.16f, 0.38f));
+                    // Materyal rengi HEDEF DEĞİL, hedefin ışık öncesi hâli:
+                    // sahne ışığı yüzeyi açtığı için `#3A25BC` yazınca ekranda
+                    // `(71, 58, 210)` çıkıyordu. Fark (+0.05, +0.08, +0.09)
+                    // ölçülüp materyalden düşüldü.
+                    _curtainPanel = MakeLit("CurtainPanel_TEMP",
+                        new Color(0.176f, 0.063f, 0.650f));
                 return _curtainPanel;
             }
         }
 
+        /// <summary>
+        /// Perde çerçevesi — ölçüm: üst kenar `(232, 155, 0)`, yan kenarlar
+        /// ışık aldıkça koyulaşıp `(149, 52, 0)`'a iniyor. Bizimki
+        /// `(0.85, 0.65, 0.2)` idi: sarıya çalıyordu, referans TURUNCU.
+        /// </summary>
         public static Material CurtainFrame
         {
             get
             {
                 if (_curtainFrame == null)
-                    _curtainFrame = MakeLit("CurtainFrame_TEMP", new Color(0.85f, 0.65f, 0.2f));
+                    _curtainFrame = MakeLit("CurtainFrame_TEMP",
+                        new Color(0.910f, 0.608f, 0f));       // #E89B00
                 return _curtainFrame;
             }
         }
+
+        static Material _badgeRim, _badgeFace;
+
+        /// <summary>Sayaç rozetinin altın çerçevesi — ölçüm `(255, 154, 12)`.</summary>
+        public static Material BadgeRim =>
+            _badgeRim != null ? _badgeRim
+                : (_badgeRim = MakeLit("BadgeRim_TEMP", new Color(1f, 0.604f, 0.047f)));
+
+        /// <summary>Rozetin koyu içi — ölçüm `(133, 42, 0)`.</summary>
+        public static Material BadgeFace =>
+            _badgeFace != null ? _badgeFace
+                : (_badgeFace = MakeLit("BadgeFace_TEMP", new Color(0.522f, 0.165f, 0f)));
 
         static Material _generatorBody;
 
@@ -711,6 +781,15 @@ namespace BlockOut.Runtime.View
             Frost,
             /// <summary>Perde ve üreteç: altın rozet.</summary>
             Gold,
+            /// <summary>
+            /// Koyu rozetin İÇİNDE duran beyaz rakam (perde sayacı).
+            ///
+            /// Referansta perdenin sayacı yüzeye yazılmış bir rakam değil,
+            /// altın çerçeveli koyu bir rozetin içinde duruyor ve rakam
+            /// bembeyaz — ölçüm `(255, 251, 255)`. Koyu zeminin üstünde
+            /// beyaz, mor panelin üstünde altından çok daha okunur.
+            /// </summary>
+            Badge,
         }
 
         /// <summary>
@@ -817,6 +896,10 @@ namespace BlockOut.Runtime.View
                 case CounterStyle.Gold:
                     fill = new Color(1f, 0.902f, 0.549f);
                     outline = new Color(0.525f, 0.322f, 0.094f);
+                    break;
+                case CounterStyle.Badge:    // ölçüm: (255,251,255) koyu rozette
+                    fill = Color.white;
+                    outline = new Color(0.310f, 0.086f, 0.020f);
                     break;
                 default:                    // ölçüm: (246,231,217) / (134,82,24)
                     fill = new Color(0.965f, 0.906f, 0.851f);

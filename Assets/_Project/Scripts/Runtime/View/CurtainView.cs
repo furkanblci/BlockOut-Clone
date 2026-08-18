@@ -28,69 +28,172 @@ namespace BlockOut.Runtime.View
             frame.name = "Frame";
             frame.transform.SetParent(root.transform, false);
             frame.GetComponent<MeshRenderer>().sharedMaterial = ViewKit.CurtainFrame;
-            frame.transform.position = center + Vector3.down * 0.03f;
-            frame.transform.localScale = new Vector3(model.W + 0.1f, PanelHeight - 0.06f, model.H + 0.1f);
+            // ÇERÇEVE DIŞA TAŞMAZ, PANEL İÇERİ ÇEKİLİR.
+            //
+            // Kalınlık ölçüldü: referansta (22. bölümün büyük perdesi) altın
+            // kenar ~10 piksel, hücre ~60 piksel — yani hücrenin %17'si.
+            //
+            // DERS (büyüterek kenar yapılmaz): Çerçeve önce perdeden BÜYÜK bir
+            // kutuydu ve altına konuyordu; taşan pay kenar olarak görünsün
+            // diye. Kalınlığı 0.05'ten 0.17 hücreye çıkardığımda da hiçbir şey
+            // değişmedi. Sebep ölçünce çıktı: 22. bölümün perdesi tahtanın
+            // neredeyse tamamını kaplıyor (5.96 / 6.00) ve taşan çerçeve
+            // tahtanın KENDİ kenarının altında kalıyor — o kenar daha yüksek
+            // (0.80 > 0.44). Dışarı taşan hiçbir pay, dışarısı doluyken
+            // görünmez. Doğrusu çerçeveyi bölgenin tam boyutunda tutup PANELİ
+            // içeri çekmek: kenar her zaman kendi alanının içinde kalıyor.
+            const float Border = 0.17f;              // hücre payı, her kenarda
+            frame.transform.position = center;
+            frame.transform.localScale = new Vector3(model.W, PanelHeight, model.H);
 
             var panel = ViewKit.CreateShape(PrimitiveType.Cube, "Shape");
             panel.name = "Panel";
             panel.transform.SetParent(root.transform, false);
             panel.GetComponent<MeshRenderer>().sharedMaterial = ViewKit.CurtainPanel;
-            panel.transform.position = center;
-            panel.transform.localScale = new Vector3(model.W - 0.04f, PanelHeight, model.H - 0.04f);
+            // Panel çerçeveden bir tık YÜKSEK: aynı hizada olsalar iki yüzey
+            // aynı derinlikte çakışır ve kenar yer yer kayboldu-göründü olur.
+            panel.transform.position = center + Vector3.up * 0.02f;
+            panel.transform.localScale = new Vector3(
+                model.W - Border * 2f, PanelHeight, model.H - Border * 2f);
 
-            // DERS (düz yüzey MALZEME hissi vermez): Perde tek düz bir gri
-            // kutuydu; tahtanın üstünde "boş alan" gibi duruyor, altında blok
-            // olduğunu düşündürmüyordu. Buzlu cam iki şeyle okunur: kenarda
-            // parlayan bir çerçeve ve yüzeyde ışığın kırıldığı düzensiz
-            // lekeler. İkisi de birkaç ek kutuyla veriliyor.
-            AddGlassStreaks(root.transform, center, model);
+            // SÜSLER PANELİN GERÇEK TEPESİNDEN ÖLÇÜLÜR.
+            //
+            // DERS (aynı hata, üçüncü kez): Tırtıllar ve parıltılar önce
+            // `PanelHeight * 0.5f + 0.004f` ile konumlanıyordu — yani panelin
+            // sabit varsayılan tepesinden. Sonra paneli çerçeveden ayırmak için
+            // 0.02 yükselttim ve süsler panelin İÇİNDE kaldı; ekranda hiçbiri
+            // görünmedi. Sayaçlarda da, iç katmanda da aynı şey olmuştu.
+            // Bir yüzeyin üstüne konan her şey, o yüzeyin ÖLÇÜLEN tepesine
+            // bağlanmalı; hesapla varsayılan tepe, ilk taşımada yalan olur.
+            float panelTop = panel.GetComponent<MeshRenderer>().bounds.max.y;
+            AddSlats(root.transform, center, panelTop, model, Border);
+            AddSparkles(root.transform, center, panelTop, model, Border);
 
             var view = root.AddComponent<CurtainView>();
             view._model = model;
-            // Altın rozet artık stilin içinde (konturuyla birlikte); rengi
-            // kurulumdan sonra elle yazmak, materyalin yüz rengini es geçip
-            // konturu da renklendirmeden bırakıyordu.
-            // Yükseklik perdenin GERÇEK tepesinden; sabit hesap rakamı camın
+
+            // Yükseklik perdenin GERÇEK tepesinden; sabit hesap rakamı panelin
             // içine gömüyordu (bkz. BlockView'daki aynı ders).
             float curtainTop = center.y + PanelHeight * 0.5f;
             foreach (var r in root.GetComponentsInChildren<MeshRenderer>())
                 if (r.bounds.max.y > curtainTop) curtainTop = r.bounds.max.y;
 
+            AddBadge(root.transform, new Vector3(center.x, curtainTop, center.z));
+
+            // Rakam ROZETİN İÇİNDE ve BEYAZ: referansta perdenin sayacı yüzeye
+            // yazılmış bir rakam değil, altın çerçeveli koyu bir rozetin içinde
+            // duruyor. Altın rakamı doğrudan mor panele yazmak, sayacı yüzeyin
+            // bir parçası gibi gösteriyordu — oysa o bir ETİKET.
             view._counter = ViewKit.CreateCounter(
-                root.transform, new Vector3(center.x, curtainTop + 0.08f, center.z), model.Count,
-                ViewKit.CounterStyle.Gold);
+                root.transform, new Vector3(center.x, curtainTop + 0.10f, center.z), model.Count,
+                ViewKit.CounterStyle.Badge);
 
             return view;
         }
 
         /// <summary>
-        /// Buzlu camın üstündeki ışık çizgileri. Perdenin boyutuna göre
-        /// ölçekleniyor; küçük perde iki, geniş perde beş çizgi alıyor.
+        /// Yüzeydeki YATAY TIRTIL ÇİZGİLERİ.
+        ///
+        /// DERS (rastgelelik doku değildir): Burada önce rastgele açılı,
+        /// rastgele boyda "cam çizikleri" vardı. Referansta ise çizgiler
+        /// DÜZENLİ: eşit aralıklı, perdenin tamamı boyunca uzanan yatay
+        /// tırtıllar. Rastgele çizik "hasar" anlatıyor, düzenli tırtıl
+        /// "malzeme" anlatıyor — ikisi bambaşka şeyler söylüyor.
+        ///
+        /// Aralık hücre başına sabit; böylece küçük perde de büyük perde de
+        /// aynı dokuya sahip oluyor, çizgi SAYISI perdeyle birlikte büyüyor.
         /// </summary>
-        static void AddGlassStreaks(Transform parent, Vector3 center, CurtainModel model)
+        static void AddSlats(Transform parent, Vector3 center, float panelTop,
+                             CurtainModel model, float border)
         {
-            int count = Mathf.Clamp(Mathf.RoundToInt(model.W * model.H * 0.5f), 2, 5);
+            // ÖLÇÜM: referansta çizgiler 20 piksel arayla, hücre ~60 piksel —
+            // yani hücrenin üçte biri.
+            const float Spacing = 0.33f;
+            float inner = model.H - border * 2f;
+            int count = Mathf.Max(1, Mathf.FloorToInt(inner / Spacing) - 1);
+            float step = inner / (count + 1);
+
+            for (int i = 1; i <= count; i++)
+            {
+                var slat = ViewKit.CreateShape(PrimitiveType.Cube, "Shape");
+                slat.name = "Slat";
+                slat.transform.SetParent(parent, worldPositionStays: false);
+                var renderer = slat.GetComponent<MeshRenderer>();
+                renderer.sharedMaterial = ViewKit.CurtainStreak;
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+
+                slat.transform.position = new Vector3(
+                    center.x, panelTop + 0.004f,
+                    center.z - inner * 0.5f + i * step);
+                slat.transform.localScale = new Vector3(
+                    model.W - border * 2f - 0.06f, 0.02f, 0.035f);
+            }
+        }
+
+        /// <summary>
+        /// Serpilmiş parıltılar: yüzeye derinlik veren küçük eşkenar dörtgenler.
+        ///
+        /// Konumlar perdenin KOORDİNATINDAN türetilen sabit bir tohumla
+        /// üretiliyor — aynı bölüm her açılışta aynı görünsün diye. Kare başına
+        /// değişen bir parıltı deseni, göz onu "titreme" olarak okur.
+        /// </summary>
+        static void AddSparkles(Transform parent, Vector3 center, float panelTop,
+                                CurtainModel model, float border)
+        {
+            int count = Mathf.Clamp(Mathf.RoundToInt(model.W * model.H * 0.8f), 3, 14);
             var random = new System.Random(model.X * 73856093 ^ model.Y * 19349663);
             float Range(float a, float b) => a + (float)random.NextDouble() * (b - a);
 
             for (int i = 0; i < count; i++)
             {
-                var streak = ViewKit.CreateShape(PrimitiveType.Cube, "Shape");
-                streak.name = "Streak";
-                streak.transform.SetParent(parent, worldPositionStays: false);
-                var renderer = streak.GetComponent<MeshRenderer>();
-                renderer.sharedMaterial = ViewKit.CurtainStreak;
+                var spark = ViewKit.CreateShape(PrimitiveType.Cube, "Shape");
+                spark.name = "Sparkle";
+                spark.transform.SetParent(parent, worldPositionStays: false);
+                var renderer = spark.GetComponent<MeshRenderer>();
+                // Parıltı AÇIK, tırtıl çizgisi KOYU — aynı materyali
+                // paylaşamazlar (bkz. ViewKit.CurtainSparkle).
+                renderer.sharedMaterial = ViewKit.CurtainSparkle;
                 renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 renderer.receiveShadows = false;
 
-                float length = Range(0.35f, 0.8f) * Mathf.Min(model.W, model.H);
-                streak.transform.position = center + new Vector3(
-                    Range(-model.W * 0.32f, model.W * 0.32f),
-                    PanelHeight * 0.5f + 0.005f,
-                    Range(-model.H * 0.32f, model.H * 0.32f));
-                streak.transform.localScale = new Vector3(length, 0.02f, Range(0.06f, 0.14f));
-                streak.transform.rotation = Quaternion.Euler(0f, Range(-40f, 40f), 0f);
+                float size = Range(0.07f, 0.13f);
+                float halfW = (model.W - border * 2f) * 0.45f;
+                float halfH = (model.H - border * 2f) * 0.45f;
+                spark.transform.position = new Vector3(
+                    center.x + Range(-halfW, halfW),
+                    panelTop + 0.006f,
+                    center.z + Range(-halfH, halfH));
+                spark.transform.localScale = new Vector3(size, 0.02f, size);
+                spark.transform.rotation = Quaternion.Euler(0f, 45f, 0f);   // eşkenar dörtgen
             }
+        }
+
+        /// <summary>
+        /// Sayacın altındaki rozet: altın çerçeve + koyu iç.
+        ///
+        /// İki kutu yetiyor — dıştaki çerçeve, içindeki biraz küçük ve biraz
+        /// yüksek olan koyu yüz. Yükseklik farkı, çerçevenin bir kabartma gibi
+        /// okunmasını sağlıyor.
+        /// </summary>
+        static void AddBadge(Transform parent, Vector3 top)
+        {
+            // Ölçüm: rozet referansta ~46 piksel, hücre ~60 — yani 0,77 hücre.
+            const float RimSize = 0.76f, FaceSize = 0.60f;
+
+            var rim = ViewKit.CreateShape(PrimitiveType.Cube, "Shape");
+            rim.name = "BadgeRim";
+            rim.transform.SetParent(parent, worldPositionStays: false);
+            rim.GetComponent<MeshRenderer>().sharedMaterial = ViewKit.BadgeRim;
+            rim.transform.position = top + Vector3.up * 0.03f;
+            rim.transform.localScale = new Vector3(RimSize, 0.06f, RimSize);
+
+            var face = ViewKit.CreateShape(PrimitiveType.Cube, "Shape");
+            face.name = "BadgeFace";
+            face.transform.SetParent(parent, worldPositionStays: false);
+            face.GetComponent<MeshRenderer>().sharedMaterial = ViewKit.BadgeFace;
+            face.transform.position = top + Vector3.up * 0.05f;
+            face.transform.localScale = new Vector3(FaceSize, 0.06f, FaceSize);
         }
 
         public void UpdateCount()
