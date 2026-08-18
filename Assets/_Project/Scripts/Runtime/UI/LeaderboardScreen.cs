@@ -341,9 +341,25 @@ namespace BlockOut.Runtime.UI
             var scene = UiSkin.Get(Art.BoardScene);
             if (scene != null)
             {
-                var cover = UiKit.CreateCover("Scene", band, scene,
+                // SAHNE KENDİ MASKESİNİN İÇİNDE.
+                //
+                // DERS (`CreateCover` ebeveyni TAŞAR): Kapla-kipi (EnvelopeParent)
+                // görseli oranını koruyarak ebeveyni ÖRTECEK kadar büyütür —
+                // yani fazlası dışarı taşar, bu onun tanımı. Bandın maskesi
+                // olmadığı için sahne yukarı taşıp üstteki Haftalık/Dünya/Ülke
+                // sekmelerinin alt yarısını kapattı.
+                //
+                // Maske BANDA değil, yalnız sahneyi saran bir çocuğa konuyor:
+                // banda konsa birinci kaidedeki avatar da kırpılırdı, çünkü o
+                // bilinçli olarak bandın tepesinden biraz taşıyor.
+                var clip = UiKit.CreateRect("SceneClip", band);
+                UiKit.Place(clip, 0f, 0f, 1f, 1f);
+                clip.gameObject.AddComponent<RectMask2D>();
+
+                var cover = UiKit.CreateCover("Scene", clip, scene,
                     new Color(0.227f, 0.627f, 0.910f));
                 cover.raycastTarget = false;
+
                 BuildPodiumColumns(band);
                 return;
             }
@@ -681,6 +697,20 @@ namespace BlockOut.Runtime.UI
         };
 
         /// <summary>
+        /// Madalya DİSKİNİN yüzü — referanstan ölçüldü (`sıralama.jpeg` liste
+        /// satırları): 1. (255,195,9), 2. (171,197,234), 3. (228,116,34).
+        /// Arkasındaki yuva rengi (<see cref="MedalColors"/>) bundan biraz
+        /// daha soluk; ikisi aynı olsa madalya yuvanın içinde kaybolurdu.
+        /// </summary>
+        static readonly Color[] MedalFaces =
+        {
+            default,
+            new Color(1.000f, 0.765f, 0.035f),
+            new Color(0.671f, 0.773f, 0.918f),
+            new Color(0.894f, 0.455f, 0.133f)
+        };
+
+        /// <summary>
         /// Avatarların arkasındaki zemin renkleri.
         ///
         /// Kullanıcı "avatarların arka planı hiç yok, hiç değilse farklı renkte
@@ -787,7 +817,60 @@ namespace BlockOut.Runtime.UI
             var rankInk = medalled ? new Color(0.24f, 0.14f, 0.03f) : MenuPage.Ink;
             var rankEdge = medalled ? new Color(1f, 0.96f, 0.86f) : MenuPage.InkDark;
 
-            var rankText = UiKit.CreateTitle("Rank", rankSlot.transform, rank, 36,
+            // İLK ÜÇTE SAYI YUVANIN İÇİNDE DEĞİL, MADALYANIN İÇİNDE.
+            //
+            // Referans (`sıralama.jpeg` liste satırları) büyütülünce çıktı:
+            // ilk üç sırada yuvanın üstünde YUVARLAK, tırtıklı kenarlı bir
+            // madalya duruyor, sayı onun ortasında ve altından iki KIRMIZI
+            // kurdele ucu sarkıyor. Ölçülen yüz renkleri: 1. (255,195,9),
+            // 2. (171,197,234), 3. (228,116,34).
+            //
+            // DERS (renk vermek biçim vermez): Rozet zaten altın/gümüş/bronz
+            // renkteydi ve üç katmanla metal hissi de veriliyordu — ama
+            // biçimi hâlâ YUVARLAK KÖŞELİ KARE'ydi. Renk "bu birinci" der,
+            // biçim "bu bir madalya" der; ikincisi eksikti.
+            var textHost = rankSlot.transform;
+            if (medalled)
+            {
+                var medal = UiKit.CreateRect("Medal", rankSlot.transform);
+                UiKit.Place(medal, 0.06f, 0.10f, 0.94f, 0.90f);
+
+                // KURDELE İKİ AYRI UÇ, tek şerit değil.
+                //
+                // İlk denemede iki ucu da aynı yatay aralığa (0.34-0.66)
+                // koyup ±26° döndürdüm; üst üste bindikleri için ekranda iki
+                // kuyruk değil tek bir kırmızı leke çıktı. Referansta uçlar
+                // diskin ALTINDAN İKİ YANA açılıyor, o yüzden yatayda da
+                // ayrılmaları gerekiyor.
+                foreach (var (x0, x1, tilt) in new[]
+                         { (0.16f, 0.44f, -20f), (0.56f, 0.84f, 20f) })
+                {
+                    var tail = UiKit.CreateRoundedPanel("Ribbon", medal,
+                        new Color(0.851f, 0.184f, 0.184f));
+                    UiKit.SetSliceScale(tail, 0.9f);
+                    tail.raycastTarget = false;
+                    UiKit.Place(tail, x0, -0.30f, x1, 0.26f);
+                    tail.transform.localRotation = Quaternion.Euler(0f, 0f, tilt);
+                }
+
+                // Tırtıklı kenar: madalya çelengi (`Sunburst`) koyu metalde.
+                var wreath = UiKit.CreateIcon("Wreath", medal, MenuSprites.Sunburst,
+                    MenuPage.Darken(MedalFaces[place], 0.70f));
+                wreath.raycastTarget = false;
+                UiKit.Place(wreath, 0f, 0f, 1f, 1f);
+
+                // Disk ÇELENGİ NEREDEYSE KAPATIYOR: dişler yalnız kenardan
+                // görünsün. Küçük disk bıraktığımda madalya değil GÜNEŞ gibi
+                // okunuyordu — referansta kenar tırtıkları ince bir detay.
+                var faceDisc = UiKit.CreateIcon("Disc", medal, GameKit.UI.UiSprites.Circle,
+                    MedalFaces[place]);
+                faceDisc.raycastTarget = false;
+                UiKit.Place(faceDisc, 0.08f, 0.08f, 0.92f, 0.92f);
+
+                textHost = faceDisc.transform;
+            }
+
+            var rankText = UiKit.CreateTitle("Rank", textHost, rank, 36,
                 rankInk, rankEdge);
             UiKit.Place(rankText, 0.05f, 0.06f, 0.95f, 0.94f);
 
