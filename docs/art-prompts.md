@@ -594,3 +594,109 @@ satırı silinir; kart tarafında `Rim`/`Face`/`Sheen` üçlüsü tek bir
 `CreateSlicedPanel(..., UiSkin.Get(Art.TabCard))` olur. Ölçüler (kartın
 slotun 1.42 katı olması, üst kenarın ekranın altından %13.48'te bitmesi)
 aynen kalır — onlar görselden değil referanstan geliyor.
+
+---
+
+## 13. 2. TUR — BEKLEYEN GÖRSELLER (2026-08-18)
+
+Hepsi `art_raw/` klasörüne ham PNG olarak atılır, sonra
+`python tools/import_art.py` işler ve `python tools/check_art.py` kesim
+hasarını tarar. Dosya adları ÖNEMLİ: `UiSkin` anahtarları o adlardan geliyor.
+
+**Ortak kural — her istemin sonuna eklenmiş olan kısım neden orada:**
+`plain solid light grey background` + `no drop shadow on the background`
+kesimi kolaylaştırıyor; `plenty of empty margin` kırpma payı bırakıyor;
+`no text, no letters, no numbers` üreticinin kendiliğinden yazı eklemesini
+engelliyor (bu projede üç kez oldu ve görselleri kullanılamaz yaptı).
+
+### 13.1 `podium_gold.png` · `podium_silver.png` · `podium_bronze.png` — 12. madde
+
+Referans: `sıralama.jpeg`, kürsü bölgesi. Üç ayrı kaide: krem/bej silindirik
+gövde, dikey oluklar, üstünde MOR kadife minder, altın/gümüş/bronz metal
+kuşaklar. Birinci daha geniş ve yüksek, minderinde halat işlemesi var.
+
+```
+A tall cylindrical award pedestal with a cream ivory body and vertical fluted grooves, a rounded purple velvet cushion on top, and a polished gold metal band around its base and rim, glossy 3D plastic toy style, front view, mobile casual puzzle game leaderboard podium, soft studio lighting from top-left, subtle ambient occlusion, thick rounded edges, no outlines, highly saturated candy colors, single centered object on a plain solid light grey background, no text, no letters, no numbers, no drop shadow on the background, square 1024x1024, plenty of empty margin around the object, clean edges for game asset cutout
+```
+
+Gümüş ve bronz için `gold` yerine `silver` / `bronze` yazıp aynı istemi
+kullan; gövde ve minder aynı kalsın, yalnız metal kuşak değişsin.
+
+### 13.2 `board_scene.png` — Liderlik arka planı, 14. madde
+
+Referans: `sıralama.jpeg` üst yarısı. Şu an ağaçlar prosedürel
+(`MenuSprites.Foliage`) — kabul edilebilir ama referanstaki yaprak kümeleri
+çok daha zengin.
+
+```
+A wide cartoon park scene seen from the front, with a bright blue sky gradient at the top, two lush leafy trees with rounded clustered foliage at the left and right edges, a trimmed green hedge row across the middle, and a smooth green grass lawn at the bottom, the center of the image left empty and uncluttered, glossy 3D plastic toy style, mobile casual puzzle game background art, soft studio lighting from top, subtle ambient occlusion, no outlines, highly saturated candy colors, no text, no letters, no numbers, no characters, no people, wide banner 1536x1024, clean flat composition suitable for a UI backdrop
+```
+
+Bu görsel KESİLMEZ (arka plan), doğrudan `UiKit.CreateCover` ile kullanılır.
+
+### 13.3 `medal_gold.png` · `medal_silver.png` · `medal_bronze.png` — 16. madde
+
+Şu an prosedürel (`MenuSprites.Sunburst` + daire). Gerçek görsel gelirse
+`LeaderboardScreen`'deki çelenk/bilezik/yüzey üçlüsü tek `Image`'a iner.
+
+```
+A round award medal with a thick scalloped gold rim shaped like laurel petals, a smooth polished gold face in the center, and a bright specular highlight in the upper left, glossy 3D plastic toy style, front view, mobile casual puzzle game rank medal, soft studio lighting from top-left, subtle ambient occlusion, thick rounded edges, no outlines, highly saturated candy colors, single centered object on a plain solid light grey background, no text, no letters, no numbers, no drop shadow on the background, square 512x512, plenty of empty margin around the object, clean edges for game asset cutout
+```
+
+### 13.4 `frame_gold.png` · `frame_silver.png` · `frame_bronze.png` — 17. madde
+
+Referansta podyumdaki üç avatarın çerçevesi oymalı ve sıraya göre farklı
+metalde; birincininkinin tepesinde kırmızı bir taş var.
+
+```
+An ornate square picture frame with thick gold scrollwork corners and a hollow empty center, glossy 3D plastic toy style, front view, mobile casual puzzle game avatar frame, soft studio lighting from top-left, subtle ambient occlusion, thick rounded edges, no outlines, highly saturated candy colors, single centered object on a plain solid light grey background, no text, no letters, no numbers, no drop shadow on the background, square 512x512, plenty of empty margin around the object, transparent hollow middle, clean edges for game asset cutout
+```
+
+Altın olanın tepesine `with a small red gem set at the top center of the frame`
+eklenir.
+
+### 13.5 `logo_game.png` — 49. madde (BLOCK OUT! yazısı)
+
+> **NOT (marka).** Referanstaki logo Grand Games'in tescilli markası. Proje
+> GitHub'da yayınlanacağı için birebir kopyalamak yerine **aynı dilde ama
+> kendi çizimimiz** olan bir yazı istiyoruz: aynı blok-harf hissi, aynı altın
+> renk, aynı kalın kontur. Kullanıcı yine de birebir isterse
+> `oyun açılış.jpeg`'ten kesmek tek satırlık bir değişiklik.
+
+```
+The words BLOCK OUT written as chunky three dimensional toy building blocks, thick golden yellow letters with a bright warm gradient, a thick dark navy outline around every letter and a soft drop shadow beneath, playful rounded bubble lettering, slight upward arc, an exclamation mark at the end, glossy 3D plastic toy style, front view, mobile casual puzzle game logo, soft studio lighting from top-left, no background scenery, plain solid light grey background, no extra words, wide banner 1536x768, plenty of empty margin around the lettering, clean edges for game asset cutout
+```
+
+### 13.6 `logo_studio.png` — 35. madde (açılış stüdyo yazısı)
+
+> Aynı marka notu geçerli: referanstaki "grand" kelimesi stüdyonun kendi
+> markası. Kendi projemiz için nötr bir kelime işareti üretiyoruz; metni sen
+> belirle (ör. kendi takma adın), istemdeki `STUDIO` yerine onu yaz.
+
+```
+The word STUDIO written in soft rounded lowercase lettering, pure white, thin elegant strokes, wide letter spacing, centered on a deep burgundy red background with a soft radial glow behind the word, minimal clean studio splash screen, no other elements, no icons, no shapes, wide banner 1536x768, plenty of empty margin around the lettering
+```
+
+### 13.7 `icon_restart.png` — 38. madde
+
+Referansta üst bardaki yeniden başlat düğmesinin içinde açık lavanta renkli,
+saat yönünün TERSİNE dönen dairesel bir ok var (ölçülen renk `#CFC4FF`).
+Şu an prosedürel çiziliyor (halka + döndürülmüş kare).
+
+```
+A circular arrow icon curving counter clockwise with a single arrowhead, thick rounded stroke, soft light lavender color, glossy 3D plastic toy style, front view, mobile casual puzzle game restart button icon, soft studio lighting from top-left, subtle ambient occlusion, thick rounded edges, no outlines, single centered object on a plain solid light grey background, no text, no letters, no numbers, no drop shadow on the background, square 512x512, plenty of empty margin around the object, clean edges for game asset cutout
+```
+
+### 13.8 Gelince ne değişir
+
+| dosya | bağlanacağı yer |
+|---|---|
+| `podium_*` | `LeaderboardScreen.BuildPodium` — üç katmanlı prosedürel kürsü tek `Image`'a iner |
+| `board_scene` | `LeaderboardScreen.BuildPodium` — gökyüzü + çim + ağaç çizimleri silinir |
+| `medal_*` | aynı yerde çelenk/bilezik/yüzey üçlüsü tek `Image` olur |
+| `frame_*` | podyum avatarlarındaki `Art.AvatarFrame` sıraya göre seçilir |
+| `logo_game` | `BootSplash.BuildLoading` — `CreateTitle("Logo", …)` yerine `CreateIcon` |
+| `logo_studio` | `BootSplash.BuildStudio` — `CreateLabel("Wordmark", …)` yerine `CreateIcon` |
+| `icon_restart` | `GameplayScreen.BuildRestartGlyph` — çizim yerine tek `CreateIcon` |
+
+Düzenler DEĞİŞMEZ: ölçüler görselden değil referanstan geliyor.
