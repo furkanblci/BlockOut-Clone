@@ -45,7 +45,7 @@ namespace BlockOut.Runtime.View
 
         MeshRenderer _renderer;
         Material _colorMaterial;
-        TextMesh _iceCounter;
+        TMPro.TextMeshPro _iceCounter;
         GateModel _model;
         GameObject _arrow;
 
@@ -90,8 +90,11 @@ namespace BlockOut.Runtime.View
             {
                 // Buz rengi GİZLER (video kuralı) — bar buz materyaliyle başlar.
                 view._renderer.sharedMaterial = ViewKit.Ice;
+                // Donmuş KAPININ sayacı krem: kapının buzu bloğunkinden çok
+                // daha soluk, rakam da onun açık tonunda.
                 view._iceCounter = ViewKit.CreateCounter(
-                    parent, center + Vector3.up * (BarHeight * 0.5f + 0.12f), model.IceCount);
+                    parent, center + Vector3.up * (BarHeight * 0.5f + 0.12f), model.IceCount,
+                    ViewKit.CounterStyle.Frost);
             }
             else
             {

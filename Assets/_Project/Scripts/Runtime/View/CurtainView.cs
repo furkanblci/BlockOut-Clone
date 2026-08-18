@@ -13,7 +13,7 @@ namespace BlockOut.Runtime.View
     {
         const float PanelHeight = 0.5f;
 
-        TextMesh _counter;
+        TMPro.TextMeshPro _counter;
         CurtainModel _model;
 
         public static CurtainView Create(Transform parent, CurtainModel model, BoardSpace space)
@@ -47,9 +47,12 @@ namespace BlockOut.Runtime.View
 
             var view = root.AddComponent<CurtainView>();
             view._model = model;
+            // Altın rozet artık stilin içinde (konturuyla birlikte); rengi
+            // kurulumdan sonra elle yazmak, materyalin yüz rengini es geçip
+            // konturu da renklendirmeden bırakıyordu.
             view._counter = ViewKit.CreateCounter(
-                root.transform, center + Vector3.up * (PanelHeight * 0.5f + 0.12f), model.Count);
-            view._counter.color = new Color(1f, 0.9f, 0.55f); // altın rozet hissi
+                root.transform, center + Vector3.up * (PanelHeight * 0.5f + 0.12f), model.Count,
+                ViewKit.CounterStyle.Gold);
 
             return view;
         }

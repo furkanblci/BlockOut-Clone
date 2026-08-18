@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using BlockOut.Core;
 using BlockOut.Runtime.Config;
 using UnityEngine;
@@ -79,8 +79,6 @@ namespace BlockOut.Runtime.View
         static Material _ice;
         static Material _curtainPanel;
         static Material _curtainFrame;
-        static Font _counterFont;
-        static Material _counterMaterial;
         static readonly Dictionary<BlockColor, Material> _ghosts =
             new Dictionary<BlockColor, Material>();
 
@@ -554,7 +552,9 @@ namespace BlockOut.Runtime.View
         public static void ClearCache()
         {
             _ice = null;
-            _counterMaterial = null;
+            foreach (var mat in _counterMaterials.Values)
+                if (mat != null) Object.DestroyImmediate(mat);
+            _counterMaterials.Clear();
             _curtainPanel = null;
             _curtainFrame = null;
             _generatorBody = null;
@@ -690,65 +690,147 @@ namespace BlockOut.Runtime.View
             return mat;
         }
 
-        static Font CounterFont
+        /// <summary>
+        /// Sayaçların üç ayrı görünümü.
+        ///
+        /// REFERANS ÖLÇÜMÜ (`menus,powerups,vs.mp4` 01:25): rakam rengi TEK
+        /// DEĞİL, durduğu yüzeye göre değişiyor. Buz bloğunun üstündeki rakam
+        /// açık camgöbeği (111,226,255), donmuş KAPININ üstündeki ise krem
+        /// (246,231,217). İkisi de kendi zemininin AÇIK tonunda; yani sayaç
+        /// zeminden kopuk bir rozet değil, aynı malzemenin parlayan yüzü.
+        ///
+        /// DERS (tek renk iki zemine yetmez): Bizde her sayaç kremdi. Krem,
+        /// kapının soluk buzu üstünde doğru; ama koyu mavi buz bloğunun
+        /// üstünde yabancı bir etiket gibi duruyordu.
+        /// </summary>
+        public enum CounterStyle
         {
-            get
-            {
-                if (_counterFont == null)
-                    _counterFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                return _counterFont;
-            }
+            /// <summary>Buz bloğu: açık camgöbeği, koyu mavi konturlu.</summary>
+            Ice,
+            /// <summary>Donmuş kapı: krem, sıcak kahve konturlu.</summary>
+            Frost,
+            /// <summary>Perde ve üreteç: altın rozet.</summary>
+            Gold,
         }
 
         /// <summary>
-        /// Zemine yatık, yukarı bakan sayaç yazısı (buz/perde sayaçları).
-        /// TextMesh geçici çözüm — TMP entegrasyonu M4'te. Ana nesnenin ÇOCUĞU
-        /// yapılmaz: blokların eşit olmayan ölçeği yazıyı da eziyordu; bunun
-        /// yerine dünya konumuna bağımsız yerleştirilir.
+        /// Zemine yatık, yukarı bakan sayaç yazısı (buz/perde/kapı sayaçları).
+        ///
+        /// Ana nesnenin ÇOCUĞU yapılmaz: blokların eşit olmayan ölçeği yazıyı
+        /// da eziyordu; bunun yerine dünya konumuna bağımsız yerleştirilir.
+        ///
+        /// DERS (TextMesh'in konturu yoktur). Sayaçlar Unity'nin eski
+        /// <c>TextMesh</c>'iyle, gömülü LegacyRuntime (düz Arial) fontuyla
+        /// çiziliyordu. Referanstaki rakamlar ise hem YUVARLAK ve şişman bir
+        /// fontta hem de kalın bir KONTURLA çevrili — okunurluğu veren şey
+        /// büyük ölçüde o kontur, çünkü rakam kendi zemininin açık tonu ve
+        /// kontursuz kalınca eriyip gidiyor. TextMesh kontur çizemez; TMP
+        /// çizer ve zaten oyunun geri kalanının fontu (Baloo2) onda.
         /// </summary>
-        public static TextMesh CreateCounter(Transform parent, Vector3 worldPos, int value)
+        public static TMPro.TextMeshPro CreateCounter(
+            Transform parent, Vector3 worldPos, int value,
+            CounterStyle style = CounterStyle.Frost)
         {
             var go = new GameObject("Counter");
             go.transform.SetParent(parent, worldPositionStays: false);
             go.transform.SetPositionAndRotation(worldPos, Quaternion.Euler(90f, 0f, 0f));
             go.transform.localScale = Vector3.one;
 
-            var text = go.AddComponent<TextMesh>();
-            text.font = CounterFont;
-            // Yüksek fontSize + küçük characterSize = keskin kenar. Etkin boyut
-            // ikisinin çarpımıdır; hücre genişliği 1 birim olduğu için ~0.05
-            // referanstaki iriliği veriyor.
-            text.fontSize = 96;
-            text.characterSize = 0.05f;
-            text.anchor = TextAnchor.MiddleCenter;
-            text.alignment = TextAlignment.Center;
-            text.fontStyle = FontStyle.Bold;
+            var text = go.AddComponent<TMPro.TextMeshPro>();
+            text.rectTransform.sizeDelta = new Vector2(2f, 1.5f);
+            text.alignment = TMPro.TextAlignmentOptions.Center;
+            text.fontStyle = TMPro.FontStyles.Bold;
+            text.textWrappingMode = TMPro.TextWrappingModes.NoWrap;
+            text.overflowMode = TMPro.TextOverflowModes.Overflow;
+
+            // DERS (TMP'nin fontSize'ı dünya birimi DEĞİL): Hücre 1 birim
+            // olduğu için önce `fontSize = 0.72f` yazdım — "hücrenin yarısı
+            // kadar" diye. Ölçüm başka söyledi: rakamın çizici sınırı
+            // 0.04 x 0.06 birim çıktı, yani hücrenin %5'i. Ekranda hiçbir şey
+            // görünmüyordu ama sahnede sekiz sayaç, doğru materyal ve açık
+            // çizicilerle duruyordu. TMP'de fontSize font varlığının örnekleme
+            // punto boyuna göredir; dünya ölçeğine çevrim yaklaşık 0.083
+            // birim/punto. Yarım hücrelik rakam için gereken değer ~6.
+            const float UnitsPerPoint = 0.083f;   // ölçümden: 0.06 birim / 0.72 punto
+            const float TargetHeight = 0.50f;     // hücrenin yarısı
+            text.fontSize = TargetHeight / UnitsPerPoint;
             text.text = value.ToString();
+            text.fontSharedMaterial = CounterMaterial(style);
 
-            // DERS (yazı da derinlik testine girer): Sayaç buz kalıbının ÜSTÜNDE
-            // duruyor ama font materyali varsayılan sırada çizilince blok/buz
-            // yüzeyiyle çakışıp soluk kalıyordu. Materyali kopyalayıp sırasını
-            // yukarı çekmek sayacı her zaman en üstte tutar — yazı bir arayüz
-            // öğesi gibi davranmalı, sahnenin bir parçası gibi değil.
             var renderer = go.GetComponent<MeshRenderer>();
-            if (_counterMaterial == null && CounterFont.material != null)
-            {
-                _counterMaterial = new Material(CounterFont.material) { name = "Counter_TEMP" };
-                _counterMaterial.renderQueue = 4000;
-            }
-            renderer.sharedMaterial = _counterMaterial != null ? _counterMaterial : CounterFont.material;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-
-            // SAYAÇ RENGİ REFERANSTAN ÖLÇÜLDÜ: `#FEDDD3` — krem/şeftali.
-            //
-            // DERS (yorum ile kod çelişiyorsa ikisinden biri yalan söylüyor):
-            // Buradaki yorum "koyu lacivert zeminde KREM" diyordu ama yazılan
-            // renk `(0.13, 0.20, 0.38)`, yani koyu lacivertin ta kendisiydi.
-            // Sayaç açık camgöbeği buzun üstünde duruyor; koyu bir sayı orada
-            // okunuyor ama referansın tersi ve buzun içinde eriyip gidiyor.
-            // Niyet doğru yazılmış, uygulaması yanlış kalmıştı.
-            text.color = new Color(0.996f, 0.867f, 0.827f);
+            renderer.receiveShadows = false;
             return text;
+        }
+
+        static readonly System.Collections.Generic.Dictionary<CounterStyle, Material>
+            _counterMaterials = new System.Collections.Generic.Dictionary<CounterStyle, Material>();
+
+        /// <summary>
+        /// Sayaç stiline karşılık gelen PAYLAŞILAN TMP materyali.
+        ///
+        /// DERS (TMP'de kontur bir ANAHTAR ister): <c>outlineWidth</c>'i
+        /// yazmak tek başına yetmez; materyalde <c>OUTLINE_ON</c> anahtarı
+        /// açık değilse gölgeci kontur dalını hiç derlemez ve verdiğin
+        /// genişlik sessizce yok sayılır. (Aynı tuzağa başlık gölgesinde
+        /// <c>UNDERLAY_ON</c> ile de düşülmüştü.)
+        ///
+        /// DERS (yazı da derinlik testine girer): Sayaç buz kalıbının ÜSTÜNDE
+        /// duruyor ama varsayılan sırada çizilince yüzeyle çakışıp soluk
+        /// kalıyordu. Sıra yukarı çekiliyor — sayaç bir arayüz öğesi gibi
+        /// davranmalı, sahnenin bir parçası gibi değil.
+        /// </summary>
+        static Material CounterMaterial(CounterStyle style)
+        {
+            if (_counterMaterials.TryGetValue(style, out var cached) && cached != null)
+                return cached;
+
+            Color fill, outline;
+            switch (style)
+            {
+                case CounterStyle.Ice:      // ölçüm: (111,226,255) / (0,67,176)
+                    fill = new Color(0.435f, 0.886f, 1f);
+                    outline = new Color(0f, 0.263f, 0.690f);
+                    break;
+                case CounterStyle.Gold:
+                    fill = new Color(1f, 0.902f, 0.549f);
+                    outline = new Color(0.525f, 0.322f, 0.094f);
+                    break;
+                default:                    // ölçüm: (246,231,217) / (134,82,24)
+                    fill = new Color(0.965f, 0.906f, 0.851f);
+                    outline = new Color(0.525f, 0.322f, 0.094f);
+                    break;
+            }
+
+            var source = TMPro.TMP_Settings.defaultFontAsset;
+            if (source == null || source.material == null) return null;
+
+            var mat = new Material(source.material)
+            {
+                name = "Counter_" + style,
+                hideFlags = HideFlags.HideAndDontSave,
+                renderQueue = 4000,
+            };
+            mat.SetColor(TMPro.ShaderUtilities.ID_FaceColor, fill);
+            mat.EnableKeyword("OUTLINE_ON");
+            mat.SetColor(TMPro.ShaderUtilities.ID_OutlineColor, outline);
+            mat.SetFloat(TMPro.ShaderUtilities.ID_OutlineWidth, 0.22f);
+
+            // DERS (eski fontun görünmesini SAĞLAYAN şey neydi?): Sayaç buz
+            // kalıbının yüzeyinin bir tık üstünde duruyor ve TMP'nin SDF
+            // gölgecisi derinlik testi yapıyor — rakam kalıbın içinde kalıp
+            // hiç çizilmiyordu. Eski `TextMesh` çalışıyordu çünkü Unity'nin
+            // gömülü font gölgecisi `ZTest Always` ile gelir; yani o davranış
+            // bizim seçimimiz değil, kütüphaneden gelen bir armağandı ve
+            // taşınırken sessizce kayboldu. Şimdi AÇIKÇA isteniyor.
+            //
+            // Sıra numarası (4000) tek başına yetmez: sıra NE ZAMAN
+            // çizileceğini söyler, derinlik testi ise ÇİZİLİP çizilmeyeceğini.
+            mat.SetFloat("_ZTestMode",
+                (float)UnityEngine.Rendering.CompareFunction.Always);
+
+            _counterMaterials[style] = mat;
+            return mat;
         }
 
         static Material MakeLit(string name, Color color)

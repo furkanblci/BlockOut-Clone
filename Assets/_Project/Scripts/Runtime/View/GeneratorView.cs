@@ -20,7 +20,7 @@ namespace BlockOut.Runtime.View
         const float Body = 0.86f;    // kenar boyunca kalınlık
 
         GeneratorModel _model;
-        TextMesh _counter;
+        TMPro.TextMeshPro _counter;
         MeshRenderer _window;
 
         public static GeneratorView Create(
@@ -59,7 +59,8 @@ namespace BlockOut.Runtime.View
             // Sayaç makinenin DIŞ kenarına konur: kamera tepeden baktığı için
             // "yukarı" kaydırmak onu pencerenin üstüne bindiriyordu.
             view._counter = ViewKit.CreateCounter(
-                parent, center + view.Outward() * 0.42f + Vector3.up * 0.3f, model.Remaining);
+                parent, center + view.Outward() * 0.42f + Vector3.up * 0.3f, model.Remaining,
+                ViewKit.CounterStyle.Gold);
 
             return view;
         }

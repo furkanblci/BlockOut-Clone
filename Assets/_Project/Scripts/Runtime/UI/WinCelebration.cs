@@ -107,10 +107,18 @@ namespace BlockOut.Runtime.UI
 
             // Fişek ARKADA, konfeti ÖNDE: ikisi de aynı kökte yaşıyor ama
             // fişekler önce yaratıldığı için çizim sırasında altta kalıyor.
+            // Patlama aralığı kıvılcım ömründen (0,95 sn) KISA: bir patlama
+            // sönmeden diğeri başlasın ki ekran hiç boş kalmasın. Referansta
+            // her karede en az iki patlama birden var.
             GameKit.FX.Juice.Run(FX.CelebrationFX.Show(
-                _root, bursts: 6, interval: 0.34f, sparks: 22));
+                _root, bursts: 8, interval: 0.26f, sparks: 30));
+
+            // Konfeti YOĞUN: 70 parça ekrana serpiştirilince "kutlama" değil
+            // "birkaç kağıt düştü" gibi okunuyordu. Referansta her karede
+            // yüzlerce parça var. Doğumlar süreye yayılıyor ki tek bir yatay
+            // dalga hâlinde geçmesinler.
             GameKit.FX.Juice.Run(FX.CelebrationFX.Rain(
-                _root, count: 70, duration: Show * 0.8f));
+                _root, count: 190, duration: Show * 0.55f));
 
             Services.AudioService.Star();
 

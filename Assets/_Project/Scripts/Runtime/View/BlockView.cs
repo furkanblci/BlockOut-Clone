@@ -37,7 +37,7 @@ namespace BlockOut.Runtime.View
         MeshFilter _filter;
         GameObject _iceShell;
         GameObject _axisArrow;
-        TextMesh _iceCounter;
+        TMPro.TextMeshPro _iceCounter;
         Coroutine _tween;
         PT.Sequence _motion;
         bool _highlighted;
@@ -601,10 +601,13 @@ namespace BlockOut.Runtime.View
 
             BuildFrostShards(center, shellHeight);
 
+            // Buz BLOĞUNUN sayacı camgöbeği: referansta rakam kendi zemininin
+            // açık tonu, kapının kremi değil (bkz. ViewKit.CounterStyle).
             _iceCounter = ViewKit.CreateCounter(
                 parent,
                 center + Vector3.up * (shellHeight * 0.5f + 0.06f),
-                _model.IceCount);
+                _model.IceCount,
+                ViewKit.CounterStyle.Ice);
         }
 
         /// <summary>

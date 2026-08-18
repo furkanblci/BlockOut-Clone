@@ -46,25 +46,37 @@ namespace BlockOut.Runtime.FX
         /// <paramref name="anchor"/> ekranın merkezine göre oran (-0.5..0.5).
         /// </summary>
         public static void Explode(RectTransform root, Vector2 anchor, Color color,
-                                   int sparks = 18, float minSpeed = 680f,
-                                   float maxSpeed = 1050f)
+                                   int sparks = 30, float minSpeed = 1400f,
+                                   float maxSpeed = 2500f)
         {
             for (int i = 0; i < sparks; i++)
             {
-                var spark = UiKit.CreateRoundedPanel("Spark", root, color);
-                UiKit.SetSliceScale(spark, 0.10f);   // uçları yuvarlak çizgi
+                // DÜZ DİKDÖRTGEN, 9-dilim değil.
+                //
+                // DERS (9-dilim kenar payı dikdörtgenden büyük olamaz): Kıvılcım
+                // önce `CreateRoundedPanel` + `SetSliceScale(0.10f)` ile
+                // kuruluyordu; uçları yuvarlak olsun diye. Ama 0.10 çarpanı
+                // sprite'ın 18 piksellik kenar payını 180 piksele çıkarıyor ve
+                // dikdörtgen 30x7. Kenar payları dikdörtgenin kendisinden
+                // kat kat büyük olunca Unity bozuk bir ağ üretiyor: nesneler
+                // sahnede duruyor, doğru ölçekte ve alfada — ama ekrana hiçbir
+                // şey çizilmiyor. Bu yüzden "60 kıvılcım var" diyen sayaçla
+                // bomboş bir ekran yan yana durabiliyordu.
+                var spark = UiKit.CreatePanel("Spark", root, color);
                 spark.raycastTarget = false;
 
                 var rect = spark.rectTransform;
                 rect.anchorMin = rect.anchorMax = new Vector2(0.5f + anchor.x, 0.5f + anchor.y);
-                rect.pivot = new Vector2(0.5f, 0.5f);
-                rect.sizeDelta = new Vector2(26f, 9f);
+                // PIVOT SOL UÇTA: iz merkezden DIŞA uzasın diye. Ortadan
+                // büyütmek izi iki yöne birden uzatır ve patlamanın içi dolar.
+                rect.pivot = new Vector2(0f, 0.5f);
+                rect.sizeDelta = new Vector2(30f, 7f);
                 rect.anchoredPosition = Vector2.zero;
 
                 // Kıvılcımlar halka boyunca EŞİT dağılır, rastgele değil:
                 // rastgele açılar kümeleşip patlamayı tek yöne kaydırıyor.
                 float angle = (i / (float)sparks) * Mathf.PI * 2f
-                              + Random.Range(-0.08f, 0.08f);
+                              + Random.Range(-0.06f, 0.06f);
                 float speed = Random.Range(minSpeed, maxSpeed);
                 var velocity = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * speed;
 
@@ -73,13 +85,25 @@ namespace BlockOut.Runtime.FX
             }
         }
 
-        /// <summary>Kıvılcım: dışa fırlar, yavaşlar, düşerek söner.</summary>
+        /// <summary>
+        /// Kıvılcım: dışa fırlar, yavaşlar, düşerek söner.
+        ///
+        /// DERS (havai fişek KOPUK NOKTALARDAN değil İZLERDEN oluşur):
+        /// İlk yazımda her kıvılcım sabit boyda küçük bir çizgiydi ve hepsi
+        /// aynı yarıçapa gidiyordu; ekranda patlama değil bir SAAT KADRANI
+        /// çıkıyordu — eşit aralıklı, eşit boyda çizgilerden oluşan bir halka.
+        /// Referansta ise her ışın merkezden başlayıp dışa doğru UZUYOR.
+        /// Düzeltme iki parça: pivot sol uca alındı (iz dışa doğru uzasın) ve
+        /// uzunluk kat edilen yola bağlandı. Böylece hızlı giden uzun, yavaş
+        /// giden kısa bir iz bırakıyor ve halka kendiliğinden bozuluyor.
+        /// </summary>
         static IEnumerator SparkFly(RectTransform piece, Vector2 velocity)
         {
             var position = Vector2.zero;
             var image = piece.GetComponent<Image>();
             Color color = image.color;
-            const float life = 0.85f;
+            const float life = 0.95f;
+            const float baseWidth = 30f;
 
             for (float t = 0f; t < life; t += Time.unscaledDeltaTime)
             {
@@ -90,10 +114,16 @@ namespace BlockOut.Runtime.FX
                 velocity.y -= 900f * Time.unscaledDeltaTime;
                 position += velocity * Time.unscaledDeltaTime;
 
-                piece.anchoredPosition = position;
-                // Kıvılcım uzayıp incelir: hız yönünde iz bırakma hissi.
+                // KUYRUK MERKEZDE KALIR: dikdörtgen patlama noktasında duruyor,
+                // yalnız boyu ve açısı değişiyor. Pivot sol uçta olduğu için
+                // uzayan taraf dışarısı; ışın merkezden başlayıp başın olduğu
+                // yere kadar çiziliyor.
                 float k = t / life;
-                piece.localScale = new Vector3(1f + k * 0.8f, 1f - k * 0.7f, 1f);
+                float reach = position.magnitude;
+                piece.localRotation = Quaternion.Euler(
+                    0f, 0f, Mathf.Atan2(position.y, position.x) * Mathf.Rad2Deg);
+                piece.localScale = new Vector3(
+                    Mathf.Max(1f, reach / baseWidth), 1f - k * 0.55f, 1f);
 
                 color.a = 1f - k * k;                 // sonlara doğru hızla söner
                 image.color = color;
