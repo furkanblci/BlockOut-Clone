@@ -134,7 +134,10 @@ namespace BlockOut.Runtime.Flow
             {
                 Consume(kind);
                 FreezeRemaining = PowerUpInfo.ClockFreezeSeconds;
-                Message?.Invoke("Time frozen!");
+                // YAZI YOK: durum artık üst şeritteki kar tanesi + boşalan
+                // çubukla anlatılıyor (2. tur, 48. madde). Aynı bilgiyi ikinci
+                // kez yazıyla vermek, referansta olmayan bir satır ekliyor ve
+                // ekranın altını meşgul ediyordu.
                 Used?.Invoke(kind);
                 Changed?.Invoke();
                 return true;

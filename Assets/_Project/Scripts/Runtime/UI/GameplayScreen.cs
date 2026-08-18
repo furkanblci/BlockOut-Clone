@@ -137,6 +137,13 @@ namespace BlockOut.Runtime.UI
         int _lastPulse = -1;
         float _nextSlowTick;
         GameObject _freezeVignette;
+        RectTransform _freezeGroup;
+        Image _freezeFill;
+
+        // Referans ölçümü: donma çubuğunun dolu kısmı (18,163,244), izin
+        // koyusu ise zemine yakın bir lacivert.
+        static readonly Color FreezeIce  = new Color(0.071f, 0.639f, 0.957f);  // #12A3F4
+        static readonly Color FreezeWell = new Color(0.055f, 0.114f, 0.294f);  // #0E1D4B
         RectTransform _comboBadge;
         TextMeshProUGUI _comboLabel;
         int _shownChain = -1;
@@ -477,6 +484,34 @@ namespace BlockOut.Runtime.UI
             _levelLabel = UiKit.CreateTitle("Level", levelPill.transform, "", 28, HudInk,
                 new Color(0.12f, 0.09f, 0.30f));
             UiKit.Place(_levelLabel, 0.05f, 0.06f, 0.95f, 0.94f);
+
+            // DONMA GÖSTERGESİ: jeton ile bölüm plakasının ARASINDA, aynı
+            // satırda (2. tur, 48. madde).
+            //
+            // Referans ölçümü (`menus,powerups,vs.mp4` 01:25, 384x832 kare):
+            // kar tanesi x=146..162, çubuk izi x=164..245, ikisi de y=55..66.
+            // Jeton sayacı da aynı satırda; yani üst şerit "jeton | donma |
+            // bölüm" diye okunuyor.
+            //
+            // DERS (süreli bir etkinin SÜRESİ görünmeli): Kalan süreyi yalnız
+            // ipucu yazısına yazıyorduk ("Time frozen: 8 sn"). Yazı ekranın
+            // ortasında, oyuncunun tahtaya baktığı anda okumadığı bir yerde
+            // duruyordu. Boşalan bir çubuk aynı bilgiyi BAKMADAN verir.
+            _freezeGroup = UiKit.CreateRect("FreezeMeter", root);
+            UiKit.Place(_freezeGroup, 0.380f, 0.944f, 0.640f, 0.986f);
+            _freezeGroup.gameObject.SetActive(false);
+
+            var flake = UiKit.CreateIcon("Flake", _freezeGroup, MenuSprites.Snowflake);
+            UiKit.Place(flake, 0f, 0.10f, 0.165f, 0.90f);
+            flake.color = FreezeIce;
+
+            var freezeTrack = UiKit.CreateRoundedPanel("Track", _freezeGroup, FreezeWell);
+            UiKit.Place(freezeTrack, 0.21f, 0.32f, 1f, 0.70f);
+            freezeTrack.raycastTarget = false;
+
+            _freezeFill = UiKit.CreateRoundedPanel("Fill", freezeTrack.transform, FreezeIce);
+            UiKit.Place(_freezeFill, 0f, 0f, 1f, 1f);
+            _freezeFill.raycastTarget = false;
 
             // --- 2. satır: yeniden başlat | süre | duraklat ---
             var restart = SquareButton(root, "Restart", 0.035f, 0.165f, 0.878f, 0.936f);
@@ -1680,12 +1715,24 @@ namespace BlockOut.Runtime.UI
                 _freezeVignette = null;
             }
 
+            // Kalan süre artık üst şeritteki çubukta; ipucu satırı serbest.
+            if (_freezeGroup != null)
+            {
+                if (_freezeGroup.gameObject.activeSelf != frozen)
+                    _freezeGroup.gameObject.SetActive(frozen);
+
+                if (frozen && _freezeFill != null)
+                {
+                    float share = Mathf.Clamp01(
+                        power.FreezeRemaining / PowerUpInfo.ClockFreezeSeconds);
+                    var max = _freezeFill.rectTransform.anchorMax;
+                    max.x = share;
+                    _freezeFill.rectTransform.anchorMax = max;
+                }
+            }
+
             if (Time.unscaledTime < _hintUntil)
                 _hintLabel.text = _hint;
-            else if (power.IsTimeFrozen)
-                _hintLabel.text = _scratch.Clear()
-                    .Append("Time frozen: ")
-                    .Append(Mathf.CeilToInt(power.FreezeRemaining)).Append(" sn").ToString();
             else
                 _hintLabel.text = "";
         }

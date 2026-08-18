@@ -906,9 +906,76 @@ sıralı ve temiz."**
   > "Yeniden Oyna ikonu değiştirilmesi lazım. Bunu da butonu yapay zekâya
   > yaptıralım."
 
-- [ ] **48. Power-up efektleri.**
+- [x] **48. Power-up efektleri.**
   > "3 tane power-up'ın da efektleri ve görünümü orijinal oyundakiyle alakası
   > yok. Birebir aynısını yapmalıyız."
+
+  **REFERANS: yalnız ÇALAR SAAT bulundu.** `menus,powerups,vs.mp4` içinde
+  oyuncu tek yardımcı kullanıyor, o da saat (01:21–01:32). Roket ve UFO'nun
+  ateşlendiği tek bir kare yok — elimizdeki beş videonun oyun içi bölümleri
+  1 fps ve 5 fps'te tarandı, kare farkı ölçüldü, patlama anı çıkmadı. Bu
+  yüzden saat BİREBİR ölçülerek yapıldı, diğer ikisi oyunun kendi görsel
+  diline göre güçlendirildi. (Roket/UFO görüntüsü gelirse yeniden ölçülmeli.)
+
+  **1) Saat aslında "çalar saat" değil, ZAMAN DONDURMA.** Referansta efekt üç
+  parçadan oluşuyor ve bizde üçü de yoktu:
+
+  | Ölçüm (384×832 kare, 01:25) | Referans | Bizde (önce) | Bizde (sonra) |
+  |---|---|---|---|
+  | Sol kenar x=0 | (48,179,208) | yok | (30,168,177) |
+  | Sol kenar x=8 | (27,84,128) | yok | (36,120,136) |
+  | Sol kenar x=22 | zemin | zemin | zemin |
+  | Üst kenar y=0 | (16,142,155) | yok | (27,168,175) |
+  | Üst kenar y=14 | (10,126,144) | yok | (30,132,143) |
+  | Üst kenar y=50 | zemin | zemin | zemin |
+
+  Kritik bulgu: parlama yatayda 22/384, dikeyde 50/832 — **ikisi de ~%6**.
+  Kenar payı piksel olarak değil ORAN olarak eşit, yani tek bir KARE doku
+  ekrana esnetildiğinde her en-boy oranında doğru çıkıyor
+  (`MenuSprites.FrostVignette`). Sönüm doğrusal değil: bandın %35'inde alfa
+  tepe değerin %48'i (doğrusal olsa %65 olurdu) → `(1-t)²`.
+
+  **2) Kalan süre çubuğu.** Referansta üst şeritte, jeton sayacı ile bölüm
+  plakasının arasında bir kar tanesi + boşalan camgöbeği çubuk var
+  (ikon x=146..162, iz x=164..245, ikisi de y=55..66). Bizde kalan süre
+  yalnız ekranın ortasındaki ipucu satırına "Time frozen: 8 sn" diye
+  yazılıyordu — hem referansta olmayan bir satır, hem İngilizce, hem de
+  oyuncunun tahtaya bakarken okumadığı bir yer. Yazı kaldırıldı, çubuk
+  eklendi (`GameplayScreen._freezeGroup`).
+
+  **3) Kar taneleri.** Referansta buzlanma sürerken kenarlarda küçük kar
+  taneleri süzülüyor. 12 adet UI görseli olarak eklendi; `unscaledDeltaTime`
+  ile akıyorlar (sayaç donuk ama efekt canlı kalmalı).
+
+  Vinyet önce **dört düz panel** idi; kenarları keskin bittiği için "buz"
+  değil "çerçeve" gibi okunuyordu. Şimdi tek gerdirilmiş görsel.
+
+  **DERS (ölçüm bir hipotezi çürüttü).** Referansın SOL kenarı beyazımsı
+  (77,196,226) olduğu için en dışa beyaza çalan bir şerit koymuştum. Ama ÜST
+  kenar saf camgöbeği (16,142,155) — yani o beyazlık vinyetin değil, tahtanın
+  kendi parlamasının. Şerit konunca bizim üst kenarımız (135,195,205) çıktı,
+  referansın iki katı parlak. Tek kenardan çıkarılan kural, ikinci kenarda
+  test edilmeden kabul edilmemeli.
+
+  **4) Roket ve UFO.** Roket yalnız beyaz bir küp olarak iniyordu; çarpma
+  anında hiçbir şey olmuyordu. Eklenenler: sabit ARALIKLI alev izi (kare
+  hızına bağlanırsa efekt cihaza göre değişirdi), çarpmada kamera sarsıntısı
+  ve 14 kıvılcımlık çelenk. UFO ışınına, olayın hangi hücrede geçtiğini
+  söyleyen, yerde açılıp sönen bir halka eklendi.
+
+  **DERS (materyal üreten yardımcıyı döngüde çağırma).** İlk yazımda her
+  kıvılcım için `ViewKit.Translucent(...)` çağırıyordum — o metot HER çağRIDA
+  yeni bir materyal yaratıyor ve kimse silmiyor. Tek roket = 15 sızıntı,
+  üstelik nesneler yok edilse bile materyaller kalır. Rengi sabit bir efekt
+  için tek paylaşılan materyal yeter. Aynı sorunun eski hâli de bulundu:
+  `Collapse` zaten `Translucent`'tan gelen materyalin üstüne `renderer.material`
+  diyerek İKİNCİ bir kopya çıkarıyordu; ikisi de `sharedMaterial`'a çevrildi
+  ve iş bitince materyal elle siliniyor.
+
+  **NASIL DOĞRULANDI.** Oyun modunda 30. bölüm açıldı, `PowerUps.Use(Clock)`
+  çağrıldı, ekran yakalandı ve altı noktada referansla kıyaslandı (yukarıdaki
+  tablo). Roket/UFO için efektler tahta üstünde doğrudan çağrılıp yakalandı;
+  alev izi ve kıvılcım görüntüde doğrulandı.
 
 - [x] **54. Buz bloğu.**
   > "Buz bloğu inanılmaz kötü duruyor. Bunun için yine yapay zekâya bir şey

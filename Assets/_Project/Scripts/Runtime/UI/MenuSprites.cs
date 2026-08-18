@@ -550,6 +550,140 @@ namespace BlockOut.Runtime.UI
             return Sprite.Create(tex, new Rect(0f, 0f, s, s), new Vector2(0.5f, 0.5f), 100f);
         }
 
+        // ---- Buz (çalar saat yardımcısı) ----------------------------------
+
+        static Sprite _frostVignette, _snowflake;
+
+        /// <summary>
+        /// Süre donduğunda ekranın DÖRT KENARINDAN içeri sönen buzlu parlama.
+        ///
+        /// Referans ölçümü (`menus,powerups,vs.mp4` 01:25, 384x832 kare): sol
+        /// kenarda x=2'de (77,196,226), x=8'de (27,84,128), x=22'de zemin
+        /// rengi. Üstte y=0'da (16,142,155), y=50'de zemin. Yani parlama
+        /// yatayda 22/384, dikeyde ~50/832 — İKİSİ DE ~%6. Kenar payı
+        /// piksel olarak değil ORAN olarak eşit; bu yüzden tek bir kare doku
+        /// ekrana esnetildiğinde referansı birebir verir, en-boy oranından
+        /// bağımsız olarak.
+        ///
+        /// DERS (sönüm eğrisini ÖLÇ, tahmin etme): İlk hâli dört düz şeritti;
+        /// kenarlar keskin bittiği için "buz" değil "çerçeve" gibi okunuyordu.
+        /// Ölçüm sönümün doğrusal olmadığını söylüyor: bandın %35'inde alfa
+        /// tepe değerin %48'i (doğrusal olsa %65 olurdu). Karesi alınmış
+        /// sönüm (1-t)² tam bu eğriyi veriyor.
+        ///
+        /// Renk TEK TON: ilk denemede en dış piksellere beyaza çalan bir şerit
+        /// koymuştum, çünkü referansın SOL kenarı (77,196,226) beyazımsı
+        /// görünüyor. Ama ÜST kenarı (16,142,155) saf camgöbeği — yani o
+        /// beyazlık vinyetin değil, tahtanın kendi parlamasının. Şeridi
+        /// koyunca bizim üst kenarımız (135,195,205) çıktı, referansın iki
+        /// katı parlak. Tek tonda kalmak doğrusu.
+        /// </summary>
+        public static Sprite FrostVignette => _frostVignette != null ? _frostVignette
+            : (_frostVignette = BuildFrostVignette());
+
+        static Sprite BuildFrostVignette()
+        {
+            const int s = 128;
+            const float Band = 0.06f;        // ölçüm: kenar payı ekranın %6'sı
+
+            var tex = NewTexture("FrostVignette", s, s);
+            var pixels = new Color32[s * s];
+
+            // Referansın üst kenarından geri çözülen ton: (16,142,155) rengi
+            // (24,21,51) zeminin üstüne α=0.62 ile bindirilmiş.
+            var frost = new Color(0.078f, 0.843f, 0.859f);   // #14D7DB
+
+            for (int y = 0; y < s; y++)
+            for (int x = 0; x < s; x++)
+            {
+                // Piksel MERKEZİNDEN en yakın kenara uzaklık, 0-1 aralığında.
+                float u = (x + 0.5f) / s;
+                float v = (y + 0.5f) / s;
+                float d = Mathf.Min(Mathf.Min(u, 1f - u), Mathf.Min(v, 1f - v));
+
+                // Sönüm DOĞRUSAL DEĞİL: ölçümde bandın %35'inde alfa tepe
+                // değerin %48'i (doğrusal olsa %65 olurdu).
+                float t = Mathf.Clamp01(d / Band);
+                float a = (1f - t) * (1f - t);
+
+                pixels[y * s + x] = new Color(frost.r, frost.g, frost.b, a);
+            }
+
+            tex.SetPixels32(pixels);
+            tex.Apply(false, true);
+            return Sprite.Create(tex, new Rect(0f, 0f, s, s), new Vector2(0.5f, 0.5f), 100f);
+        }
+
+        /// <summary>
+        /// Altı kollu kar tanesi — donma göstergesinin ikonu ve serpilen
+        /// parçacıklar aynı görseli kullanır.
+        ///
+        /// Kollar açı ile çiziliyor: her piksel en yakın kol eksenine olan
+        /// dik uzaklığına bakıyor. Böylece altı kol da tek döngüde çıkıyor,
+        /// altı ayrı dikdörtgen döndürmeye gerek kalmıyor.
+        /// </summary>
+        public static Sprite Snowflake => _snowflake != null ? _snowflake
+            : (_snowflake = BuildSnowflake());
+
+        static Sprite BuildSnowflake()
+        {
+            const int s = 96;
+            var tex = NewTexture("Snowflake", s, s);
+            var pixels = new Color32[s * s];
+
+            float half = s * 0.5f;
+            const float ArmLength = 0.46f;   // yarıçap payı
+            const float ArmWidth = 0.052f;
+            const float BranchAt = 0.58f;    // dalların koldaki yeri
+            const float BranchLen = 0.17f;
+
+            for (int y = 0; y < s; y++)
+            for (int x = 0; x < s; x++)
+            {
+                float px = (x + 0.5f - half) / s;
+                float py = (y + 0.5f - half) / s;
+
+                float mask = 0f;
+                for (int arm = 0; arm < 6; arm++)
+                {
+                    float angle = arm * Mathf.PI / 3f;
+                    float ax = Mathf.Cos(angle), ay = Mathf.Sin(angle);
+
+                    // Kolun kendi eksenine izdüşüm (along) ve dik uzaklık (side).
+                    float along = px * ax + py * ay;
+                    float side = Mathf.Abs(-px * ay + py * ax);
+                    if (along < 0f) continue;
+
+                    if (along <= ArmLength)
+                        mask = Mathf.Max(mask, 1f - Step(ArmWidth * 0.7f, ArmWidth, side));
+
+                    // İki yan dal: koldan 60° ayrılan kısa çubuklar.
+                    float root = ArmLength * BranchAt;
+                    float bx = px - ax * root, by = py - ay * root;
+                    for (int sign = -1; sign <= 1; sign += 2)
+                    {
+                        float ba = angle + sign * Mathf.PI / 3f;
+                        float dx = Mathf.Cos(ba), dy = Mathf.Sin(ba);
+                        float bAlong = bx * dx + by * dy;
+                        float bSide = Mathf.Abs(-bx * dy + by * dx);
+                        if (bAlong < 0f || bAlong > BranchLen) continue;
+                        mask = Mathf.Max(mask,
+                            1f - Step(ArmWidth * 0.5f, ArmWidth * 0.78f, bSide));
+                    }
+                }
+
+                // Ortadaki küçük göbek kolları birbirine bağlar.
+                float r = Mathf.Sqrt(px * px + py * py);
+                mask = Mathf.Max(mask, 1f - Step(ArmWidth * 1.5f, ArmWidth * 2.1f, r));
+
+                pixels[y * s + x] = new Color(1f, 1f, 1f, Mathf.Clamp01(mask));
+            }
+
+            tex.SetPixels32(pixels);
+            tex.Apply(false, true);
+            return Sprite.Create(tex, new Rect(0f, 0f, s, s), new Vector2(0.5f, 0.5f), 100f);
+        }
+
         static Texture2D NewTexture(string name, int w, int h) =>
             new Texture2D(w, h, TextureFormat.RGBA32, false)
             {
@@ -563,6 +697,7 @@ namespace BlockOut.Runtime.UI
         {
             _capsule = _capsuleOutline = _awning = _infinity = _noAds = null;
             _fadeDown = _pennant = _ring = _sunburst = _foliage = null;
+            _quilt = _frostVignette = _snowflake = null;
         }
     }
 }
