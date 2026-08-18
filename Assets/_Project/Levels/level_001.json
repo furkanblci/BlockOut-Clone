@@ -17,12 +17,44 @@
     "walls": []
   },
   "blocks": [
-    { "x": 3, "y": 0, "w": 2, "h": 2, "layers": ["blue"] },
-    { "x": 0, "y": 3, "w": 2, "h": 2, "layers": ["red"] }
+    {
+      "x": 3,
+      "y": 0,
+      "w": 2,
+      "h": 2,
+      "layers": [
+        "blue"
+      ]
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "w": 2,
+      "h": 2,
+      "layers": [
+        "red"
+      ]
+    }
   ],
   "gates": [
-    { "x": 0, "y": 0, "side": "N", "length": 3, "colors": ["red"] },
-    { "x": 2, "y": 4, "side": "S", "length": 3, "colors": ["blue"] }
+    {
+      "x": 0,
+      "y": 0,
+      "side": "N",
+      "length": 2,
+      "colors": [
+        "red"
+      ]
+    },
+    {
+      "x": 2,
+      "y": 4,
+      "side": "S",
+      "length": 2,
+      "colors": [
+        "blue"
+      ]
+    }
   ],
   "obstacles": []
 }

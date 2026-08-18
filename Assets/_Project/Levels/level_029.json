@@ -20,26 +20,179 @@
     "walls": []
   },
   "blocks": [
-    { "x": 0, "y": 2, "w": 1, "h": 2, "layers": ["red"] },
-    { "x": 0, "y": 4, "w": 1, "h": 1, "layers": ["yellow"] },
-    { "x": 0, "y": 5, "w": 1, "h": 2, "layers": ["green"] },
-    { "x": 0, "y": 7, "w": 1, "h": 1, "layers": ["blue"] },
-    { "x": 2, "y": 2, "w": 1, "h": 2, "layers": ["yellow"] },
-    { "x": 2, "y": 4, "w": 1, "h": 1, "layers": ["green"] },
-    { "x": 2, "y": 5, "w": 1, "h": 2, "layers": ["red"] },
-    { "x": 2, "y": 7, "w": 1, "h": 1, "layers": ["blue"] },
-    { "x": 3, "y": 0, "w": 1, "h": 2, "layers": ["yellow"] },
-    { "x": 4, "y": 0, "w": 1, "h": 2, "layers": ["red"] },
-    { "x": 4, "y": 2, "w": 1, "h": 2, "layers": ["green"] },
-    { "x": 4, "y": 4, "w": 1, "h": 1, "layers": ["blue"] },
-    { "x": 4, "y": 5, "w": 1, "h": 2, "layers": ["yellow"] },
-    { "x": 4, "y": 7, "w": 1, "h": 1, "layers": ["red"] }
+    {
+      "x": 0,
+      "y": 2,
+      "w": 1,
+      "h": 2,
+      "layers": [
+        "red"
+      ]
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "w": 1,
+      "h": 1,
+      "layers": [
+        "yellow"
+      ]
+    },
+    {
+      "x": 0,
+      "y": 5,
+      "w": 1,
+      "h": 2,
+      "layers": [
+        "green"
+      ]
+    },
+    {
+      "x": 0,
+      "y": 7,
+      "w": 1,
+      "h": 1,
+      "layers": [
+        "blue"
+      ]
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "w": 1,
+      "h": 2,
+      "layers": [
+        "yellow"
+      ]
+    },
+    {
+      "x": 2,
+      "y": 4,
+      "w": 1,
+      "h": 1,
+      "layers": [
+        "green"
+      ]
+    },
+    {
+      "x": 2,
+      "y": 5,
+      "w": 1,
+      "h": 2,
+      "layers": [
+        "red"
+      ]
+    },
+    {
+      "x": 2,
+      "y": 7,
+      "w": 1,
+      "h": 1,
+      "layers": [
+        "blue"
+      ]
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "w": 1,
+      "h": 2,
+      "layers": [
+        "yellow"
+      ]
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "w": 1,
+      "h": 2,
+      "layers": [
+        "red"
+      ]
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "w": 1,
+      "h": 2,
+      "layers": [
+        "green"
+      ]
+    },
+    {
+      "x": 4,
+      "y": 4,
+      "w": 1,
+      "h": 1,
+      "layers": [
+        "blue"
+      ]
+    },
+    {
+      "x": 4,
+      "y": 5,
+      "w": 1,
+      "h": 2,
+      "layers": [
+        "yellow"
+      ]
+    },
+    {
+      "x": 4,
+      "y": 7,
+      "w": 1,
+      "h": 1,
+      "layers": [
+        "red"
+      ]
+    }
   ],
   "gates": [
-    { "x": 1, "y": 0, "side": "N", "length": 3, "colors": ["green"] },
-    { "x": 0, "y": 7, "side": "S", "length": 1, "colors": ["blue", "red", "yellow"], "ice": 2 },
-    { "x": 2, "y": 7, "side": "S", "length": 1, "colors": ["red", "yellow", "blue"], "ice": 2 },
-    { "x": 4, "y": 7, "side": "S", "length": 1, "colors": ["yellow", "blue", "red"], "ice": 2 }
+    {
+      "x": 1,
+      "y": 0,
+      "side": "N",
+      "length": 1,
+      "colors": [
+        "green"
+      ]
+    },
+    {
+      "x": 0,
+      "y": 7,
+      "side": "S",
+      "length": 1,
+      "colors": [
+        "blue",
+        "red",
+        "yellow"
+      ],
+      "ice": 2
+    },
+    {
+      "x": 2,
+      "y": 7,
+      "side": "S",
+      "length": 1,
+      "colors": [
+        "red",
+        "yellow",
+        "blue"
+      ],
+      "ice": 2
+    },
+    {
+      "x": 4,
+      "y": 7,
+      "side": "S",
+      "length": 1,
+      "colors": [
+        "yellow",
+        "blue",
+        "red"
+      ],
+      "ice": 2
+    }
   ],
   "obstacles": []
 }

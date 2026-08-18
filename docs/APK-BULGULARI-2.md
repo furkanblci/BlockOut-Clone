@@ -48,7 +48,7 @@ sıralı ve temiz."**
 
 ## A — KRİTİK OYNANIŞ HATASI
 
-- [ ] **52. Kapı–blok boyut eşleşmesi.**
+- [x] **52. Kapı–blok boyut eşleşmesi.**
   > "En kritik buglar: KAPILAR bloklarla eşit boyutta olmalı. Yani diyelim
   > küçük bir kapı var, o kapının boyutundan büyük blok oraya sığamamalı.
   > Orijinal oyunda kapıdan daha küçük blok girebilir ama kapıdan daha büyük
@@ -57,6 +57,47 @@ sıralı ve temiz."**
 
   Motorda uygulanıyor mu, 50 bölümün verisi buna uyuyor mu — ikisi de
   doğrulanacak.
+
+
+  **ÖNCE MOTOR DENETLENDİ — KURAL ZATEN VARDI.** `GateSystem.IsTouching`
+  (satır 121-124) bloğun kenar boyunca TOPLAM genişliğini kapı açıklığıyla
+  karşılaştırıyor; tolerans 0.12 hücre, yani ızgaraya oturmuş bloklarda asla
+  bir hücrelik farkı yutmuyor. Yani "kapıdan büyük blok geçiyor" diye bir
+  motor hatası YOK.
+
+  **ASIL SORUN VERİDEYDİ: kural hiç devreye girmiyordu.** 274 kapı ölçüldü;
+  **51'i (%19) o rengin en geniş bloğundan GENİŞTİ**, yani sığma testi o
+  kapılarda hiçbir zaman iş yapmıyordu. 1. bölümde bloklar 2×2, kapılar 3
+  uzunluğunda.
+
+  **REFERANS DOĞRULANDI (tahmin değil).** Oynanış videosundan 6×6 tahtalı bir
+  kare çıkarıldı (`Block Out Color Sort Puzzle Levels.mp4`, 00:28). İç oyun
+  alanı 445 piksel / 6 sütun = 74 px/hücre. Üç kapının üçü de **147 piksel =
+  tam 2 hücre**, bloklar da 2×2. Yani referansta **kapı boyu = blok boyu**.
+
+  **NE YAPILDI.** 51 kapının uzunluğu, o kapının renk kuyruğundaki renklere
+  sahip EN GENİŞ bloğun ilgili kenarına (yatay kapıda genişlik, dikey kapıda
+  yükseklik) indirildi.
+
+  **BULUNAN TUZAK — konum, uzunluktan daha kritik.** İlk denemede daraltılan
+  kapı "merkezi korunacak şekilde" yeniden konumlandı. `level_030`'un buzlu
+  kırmızı kapısı y=6'dan y=7'ye kayınca çözücü 26 hamlelik çözümü bulamaz
+  oldu (8 hamlede pes etti, 9 blok kaldı). Aynı kapı **y=6'da uzunluk 1 ile
+  sorunsuz** — yani uzunluk değil KONUM bozmuştu.
+  **DERS: kapının konumu bulmacanın geometrisinin parçası; daraltırken özgün
+  BAŞLANGIÇ noktasını korumak, merkezi korumaktan çok daha güvenli.**
+  Sezgisel düzeltildi, 51 kapının hiçbirinin konumu değişmedi.
+
+  **NASIL DOĞRULANDI.** 50 bölümün tamamı `LevelValidationTool.Validate` ile
+  ÖNCE/SONRA karşılaştırmalı koşuldu:
+  **geçen 50 · bozuk 0 · çözücü-pes-etti 0 · gerileyen 0.**
+
+  Son durum: 274 kapının **266'sı tam eşleşme**. Kalan 8'i bloktan DAR — bu
+  bir hata değil, mekaniğin ta kendisi (o blok aynı rengin başka kapısından
+  çıkıyor; ör. `level_020` yeşil 1×3 blok, doğu kapısı 1 uzunluk → geçemez,
+  güney kapısından çıkar). Gereksiz geniş kapı: **0**.
+
+  Bölümlerin yedeği: `scratchpad/levels_backup/`.
 
 ---
 

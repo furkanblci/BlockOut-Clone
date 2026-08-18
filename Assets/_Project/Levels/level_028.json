@@ -21,19 +21,108 @@
     "walls": []
   },
   "blocks": [
-    { "x": 0, "y": 6, "w": 3, "h": 1, "layers": ["blue"] },
-    { "x": 3, "y": 6, "w": 3, "h": 1, "layers": ["red"] },
-    { "x": 1, "y": 7, "w": 3, "h": 1, "layers": ["yellow"] },
-    { "x": 0, "y": 8, "w": 3, "h": 1, "layers": ["blue"] },
-    { "x": 3, "y": 8, "w": 3, "h": 1, "layers": ["pink"] }
+    {
+      "x": 0,
+      "y": 6,
+      "w": 3,
+      "h": 1,
+      "layers": [
+        "blue"
+      ]
+    },
+    {
+      "x": 3,
+      "y": 6,
+      "w": 3,
+      "h": 1,
+      "layers": [
+        "red"
+      ]
+    },
+    {
+      "x": 1,
+      "y": 7,
+      "w": 3,
+      "h": 1,
+      "layers": [
+        "yellow"
+      ]
+    },
+    {
+      "x": 0,
+      "y": 8,
+      "w": 3,
+      "h": 1,
+      "layers": [
+        "blue"
+      ]
+    },
+    {
+      "x": 3,
+      "y": 8,
+      "w": 3,
+      "h": 1,
+      "layers": [
+        "pink"
+      ]
+    }
   ],
   "gates": [
-    { "x": 0, "y": 0, "side": "W", "length": 2, "colors": ["pink"] },
-    { "x": 5, "y": 0, "side": "E", "length": 2, "colors": ["blue"] },
-    { "x": 0, "y": 4, "side": "W", "length": 2, "colors": ["yellow"] },
-    { "x": 5, "y": 4, "side": "E", "length": 2, "colors": ["green"] },
-    { "x": 0, "y": 8, "side": "S", "length": 3, "colors": ["red"] },
-    { "x": 3, "y": 8, "side": "S", "length": 3, "colors": ["pink"], "ice": 1 }
+    {
+      "x": 0,
+      "y": 0,
+      "side": "W",
+      "length": 1,
+      "colors": [
+        "pink"
+      ]
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "side": "E",
+      "length": 1,
+      "colors": [
+        "blue"
+      ]
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "side": "W",
+      "length": 1,
+      "colors": [
+        "yellow"
+      ]
+    },
+    {
+      "x": 5,
+      "y": 4,
+      "side": "E",
+      "length": 1,
+      "colors": [
+        "green"
+      ]
+    },
+    {
+      "x": 0,
+      "y": 8,
+      "side": "S",
+      "length": 3,
+      "colors": [
+        "red"
+      ]
+    },
+    {
+      "x": 3,
+      "y": 8,
+      "side": "S",
+      "length": 3,
+      "colors": [
+        "pink"
+      ],
+      "ice": 1
+    }
   ],
   "obstacles": [
     {
@@ -44,12 +133,60 @@
       "h": 3,
       "count": 6,
       "contents": [
-        { "x": 0, "y": 0, "w": 3, "h": 1, "layers": ["pink"] },
-        { "x": 3, "y": 0, "w": 3, "h": 1, "layers": ["blue"] },
-        { "x": 0, "y": 1, "w": 3, "h": 1, "layers": ["green"] },
-        { "x": 3, "y": 1, "w": 3, "h": 1, "layers": ["yellow"] },
-        { "x": 0, "y": 2, "w": 3, "h": 1, "layers": ["red"] },
-        { "x": 3, "y": 2, "w": 3, "h": 1, "layers": ["green"] }
+        {
+          "x": 0,
+          "y": 0,
+          "w": 3,
+          "h": 1,
+          "layers": [
+            "pink"
+          ]
+        },
+        {
+          "x": 3,
+          "y": 0,
+          "w": 3,
+          "h": 1,
+          "layers": [
+            "blue"
+          ]
+        },
+        {
+          "x": 0,
+          "y": 1,
+          "w": 3,
+          "h": 1,
+          "layers": [
+            "green"
+          ]
+        },
+        {
+          "x": 3,
+          "y": 1,
+          "w": 3,
+          "h": 1,
+          "layers": [
+            "yellow"
+          ]
+        },
+        {
+          "x": 0,
+          "y": 2,
+          "w": 3,
+          "h": 1,
+          "layers": [
+            "red"
+          ]
+        },
+        {
+          "x": 3,
+          "y": 2,
+          "w": 3,
+          "h": 1,
+          "layers": [
+            "green"
+          ]
+        }
       ]
     },
     {
@@ -60,12 +197,60 @@
       "h": 3,
       "count": 2,
       "contents": [
-        { "x": 0, "y": 3, "w": 3, "h": 1, "layers": ["green"] },
-        { "x": 3, "y": 3, "w": 3, "h": 1, "layers": ["green"] },
-        { "x": 0, "y": 4, "w": 3, "h": 1, "layers": ["blue"] },
-        { "x": 3, "y": 4, "w": 3, "h": 1, "layers": ["pink"] },
-        { "x": 0, "y": 5, "w": 3, "h": 1, "layers": ["yellow"] },
-        { "x": 3, "y": 5, "w": 3, "h": 1, "layers": ["red"] }
+        {
+          "x": 0,
+          "y": 3,
+          "w": 3,
+          "h": 1,
+          "layers": [
+            "green"
+          ]
+        },
+        {
+          "x": 3,
+          "y": 3,
+          "w": 3,
+          "h": 1,
+          "layers": [
+            "green"
+          ]
+        },
+        {
+          "x": 0,
+          "y": 4,
+          "w": 3,
+          "h": 1,
+          "layers": [
+            "blue"
+          ]
+        },
+        {
+          "x": 3,
+          "y": 4,
+          "w": 3,
+          "h": 1,
+          "layers": [
+            "pink"
+          ]
+        },
+        {
+          "x": 0,
+          "y": 5,
+          "w": 3,
+          "h": 1,
+          "layers": [
+            "yellow"
+          ]
+        },
+        {
+          "x": 3,
+          "y": 5,
+          "w": 3,
+          "h": 1,
+          "layers": [
+            "red"
+          ]
+        }
       ]
     }
   ]
