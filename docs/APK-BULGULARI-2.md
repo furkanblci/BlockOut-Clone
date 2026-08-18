@@ -489,14 +489,58 @@ sıralı ve temiz."**
 
 ### D4 — Yolculuk (Journey)
 
-- [ ] **25.** > "Journey kısmında direkt ilk yuvarlağın ortasına Play yerine
+- [x] **25.** > "Journey kısmında direkt ilk yuvarlağın ortasına Play yerine
   tikli buton koymalıyız."
-- [ ] **26.** > "O 'Lv1-20' yazan yerin arka planı da büyük ve kötü gözüküyor.
+
+  **KURAL ZATEN DOĞRUYMUŞ — doğrulandı.** `Refresh` içinde
+  `done = reached > region.to`; tamamlanan bölgede yazı gizlenip yeşil tik
+  açılıyor. Ekranda "Play" görünmesinin sebebi test kaydının 11. seviyede
+  olmasıydı (Görev Hazırlığı 1-20, yani henüz bitmemiş).
+
+  **NASIL DOĞRULANDI.** Kayıt 25. seviyeye alınıp `Refresh` çağrıldı; beş
+  bölgenin tiki tek tek okundu: **`Action_1` görünür=True**, `Action_21`,
+  `Action_41`, `Action_71`, `Action_101` görünür=False. Ekran görüntüsünde de
+  ilk çemberin ortasında "Play" yerine yeşil tik duruyor — referanstaki
+  "Görev Hazırlığı" karesiyle birebir.
+
+- [x] **26.** > "O 'Lv1-20' yazan yerin arka planı da büyük ve kötü gözüküyor.
   Bunu da ayarlamalıyız."
-- [ ] **27.** > "Mission Prep kısmının da yine kaplaması olmalı."
-- [ ] **28.** > "Journey'deki level dikdörtgenlerinin dış çizgisi biraz daha
+
+  **NE YAPILDI.** Referans ölçüldü (`journey.jpeg`): plaka **245×55** piksel
+  (946 genişlikte), yani bizim tuvalde **280×63**. Bizimki **340×84**'tü —
+  %21 geniş, %33 yüksek ve çerçevesizdi; dairenin üstünde "kocaman koyu bir
+  kutu" gibi duruyordu. Referansta ayrıca açık mor ince bir çerçevesi var ve
+  etiketi daireye bağlayan şey o. Ölçü referansa çekildi, çerçeve eklendi.
+
+- [x] **27.** > "Mission Prep kısmının da yine kaplaması olmalı."
+
+  **NE YAPILDI.** Bölge adı düz beyaz yazıydı. Referansta sayfa başlıklarıyla
+  aynı dil: beyaz dolgu + kalın mor kontur + yumuşak gölge.
+  `CreateTitle`'ın kontur parametresi paylaşılan materyal yüzünden yok
+  sayılıyor (bu projede sekizinci kez); `UiKit.SetOutline` ile bu etikete
+  kendi materyal kopyası verildi.
+
+- [x] **28.** > "Journey'deki level dikdörtgenlerinin dış çizgisi biraz daha
   koyu, gölgeli olmalı. Orijinal oyundan bak."
-- [ ] **29.** > "Kilitli olan kısımlar daha koyu renkte gözükmeli. Şu an beyaz."
+
+  **NE YAPILDI.** Kapsülün kenarı `#4130B7`, zemin `#1B215B` idi; ikisi
+  arasındaki fark kenarı "biraz farklı bir mor" yapıyordu, SINIR değil.
+  Kenar belirgin biçimde koyulaştırıldı (`#281B7E`) ve **altına düşen ayrı
+  bir gölge kopyası** eklendi.
+  **DERS: kalınlık hissini veren şey kenar değil, altına düşen kopya.**
+
+- [x] **29.** > "Kilitli olan kısımlar daha koyu renkte gözükmeli. Şu an beyaz."
+
+
+  **NE YAPILDI.** Kilit perdesi açık gri-mavi (`#A5A9EF`) ve %78 opaktı, yani
+  kilitli bölge ekranın **EN AÇIK** öğesi oluyordu — kullanıcı "kilitli olan
+  kısımlar daha koyu renkte gözükmeli, şu an beyaz" derken bunu gördü.
+  **DERS: kilit bir YOKLUK bildirir; göz onu aramamalı.** Perde koyu lacivert
+  ve %86 opaklığa çekildi.
+
+  **NASIL DOĞRULANDI.** Kayıt 25. seviyedeyken liste kaydırılıp kilitli
+  "Penguin Chase" bölgesi yakalandı: bölge artık koyu, altın asma kilit
+  üstünde net okunuyor.
 
 ### D5 — Ayarlar (Settings)
 

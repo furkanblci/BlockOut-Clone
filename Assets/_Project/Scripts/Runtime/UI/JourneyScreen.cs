@@ -50,17 +50,28 @@ namespace BlockOut.Runtime.UI
         // daha koyuydu; kapsül zeminden yeterince ayrışmıyor ve "sade"
         // görünüyordu (9. APK bulgusu).
         static readonly Color Capsule     = new Color(0.345f, 0.275f, 0.910f);
-        static readonly Color CapsuleRim  = new Color(0.255f, 0.184f, 0.718f);
+        // KENAR KOYULAŞTIRILDI (2026-08-18): eski #4130B7 zeminden yeterince
+        // ayrışmıyordu; referansta kapsülün dış çizgisi gövdesinden belirgin
+        // biçimde koyu ve altında ayrı bir gölge var.
+        static readonly Color CapsuleRim  = new Color(0.157f, 0.106f, 0.494f);
+        static readonly Color MilestoneShadow = new Color(0.055f, 0.043f, 0.220f, 0.85f);
         static readonly Color Tube        = new Color(0.102f, 0.663f, 0.969f);
         static readonly Color TubeDark    = new Color(0.071f, 0.067f, 0.216f);
-        static readonly Color LockWash    = new Color(0.647f, 0.663f, 0.937f, 0.78f);
+        // KİLİT PERDESİ KOYULAŞTIRILDI (2026-08-18): eskisi açık gri-mavi ve
+        // %78 opaktı, yani kilitli bölge ekranın EN AÇIK öğesi oluyordu —
+        // kullanıcı "kilitli olan kısımlar daha koyu renkte gözükmeli, şu an
+        // beyaz" derken bunu gördü. Kilit bir YOKLUK bildirir; göz onu
+        // aramamalı. Perde artık koyu lacivert ve daha opak.
+        static readonly Color LockWash    = new Color(0.106f, 0.118f, 0.298f, 0.86f);
         static readonly Color LockTag     = new Color(0.145f, 0.157f, 0.310f);
         static readonly Color TubeSeam    = new Color(0.055f, 0.400f, 0.706f);
         static readonly Color CheckGreen  = new Color(0.212f, 0.776f, 0.106f);
         static readonly Color ActionGreen = new Color(0.176f, 0.800f, 0.047f);
         static readonly Color RangeTag    = new Color(0.137f, 0.165f, 0.369f);
+        static readonly Color RangeTagRim = new Color(0.451f, 0.400f, 0.769f);
         static readonly Color Caption     = new Color(0.729f, 0.741f, 0.949f);
         static readonly Color Outline     = new Color(0.086f, 0.075f, 0.290f);
+        static readonly Color RegionTitleEdge = new Color(0.298f, 0.216f, 0.741f);
         static readonly Color Locked      = new Color(0.35f, 0.35f, 0.45f);
 
         // ---- Referanstan ölçülen boyutlar (kanvas birimi) ------------------
@@ -408,11 +419,25 @@ namespace BlockOut.Runtime.UI
             var row = UiKit.CreateRect($"Milestone_{milestone.level}", _content);
             AnchorNormalizedX(row, PillX0, PillX1, y, PillH);
 
+            // ÜÇ KATMAN: gölge → koyu kenar → yüzey.
+            //
+            // DERS (kenar rengi zeminle YARIŞMAMALI): Kapsülün kenarı
+            // `#4130B7` idi ve zemin `#1B215B`; ikisi arasındaki fark kenarı
+            // "biraz farklı bir mor" yapıyordu, sınır değil. Kullanıcı
+            // "level dikdörtgenlerinin dış çizgisi biraz daha koyu, gölgeli
+            // olmalı" derken bunu gördü. Kenar belirgin biçimde koyulaştırıldı
+            // ve ALTINA düşen ayrı bir gölge kopyası eklendi — kalınlık
+            // hissini veren şey kenar değil, o kopya.
+            var shadow = MenuCapsule("Shadow", row, MilestoneShadow);
+            UiKit.Place(shadow, 0f, 0f, 1f, 1f);
+            shadow.rectTransform.offsetMin = new Vector2(0f, -11f);
+            shadow.rectTransform.offsetMax = new Vector2(0f, -11f);
+
             var rim = MenuCapsule("Rim", row, CapsuleRim);
             UiKit.Place(rim, 0f, 0f, 1f, 1f);
 
             var face = MenuCapsule("Face", row, Capsule);
-            UiKit.Place(face, 0.010f, 0.06f, 0.990f, 0.94f);
+            UiKit.Place(face, 0.014f, 0.09f, 0.986f, 0.955f);
 
             var caption = UiKit.CreateLabel("Caption", face.transform, "Level", 38, Caption);
             UiKit.Place(caption, 0.04f, 0.52f, 0.52f, 0.92f);
@@ -454,8 +479,14 @@ namespace BlockOut.Runtime.UI
         {
             var view = new RegionView { From = region.from };
 
+            // Bölge adı: referansta beyaz dolgu + KALIN mor kontur + yumuşak
+            // gölge, yani sayfa başlığıyla aynı "3B kaplama" dili.
+            // `CreateTitle`'ın kontur parametresi paylaşılan materyal yüzünden
+            // yok sayılıyor; `SetOutline` bu etikete kendi kopyasını veriyor
+            // (bkz. UiKit.SetOutline).
             var title = UiKit.CreateTitle($"RegionName_{region.from}", _content, region.name, 62,
-                UiKit.Ink, new Color(0.42f, 0.38f, 0.92f));
+                UiKit.Ink, RegionTitleEdge);
+            UiKit.SetOutline(title, RegionTitleEdge);
             Anchor(title.rectTransform, 0f, y + DiscSize * 0.5f + 68f, 1040f, 100f);
 
             var art = UiSkin.Get(Art.Region(region.art));
@@ -492,8 +523,18 @@ namespace BlockOut.Runtime.UI
             Anchor(ring, 0f, y, DiscSize + 14f, DiscSize + 14f);
 
             // Aralık etiketi dairenin ÜST kenarına biner.
-            var tag = MenuCapsule("Tag", _content, RangeTag);
-            Anchor(tag.rectTransform, 0f, y + DiscSize * 0.5f - 52f, 340f, 84f);
+            // ARALIK ETİKETİ — REFERANSTAN ÖLÇÜLDÜ (`journey.jpeg`).
+            //
+            // Referansta plaka 245×55 piksel (946 genişlikte), yani bizim
+            // tuvalde **280×63**. Bizimki 340×84'tü — %21 geniş, %33 yüksek ve
+            // çerçevesizdi; dairenin üstünde "kocaman koyu bir kutu" gibi
+            // duruyordu. Referansta ayrıca açık mor ince bir çerçevesi var ve
+            // etiketi daireye bağlayan şey o.
+            var tagRim = MenuCapsule("TagRim", _content, RangeTagRim);
+            Anchor(tagRim.rectTransform, 0f, y + DiscSize * 0.5f - 46f, 280f, 63f);
+
+            var tag = MenuCapsule("Tag", tagRim.transform, RangeTag);
+            UiKit.Place(tag, 0f, 0f, 1f, 1f, padding: 4f);
 
             var range = UiKit.CreateTitle("Range", tag.transform, $"lv {region.from} - {region.to}",
                 32, UiKit.Ink, Outline);
