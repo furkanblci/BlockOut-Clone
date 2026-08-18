@@ -8,63 +8,128 @@ Bu dosya her oturum sonunda güncellenir. Aşağısı 2026-08-10 itibarıyla ge�
 
 ---
 
-## 2026-08-17 OTURUM SONU (güncellendi) — BİR BLOCKER AÇIK
+## 2026-08-17 OTURUM SONU — BLOCKER ÇÖZÜLDÜ, YENİ TUR BEKLİYOR
 
-Ayrıntılı kayıt: **`docs/APK-BULGULARI.md`** (21 kullanıcı bulgusu + 2 yeni).
+Ayrıntılı kayıt: **`docs/APK-BULGULARI.md`** (21 kullanıcı bulgusu + 6 yeni,
+27 maddenin 26'sı kapalı).
 
-**Bu oturumda kapanan maddeler:** 4 (günlük ödül), 7 (ana ekran), 9 (Yolculuk),
-13 (Ayarlar), 16 (Liderlik), 21 (Profil), 22 (ödül şeridi), 23 (alt sekme
-çubuğu). Konsol **0 hata**, play modundan çıkıldı, asset'ler kaydedildi.
+### Durum: build çalışıyor
 
-### ⚠️ AÇIK BLOCKER: build'de bölümler gelmiyor (18. madde yeniden açıldı)
+**18. madde ÇÖZÜLDÜ** — bölümlerin gelmeme sebebi ne Newtonsoft ne AOT'muş,
+**motor kodu kırpma**ymış. Cihazdaki hata kartı sebebi iki satırla söyledi:
 
-Kullanıcı APK'yı test etti: **bölümler gelmiyor.** Önceki turdaki `link.xml`
-yetmemiş. Kod okunarak iki gerçek kusur bulundu (ayrıntı `APK-BULGULARI.md`
-18. madde):
+```
+Can't add component because class 'MeshCollider' doesn't exist!
+ArgumentNullException: Value cannot be null. Parameter name: shader
+```
 
-1. `LevelLoader.Validate` içindeki `Dictionary<(int,int), int>` — IL2CPP'de
-   demet anahtarlı sözlük `EqualityComparer<ValueTuple<int,int>>.Default`
-   ister, o da yansımayla üretilir; AOT'ta örneklem yoksa
-   `ExecutionEngineException`. **`link.xml` bunu çözmez** (mesele kırpma
-   değil, kod üretimi). Anahtar tek sayıya çevrildi.
-2. `BuildAndStart` yalnız `Parse`'ı korumaya almıştı; kurulumun geri kalanı
-   (validate, model, tahta, sistemler) korumasızdı — oradan gelen hata
-   `LoadFailure`'ı hiç yazmadan metodu kesiyordu. Artık hepsi tek try/catch.
-3. Hata mesajı 28 puntoluk, tek satır, `NoWrap` bir ipucu satırına
-   basılıyordu; okunamıyordu. Ekranın ortasına hata kartı kondu.
+1. **Shader'lar derlemeye girmiyordu.** Görsel katmanın tamamı
+   `Shader.Find(...)` ile materyal kuruyor; bir shader "Always Included
+   Shaders"da değilse ve gönderilen bir materyalden referanslı değilse
+   derlemede YOKTUR. Aranan beş shader'dan dördü listede yoktu; eklendi.
+2. **`MeshCollider` kırpılmıştı.** `CreatePrimitive` her zaman çarpıştırıcı
+   ekler; oyunda fizik yok, kod onu hemen siliyordu — ama kırpıcı sınıfı
+   tamamen atınca nesne HİÇ kurulamıyordu. `ViewKit.CreateShape` ile 12 çağrı
+   yeri fiziğe hiç dokunmayacak şekilde geçirildi.
 
-**SONRAKİ BUILD'DE NE YAPILACAK:** Bölüm yine açılmazsa ekranda kırmızı bir
-kart ve hatanın **TÜR ADI** çıkacak. O ad teşhisi tek adımda bitirir:
-`ExecutionEngineException` → hâlâ AOT · `NullReferenceException` → sahnede
-bağlanmamış alan · "Bölüm dosyası bulunamadı" → katalog build'e girmemiş.
-Kart çıkmazsa hata gameplay'e girmeden önce (menü/akış tarafında) demektir.
+### Bu oturumda kapanan maddeler
+4 (günlük ödül) · 7 (ana ekran) · 9 (Yolculuk) · 12 (Mağaza tentesi) ·
+13 (Ayarlar) · 16 (Liderlik) · 18 (bölüm yükleme) · 21 (Profil) ·
+22 (ödül şeridi) · 23 (alt sekme çubuğu) · 24 (cihaz hata katı) ·
+25 (sayı biçimi) · 26 (kaybolan can ödülü) · 27 (arayüz tasarım sistemi).
 
-**Geriye kalan üç şey:**
-1. **Uygulama ikonu (1. madde) — SENDEN BİR DOSYA BEKLİYOR.** `art_raw/icon_app.png`
-   (kare, ≥512px). Gelmeden Android ikon yuvaları bağlanamaz. **Build alınabilir
-   ama ikon Unity'nin varsayılanı olur.**
+---
+
+## SONRAKİ OTURUM — ~90 MADDELİK YENİ GERİ BİLDİRİM
+
+Kullanıcı yeni bir test turu yaptı ve **yaklaşık 90 madde** geri bildirim
+topladı. Hepsi ayrı bir oturumda ele alınacak (2026-08-17 gecesi kararı).
+
+**Bu oturuma başlarken yapılacak ilk iş:** maddeleri kullanıcıdan alıp
+`docs/APK-BULGULARI.md`'nin yaptığı gibi tek bir dosyaya numaralı biçimde
+dökmek ve öncelik gruplarına ayırmak. 21 maddelik ilk turda bu yöntem
+işe yaradı: her madde kapanırken NE yapıldığı ve NASIL doğrulandığı yazıldı,
+böylece hiçbiri iki kez açılmadı.
+
+**Önceki turdan devreden, hâlâ açık üç şey:**
+
+1. **Uygulama ikonu (1. madde) — KULLANICIDAN DOSYA BEKLİYOR.**
+   `art_raw/icon_app.png` (kare, ≥512px). Gelmeden Android ikon yuvaları
+   bağlanamaz; build alınır ama ikon Unity'nin varsayılanı olur.
 2. **Koleksiyon görseli (5. madde)** — açık kitap + albüm sekme ikonu
-   (`docs/art-prompts.md` §11). Yerine şimdilik sandık duruyor.
-3. ~~Mağaza (12. madde)~~ — **BİTTİ.** Tente şerit kontrastı ölçülüp
-   düzeltildi (1.32 → 1.43, referansla birebir).
+   (istemler `docs/art-prompts.md` §11). Şimdilik yerinde sandık duruyor.
+3. **Ses** — her şey `SfxSynth` ile kodla sentezleniyor, **müzik hiç yok.**
+   Sahnedeki eksik `AudioListener` bu oturumda eklendi (APK tamamen sessiz
+   çıkıyordu), yani artık duyuluyor; ama duyulan şey sentetik efektlerden
+   ibaret. Ya ücretsiz lisanslı kütüphane (Kenney / freesound CC0) ya da
+   mevcut sentezin katmanlandırılması.
 
-~~Karar bekleyen ekonomi sorunu~~ — **BİTTİ (26. madde).** Canı doluyken
-alınan can ödülü kayboluyordu; fazlası artık `BankedLives`'da bekliyor ve
-can harcandıkça geri veriliyor. Denge sayıları değişmedi.
+**Denge (ölçüldü, dokunulmadı):** editördeki doğrulama aracı 50 bölümde
+0 bozuk / 2 temiz / 48 uyarılı diyor. İçinde gerçek bir sorun var:
+**3 bölümde buz bütçesi tutmuyor** — o kapıların buzu hiç kırılamıyor, kapı
+fiilen dekor. Ayrıca 42/50'de "açılışta tek hamle" uyarısı var; oran o kadar
+yüksek ki önce ÖLÇÜTÜN kendisine bakmak lazım.
 
-**KOD İŞİ KALMADI.** Geriye yalnız senden gelecek iki görsel ve cihaz
-doğrulaması var.
+**Yayına çıkarken kapatılacak:** `DeviceErrorOverlay.Enabled` → `false`
+(test sürümünde açık; yakalanmamış her hatayı ekrana basıyor).
 
-**Bu oturumda öğrenilen iki büyük ders:**
-- **Yakalama yöntemi hatayı GİZLİYORDU.** Aşağıdaki "Yakalama/doğrulama
-  notları" bölümündeki `Capture()` uyarısı artık GEÇERSİZ — tam tersi doğru.
-- **`UiSprites.Circle` düz bir `Image` olarak kutuya GERİLİR.** Kutu kare
-  olmadığı anda daire elipse döner. Projede DÖRT yerde vardı (kapatma
-  çarpısı, kalem rozeti, günlük ödül/Continue çarpıları, mağaza noktaları).
-  Hepsi `UiKit.CreateIcon`'a alındı — o en-boy oranını korur.
-- **Ölçerken KATMANI da ayır.** Alt çubuğun üst kenarında 30 piksel içinde
-  dört ayrı renk var; tek yatay örnekleme üçünü birbirine karıştırıp yanlış
-  "gövde rengi" verdi. Dikey tarama ayırdı.
+---
+
+## BU OTURUMDA ÖĞRENİLEN, TEKRARLANMAMASI GEREKENLER
+
+1. **`Shader.Find` editörde HER ZAMAN çalışır.** Orada bütün shader'lar
+   yüklüdür ve null dönmez. Derlemede çalışması, shader'ın derlemeye
+   GİRDİĞİNİ ayrıca garanti etmene bağlı (Always Included Shaders).
+2. **Kullanmadığın modüle DOKUNMA.** Kırpıcı "kimse kullanmıyorsa at" diye
+   çalışır; kodun geçici olarak dokunduğu her modül ya derlemede tutulmak
+   zorunda kalır ya da orada patlar. `CreatePrimitive` + hemen silinen
+   çarpıştırıcı tam olarak bu tuzaktı.
+3. **Yakalama yöntemi hatayı GİZLEYEBİLİR.** `CaptureOf<T>` yalnız o
+   bileşenin kanvasını çiziyor; alt sekme çubuğu ve sayfa zemini o karede
+   yok. İki gerçek hata (Liderlik'te siyah şerit, birleşik kürsüler) ilk tam
+   ekran `Capture()` çağrısında bir anda ortaya çıktı. **Kıyas için
+   `Capture(ad)` kullan.**
+4. **`UiSprites.Circle` düz bir `Image` olarak kutuya GERİLİR** → kutu kare
+   değilse daire elips olur. Projede dört yerde vardı. `UiKit.CreateIcon`
+   en-boy oranını korur; daire çizen her yerde o kullanılmalı.
+5. **Ölçerken KATMANI ayır.** Plastik bir yüzeyin üst kenarında 30 piksel
+   içinde dört ayrı renk olabiliyor; tek yatay örnekleme üçünü birbirine
+   karıştırıp yanlış "gövde rengi" verdi. Dikey tarama ayırdı.
+6. **Kaynağı değil SONUCU ölç.** Sprite'ın taban rengi ekranda göründüğü
+   renk değil (üstüne parlaklık rampası biniyor). Referansla kıyaslanacak
+   şey ekrandaki piksel; taban renk ondan geri hesaplanmalı.
+7. **`Start`'ların sırası TANIMSIZDIR.** "Benden sonra kurulan" bir şeyi
+   beklemenin tek güvenli yolu bir kare geçirmek.
+8. **ScriptableObject kendi adıyla aynı dosyada olmak zorunda.** Değilse
+   `CreateAsset` yalnız UYARI verip script referansı boş bir varlık üretir;
+   varlık diske yazılır, `Resources.Load` bulur gibi görünür, veri hiç geri
+   okunamaz.
+9. **`EditorApplication.Step()` çağrıldığı komutun İÇİNDE etki etmez.**
+   Adımlar komut dönünce işleniyor; "adımla ve yakala" tek komutta ESKİ
+   kareyi yakalar. Bir komut hareket ettirir, SONRAKİ komut gözlemler.
+10. **Cihazda `Debug.LogError` hiçbir yere gitmez.** Teşhis aracı, teşhis
+    edilecek şeyden BAĞIMSIZ olmalı — bir ekranın hatasını o ekrana
+    yazdırırsan, ekran hiç kurulamadığında elin boş kalır.
+    (`DeviceErrorOverlay` bu yüzden var ve blocker'ı tek turda çözdü.)
+
+---
+
+## ARAYÜZ TASARIM SİSTEMİ (2026-08-17 eklendi)
+
+`Tools > Block Out > Arayüz Tasarımı` (`Ctrl+Shift+U`) — panelleri ELLE
+düzenlemek için. Prefab'a çevrilmedi (ölçü gerekçeleri kod yorumlarında
+duruyor); bunun yerine FARK katmanı:
+
+1. Play moduna gir, ekranı aç → **Referans al**
+2. Hiyerarşide normal Unity araçlarıyla oynat (konum, boyut, renk, punto)
+3. **Değişiklikleri kaydet** → yalnız farklar `Resources/UiLayout.asset`'e
+
+Kod hâlâ tek kaynak; elle dokunulmamış her şey kod değişince yeni değeri
+kendiliğinden alır. Ekran başına "Sıfırla" var. Çalışma anında karede sıfır
+iş: ekran kurulduktan sonra bir kez hiyerarşi geziliyor, kayıtlı düzeltme
+yoksa ilk satırda dönülüyor.
+
+**Kapsam dışı:** yeni öğe ekleme ve hiyerarşi değiştirme hâlâ kod işi.
 
 ---
 

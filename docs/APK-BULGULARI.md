@@ -1147,3 +1147,31 @@ meshi + 4 kapı meshi (çubuk + ok) var.
 korumasız kurulum, görünür hata kartı): hiçbiri bu hatanın sebebi değildi
 ama üçü de gerçek kusurdu ve hata katının o mesajı gösterebilmesi ikinci
 turdaki try/catch genişletmesi sayesinde oldu.
+
+---
+
+## OTURUM KAPANIŞI (2026-08-17 gece)
+
+**27 maddenin 26'sı kapalı.** Açık kalan tek madde: **1. uygulama ikonu** —
+kullanıcıdan `art_raw/icon_app.png` bekliyor (kare, ≥512px).
+
+Yarım kalan iki görsel isteği (kod işi değil):
+- **5. Koleksiyon** — açık kitap + albüm sekme ikonu (`art-prompts.md` §11)
+- İsteğe bağlı: oymalı podyum sütunları (16), doğru renkte `bar_tabs` /
+  `card_tab` (§12). İkisi de şu an prosedürel ve kabul edilebilir durumda.
+
+**Bu dosya BİTTİ sayılır.** Kullanıcı yeni bir test turunda **~90 madde**
+daha topladı; onlar ayrı bir oturumda ve tercihen ayrı bir dosyada
+(`docs/APK-BULGULARI-2.md`) ele alınacak.
+
+### Bu dosyanın yöntemi neden işe yaradı — yeni turda da aynısı yapılsın
+
+1. Her madde NUMARALI ve tek dosyada; kullanıcının cümlesi aynen alıntılanıyor.
+2. Öncelik grupları (blocker / yapısal / ekran ekran) — sıra tartışması bitiyor.
+3. Bir madde kapanırken **ne yapıldığı** ve **nasıl doğrulandığı** yazılıyor;
+   ölçüm varsa sayısı da. Böylece hiçbir madde iki kez açılmadı.
+4. Yanlış çıkan eski ölçümler SİLİNMİYOR, düzeltiliyor ve neden yanlış
+   olduğu yazılıyor. Bu oturumda üç kez kendi eski ölçümüm yanlış çıktı ve
+   üçünü de o notlar sayesinde yakaladım.
+5. Kapanan bir madde sonradan geri açılabiliyor (18. madde iki kez açıldı) —
+   `[x]` yerine `[~]` ve altına yeni tur başlığı.
