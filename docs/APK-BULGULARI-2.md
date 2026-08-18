@@ -841,8 +841,47 @@ sıralı ve temiz."**
   **AÇIK KALAN:** engellerin ve kapıların üzerindeki SAYILARIN görünümü
   (buz sayacı, perde sayacı) henüz referansla kıyaslanmadı.
 
-- [ ] **56.** > "İç içe 2 blok feature'ın visualı çok kötü. Orijinal oyundaki
+- [x] **56.** > "İç içe 2 blok feature'ın visualı çok kötü. Orijinal oyundaki
   gibi olması gerekiyor."
+
+
+  **KÖK SEBEP: görsel katman bilgisine HİÇ bakmıyordu.** `BlockView`
+  `CurrentColor` dışındaki katmanları ekranda göstermiyordu — yani iki
+  katmanlı bir blok tek katmanlıdan ayırt edilemiyordu ve oyuncu ancak kapıya
+  götürüp soyulunca "aa, altında başka renk varmış" diyordu.
+  **DERS: planlanamayan bir kural, kural değil sürprizdir.**
+
+  **REFERANS** (`Levels.mp4` 08:30, 17. bölüm — sarı gövde, yeşil iç): Dış
+  renk bir ÇERÇEVE gibi kenarda kalıyor, ortada içteki rengin gömülü bir
+  paneli duruyor, ikisinin arasında dış rengin AÇIK tonunda ince bir kenar
+  çizgisi var. Ölçüldü: çerçeve her kenarda bloğun ~%20'si.
+
+  **NE YAPILDI.** Üç katman: dış gövde (zaten vardı) → açık kenar (%66) → iç
+  panel (%58). `ViewKit.LayerFill` / `LayerRim` eklendi; dolgu paletin
+  renginin %86'sı (gömülü olduğu için ışığı daha az alır), kenar ise dış
+  rengin beyazla %55 karışımı.
+
+  **İKİ ARTEFAKT BULUNDU VE DÜZELTİLDİ.**
+  1. Panel önce tuğlanın KENDİ (saplamalı) mesh'iyle kuruldu; küçültülen
+     saplamalar dış gövdeninkilerle aynı yükseklikte kalıp içlerinden geçti ve
+     her saplamanın üstünde yıldız benzeri kesişme şekilleri belirdi.
+     Saplamasız silüet mesh'ine geçildi (51. madde için üretilmişti).
+  2. Panel gövdeyle aynı hizadaydı; dış bloğun ORTA saplamaları panelin
+     içinden çıkıp iç rengin üstünde duruyordu (mavi panelin üstünde pembe
+     saplamalar). Panel saplama tepesinin üstüne kaldırıldı — kaldırma miktarı
+     SABİT değil, saplamalı mesh ile silüetin tepe farkından ÖLÇÜLÜYOR; görsel
+     ayarlardan tuğla yüksekliği değişirse kendiliğinden uyuyor.
+
+  **SOYULMA BAĞLANDI.** `GateSystem.Peel` yalnız `SetLayerMaterial`'ı
+  çağırıyordu ve o da yalnız dış rengi değiştiriyordu; iç panel eski rengiyle
+  kalıyordu. Artık `RefreshInnerLayer` de çağrılıyor: katman biterse panel
+  gizleniyor, üç katmanlı blokta sıradaki renge geçiyor.
+  **DERS: bir olayın görsel sonucu tek yerde bitmez.**
+
+  **NASIL DOĞRULANDI.** 15. bölüm (beş katmanlı blok) yakalandı; beş iç panel
+  de doğru renkte (`LayerFill_Blue`, `LayerFill_Yellow`, `LayerFill_Pink`…) ve
+  yakınlaştırılmış karede anatomi referansla aynı: çerçeve → açık kenar →
+  gömülü panel.
 
 ---
 

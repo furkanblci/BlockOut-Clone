@@ -162,7 +162,8 @@ namespace BlockOut.Runtime.Board
             views.BlockRoot = blockRoot; // perde açılınca doğan bloklar da buraya
             foreach (var block in level.Blocks)
                 views.Blocks[block] = BlockView.Create(
-                    blockRoot, block, space, GetBlockMaterial(palette, block.CurrentColor));
+                    blockRoot, block, space, GetBlockMaterial(palette, block.CurrentColor),
+                    palette);
 
             var gateRoot = new GameObject("Gates").transform;
             gateRoot.SetParent(root, false);

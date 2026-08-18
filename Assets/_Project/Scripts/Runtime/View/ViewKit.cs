@@ -147,6 +147,61 @@ namespace BlockOut.Runtime.View
             }
         }
 
+        static readonly Dictionary<BlockColor, Material> _layerFill =
+            new Dictionary<BlockColor, Material>();
+        static readonly Dictionary<BlockColor, Material> _layerRim =
+            new Dictionary<BlockColor, Material>();
+
+        /// <summary>
+        /// İç katmanın dolgusu — renk paletinden bağımsız, KENDİ materyali.
+        ///
+        /// DERS (paylaşılan blok materyalini ödünç alma): İlk düşünce
+        /// `BoardBuilder.GetBlockMaterial` ile aynı materyali kullanmaktı; o
+        /// zaman iç panel dış gövdeyle birebir aynı tonda çıkıyor ve "içteki
+        /// blok" değil "aynı bloğun ortası" gibi okunuyordu. Referansta iç
+        /// panel gömülü olduğu için bir tık KOYU — ışığı daha az alıyor.
+        /// </summary>
+        public static Material LayerFill(ColorPaletteSO palette, BlockColor color)
+        {
+            if (_layerFill.TryGetValue(color, out var cached) && cached != null)
+                return cached;
+
+            var entry = palette != null ? palette.Get(color) : null;
+            Color baseColor = entry != null ? entry.uiColor : Color.gray;
+
+            var shader = Shader.Find("BlockOut/Brick")
+                         ?? Shader.Find("Universal Render Pipeline/Unlit");
+            var mat = new Material(shader) { name = "LayerFill_" + color };
+            var c = baseColor * 0.86f;
+            c.a = 1f;
+            mat.SetColor("_BaseColor", c);
+            _layerFill[color] = mat;
+            return mat;
+        }
+
+        /// <summary>
+        /// İç panelin çevresindeki ince kenar — DIŞ rengin açık tonu.
+        /// Referansta sarı gövdenin ortasındaki yeşil paneli açık sarı bir
+        /// çizgi çeviriyor; o çizgi iki katmanı birbirinden ayıran şey.
+        /// </summary>
+        public static Material LayerRim(ColorPaletteSO palette, BlockColor outerColor)
+        {
+            if (_layerRim.TryGetValue(outerColor, out var cached) && cached != null)
+                return cached;
+
+            var entry = palette != null ? palette.Get(outerColor) : null;
+            Color baseColor = entry != null ? entry.uiColor : Color.gray;
+
+            var shader = Shader.Find("Universal Render Pipeline/Unlit")
+                         ?? Shader.Find("Sprites/Default");
+            var mat = new Material(shader) { name = "LayerRim_" + outerColor };
+            var c = Color.Lerp(baseColor, Color.white, 0.55f);
+            mat.SetColor("_BaseColor", c);
+            if (mat.HasProperty("_Color")) mat.SetColor("_Color", c);
+            _layerRim[outerColor] = mat;
+            return mat;
+        }
+
         static Material _iceRim;
 
         /// <summary>

@@ -32,6 +32,7 @@ namespace BlockOut.Runtime.View
 
         BlockModel _model;
         BoardSpace _space;
+        BlockOut.Runtime.Config.ColorPaletteSO _palette;
         MeshRenderer _renderer;
         MeshFilter _filter;
         GameObject _iceShell;
@@ -42,7 +43,8 @@ namespace BlockOut.Runtime.View
         bool _highlighted;
 
         public static BlockView Create(
-            Transform parent, BlockModel model, BoardSpace space, Material material)
+            Transform parent, BlockModel model, BoardSpace space, Material material,
+            BlockOut.Runtime.Config.ColorPaletteSO palette = null)
         {
             var go = new GameObject($"Block_{model.Id}_{model.CurrentColor}");
             go.transform.SetParent(parent, worldPositionStays: false);
@@ -50,6 +52,7 @@ namespace BlockOut.Runtime.View
             var view = go.AddComponent<BlockView>();
             view._model = model;
             view._space = space;
+            view._palette = palette;
             view._filter = go.AddComponent<MeshFilter>();
             view._filter.sharedMesh = BrickMeshBuilder.Get(model);
 
@@ -59,10 +62,126 @@ namespace BlockOut.Runtime.View
             view._renderer.receiveShadows = false;
 
             view.BuildContactShadow();
+            view.BuildInnerLayer();
             if (model.Axis != MoveAxis.Free) view.BuildAxisArrow();
             view.SyncFromModel();
             if (model.IsFrozen) view.BuildIceShell(parent);
             return view;
+        }
+
+        GameObject _innerPanel, _innerRim;
+
+        /// <summary>
+        /// İÇ İÇE BLOK: alttaki katmanın rengi ÜSTTEN görünür (2. tur, 56. madde).
+        ///
+        /// Kullanıcı: "İç içe 2 blok feature'ın visualı çok kötü. Orijinal
+        /// oyundaki gibi olması gerekiyor."
+        ///
+        /// DERS (görünmeyen kural, olmayan kuraldır): Görsel katman bilgisine
+        /// HİÇ bakmıyordu — `CurrentColor` dışındaki katmanlar ekranda yoktu.
+        /// Yani iki katmanlı bir blok, tek katmanlıdan ayırt edilemiyordu ve
+        /// oyuncu ancak kapıya götürüp soyulunca "aa, altında başka renk
+        /// varmış" diyordu. Bulmacada planlanamayan bir kural, kural değil
+        /// sürprizdir.
+        ///
+        /// REFERANS (`Levels.mp4` 08:30, 17. bölüm — sarı gövde, yeşil iç):
+        /// Dış renk bir ÇERÇEVE gibi kenarda kalıyor, ortada içteki rengin
+        /// gömülü bir paneli duruyor ve ikisinin arasında dış rengin AÇIK
+        /// tonunda ince bir kenar çizgisi var. İç panelin kendi kabartmaları
+        /// da görünüyor.
+        ///
+        /// Üç katman kuruluyor: dış gövde (zaten var) → açık kenar → iç panel.
+        /// Hepsi bloğun ÇOCUĞU: sürüklenirken birlikte gidiyor ve tutma
+        /// ölçeğini paylaşıyor.
+        /// </summary>
+        void BuildInnerLayer()
+        {
+            if (_model.Layers.Count <= 1) return;
+
+            // PANEL DIŞ SAPLAMALARIN ÜSTÜNE KALDIRILIYOR.
+            //
+            // DERS (aynı yükseklikte iki yüzey birbirini deler): Panel önce
+            // gövdeyle aynı hizada duruyordu; dış bloğun ORTA saplamaları
+            // panelin içinden çıkıp iç rengin üstünde duruyordu (mavi panelin
+            // üstünde pembe saplamalar). Paneli saplama tepesinin biraz üstüne
+            // almak, o bölgedeki saplamaları temiz biçimde örtüyor.
+            //
+            // Kaldırma miktarı ÖLÇÜLEN değerden: saplamalı mesh'in tepesi ile
+            // saplamasız gövdenin tepesi arasındaki fark. Sabit yazmak, görsel
+            // ayarlardan tuğla yüksekliği değişince yanlış kalırdı.
+            float studdedTop = _filter != null && _filter.sharedMesh != null
+                ? _filter.sharedMesh.bounds.max.y
+                : BrickMeshBuilder.Height;
+            var silhouette = BrickMeshBuilder.GetSilhouette(_model);
+            float bodyTop = silhouette != null ? silhouette.bounds.max.y : studdedTop;
+            float lift = Mathf.Max(0.012f, studdedTop - bodyTop + 0.006f);
+
+            // Kenar çizgisi: iç panelden biraz büyük, dış rengin AÇIK tonu.
+            // Panelden bir tık AŞAĞIDA ki panelin altından ince bir hat olarak
+            // görünsün, onu örtmesin.
+            _innerRim = new GameObject("InnerRim");
+            _innerRim.transform.SetParent(transform, worldPositionStays: false);
+            _innerRim.transform.localPosition = new Vector3(0f, lift - 0.004f, 0f);
+            _innerRim.transform.localScale = new Vector3(RimShare, 1f, RimShare);
+            _innerRim.AddComponent<MeshFilter>().sharedMesh = silhouette;
+            var rimRenderer = _innerRim.AddComponent<MeshRenderer>();
+            rimRenderer.sharedMaterial = ViewKit.LayerRim(_palette, _model.CurrentColor);
+            rimRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            rimRenderer.receiveShadows = false;
+
+            // İç panel: sıradaki katmanın rengi, DÜZ (saplamasız) bir levha.
+            //
+            // DERS (iki saplama ızgarası üst üste binmez): Panel önce tuğlanın
+            // KENDİ (saplamalı) mesh'iyle kuruldu. Küçültülen saplamalar dış
+            // gövdenin saplamalarıyla aynı yükseklikte kalıp içlerinden geçti;
+            // ekranda her saplamanın üstünde yıldız benzeri kesişme şekilleri
+            // belirdi. Referansta iç panel GÖMÜLÜ ve pürüzsüz — bir pencerenin
+            // içindeki başka renk gibi. Silüet mesh'i (51. madde için üretildi)
+            // tam olarak bunu veriyor.
+            _innerPanel = new GameObject("InnerLayer");
+            _innerPanel.transform.SetParent(transform, worldPositionStays: false);
+            _innerPanel.transform.localPosition = new Vector3(0f, lift, 0f);
+            _innerPanel.transform.localScale = new Vector3(PanelShare, 1f, PanelShare);
+            _innerPanel.AddComponent<MeshFilter>().sharedMesh = silhouette;
+            var panelRenderer = _innerPanel.AddComponent<MeshRenderer>();
+            panelRenderer.sharedMaterial = ViewKit.LayerFill(_palette, _model.Layers[1]);
+            panelRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            panelRenderer.receiveShadows = false;
+        }
+
+        /// <summary>
+        /// Kenar çizgisinin ve iç panelin bloğa oranı — referanstan ölçüldü:
+        /// sarı çerçeve her kenarda bloğun ~%20'si, yani iç panel ~%60.
+        /// </summary>
+        const float RimShare = 0.66f;
+        const float PanelShare = 0.58f;
+
+        /// <summary>
+        /// Katman soyulunca iç panel de yenilenir: yeni dış renk artık eski
+        /// içtekidir, ve altında BAŞKA bir katman varsa onu göstermek gerekir.
+        ///
+        /// DERS (durum değişince GÖRSELİ de güncelle): İlk kurulumda bu metot
+        /// yoktu; soyulan blok yeni rengini alıyor ama iç paneli ESKİ rengiyle
+        /// ekranda kalıyordu — üç katmanlı bir blokta ikinci soyulmadan sonra
+        /// panel yalan söylemeye başlıyordu.
+        /// </summary>
+        void RefreshInnerLayer()
+        {
+            if (_model.Layers.Count > 1)
+            {
+                if (_innerPanel == null) { BuildInnerLayer(); return; }
+
+                _innerPanel.SetActive(true);
+                _innerRim.SetActive(true);
+                _innerPanel.GetComponent<MeshRenderer>().sharedMaterial =
+                    ViewKit.LayerFill(_palette, _model.Layers[1]);
+                _innerRim.GetComponent<MeshRenderer>().sharedMaterial =
+                    ViewKit.LayerRim(_palette, _model.CurrentColor);
+                return;
+            }
+
+            if (_innerPanel != null) _innerPanel.SetActive(false);
+            if (_innerRim != null) _innerRim.SetActive(false);
         }
 
         /// <summary>
@@ -561,7 +680,19 @@ namespace BlockOut.Runtime.View
         }
 
         /// <summary>Katman soyulunca dış rengin materyali değişir.</summary>
-        public void SetLayerMaterial(Material material) => _renderer.sharedMaterial = material;
+        /// <summary>
+        /// Katman soyulunca dış gövdenin materyali yenilenir — VE iç panel de.
+        ///
+        /// DERS (bir olayın görsel sonucu tek yerde bitmez): `GateSystem.Peel`
+        /// yalnız bu metodu çağırıyordu ve o da yalnız dış rengi değiştiriyordu.
+        /// İç panel eski rengiyle ekranda kalıyor, üç katmanlı bir blokta
+        /// ikinci soyulmadan sonra oyuncuya yanlış renk gösteriyordu.
+        /// </summary>
+        public void SetLayerMaterial(Material material)
+        {
+            _renderer.sharedMaterial = material;
+            RefreshInnerLayer();
+        }
 
         /// <summary>
         /// "Bu blok kımıldamıyor" tepkisi: kısa, yatay bir titreme.
