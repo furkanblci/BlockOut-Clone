@@ -426,7 +426,7 @@ sıralı ve temiz."**
   ve `Refresh` onu yalnız seçilide açıyor. Renkler `sıralama.jpeg`'ten yeniden
   ölçüldü: kuyu #3628A1, pasif #6553FD, aktif #0085FE, ışık #03D4FF.
 
-- [ ] **12.** > "Yine sıralama kürsüsü kısmı da çok basit duruyor. Bizimki orası
+- [x] **12.** > "Yine sıralama kürsüsü kısmı da çok basit duruyor. Bizimki orası
   için tasarım çıkartmamız lazım. Yapay zekâya kürsüyü yaptırmalıyız."
 - [x] **13.** > "Avatarların arka planı hiç yok. Hiç değilse farklı renkte
   kullanalım avatarların arka planını."
@@ -436,7 +436,7 @@ sıralı ve temiz."**
   olsaydı aynı oyuncu her açılışta başka renk alırdı. Oyuncunun kendi satırı
   turkuaz, listede tek.
 
-- [ ] **14.** > "Arka planı da kendimiz çizmişiz. Yapay zekâya uyumlu bir görsel
+- [x] **14.** > "Arka planı da kendimiz çizmişiz. Yapay zekâya uyumlu bir görsel
   yaptıralım. O ağaçları kendimiz çizdirmek yerine ağaçlık bir alan çizdirelim."
 - [x] **15.** > "Yine 1., 2., 3. sıralaması da kötü gözüküyor."
 
@@ -480,7 +480,7 @@ sıralı ve temiz."**
 
 ### D3 — Koleksiyon (Collection)
 
-- [ ] **20.** > "Collection kısmında referans görsele benzetmemişiz. Gerekirse
+- [x] **20.** > "Collection kısmında referans görsele benzetmemişiz. Gerekirse
   prompt çıkartalım dedim bunun için."
 
   **DURUM: İSTEM HAZIR, GÖRSEL BEKLİYOR.** `docs/art-prompts.md` §11 yeniden
@@ -491,7 +491,7 @@ sıralı ve temiz."**
   Eski istem kullanılsaydı ekrana referansla alakasız iki görsel girecekti.
   **DERS: bir istemi yazmadan önce referansa BÜYÜTEREK bak.**
 
-- [ ] **21.** > "Şu an sandık alakasız duruyor."
+- [x] **21.** > "Şu an sandık alakasız duruyor."
 
   **DURUM: İSTEM HAZIR, GÖRSEL BEKLİYOR.** `docs/art-prompts.md` §11 yeniden
   yazıldı — **eski istemler YANLIŞTI.** Referans büyütülerek incelenince
@@ -501,7 +501,7 @@ sıralı ve temiz."**
   Eski istem kullanılsaydı ekrana referansla alakasız iki görsel girecekti.
   **DERS: bir istemi yazmadan önce referansa BÜYÜTEREK bak.**
 
-- [ ] **22.** > "Menü ikonu da alakasız duruyor."
+- [x] **22.** > "Menü ikonu da alakasız duruyor."
 
   **DURUM: İSTEM HAZIR, GÖRSEL BEKLİYOR.** `docs/art-prompts.md` §11 yeniden
   yazıldı — **eski istemler YANLIŞTI.** Referans büyütülerek incelenince
@@ -1006,13 +1006,13 @@ sıralı ve temiz."**
 
 ## E — GÖRSEL VARLIK GEREKTİRENLER
 
-- [ ] **35. Grand açılışı orijinal görselle.**
+- [x] **35. Grand açılışı orijinal görselle.**
   > "İlk açılışta direkt Grand'ın orijinal görselini kullanalım. Bizim
   > yazdığımız 'Grand' orijinal değil."
 
   Kaynak elde var: `grand açılış.jpeg`.
 
-- [ ] **49. BLOCK OUT! logosu.**
+- [x] **49. BLOCK OUT! logosu.**
   > "Splash screende oyun kazandığımızda vs. çıkan 'Block out!' yazısı bildiğin
   > oyunun orijinal logosu olmalı. Bizim yazdığımız çok kötü duruyor."
 
@@ -1099,7 +1099,7 @@ sıralı ve temiz."**
   görünüyor. Oyunun kendi kare hızında kıvılcım ömrü 0,95 sn ve patlama
   aralığı 0,26 sn — yani her an üç dört patlama üst üste biniyor.
 
-- [ ] **38. Yeniden oyna ikonu.**
+- [x] **38. Yeniden oyna ikonu.**
   > "Yeniden Oyna ikonu değiştirilmesi lazım. Bunu da butonu yapay zekâya
   > yaptıralım."
 
@@ -1230,3 +1230,80 @@ sıralı ve temiz."**
 
 > Not: numaralar kullanıcının anlatım sırasına göre 1-56 arası; bazı numaralar
 > aynı işin parçası olduğu için madde sayısı 48.
+
+---
+
+## KAPANIŞ — 56/56 (2026-08-18)
+
+Son sekiz madde (12, 14, 20, 21, 22, 35, 38, 49) görsel bekliyordu.
+Görseller üretildi, kesildi ve ekranlara bağlandı.
+
+### Nasıl doğrulandı
+
+| madde | nerede | doğrulama |
+|---|---|---|
+| 12 kürsü | Liderlik podyumu | ekranda; dört prosedürel katman tek görsele indi |
+| 14 arka plan | Liderlik park sahnesi | ekranda; maskeyle sekmelerin altına taşması engellendi |
+| 20/21 koleksiyon | Koleksiyon ekranı ortası | ekranda; sayfa kesim hasarı düzeltildi (saydam %0) |
+| 22 sekme ikonu | Alt çubuk | ekranda; sandık yerine albüm |
+| 35 stüdyo logosu | Açılış | kesim referansla birebir; ekran birleştirmeyle doğrulandı |
+| 38 yeniden başlat | Oyun içi HUD | ekranda |
+| 49 oyun logosu | Açılış + kazanma | ekranda; genişlik %69,5 (referans %69,5) |
+
+### İKİ LOGO ÜRETİLMEDİ, KESİLDİ
+
+Yapay zekâ ile üretilen logo referansa benzemedi. **Bir markanın harfleri
+onun kimliğidir**; "kalın, yuvarlak, altın" diye tarif edilince ortaya hep
+başka bir şey çıkıyor. İkisi de referans karelerinden kesildi:
+
+- `logo_studio`: beyaz harfler kırmızı zeminde — yeşil kanal ayırıcı olarak
+  yetti, tek seferde temiz.
+- `logo_game`: gökyüzü zemininde otomatik kesim İŞE YARAMADI (degrade
+  logonun yumuşak kenarından içeri sızıp %98'ini yedi). Çözüm ayrımı
+  değiştirmekti: gökyüzü ve bulut "yeşili kırmızıdan büyük" (mavimsi),
+  logonun mor halesi tersi. Ayrıca kazanma karelerinin MEDYANI alınınca
+  konfeti siliniyor ve sabit logo kalıyor — şeklin doğrusu onunla
+  doğrulandı.
+
+### KESİM ARACININ İKİ KEZ ISIRAN BOŞLUĞU
+
+`tools/cutout.py` varsayılan toleransı (40), zemine YAKIN renkli nesnelerin
+içine sızıyor. Üretilen zemin `#CCCCCC` açık gri; kürsülerin gövdesi krem,
+yeniden başlat oku lavanta, kitabın sayfaları krem — dördü de içi boşalmış
+çıktı. Tolerans 14-16'ya düşürülünce düzeldi.
+
+**`check_art.py` dördünü de "temiz" dedi.** Yani elimizdeki hasar tarayıcı
+bu hasar türünü görmüyor. Kural: zemine yakın renkli nesnelerde çıktı GÖZLE
+doğrulanacak — kürsülerde ben yakaladım, kitapta kullanıcı yakaladı.
+
+### KAZANMA KUTLAMASI SAYILARAK AYARLANDI
+
+Referans karelerinde logo bölgesi dışlanıp bağlı bileşenler sayıldı: aynı
+anda ortalama **276 konfeti** (161-432), parça kenarı ekranın **%1,07'si**.
+Bu ölçüm üç ayrı hatayı ortaya çıkardı:
+
+1. **`yield` en az bir kare bekler.** Her parça için
+   `WaitForSecondsRealtime(duration / count)` yazılıydı; 300 parça 1,2
+   saniyeye yayılınca aralık 4 ms çıkıyor ama coroutine karede bir kez
+   ilerler. 60 fps'te ekrana 300 değil **72** konfeti düşüyordu. Süreye
+   yayılan üretim, kare başına DÜŞEN PAY olarak yazıldı → ölçülen tepe
+   52'den 242'ye çıktı.
+2. **`preserveAspect` hangi kenara sığdırır?** Dikdörtgen görselden yassı
+   olduğu için YÜKSEKLİĞE sığdırdı ve logo 0.695 yerine 0.589 çıktı.
+   İstenen kenarın bağlayıcı olması için diğer kenar bol bırakılmalı.
+3. **Fişek logonun üstünde patlıyordu.** Konumlar orta şeritten çıkarıldı.
+
+İlk parti konfeti ekrana YAYILARAK doğuyor, tepeden değil: referansta
+kutlama başlar başlamaz ekranın tamamı dolu.
+
+### AÇIK KALAN TEK ŞEY — kürsü görselinin sadakati
+
+Kaideler prosedürel hâlden belirgin biçimde iyi ve tarza uygun, ama
+referansla **birebir değil**. Referansta minder çok daha parlak magenta ve
+puf gibi; gövdenin ön yüzünde ismin asıldığı SARKAN BİR BAYRAK var ve
+madalya o bayraktan sarkıyor. Üretilen görselde minder koyu mor kadife ve
+bayrak yok, bu yüzden ad levhası kapsül olarak minderin üstüne biniyor.
+
+Kapatmanın şartı buydu değil — madde "kürsü çok basit duruyor" diyordu ve
+o giderildi. Ama birebir isteniyorsa istem yeniden yazılmalı: parlak
+magenta puf minder + ön yüzde sarkan bayrak.
