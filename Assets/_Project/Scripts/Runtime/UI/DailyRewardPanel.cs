@@ -90,16 +90,16 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(panel._card, 0.045f, 0.230f, 0.955f, 0.788f);
 
             var rim = UiKit.CreateRoundedPanel("Rim", panel._card, CardRim);
-            rim.pixelsPerUnitMultiplier = 0.34f;
+            UiKit.SetSliceScale(rim, 0.34f);
             UiKit.Place(rim, 0f, 0f, 1f, 1f);
 
             var face = UiKit.CreateRoundedPanel("Face", panel._card, CardFace);
-            face.pixelsPerUnitMultiplier = 0.36f;
+            UiKit.SetSliceScale(face, 0.36f);
             face.raycastTarget = false;
             UiKit.Place(face, 0f, 0f, 1f, 1f, padding: 9f);
 
             var well = UiKit.CreateRoundedPanel("Well", panel._card, Well);
-            well.pixelsPerUnitMultiplier = 0.45f;
+            UiKit.SetSliceScale(well, 0.45f);
             well.raycastTarget = false;
             UiKit.Place(well, 0.042f, 0.215f, 0.958f, 0.800f);
 
@@ -148,7 +148,7 @@ namespace BlockOut.Runtime.UI
 
             // KONTUR — paylaşılan başlık materyali `CreateTitle`'a verilen
             // rengi sessizce yok sayıyor (bu projede yedinci tuzak).
-            UiKit.SetOutline(title, InkEdge, 0.46f);
+            UiKit.SetOutline(title, InkEdge);
         }
 
         static void BuildClose(Transform card, UnityEngine.Events.UnityAction onClick)
@@ -222,12 +222,12 @@ namespace BlockOut.Runtime.UI
             glow.enabled = false;
 
             var rim = UiKit.CreateRoundedPanel("Rim", root, MenuPage.Darken(TileFuture, 0.45f));
-            rim.pixelsPerUnitMultiplier = 0.8f;
+            UiKit.SetSliceScale(rim, 0.8f);
             rim.raycastTarget = false;
             UiKit.Place(rim, 0f, 0f, 1f, 1f);
 
             var face = UiKit.CreateRoundedPanel("Face", root, TileFuture);
-            face.pixelsPerUnitMultiplier = 0.85f;
+            UiKit.SetSliceScale(face, 0.85f);
             face.raycastTarget = false;
             UiKit.Place(face, 0f, 0f, 1f, 1f, padding: 6f);
 
@@ -237,7 +237,7 @@ namespace BlockOut.Runtime.UI
 
             // Alınmış günün üstüne inen perde + yeşil tik.
             var dim = UiKit.CreateRoundedPanel("Dim", root, new Color(0.02f, 0.01f, 0.06f, 0.55f));
-            dim.pixelsPerUnitMultiplier = 0.85f;
+            UiKit.SetSliceScale(dim, 0.85f);
             dim.raycastTarget = false;
             UiKit.Place(dim, 0f, 0f, 1f, 1f, padding: 6f);
             dim.enabled = false;

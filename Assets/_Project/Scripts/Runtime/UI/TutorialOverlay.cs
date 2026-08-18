@@ -107,13 +107,13 @@ namespace BlockOut.Runtime.UI
             {
                 var ring = UiKit.CreateRoundedPanel("Ring", holder,
                     new Color(1f, 1f, 1f, 0.30f));
-                ring.pixelsPerUnitMultiplier = 0.05f;
+                UiKit.SetSliceScale(ring, 0.05f);
                 ring.raycastTarget = false;
                 UiKit.Place(ring, 0f, 0f, 1f, 1f);
 
                 var dot = UiKit.CreateRoundedPanel("Dot", holder,
                     new Color(1f, 1f, 1f, 0.85f));
-                dot.pixelsPerUnitMultiplier = 0.05f;
+                UiKit.SetSliceScale(dot, 0.05f);
                 dot.raycastTarget = false;
                 UiKit.Place(dot, 0.30f, 0.30f, 0.70f, 0.70f);
             }

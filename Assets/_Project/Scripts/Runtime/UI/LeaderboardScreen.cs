@@ -297,7 +297,7 @@ namespace BlockOut.Runtime.UI
             // süs için yeterli, kendi görseline gerek yok.
             var grass = UiKit.CreateRoundedPanel("Grass", band,
                 new Color(0.361f, 0.729f, 0.235f));
-            grass.pixelsPerUnitMultiplier = 0.22f;
+            UiKit.SetSliceScale(grass, 0.22f);
             grass.raycastTarget = false;
             UiKit.Place(grass, -0.04f, -0.02f, 1.04f, 0.30f);
 
@@ -360,13 +360,13 @@ namespace BlockOut.Runtime.UI
                 // vermiyor.
                 var edge = UiKit.CreateRoundedPanel("Edge", pillar,
                     new Color(0.702f, 0.627f, 0.494f));
-                edge.pixelsPerUnitMultiplier = 0.30f;
+                UiKit.SetSliceScale(edge, 0.30f);
                 edge.raycastTarget = false;
                 UiKit.Place(edge, 0f, 0f, 1f, 0.82f);
 
                 var body = UiKit.CreateRoundedPanel("Body", pillar,
                     new Color(0.910f, 0.851f, 0.753f));
-                body.pixelsPerUnitMultiplier = 0.32f;
+                UiKit.SetSliceScale(body, 0.32f);
                 body.raycastTarget = false;
                 UiKit.Place(body, 0f, 0f, 1f, 0.82f, padding: 7f);
 
@@ -374,12 +374,12 @@ namespace BlockOut.Runtime.UI
                 // yüksekliğinin yarısını geçince yuvarlak panel elipse dönüyor.
                 var capEdge = UiKit.CreateRoundedPanel("CapEdge", pillar,
                     MenuPage.Darken(Podium, 0.72f));
-                capEdge.pixelsPerUnitMultiplier = 0.70f;
+                UiKit.SetSliceScale(capEdge, 0.70f);
                 capEdge.raycastTarget = false;
                 UiKit.Place(capEdge, 0f, 0.74f, 1f, 1f);
 
                 var cap = UiKit.CreateRoundedPanel("Cap", pillar, Podium);
-                cap.pixelsPerUnitMultiplier = 0.75f;
+                UiKit.SetSliceScale(cap, 0.75f);
                 cap.raycastTarget = false;
                 UiKit.Place(cap, 0f, 0.74f, 1f, 1f, padding: 7f);
 
@@ -584,7 +584,7 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(avatar, 0.175f, 0.06f, 0.305f, 0.94f);
             var frame = UiKit.CreateRoundedPanel("Frame", avatar,
                 new Color(0.788f, 0.769f, 0.976f));
-            frame.pixelsPerUnitMultiplier = 0.55f;
+            UiKit.SetSliceScale(frame, 0.55f);
             UiKit.Place(frame, 0f, 0f, 1f, 1f);
             // avatarIndex < 0 => OYUNCUNUN kendi satırı; kendi avatarını taşır.
             var portrait = UiKit.CreateIcon("Portrait", frame.transform,

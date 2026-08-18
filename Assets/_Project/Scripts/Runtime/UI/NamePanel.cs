@@ -49,7 +49,7 @@ namespace BlockOut.Runtime.UI
             scrim.raycastTarget = true;
 
             panel._card = UiKit.CreateRoundedPanel("Card", holder, MenuPage.Panel);
-            panel._card.pixelsPerUnitMultiplier = 0.30f;
+            UiKit.SetSliceScale(panel._card, 0.30f);
             UiKit.Place(panel._card, 0.085f, 0.400f, 0.915f, 0.620f);
 
             // Başlık kartın ÜST KENARINA biner (bu projedeki bütün panellerde
@@ -58,7 +58,7 @@ namespace BlockOut.Runtime.UI
             var title = UiKit.CreateTitle("Title", panel._card.transform, "Edit Name", 56,
                 MenuPage.Ink, MenuPage.InkDark);
             UiKit.Place(title, 0.06f, 0.90f, 0.94f, 1.16f);
-            UiKit.SetOutline(title, MenuPage.InkDark, 0.28f);
+            UiKit.SetOutline(title, MenuPage.InkDark);
 
             panel.BuildField(panel._card.transform);
 

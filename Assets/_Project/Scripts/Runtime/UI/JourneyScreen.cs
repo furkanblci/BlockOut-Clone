@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UiKit = GameKit.UI.UiKit;
+using UiCornerFit = GameKit.UI.UiCornerFit;
 
 namespace BlockOut.Runtime.UI
 {
@@ -235,7 +236,7 @@ namespace BlockOut.Runtime.UI
             // paylaşıyor. Tek bir başlığa özel kontur istiyorsan `SetOutline`
             // çağırmak ZORUNDASIN. Yukarıdaki satırdaki renk de bu yüzden tek
             // başına işe yaramıyordu.
-            UiKit.SetOutline(title, new Color(0.204f, 0.145f, 0.588f), 0.55f);
+            UiKit.SetOutline(title, new Color(0.204f, 0.145f, 0.588f));
         }
 
         void BuildScrollArea(Transform root)
@@ -609,16 +610,14 @@ namespace BlockOut.Runtime.UI
 
         // ---- Yardımcılar ----------------------------------------------------
 
-        static Image MenuCapsule(string name, Transform parent, Color color)
-        {
-            var rect = UiKit.CreateRect(name, parent);
-            var image = rect.gameObject.AddComponent<Image>();
-            image.sprite = MenuSprites.Capsule;
-            image.type = Image.Type.Sliced;
-            image.color = color;
-            image.raycastTarget = false;
-            return image;
-        }
+        /// <summary>
+        /// Yolculuk'un yüzeyi — <see cref="MenuPage.Capsule"/>'ün kopyasıydı,
+        /// şekil düzeltmesi tek yerde kalsın diye ona bağlandı. Kilometre taşı
+        /// kapsülleri, "Lv1-20" etiketi ve yeşil oynat düğmesi buradan geliyor.
+        /// </summary>
+        static Image MenuCapsule(string name, Transform parent, Color color,
+                                 float cornerShare = UiCornerFit.HouseShare)
+            => MenuPage.Capsule(name, parent, color, cornerShare);
 
         static Color Darken(Color color, float factor) =>
             new Color(color.r * factor, color.g * factor, color.b * factor, color.a);

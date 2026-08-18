@@ -105,7 +105,7 @@ namespace BlockOut.Runtime.UI
             var title = UiKit.CreateTitle("Title", page, "Time's Up!", 82,
                 TitleCream, TitleRed);
             UiKit.Place(title, 0.146f, 0.742f, 0.859f, 0.805f);
-            UiKit.SetOutline(title, TitleRed, 0.34f);
+            UiKit.SetOutline(title, TitleRed);
 
             // Referansta ALTIN bir kronometre var; elimizdeki en yakın görsel
             // süre yardımcısının YEŞİL çalar saati. Aynı şeyi anlatıyor ve

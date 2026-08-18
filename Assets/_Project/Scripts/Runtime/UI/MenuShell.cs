@@ -243,13 +243,13 @@ namespace BlockOut.Runtime.UI
 
                 var cardRim = UiKit.CreateRoundedPanel("Rim", card,
                     new Color(0.161f, 0.106f, 0.549f));
-                cardRim.pixelsPerUnitMultiplier = 0.45f;
+                UiKit.SetSliceScale(cardRim, 0.45f);
                 cardRim.raycastTarget = false;
                 UiKit.Place(cardRim, 0f, 0f, 1f, 1f);
 
                 var cardFace = UiKit.CreateRoundedPanel("Face", card,
                     new Color(0.420f, 0.396f, 0.976f));
-                cardFace.pixelsPerUnitMultiplier = 0.50f;
+                UiKit.SetSliceScale(cardFace, 0.50f);
                 cardFace.raycastTarget = false;
                 // Kenarlık genişliği referanstan: kartın koyu bandı 18 piksel
                 // (946 genişlikte), yani bizim tuvalde ~20 birim.
@@ -369,9 +369,20 @@ namespace BlockOut.Runtime.UI
 
             SlideSwap(previous, key);
 
-            foreach (var (_, card, icon, caption, tabKey) in _tabButtons)
+            foreach (var (tabButton, card, icon, caption, tabKey) in _tabButtons)
             {
                 bool selected = tabKey == key;
+
+                // AÇIK sekme basınca KIMILDAMAZ (referans davranışı). Erken
+                // çıkış zaten gezinmeyi engelliyordu ama his bileşeni bundan
+                // habersizdi ve düğme yine küçülüp büyüyordu — oyuncu olmayan
+                // bir eylemi tetikliyormuş gibi ekranı oynatabiliyordu.
+                // Titreşim susmuyor: dokunuş yine "duyuldum" diyor.
+                if (tabButton != null)
+                {
+                    var feel = tabButton.GetComponent<GameKit.UI.UiButtonFeel>();
+                    if (feel != null) feel.Muted = selected;
+                }
 
                 // Kart yalnız seçilide görünür ve çubuğun üstüne taşar.
                 if (card != null) card.gameObject.SetActive(selected);

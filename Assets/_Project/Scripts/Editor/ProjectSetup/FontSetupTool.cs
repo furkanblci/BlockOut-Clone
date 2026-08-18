@@ -111,19 +111,55 @@ namespace BlockOut.Editor.ProjectSetup
         /// </summary>
         static bool EnsureTitleMaterial(TMP_FontAsset asset)
         {
-            if (AssetDatabase.LoadAssetAtPath<Material>(TitleMaterialPath) != null) return false;
+            var material = AssetDatabase.LoadAssetAtPath<Material>(TitleMaterialPath);
+            bool created = material == null;
 
-            var material = new Material(asset.material);
-            material.EnableKeyword("OUTLINE_ON");
-            material.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.22f);
-            material.SetColor(ShaderUtilities.ID_OutlineColor, new Color(0.12f, 0.07f, 0.25f));
-            material.SetFloat(ShaderUtilities.ID_UnderlayOffsetX, 0.6f);
-            material.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -0.9f);
-            material.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0.15f);
+            if (created)
+            {
+                material = new Material(asset.material);
+                Directory.CreateDirectory(Path.GetDirectoryName(TitleMaterialPath));
+                AssetDatabase.CreateAsset(material, TitleMaterialPath);
+            }
 
-            Directory.CreateDirectory(Path.GetDirectoryName(TitleMaterialPath));
-            AssetDatabase.CreateAsset(material, TitleMaterialPath);
+            // DERS ("varsa dokunma" ayarı DONDURUR): Burası eskiden materyal
+            // varsa hemen çıkıyordu. Niyet "kullanıcının elle yaptığı ayarı
+            // ezme" idi; sonuç, koddaki değerler değiştiğinde diske YAZILMIŞ
+            // eski materyalin öylece kalması oldu. Kontur kalınlığı düzeltildi,
+            // ekranda hiçbir şey değişmedi ve suç kodda arandı. Kurulum aracı
+            // KURAR — kaynak koddaki değer tek doğruluk kaynağıysa, her
+            // çalıştırmada onu yazmalı.
+            ApplyTitleLook(material);
+            EditorUtility.SetDirty(material);
             return true;
+        }
+
+        /// <summary>
+        /// Başlık görünümü REFERANSTAN ÖLÇÜLDÜ (2026-08-18, `market.jpeg` ve
+        /// oynanış videosunun duraklat karesi).
+        ///
+        /// Ölçüm: referansta kontur kalınlığı harfin çizgi kalınlığının
+        /// **~1/12'si** (büyük harf yüksekliği 104px iken kontur ~4px). Bizde
+        /// 0.22 kalınlıkla oran ~%78'e çıkıyordu — harfin içi konturun içinde
+        /// kaybolmuştu; kullanıcının "Shop yazısının outline'ı çok fazla"
+        /// bulgusu buydu.
+        ///
+        /// Referansın "3B'ymiş gibi" hissi konturdan DEĞİL, konturun altındaki
+        /// YUMUŞAK GÖLGEDEN geliyor. Gölge daha önce de ayarlanmıştı ama
+        /// <c>UNDERLAY_ON</c> anahtarı hiç açılmadığı için shader onu hiç
+        /// çizmedi: TMP'de değeri yazmak yetmez, katmanı ayrıca AÇMAK gerekir.
+        /// </summary>
+        static void ApplyTitleLook(Material material)
+        {
+            material.EnableKeyword("OUTLINE_ON");
+            material.SetFloat(ShaderUtilities.ID_OutlineWidth, GameKit.UI.UiKit.TitleOutlineWidth);
+            material.SetColor(ShaderUtilities.ID_OutlineColor, new Color(0.047f, 0.063f, 0.349f));
+
+            material.EnableKeyword("UNDERLAY_ON");
+            material.SetColor(ShaderUtilities.ID_UnderlayColor, new Color(0f, 0f, 0f, 0.45f));
+            material.SetFloat(ShaderUtilities.ID_UnderlayOffsetX, 0f);
+            material.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -0.55f);
+            material.SetFloat(ShaderUtilities.ID_UnderlayDilate, 0.10f);
+            material.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0.25f);
         }
 
         /// <summary>

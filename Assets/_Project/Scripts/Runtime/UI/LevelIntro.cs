@@ -189,7 +189,7 @@ namespace BlockOut.Runtime.UI
             for (int i = 0; i < sparks; i++)
             {
                 var spark = UiKit.CreateRoundedPanel("Spark", _root, color);
-                spark.pixelsPerUnitMultiplier = 0.10f;   // uçları yuvarlak çizgi
+                UiKit.SetSliceScale(spark, 0.10f);   // uçları yuvarlak çizgi
                 spark.raycastTarget = false;
 
                 var rect = spark.rectTransform;

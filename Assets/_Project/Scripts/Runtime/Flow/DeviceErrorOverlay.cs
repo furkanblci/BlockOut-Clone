@@ -66,7 +66,7 @@ namespace BlockOut.Runtime.Flow
             // düşer ve asıl işini yapamaz.
             var back = UiKit.CreateRoundedPanel("Back", overlay._root,
                 new Color(0.10f, 0.015f, 0.035f, 1f));
-            back.pixelsPerUnitMultiplier = 0.4f;
+            UiKit.SetSliceScale(back, 0.4f);
             back.raycastTarget = true;
             UiKit.Place(back, 0f, 0f, 1f, 1f);
 
@@ -86,7 +86,7 @@ namespace BlockOut.Runtime.Flow
             UiKit.Place(close, 0.34f, 0.015f, 0.66f, 0.105f);
             var closeFace = UiKit.CreateRoundedPanel("Face", close,
                 new Color(0.60f, 0.10f, 0.14f));
-            closeFace.pixelsPerUnitMultiplier = 0.9f;
+            UiKit.SetSliceScale(closeFace, 0.9f);
             UiKit.Place(closeFace, 0f, 0f, 1f, 1f);
             var closeLabel = UiKit.CreateLabel("Label", closeFace.transform, "KAPAT", 30,
                 new Color(1f, 0.94f, 0.92f));

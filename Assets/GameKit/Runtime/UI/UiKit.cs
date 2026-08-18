@@ -147,21 +147,64 @@ namespace GameKit.UI
         /// DERS (9-dilim): Sprite'ın köşe payı sabit kalır, ortası esner. Tek
         /// 64×64 doku hem küçük bir rozette hem tam ekran bir panelde bozulmadan
         /// çalışır; her boyut için ayrı görsel üretmeye gerek kalmaz.
+        ///
+        /// DERS (SABİT yarıçap iki yönde birden yanlıştır): Burası uzun süre
+        /// herkese sabit ~36 piksel yarıçap verdi. Ölçtük: bizim jeton
+        /// plakamızda yarıçap kısa kenarın **%40'ı** çıkıyordu, mağaza
+        /// bantlarında %39-40 — yani kutular HAP oluyordu. Referansta aynı
+        /// yüzeylerin oranı **%22**. Kullanıcının "coin kısmı oval, bantlar çok
+        /// oval, Off/On çok oval" bulgularının üçünün de tek sebebi buydu.
+        /// Yarıçap artık <see cref="UiCornerFit"/> ile kutunun boyundan
+        /// türetiliyor; ölçü değiştiğinde kendini yeniden hesaplıyor.
         /// </summary>
         public static Image CreateRoundedPanel(string name, Transform parent, Color color)
+            => CreateRoundedPanel(name, parent, color, UiCornerFit.HouseShare);
+
+        /// <summary>
+        /// Yarıçap oranı verilen yuvarlak panel. Oran kutunun KISA KENARINA
+        /// göredir; referansın ev değeri <see cref="UiCornerFit.HouseShare"/>.
+        /// Daha keskin bir yüzey isteyen (kart zemini, şerit) küçük bir oran
+        /// verir; bilinçli olarak hap isteyen 0.5 verir.
+        /// </summary>
+        public static Image CreateRoundedPanel(string name, Transform parent, Color color,
+            float cornerShare, float maxRadius = UiCornerFit.MaxRadius)
         {
             var rect = CreateRect(name, parent);
             var image = rect.gameObject.AddComponent<Image>();
             image.sprite = UiSprites.RoundedPanel;
             image.type = Image.Type.Sliced;
-            // DERS (9-dilim ölçeği ters çalışır): `pixelsPerUnitMultiplier`
-            // birim başına piksel sayısını ÇARPAR — yani büyük değer köşeyi
-            // KÜÇÜLTÜR. Önce 2.4 verilmişti ve 20 piksellik köşe payı ekranda
-            // ~8 piksele düşüp yuvarlaklık kaybolmuştu. 0.5 tam tersini yapıp
-            // payı ~40 piksele çıkarıyor.
-            image.pixelsPerUnitMultiplier = 0.5f;
             image.color = color;
+
+            var fit = rect.gameObject.AddComponent<UiCornerFit>();
+            fit.Share = cornerShare;
+            fit.MaxRadiusPixels = maxRadius;
             return image;
+        }
+
+        /// <summary>
+        /// 9-dilim köşe ölçeğini ELLE sabitler ve oransal hesabı kapatır.
+        ///
+        /// DERS (varsayılanı akıllandırınca elle ayarlananlar sessizce bozulur):
+        /// <see cref="CreateRoundedPanel"/> artık her yüzeye
+        /// <see cref="UiCornerFit"/> takıyor ve yarıçabı kutunun boyundan
+        /// hesaplıyor. Bu doğru varsayılan — ama projede kırk kadar yüzeyin
+        /// yarıçapı referanstan ÖLÇÜLEREK elle verilmişti
+        /// (<c>image.pixelsPerUnitMultiplier = 0.34f</c> gibi). Bileşen ölçü
+        /// her değiştiğinde yeniden yazdığı için o ölçümlerin hepsini sessizce
+        /// eziyordu: kod değişmemiş, yorumdaki gerekçe hâlâ orada, ekrandaki
+        /// sayı başka.
+        ///
+        /// Bu yüzden elle verilen değer artık bir NİYET BEYANI: hesabı kapatıp
+        /// değeri yazıyor. "Kim kazanır" sorusu çağrı yerinde görünür oluyor.
+        /// </summary>
+        public static void SetSliceScale(Image image, float multiplier)
+        {
+            if (image == null) return;
+
+            var fit = image.GetComponent<UiCornerFit>();
+            if (fit != null) fit.enabled = false;
+
+            image.pixelsPerUnitMultiplier = multiplier;
         }
 
         /// <summary>
@@ -383,13 +426,23 @@ namespace GameKit.UI
         /// renkleriyle, boyanmadan kullanılmalı.
         /// </summary>
         public static Image CreateOutlinedBox(string name, Transform parent,
-            Color fill, Color border, float borderInset = 0f)
+            Color fill, Color border, float borderInset = 0f,
+            float cornerShare = UiCornerFit.HouseShare)
         {
-            var box = CreateSlicedPanel(name, parent, UiSprites.RoundedPanel, fill);
+            // DERS (dolgu ve çerçeve AYNI yarıçapta olmak zorunda): İkisi ayrı
+            // sprite; biri sabit paylı 9-dilim, diğeri oranlı olursa çerçeve
+            // köşede dolgunun içine ya da dışına kaçar ve kenar "çift çizgi"
+            // gibi görünür. İkisi de aynı orandan besleniyor.
+            var box = CreateRoundedPanel(name, parent, fill, cornerShare);
 
-            var ring = CreateSlicedPanel("Border", box.transform,
-                UiSprites.RoundedOutline, border);
-            ring.raycastTarget = false;
+            var ring = CreateRect("Border", box.transform);
+            var ringImage = ring.gameObject.AddComponent<Image>();
+            ringImage.sprite = UiSprites.RoundedOutline;
+            ringImage.type = Image.Type.Sliced;
+            ringImage.color = border;
+            ringImage.raycastTarget = false;
+            var ringFit = ring.gameObject.AddComponent<UiCornerFit>();
+            ringFit.Share = cornerShare;
             Place(ring, borderInset, borderInset, 1f - borderInset, 1f - borderInset);
 
             return box;
@@ -408,7 +461,35 @@ namespace GameKit.UI
         /// Bu yüzden ayrı bir metot — varsayılan davranış hâlâ paylaşılan
         /// materyal, ayrışmak bilinçli bir tercih.
         /// </summary>
-        public static void SetOutline(TextMeshProUGUI label, Color color, float width = 0.30f)
+        /// <summary>
+        /// Başlık konturunun EV DEĞERİ — referanstan ölçüldü (2026-08-18).
+        ///
+        /// Ölçüm yöntemi: her sütunda beyaz dolgunun hemen üstündeki kontur
+        /// bandının kalınlığı / büyük harf yüksekliği. Gürültüsüz olması için
+        /// yatay değil DİKEY tarandı (yatay tarama harflerin iç boşluklarını ve
+        /// kenar yumuşatmasını kontur sanıyordu).
+        ///
+        ///   referans "Mağaza" (mağaza başlığı) : 4/49  = 0.082
+        ///   referans "Pause"  (panel başlığı)  : 4/42  = 0.095
+        ///   BİZİM   "Shop"                     : 9/37  = 0.243
+        ///
+        /// Yani konturumuz yaklaşık 2.8 kat kalındı — kullanıcının "Shop
+        /// yazısının outline'ı çok fazla" ve "başlıkların kaplaması referanstaki
+        /// gibi olmalı" bulgularının ikisi de bu tek sayıdan geliyor.
+        /// Ölçülü doğrulama: 0.18 verince oran 0.071 çıktı (biraz ince), 0.22
+        /// verince hedef banda oturuyor. Not: paylaşılan materyalin değeri ZATEN
+        /// 0.22 idi ve doğruydu; hata, sayfa başlıklarının `SetOutline` ile
+        /// KENDİ materyal kopyasını alıp 0.50-0.55 yazmasıydı.
+        ///
+        /// DERS (aynı sayı on yere elle yazılırsa on ayrı sayı olur): Bu değer
+        /// projede 0.22'den 0.55'e kadar dokuz farklı yerde farklı yazılmıştı,
+        /// hepsi göz kararı. Referansta ise TEK bir oran var. Ev değeri burada
+        /// durur; ayrışmak isteyen bilinçli olarak sayı verir.
+        /// </summary>
+        public const float TitleOutlineWidth = 0.22f;
+
+        public static void SetOutline(TextMeshProUGUI label, Color color,
+            float width = TitleOutlineWidth)
         {
             if (label == null) return;
             var material = label.fontMaterial;

@@ -127,12 +127,12 @@ namespace BlockOut.Runtime.UI
             // şerit var ve kartı zeminden ayıran şey o.
             var edge = UiKit.CreateRoundedPanel("Edge", card,
                 new Color(0.267f, 0.216f, 0.616f));
-            edge.pixelsPerUnitMultiplier = 0.28f;
+            UiKit.SetSliceScale(edge, 0.28f);
             edge.raycastTarget = false;
             UiKit.Place(edge, 0f, 0f, 1f, 1f);
 
             var face = UiKit.CreateRoundedPanel("Face", card, CardFace);
-            face.pixelsPerUnitMultiplier = 0.30f;
+            UiKit.SetSliceScale(face, 0.30f);
             UiKit.Place(face, 0f, 0f, 1f, 1f, padding: 7f);
 
             // DERS (ayarı KAYDA yazmak, ayarı UYGULAMAK değildir): Bu üç satır

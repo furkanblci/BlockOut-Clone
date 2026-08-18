@@ -378,13 +378,13 @@ namespace BlockOut.Runtime.UI
 
             var rim = UiKit.CreateRoundedPanel("Rim", _failurePanel,
                 new Color(0.318f, 0.043f, 0.078f));
-            rim.pixelsPerUnitMultiplier = 0.34f;
+            UiKit.SetSliceScale(rim, 0.34f);
             rim.raycastTarget = true;      // altındaki tahtaya dokunma geçmesin
             UiKit.Place(rim, 0f, 0f, 1f, 1f);
 
             var face = UiKit.CreateRoundedPanel("Face", _failurePanel,
                 new Color(0.106f, 0.055f, 0.129f));
-            face.pixelsPerUnitMultiplier = 0.36f;
+            UiKit.SetSliceScale(face, 0.36f);
             face.raycastTarget = false;
             UiKit.Place(face, 0f, 0f, 1f, 1f, padding: 10f);
 
@@ -474,7 +474,7 @@ namespace BlockOut.Runtime.UI
             for (int bar = 0; bar < 2; bar++)
             {
                 var stripe = UiKit.CreateRoundedPanel($"Bar_{bar}", pause.transform, Ink);
-                stripe.pixelsPerUnitMultiplier = 1.4f;
+                UiKit.SetSliceScale(stripe, 1.4f);
                 stripe.raycastTarget = false;
                 float x0 = bar == 0 ? 0.30f : 0.56f;
                 UiKit.Place(stripe, x0, 0.26f, x0 + 0.14f, 0.74f);
@@ -506,14 +506,14 @@ namespace BlockOut.Runtime.UI
             var circle = ring.gameObject.AddComponent<Image>();
             circle.sprite = GameKit.UI.UiSprites.RoundedOutline;
             circle.type = Image.Type.Sliced;
-            circle.pixelsPerUnitMultiplier = 0.10f;
+            UiKit.SetSliceScale(circle, 0.10f);
             circle.color = Ink;
             circle.raycastTarget = false;
 
             // Ok başı: halkanın sağ üstünde küçük bir üçgen. Döndürülmüş bir
             // kare, üçgen sprite'ı üretmeden aynı okumayı veriyor.
             var head = UiKit.CreateRoundedPanel("Head", ring, Ink);
-            head.pixelsPerUnitMultiplier = 1.2f;
+            UiKit.SetSliceScale(head, 1.2f);
             head.raycastTarget = false;
             UiKit.Place(head, 0.56f, 0.62f, 1.02f, 1.08f);
             head.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
@@ -580,7 +580,7 @@ namespace BlockOut.Runtime.UI
                 if (face != null)
                 {
                     face.color = PowerGreen;
-                    face.pixelsPerUnitMultiplier = 1.5f;
+                    UiKit.SetSliceScale(face, 1.5f);
                 }
 
                 var icon = UiKit.CreateIcon("Icon", button.transform, UiSkin.Get(icons[i]));
@@ -589,7 +589,7 @@ namespace BlockOut.Runtime.UI
                 // Rozet düğmenin sağ alt köşesinden TAŞAR — referanstaki gibi.
                 var badge = UiKit.CreateRoundedPanel("Badge", button.transform,
                     new Color(0.91f, 0.16f, 0.16f));
-                badge.pixelsPerUnitMultiplier = 0.10f;
+                UiKit.SetSliceScale(badge, 0.10f);
                 UiKit.Place(badge, 0.62f, -0.06f, 1.04f, 0.34f);
 
                 var count = UiKit.CreateTitle("Count", badge.transform, "", 24, Ink,
@@ -606,7 +606,7 @@ namespace BlockOut.Runtime.UI
                 // ve içinde jeton simgesi. Simge "bu bir PARA" diyor.
                 var price = UiKit.CreateRoundedPanel("Price", button.transform,
                     new Color(1f, 0.780f, 0.140f));
-                price.pixelsPerUnitMultiplier = 0.10f;
+                UiKit.SetSliceScale(price, 0.10f);
                 UiKit.Place(price, 0.02f, -0.10f, 1.02f, 0.24f);
 
                 var priceCoin = UiKit.CreateIcon("PriceCoin", price.transform,
@@ -645,7 +645,7 @@ namespace BlockOut.Runtime.UI
 
             var back = UiKit.CreateRoundedPanel("Back", _comboBadge,
                 new Color(0.96f, 0.53f, 0.05f));
-            back.pixelsPerUnitMultiplier = 0.16f;
+            UiKit.SetSliceScale(back, 0.16f);
             back.raycastTarget = false;
             UiKit.Place(back, 0f, 0f, 1f, 1f);
 
@@ -691,7 +691,7 @@ namespace BlockOut.Runtime.UI
 
             _promptTitle = UiKit.CreateTitle("Title", _promptPanel, "", 72, Ink, TitleOutline);
             UiKit.Place(_promptTitle, 0.30f, 0.856f, 0.98f, 0.902f);
-            UiKit.SetOutline(_promptTitle, TitleOutline, 0.30f);
+            UiKit.SetOutline(_promptTitle, TitleOutline);
 
             _promptText = UiKit.CreateTitle("Text", _promptPanel, "", 34, Ink, TitleOutline);
             UiKit.Place(_promptText, 0.30f, 0.804f, 0.98f, 0.845f);
@@ -751,7 +751,7 @@ namespace BlockOut.Runtime.UI
             // "Pause" kartın üst kenarına biner — PERFECT panelindeki gibi.
             var title = UiKit.CreateTitle("Title", _pausePanel, "Pause", 88, Ink, TitleOutline);
             UiKit.Place(title, 0.20f, 0.762f, 0.80f, 0.832f);
-            UiKit.SetOutline(title, TitleOutline, 0.32f);
+            UiKit.SetOutline(title, TitleOutline);
 
             var close = UiKit.CreateIconButton("Close", _pausePanel, UiSprites.Circle, CloseRed);
             UiKit.Place(close, 0.861f, 0.732f, 0.963f, 0.778f);
@@ -932,7 +932,7 @@ namespace BlockOut.Runtime.UI
 
             // Paylaşılan başlık materyali tek tek kontur ayarı kabul etmiyor;
             // bu etiket kendi kopyasını alıyor (bkz. UiKit.SetOutline).
-            UiKit.SetOutline(_resultTitle, TitleOutline, 0.30f);
+            UiKit.SetOutline(_resultTitle, TitleOutline);
 
             // Kapatma çarpısı: kartın sağ üst köşesine biner. Ana ekrana dönüş
             // artık bu — referansta ayrı bir "Ana Ekran" düğmesi yok.

@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UiKit = GameKit.UI.UiKit;
+using UiCornerFit = GameKit.UI.UiCornerFit;
 using UiSprites = GameKit.UI.UiSprites;
 
 namespace BlockOut.Runtime.UI
@@ -278,7 +279,7 @@ namespace BlockOut.Runtime.UI
             // yüzünden sessizce yok sayılıyor, başlık düz beyaz kalıyor.
             // Referansta kalın lacivert kontur var (#0A0F55, örneklendi) ve
             // başlığa "baskılı" görünümünü veren şey o.
-            UiKit.SetOutline(title, new Color(0.039f, 0.059f, 0.333f), 0.50f);
+            UiKit.SetOutline(title, new Color(0.039f, 0.059f, 0.333f));
 
             // Satın alma sonucu: referansta böyle bir satır yok, ama sonucu
             // hiç söylememek de yok. Kısa süre görünüp kayboluyor.
@@ -366,7 +367,7 @@ namespace BlockOut.Runtime.UI
             image.type = Image.Type.Tiled;
             // Döşeme ölçüsü: desen okunsun ama gürültü olmasın. 128 piksellik
             // kare, kanvas biriminde ~190'a geliyor.
-            image.pixelsPerUnitMultiplier = 0.68f;
+            UiKit.SetSliceScale(image, 0.68f);
             image.color = color;
             image.raycastTarget = false;
             rect.SetAsFirstSibling();
@@ -899,16 +900,15 @@ namespace BlockOut.Runtime.UI
         }
 
         /// <summary>Tam kapsül (stadyum) yüzey.</summary>
-        static Image Capsule(string name, Transform parent, Color color)
-        {
-            var rect = UiKit.CreateRect(name, parent);
-            var image = rect.gameObject.AddComponent<Image>();
-            image.sprite = MenuSprites.Capsule;
-            image.type = Image.Type.Sliced;
-            image.color = color;
-            image.raycastTarget = false;
-            return image;
-        }
+        /// <summary>
+        /// Mağazanın yüzeyi. Kendi kopyası vardı ve <see cref="MenuPage.Capsule"/>
+        /// ile satır satır aynıydı; şekil düzeltmesi tek yerde kalsın diye ona
+        /// bağlandı. ("Özel Teklifler"/"Paketler" bantları ve fiyat düğmeleri
+        /// buradan besleniyor — kullanıcının "çok oval" bulgusunun sahnesi.)
+        /// </summary>
+        static Image Capsule(string name, Transform parent, Color color,
+                             float cornerShare = UiCornerFit.HouseShare)
+            => MenuPage.Capsule(name, parent, color, cornerShare);
 
         /// <summary>Yeşil fiyat düğmesi: koyu bir kapsülün üstünde parlak yüz.</summary>
         static Button PriceButton(string name, Transform parent, string text, int fontSize)

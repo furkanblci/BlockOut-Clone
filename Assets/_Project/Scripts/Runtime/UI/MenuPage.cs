@@ -2,6 +2,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UiKit = GameKit.UI.UiKit;
+using UiCornerFit = GameKit.UI.UiCornerFit;
 
 namespace BlockOut.Runtime.UI
 {
@@ -152,7 +153,7 @@ namespace BlockOut.Runtime.UI
             // veren şey bu. Aynı eksik Yolculuk ve Mağaza başlıklarında da
             // vardı — burada düzeltmek Ayarlar, Profil, Liderlik ve
             // Koleksiyon'u BİRDEN düzeltiyor.
-            UiKit.SetOutline(label, new Color(0.196f, 0.129f, 0.573f), 0.50f);
+            UiKit.SetOutline(label, new Color(0.196f, 0.129f, 0.573f));
             return band;
         }
 
@@ -198,13 +199,29 @@ namespace BlockOut.Runtime.UI
         }
 
         /// <summary>Tam kapsül yüzey — kabuğun her yerinde aynı biçim.</summary>
-        public static Image Capsule(string name, Transform parent, Color color)
+        /// <summary>
+        /// Menülerin ortak yüzeyi: yuvarlak köşeli kutu.
+        ///
+        /// DERS (referansta HİÇBİR yüzey tam hap değil): Bu yardımcı adı
+        /// "Capsule" olduğu için gerçekten kapsül çiziyordu —
+        /// <see cref="MenuSprites.Capsule"/>'ün 9-dilim payı yarıçapın TAMAMI
+        /// (<c>s/2-1</c>), yani uçlar tam yarım daire. Mağaza bantları, Off/On
+        /// anahtarı, jeton plakası, liderlik sekmeleri, Yolculuk kapsülleri —
+        /// hepsi buradan besleniyordu ve hepsi için "çok oval, kötü duruyor"
+        /// bulgusu geldi.
+        ///
+        /// Referans ölçüldü: en yuvarlak yüzey bile (Resume/Quit düğmesi,
+        /// 276×100) kısa kenarın **%29**'u; küçük kontroller %20-22; büyük
+        /// kartlar ~34 pikselde sabitleniyor. Yani tasarımda kapsül YOK.
+        /// Yüzey artık <see cref="UiCornerFit"/> ile oranlı yarıçap alıyor.
+        ///
+        /// Ad korundu: otuzdan fazla çağrı yeri var ve hepsi "menünün standart
+        /// yüzeyi" anlamında kullanıyor — değişen şey o yüzeyin şekli.
+        /// </summary>
+        public static Image Capsule(string name, Transform parent, Color color,
+                                    float cornerShare = UiCornerFit.HouseShare)
         {
-            var rect = UiKit.CreateRect(name, parent);
-            var image = rect.gameObject.AddComponent<Image>();
-            image.sprite = MenuSprites.Capsule;
-            image.type = Image.Type.Sliced;
-            image.color = color;
+            var image = UiKit.CreateRoundedPanel(name, parent, color, cornerShare);
             image.raycastTarget = false;
             return image;
         }

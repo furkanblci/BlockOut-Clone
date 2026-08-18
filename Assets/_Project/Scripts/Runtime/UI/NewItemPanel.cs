@@ -152,12 +152,12 @@ namespace BlockOut.Runtime.UI
             var titleLabel = UiKit.CreateTitle("Title", root, title, 84, Ink, TitleShadow);
             UiKit.Place(titleLabel, 0.06f, 0.758f, 0.94f, 0.820f);
             titleLabel.textWrappingMode = TextWrappingModes.NoWrap;
-            UiKit.SetOutline(titleLabel, TitleShadow, 0.32f);
+            UiKit.SetOutline(titleLabel, TitleShadow);
 
             var subtitle = UiKit.CreateTitle("Subtitle", root, "New Item Unlocked!", 40,
                 Ink, TitleShadow);
             UiKit.Place(subtitle, 0.06f, 0.700f, 0.94f, 0.740f);
-            UiKit.SetOutline(subtitle, TitleShadow, 0.22f);
+            UiKit.SetOutline(subtitle, TitleShadow);
 
             // Spot ışığı: öğenin arkasında, öğeden ÖNCE ekleniyor ki arkada kalsın.
             var glow = UiKit.CreateIcon("Glow", root, UiSprites.Burst, GlowWarm);

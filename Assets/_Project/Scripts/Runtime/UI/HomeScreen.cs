@@ -197,7 +197,7 @@ namespace BlockOut.Runtime.UI
                 UiKit.Place(panel, x0, bottom, x1, top);
                 // ppu BÜYÜDÜKÇE köşe KÜÇÜLÜR: 0.16 kapsül yapıyordu,
                 // 1.4 referanstaki dikdörtgen köşeyi veriyor.
-                panel.pixelsPerUnitMultiplier = 1.4f;
+                UiKit.SetSliceScale(panel, 1.4f);
                 panel.raycastTarget = false;
                 return panel;
             }
@@ -267,7 +267,7 @@ namespace BlockOut.Runtime.UI
             // boşlukta duruyor.
             var back = UiKit.CreateRoundedPanel("Back", button, new Color(0.20f, 0.62f, 0.78f));
             UiKit.Place(back, 0.13f, 0.13f, 0.87f, 0.87f);
-            back.pixelsPerUnitMultiplier = 0.35f;
+            UiKit.SetSliceScale(back, 0.35f);
 
             var portrait = UiSkin.Get(Art.Avatar);
             if (portrait != null)
@@ -424,13 +424,13 @@ namespace BlockOut.Runtime.UI
             // Köşe yarıçapı referanstan ~20 birim. `pixelsPerUnitMultiplier`
             // TERS çalışır (büyük değer = küçük köşe) ve 0.5 ≈ 40 birim
             // verdiğine göre 1.0 ≈ 20 birim.
-            edge.pixelsPerUnitMultiplier = 0.95f;
+            UiKit.SetSliceScale(edge, 0.95f);
             edge.raycastTarget = false;
             UiKit.Place(edge, 0f, 0f, 1f, 1f);
 
             var faceFill = UiKit.CreateRoundedPanel("Face", ribbonRoot,
                 new Color(0.984f, 0.643f, 0.039f));
-            faceFill.pixelsPerUnitMultiplier = 1.05f;
+            UiKit.SetSliceScale(faceFill, 1.05f);
             faceFill.raycastTarget = false;
             UiKit.Place(faceFill, 0f, 0f, 1f, 1f, padding: 7f);
 
@@ -451,7 +451,7 @@ namespace BlockOut.Runtime.UI
             _rewardLabel = UiKit.CreateTitle("RibbonText", ribbonRoot, "", 40,
                 new Color(0.290f, 0.114f, 0.008f), new Color(1f, 0.953f, 0.839f));
             UiKit.Place(_rewardLabel, 0.07f, 0.36f, 0.93f, 0.97f);
-            UiKit.SetOutline(_rewardLabel, new Color(1f, 0.965f, 0.878f), 0.30f);
+            UiKit.SetOutline(_rewardLabel, new Color(1f, 0.965f, 0.878f));
 
             // İngilizce "Rewards x3" Türkçe "Ödüller x3"ten uzun; punto üst
             // sınır, gerekirse küçülür. `enableAutoSizing` TEK BAŞINA çalışmaz

@@ -49,7 +49,7 @@ namespace BlockOut.Runtime.UI
             screen._hint = UiKit.CreateTitle("Hint", root, "", 72,
                 MenuPage.Ink, MenuPage.InkDark);
             UiKit.Place(screen._hint, 0.044f, 0.262f, 0.957f, 0.308f);
-            UiKit.SetOutline(screen._hint, new Color(0.075f, 0.055f, 0.235f), 0.42f);
+            UiKit.SetOutline(screen._hint, new Color(0.075f, 0.055f, 0.235f));
 
             // İngilizce cümle Türkçesinden UZUN ("Unlock Collection at Level
             // 95!" ↔ "Koleksiyonu Seviye 95'de Aç!"), 72 puntoda sağdan

@@ -71,7 +71,7 @@ namespace BlockOut.Runtime.UI
             // hem yukarıda başlıyor hem 69 birim fazla uzuyordu.
             var card = MenuPage.Row("Card", root, 387f, 271f, 0.058f, 0.941f);
             var face = UiKit.CreateRoundedPanel("Face", card, CardFace);
-            face.pixelsPerUnitMultiplier = 0.30f;
+            UiKit.SetSliceScale(face, 0.30f);
             UiKit.Place(face, 0f, 0f, 1f, 1f);
 
             // Avatar çerçevesi karttan YUKARI taşar (referansta da öyle).
@@ -187,12 +187,12 @@ namespace BlockOut.Runtime.UI
                 var box = MenuPage.Row("Stat_" + i, root, top + rowIndex * (boxH + gapY),
                     boxH, x0, x1);
                 var boxEdge = UiKit.CreateRoundedPanel("Edge", box, BoxEdge);
-                boxEdge.pixelsPerUnitMultiplier = 0.34f;
+                UiKit.SetSliceScale(boxEdge, 0.34f);
                 boxEdge.raycastTarget = false;
                 UiKit.Place(boxEdge, 0f, 0f, 1f, 1f);
 
                 var boxFace = UiKit.CreateRoundedPanel("Face", box, BoxFace);
-                boxFace.pixelsPerUnitMultiplier = 0.36f;
+                UiKit.SetSliceScale(boxFace, 0.36f);
                 boxFace.raycastTarget = false;
                 UiKit.Place(boxFace, 0f, 0f, 1f, 1f, padding: 5f);
 

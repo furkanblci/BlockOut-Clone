@@ -40,6 +40,22 @@ namespace GameKit.UI
         PT.Tween _tween;
         bool _pressed;
 
+        /// <summary>
+        /// Açıkken HAREKET yok, ses ve titreşim var.
+        ///
+        /// DERS (bir hedefte olmak, oraya gidebilmek demek değildir): Alt sekme
+        /// çubuğunda AÇIK olan sekmeye tekrar basmak hiçbir yere götürmez —
+        /// <c>MenuShell.Show</c> zaten erken çıkıyor. Ama düğme yine de
+        /// küçülüp büyüyordu, çünkü his bileşeni gezinmeden habersiz. Oyuncu
+        /// aynı sekmeye üst üste basıp ekranı "oynatabiliyordu" ve bu, olmayan
+        /// bir eylemin olmuş gibi görünmesi demek. Referans oyunda o sekme
+        /// kımıldamıyor; dokunuşun alındığını yalnız titreşim söylüyor.
+        ///
+        /// Bileşeni tamamen kapatmak yanlış olurdu: <c>Clicked</c>/<c>Pressed</c>
+        /// kancaları da susardı ve dokunuş HİÇ duyulmazdı.
+        /// </summary>
+        public bool Muted { get; set; }
+
         void Awake() => _rect = (RectTransform)transform;
 
         void OnDisable()
@@ -63,9 +79,12 @@ namespace GameKit.UI
         {
             _pressed = true;
 
-            if (_tween.isAlive) _tween.Stop();
-            _tween = PT.Tween.Scale(_rect, PressedScale, PressDuration,
-                PT.Ease.OutQuad, useUnscaledTime: true);
+            if (!Muted)
+            {
+                if (_tween.isAlive) _tween.Stop();
+                _tween = PT.Tween.Scale(_rect, PressedScale, PressDuration,
+                    PT.Ease.OutQuad, useUnscaledTime: true);
+            }
 
             Clicked?.Invoke();
             Pressed?.Invoke();
@@ -103,6 +122,15 @@ namespace GameKit.UI
         {
             if (!_pressed) return;
             _pressed = false;
+
+            // Susturulmuşken basışta hiç küçülmedik; geri getirilecek bir şey
+            // de yok. Yine de bir tween varsa (susturma basıştan SONRA açıldıysa)
+            // ölçeği düzeltmek gerekir, o yüzden koşul tween'e bakıyor.
+            if (Muted && !_tween.isAlive)
+            {
+                _rect.localScale = Vector3.one;
+                return;
+            }
 
             if (_tween.isAlive) _tween.Stop();
             // Overshoot eğrisi 1'i aşıp geri döner; ayrıca bir "aşma hedefi"
