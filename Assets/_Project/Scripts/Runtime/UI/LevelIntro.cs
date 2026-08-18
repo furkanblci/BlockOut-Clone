@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -98,7 +98,9 @@ namespace BlockOut.Runtime.UI
             _logo.localScale = Vector3.one;
             GameKit.FX.Juice.Run(DropIn(_logoTop.rectTransform, 0f));
             GameKit.FX.Juice.Run(DropIn(_logoBottom.rectTransform, 0.10f));
-            GameKit.FX.Juice.Run(Fireworks());
+            // Fişek gösterisi FX.CelebrationFX içinde; kazanma ekranı da
+            // aynısını kullanıyor (2. tur, 50. madde).
+            GameKit.FX.Juice.Run(FX.CelebrationFX.Show(_root, bursts: 3, interval: 0.16f));
             Services.AudioService.Star();
 
             yield return new WaitForSecondsRealtime(Hold);
@@ -146,117 +148,5 @@ namespace BlockOut.Runtime.UI
             line.localScale = Vector3.one;
         }
 
-        /// <summary>
-        /// Havai fişek: üç patlama, her biri merkezden dışa halka çizen
-        /// kıvılcımlar.
-        ///
-        /// DERS (konfeti ile havai fişek farklı şeyler anlatır): Konfeti
-        /// yukarıdan DÜŞER — kutlama biter, kağıtlar yere iner. Havai fişek
-        /// merkezden DIŞA patlar; enerjisi dışa doğrudur ve "bir şey başlıyor"
-        /// der. Bölüm geçişi bir bitiş değil bir başlangıç anı, o yüzden
-        /// doğru olan patlama.
-        ///
-        /// Patlamalar arasına gecikme konuyor: aynı anda üç patlama tek bir
-        /// gürültü lekesi olur, sırayla gelen üç patlama gösteri olur.
-        /// </summary>
-        IEnumerator Fireworks()
-        {
-            var palette = new[]
-            {
-                new Color(1f, 0.85f, 0.20f), new Color(0.98f, 0.31f, 0.38f),
-                new Color(0.35f, 0.78f, 1f), new Color(0.55f, 1f, 0.45f),
-                new Color(0.85f, 0.55f, 1f),
-            };
-
-            var spots = new[]
-            {
-                new Vector2(-0.24f,  0.20f),
-                new Vector2( 0.26f,  0.05f),
-                new Vector2(-0.06f, -0.22f),
-            };
-
-            for (int burst = 0; burst < spots.Length; burst++)
-            {
-                Explode(spots[burst], palette[burst % palette.Length]);
-                yield return new WaitForSecondsRealtime(0.16f);
-            }
-        }
-
-        void Explode(Vector2 anchor, Color color)
-        {
-            const int sparks = 18;
-
-            for (int i = 0; i < sparks; i++)
-            {
-                var spark = UiKit.CreateRoundedPanel("Spark", _root, color);
-                UiKit.SetSliceScale(spark, 0.10f);   // uçları yuvarlak çizgi
-                spark.raycastTarget = false;
-
-                var rect = spark.rectTransform;
-                rect.anchorMin = rect.anchorMax = new Vector2(0.5f + anchor.x, 0.5f + anchor.y);
-                rect.pivot = new Vector2(0.5f, 0.5f);
-                rect.sizeDelta = new Vector2(26f, 9f);
-                rect.anchoredPosition = Vector2.zero;
-
-                // Kıvılcımlar halka boyunca EŞİT dağılır, rastgele değil:
-                // rastgele açılar kümeleşip patlamayı tek yöne kaydırıyor.
-                float angle = (i / (float)sparks) * Mathf.PI * 2f
-                              + Random.Range(-0.08f, 0.08f);
-                float speed = Random.Range(680f, 1050f);
-                var velocity = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * speed;
-
-                rect.localRotation = Quaternion.Euler(0f, 0f, angle * Mathf.Rad2Deg);
-                GameKit.FX.Juice.Run(Spark(rect, velocity));
-            }
-        }
-
-        /// <summary>Kıvılcım: dışa fırlar, yavaşlar, düşerek söner.</summary>
-        static IEnumerator Spark(RectTransform piece, Vector2 velocity)
-        {
-            var position = Vector2.zero;
-            var image = piece.GetComponent<Image>();
-            Color color = image.color;
-            const float life = 0.85f;
-
-            for (float t = 0f; t < life; t += Time.unscaledDeltaTime)
-            {
-                if (piece == null) yield break;
-
-                // Hava sürtünmesi: patlama hızlı başlar, hızla yavaşlar.
-                velocity *= 1f - 3.2f * Time.unscaledDeltaTime;
-                velocity.y -= 900f * Time.unscaledDeltaTime;
-                position += velocity * Time.unscaledDeltaTime;
-
-                piece.anchoredPosition = position;
-                // Kıvılcım uzayıp incelir: hız yönünde iz bırakma hissi.
-                float k = t / life;
-                piece.localScale = new Vector3(1f + k * 0.8f, 1f - k * 0.7f, 1f);
-
-                color.a = 1f - k * k;                 // sonlara doğru hızla söner
-                image.color = color;
-                yield return null;
-            }
-
-            if (piece != null) Destroy(piece.gameObject);
-        }
-
-        static IEnumerator Fly(RectTransform piece, Vector2 velocity, float spin)
-        {
-            var position = piece.anchoredPosition;
-            float angle = 0f;
-
-            for (float t = 0f; t < 1.4f; t += Time.unscaledDeltaTime)
-            {
-                if (piece == null) yield break;
-                velocity.y -= 2400f * Time.unscaledDeltaTime;
-                position += velocity * Time.unscaledDeltaTime;
-                angle += spin * Time.unscaledDeltaTime;
-                piece.anchoredPosition = position;
-                piece.localRotation = Quaternion.Euler(0f, 0f, angle);
-                yield return null;
-            }
-
-            if (piece != null) Destroy(piece.gameObject);
-        }
     }
 }

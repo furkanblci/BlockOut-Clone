@@ -899,8 +899,67 @@ sıralı ve temiz."**
 
   Kaynak elde var: `oyun açılış.jpeg`.
 
-- [ ] **50. Kazanma ekranı efektleri.**
+- [x] **50. Kazanma ekranı efektleri.**
   > "Yine oyun kazanma ekranı çıkan efektler, o kısmı çok iyi hale getirmeliyiz."
+
+  **REFERANS BULUNDU** (`menus,powerups,vs.mp4` 01:56–02:01, 4 fps'te
+  çıkarıldı). Kazanma DÖRT adım:
+
+  1. Tahta boşalır, ekran **tam siyaha** döner (oyunun moru değil — fişeklerin
+     parlaklığı ancak siyahın üstünde okunuyor).
+  2. **"BLOCK OUT!" logosu** siyahın üstünde yaylanarak oturur; önce "BLOCK",
+     hemen ardından "OUT!".
+  3. ~4,5 saniye **havai fişek + konfeti**: arkada ışınsal patlamalar, önde
+     yoğun renkli konfeti; logo ortada durur.
+  4. Ancak bundan sonra "MÜKEMMEL!" ödül kartı açılır.
+
+  Bizde 2. ve 3. adım **hiç yoktu**: tahta boşalıyor ve kart doğrudan
+  açılıyordu. Kullanıcının gördüğü eksik tam olarak bu.
+
+  **ÖLÇÜM (konfeti).** 384×832 karede parçaların yatay uzunluğu ortalama 4,4
+  piksel, medyan 4 — ekran genişliğinin ~%1'i. Renkler oyunun blok paletinin
+  tamamı (altın, mercan, camgöbeği, yeşil, mor, pembe, beyaz). Bizim tuval
+  1080 geniş; oran korundu, piksel değeri değil.
+
+  **YAPILAN.** `FX/CelebrationFX.cs` (yeni) + `UI/WinCelebration.cs` (yeni);
+  `GameplayScreen.ShowResultAfterBeat` kazanmada araya kutlamayı sokuyor.
+
+  **DERS (kutlama REFERANSTAN KISA olmalı).** Referans burada 4,5 saniye
+  harcıyor. Elli bölüm oynayan biri için bu, elli kez beklemek demek. Bizim
+  süremiz 2,2 saniye ve **dokunulunca kesiliyor**. Atlanamayan kutlama,
+  kutlama değil vergidir.
+
+  **DERS (ikinci kopyayı yazmak yerine ortak yere taşı).** Havai fişek zaten
+  `LevelIntro` içinde yazılıydı ve kazanma ekranı da aynısını istiyordu. İkinci
+  bir kopya çıkarmak yerine `CelebrationFX`'e taşındı ve `LevelIntro` oraya
+  yönlendirildi: fişek eğrisi bir gün değiştiğinde iki yerde birden düzeltmek,
+  er geç bir yerin unutulması demektir. Aynı taşımada `LevelIntro` içinde hiç
+  çağrılmayan ölü bir `Fly` yordamı da çıktı.
+
+  **DERS (konfeti ile fişek FARKLI ŞEYLER anlatır).** Fişek merkezden DIŞA
+  patlar; enerjisi dışa doğrudur ve "bir şey oluyor" der. Konfeti yukarıdan
+  DÜŞER; kutlama biter, kağıtlar iner ve "başardın" der. Referans kazanmada
+  ikisini de kullanıyor, bölüm geçişinde yalnız fişek — orası bir bitiş değil,
+  başlangıç anı. Bu yüzden `LevelIntro` konfeti çağırmıyor.
+
+  **DERS (kağıt taş gibi düşmez).** Sabit hızla dümdüz inen bir kare "konfeti"
+  değil "piksel" gibi okunuyor. İki ekleme yetiyor: yanal salınım (hava
+  direnci) ve dönerken yassılaşma (parça yan döndüğünde inceliyor).
+
+  **DERS (kıvılcımlar perde alfasına KATILMAZ).** Sönme yalnız perde ve logo
+  üstünde geziniyor; fişek ve konfeti kendi ömürlerini kendileri söndürüyor.
+  Hepsini tek alfaya bağlamak her karede onlarca görselin rengini yeniden
+  yazmak olurdu — üstelik o an doğan bir kıvılcım sönmüş olarak başlardı.
+
+  Kutlama kanvası **ilk kazanışta** kuruluyor, ekran kurulurken değil:
+  kaybeden ya da bölümü hiç bitirmeyen bir oturumda hiç yaratılmıyor.
+
+  ⚠️ **GÖRSEL DOĞRULAMA BEKLİYOR.** Kod yazıldı ama oyun modunda yakalanıp
+  referansla kıyaslanamadı: `Debug/DevMenu.cs` şu an derlenmiyor
+  (`DrawPlay`, `HookLogs`, `EntryKind`, `AddEntry`, `_logErrors` hiçbir
+  dosyada tanımlı değil — dosyayı parçalara bölme işi yarım). Bu benim
+  dokunduğum bir dosya değil; o derleme düzelince kutlama yakalanıp
+  ölçülmeli.
 
 - [ ] **38. Yeniden oyna ikonu.**
   > "Yeniden Oyna ikonu değiştirilmesi lazım. Bunu da butonu yapay zekâya

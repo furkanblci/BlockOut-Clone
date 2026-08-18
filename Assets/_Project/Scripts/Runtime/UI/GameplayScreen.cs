@@ -1739,17 +1739,30 @@ namespace BlockOut.Runtime.UI
 
         Coroutine _resultDelay;
 
+        WinCelebration _celebration;
+
         /// <summary>
         /// Son emilme animasyonu bitsin, oyuncu tahtanın boşaldığını GÖRSÜN,
         /// sonra panel açılsın. Kaybetmede bekleme daha kısa: orada görülecek
         /// bir animasyon yok, yalnız sayacın sıfırlandığı an okunsun.
+        ///
+        /// KAZANMADA ARAYA KUTLAMA GİRİYOR (2. tur, 50. madde): referansta
+        /// ödül kartından önce siyah perde, logo ve fişek/konfeti gösterisi
+        /// var. Kart ancak gösteri bitince açılıyor.
         /// </summary>
         System.Collections.IEnumerator ShowResultAfterBeat()
         {
-            float wait = _shownState == GameState.Won ? 0.75f : 0.35f;
-            yield return new WaitForSecondsRealtime(wait);
+            bool won = _shownState == GameState.Won;
+            yield return new WaitForSecondsRealtime(won ? 0.75f : 0.35f);
             _resultDelay = null;
-            RefreshResult();
+
+            if (!won) { RefreshResult(); yield break; }
+
+            // Kutlama İLK KAZANIŞTA kuruluyor, ekran kurulurken değil:
+            // kaybeden ya da hiç bitirmeyen bir oturumda bu kanvas ve
+            // logo hiç yaratılmıyor.
+            if (_celebration == null) _celebration = WinCelebration.Create(transform);
+            _celebration.Play(RefreshResult);
         }
 
         /// <summary>Jetonla devam alındı: süre eklenip tahtaya dönülüyor.</summary>
