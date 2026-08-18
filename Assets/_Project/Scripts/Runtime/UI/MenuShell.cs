@@ -29,7 +29,9 @@ namespace BlockOut.Runtime.UI
             ("Leaderboard","board",   Art.Trophy),
             ("Home",       "home",    Art.Home),
             ("Journey",    "journey", Art.Globe),
-            ("Collection", "collection", Art.Chest)
+            // Sekme ikonu SANDIK DEĞİL ALBÜM (22. madde): referansta koleksiyon
+            // sekmesi kitabın yanındaki albüm paketlerinin küçük hâli.
+            ("Collection", "collection", Art.Album)
         };
 
         readonly Dictionary<string, RectTransform> _screens = new Dictionary<string, RectTransform>();

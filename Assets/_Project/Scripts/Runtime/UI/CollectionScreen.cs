@@ -32,14 +32,16 @@ namespace BlockOut.Runtime.UI
             var root = MenuPage.Screen(parent, "CollectionScreen");
             var screen = root.gameObject.AddComponent<CollectionScreen>();
 
-            // Ortada duran görsel: referansta AÇIK BİR KİTAP + etrafında
-            // bloklar var; elimizde o görsel yok, sandık en yakını.
-            // İstek `docs/art-prompts.md` §11'de; gelince yalnız bu satırdaki
-            // anahtar değişecek, düzen aynı kalacak.
+            // Ortada duran görsel: referansta AÇIK BİR KİTAP, mor bir kaidenin
+            // üstünde, çevresinde sarılmış albüm paketleri (20. madde).
+            // Görsel gelene kadar sandık vekillik ediyordu — "sandık alakasız
+            // duruyor" bulgusu (21. madde) tam olarak o vekilliğe aitti.
             var art = UiKit.CreateRect("Art", root);
-            UiKit.Place(art, 0.24f, 0.42f, 0.76f, 0.70f);
-            var icon = UiKit.CreateIcon("Icon", art, UiSkin.Get(Art.Chest));
+            UiKit.Place(art, 0.20f, 0.40f, 0.80f, 0.72f);
+            var icon = UiKit.CreateIcon("Icon", art,
+                UiSkin.Get(Art.CollectionBook) ?? UiSkin.Get(Art.Chest));
             UiKit.Place(icon, 0f, 0f, 1f, 1f);
+            icon.preserveAspect = true;
 
             // ÖLÇÜ REFERANSTAN (`collections.jpeg`): yazı ekranın neredeyse
             // tamamını kaplıyor (X 0.044-0.957), büyük harf yüksekliği

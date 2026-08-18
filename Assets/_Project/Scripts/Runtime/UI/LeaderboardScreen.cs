@@ -335,6 +335,19 @@ namespace BlockOut.Runtime.UI
             var sky = band.gameObject.AddComponent<Image>();
             sky.color = new Color(0.227f, 0.627f, 0.910f);
 
+            // GERÇEK PARK SAHNESİ (14. madde). Görsel geldiyse aşağıdaki
+            // prosedürel çim/çalı/ağaç üçlüsünün tamamı atlanıyor — hepsi
+            // o görselin yokluğunda ayakta duran vekillerdi.
+            var scene = UiSkin.Get(Art.BoardScene);
+            if (scene != null)
+            {
+                var cover = UiKit.CreateCover("Scene", band, scene,
+                    new Color(0.227f, 0.627f, 0.910f));
+                cover.raycastTarget = false;
+                BuildPodiumColumns(band);
+                return;
+            }
+
             // PARK ZEMİNİ: referansta kürsüler düz mavi bir dikdörtgenin
             // üstünde değil, ağaçlı yeşil bir sahnenin içinde duruyor.
             //
@@ -394,6 +407,15 @@ namespace BlockOut.Runtime.UI
                 UiKit.Place(crownTop, cx - w * 0.80f, 0.40f, cx + w * 0.80f, 0.40f + h * 0.68f);
             }
 
+            BuildPodiumColumns(band);
+        }
+
+        /// <summary>
+        /// Üç kaide, avatarları ve ad levhalarıyla. Zeminden ayrıldı: park
+        /// sahnesi ister görsel ister çizim olsun, kaideler aynı.
+        /// </summary>
+        void BuildPodiumColumns(RectTransform band)
+        {
             // (x merkezi, yarım genişlik, yükseklik, madalya no)
             //
             // DERS (bitişik ≠ birleşik): Üç kürsü de 0.155 yarım genişlikteydi
@@ -422,33 +444,48 @@ namespace BlockOut.Runtime.UI
                 var pillar = UiKit.CreateRect("Place" + place, band);
                 UiKit.Place(pillar, cx - halfWidth, 0.15f, cx + halfWidth, height / 486f);
 
-                // Kenarlık: komşusuyla arasında boşluk OLSA DA her kürsünün
-                // kendi sınırı olmalı — krem üstüne krem, ışık olmadan sınır
-                // vermiyor.
-                var edge = UiKit.CreateRoundedPanel("Edge", pillar,
-                    new Color(0.702f, 0.627f, 0.494f));
-                UiKit.SetSliceScale(edge, 0.30f);
-                edge.raycastTarget = false;
-                UiKit.Place(edge, 0f, 0f, 1f, 0.82f);
+                // GERÇEK KAİDE GÖRSELİ (12. madde): oluklu krem gövde, mor
+                // minder ve sıraya göre altın/gümüş/bronz kuşak tek görselde.
+                // Prosedürel dört katman (kenar → gövde → kapak kenarı →
+                // kapak) yalnız görsel yokken kuruluyor.
+                var art = UiSkin.Get(Art.Podium(place));
+                if (art != null)
+                {
+                    var stand = UiKit.CreateIcon("Stand", pillar, art);
+                    UiKit.Place(stand, 0f, 0f, 1f, 1f);
+                    stand.preserveAspect = true;
+                    stand.raycastTarget = false;
+                }
+                else
+                {
+                    // Kenarlık: komşusuyla arasında boşluk OLSA DA her kürsünün
+                    // kendi sınırı olmalı — krem üstüne krem, ışık olmadan sınır
+                    // vermiyor.
+                    var edge = UiKit.CreateRoundedPanel("Edge", pillar,
+                        new Color(0.702f, 0.627f, 0.494f));
+                    UiKit.SetSliceScale(edge, 0.30f);
+                    edge.raycastTarget = false;
+                    UiKit.Place(edge, 0f, 0f, 1f, 0.82f);
 
-                var body = UiKit.CreateRoundedPanel("Body", pillar,
-                    new Color(0.910f, 0.851f, 0.753f));
-                UiKit.SetSliceScale(body, 0.32f);
-                body.raycastTarget = false;
-                UiKit.Place(body, 0f, 0f, 1f, 0.82f, padding: 7f);
+                    var body = UiKit.CreateRoundedPanel("Body", pillar,
+                        new Color(0.910f, 0.851f, 0.753f));
+                    UiKit.SetSliceScale(body, 0.32f);
+                    body.raycastTarget = false;
+                    UiKit.Place(body, 0f, 0f, 1f, 0.82f, padding: 7f);
 
-                // Kapak yassı bir ELİPS değil, kalın bir dilim: yarıçap kutu
-                // yüksekliğinin yarısını geçince yuvarlak panel elipse dönüyor.
-                var capEdge = UiKit.CreateRoundedPanel("CapEdge", pillar,
-                    MenuPage.Darken(Podium, 0.72f));
-                UiKit.SetSliceScale(capEdge, 0.70f);
-                capEdge.raycastTarget = false;
-                UiKit.Place(capEdge, 0f, 0.74f, 1f, 1f);
+                    // Kapak yassı bir ELİPS değil, kalın bir dilim: yarıçap kutu
+                    // yüksekliğinin yarısını geçince yuvarlak panel elipse dönüyor.
+                    var capEdge = UiKit.CreateRoundedPanel("CapEdge", pillar,
+                        MenuPage.Darken(Podium, 0.72f));
+                    UiKit.SetSliceScale(capEdge, 0.70f);
+                    capEdge.raycastTarget = false;
+                    UiKit.Place(capEdge, 0f, 0.74f, 1f, 1f);
 
-                var cap = UiKit.CreateRoundedPanel("Cap", pillar, Podium);
-                UiKit.SetSliceScale(cap, 0.75f);
-                cap.raycastTarget = false;
-                UiKit.Place(cap, 0f, 0.74f, 1f, 1f, padding: 7f);
+                    var cap = UiKit.CreateRoundedPanel("Cap", pillar, Podium);
+                    UiKit.SetSliceScale(cap, 0.75f);
+                    cap.raycastTarget = false;
+                    UiKit.Place(cap, 0f, 0.74f, 1f, 1f, padding: 7f);
+                }
 
                 var frame = UiKit.CreateRect("Avatar", pillar);
                 UiKit.Place(frame, 0.15f, 0.97f, 0.85f, 1.46f);
