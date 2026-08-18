@@ -871,9 +871,46 @@ sıralı ve temiz."**
   > "3 tane power-up'ın da efektleri ve görünümü orijinal oyundakiyle alakası
   > yok. Birebir aynısını yapmalıyız."
 
-- [ ] **54. Buz bloğu.**
+- [x] **54. Buz bloğu.**
   > "Buz bloğu inanılmaz kötü duruyor. Bunun için yine yapay zekâya bir şey
   > yaptırabiliriz. Daha iyi hale getirilmeli."
+
+
+  **REFERANS BULUNDU.** `Levels.mp4` 05:40 — 13. bölümde tahtada üç buz bloğu
+  birden var. Ölçüldü: gövde `#1DB3F8`, üst bandı `#1996F0`, sayaç `#FEDDD3`
+  (krem/şeftali). Kıyas için aynı karedeki normal mavi blok `#024DFB` — yani
+  buzun mavi bloktan belirgin biçimde AÇIK ve CAMGÖBEĞİ olması gerekiyor.
+  Ayrıca referansta buz **DÜZ bir levha**: silüet tuğlanın ama yüzey pürüzsüz,
+  saplama yok.
+
+  **DÖRT AYRI HATA BULUNDU VE DÜZELTİLDİ.**
+
+  1. *Renk.* Bizimki `#3D9EEB` idi — hem daha koyu hem daha MAVİ. Ölçülen
+     değere çekildi.
+  2. *Yüzey.* Kabuk tuğlanın kendi (saplamalı) mesh'ini kullanıyordu; buz
+     "mavi boyanmış tuğla" gibi okunuyordu. 51. madde için üretilen
+     `GetSilhouette` (saplamasız gövde) buraya da uydu.
+  3. *Sayaç rengi.* Koddaki yorum "koyu lacivert zeminde KREM" diyordu ama
+     yazılan renk `(0.13, 0.20, 0.38)`, yani koyu lacivertin ta kendisiydi.
+     **DERS: yorum ile kod çelişiyorsa ikisinden biri yalan söylüyor.**
+     Niyet doğru yazılmış, uygulaması yanlış kalmıştı.
+  4. *Komşu buzların kaynaması — 2. düzeltmenin YAN ETKİSİ.* Saplama gidince
+     10. bölümdeki **dokuz buz bloğu ekranda TEK bir dev camgöbeği leke**
+     olarak çıktı; tahta okunmaz oldu. Sırayla denendi ve hiçbiri tek başına
+     yetmedi:
+     - koyu kenar kabuğu (`ViewKit.IceRim`) → kıl gibi ince kaldı,
+     - `BlockOut/Brick` shader'ına geçiş (köşe renklerini okuyor) → bitişik
+       ÜST yüzlerin tonu aynı olduğu için sınır yine doğmadı.
+
+     **Sorun gölgede değil GEOMETRİDEYDİ: iki levha fiziksel olarak bitişikse
+     aralarında gösterilecek bir şey yok.** Kabuk yatayda %6 içeri çekildi;
+     aradan tahtanın koyu zemini geçiyor ve sınır kendiliğinden doğuyor.
+     (Kenar kabuğu ve Brick shader'ı da kaldı — üçü birlikte referansın
+     koyu kenarlı, gölgeli kalıp görünümünü veriyor.)
+
+  **NASIL DOĞRULANDI.** 10. bölüm (dokuz buzlu blok) yakalandı: her kalıp ayrı
+  ve okunur, aralarında koyu boşluk, 3B yan yüzler, krem sayaçlar.
+  Ölçüm: buz gövdesi **`#16AAED`** (referans `#1DB3F8`).
 
 ---
 

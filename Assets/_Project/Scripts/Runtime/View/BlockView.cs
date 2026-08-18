@@ -394,8 +394,19 @@ namespace BlockOut.Runtime.View
             // hem de bedava kenar yumuşatmasını veriyor.
             _iceShell = new GameObject($"Ice_{_model.Id}");
             _iceShell.transform.SetParent(parent, worldPositionStays: false);
+            // BUZ DÜZ BİR LEVHA — SAPLAMASIZ.
+            //
+            // DERS (donmuş yüzey ALTTAKİNİN dokusunu taşımaz): Kabuk tuğlanın
+            // kendi mesh'ini kullanıyordu ve buzun üstünde de kabartmalar
+            // çıkıyordu. Referansta (13. bölüm karesi) buz bloğu **düz ve
+            // parlak bir levha**: silüet tuğlanın ama yüzey pürüzsüz. Kabartma
+            // kalınca buz "mavi boyanmış tuğla" gibi okunuyor, donmuş bir kalıp
+            // gibi değil.
+            //
+            // Aynı silüet mesh'i 51. maddedeki kontur kabuğu için de üretilmişti;
+            // ikisi de "gövdenin şekli, ayrıntısı olmadan" istiyor.
             _iceShell.AddComponent<MeshFilter>().sharedMesh =
-                _filter != null ? _filter.sharedMesh : BrickMeshBuilder.Get(_model);
+                BrickMeshBuilder.GetSilhouette(_model);
 
             var renderer = _iceShell.AddComponent<MeshRenderer>();
             renderer.sharedMaterial = ViewKit.Ice;
@@ -427,10 +438,41 @@ namespace BlockOut.Runtime.View
             Vector3 center = _space.RectCenterToWorld(
                 _model.Position, _model.W, _model.H, 0f);
             _iceShell.transform.position = center;
-            // Yatayda 1.0: 1.02 verilince komşu buzlu bloklar birbirine değip
-            // tek bir kütleye dönüşüyordu ve tahta okunmaz oluyordu. Yalnız
-            // DİKEYDE büyütmek z-fighting'i çözmeye yetiyor.
-            _iceShell.transform.localScale = new Vector3(1f, 1.05f, 1f);
+            // YATAYDA İÇERİ ÇEKİLİYOR — komşu buz kalıpları arasında GERÇEK
+            // bir boşluk kalsın.
+            //
+            // DERS (aynı rengi yan yana koyarsan tek nesne olur): Kabuk
+            // referanstaki gibi düz levhaya çevrilince (saplama yok) 10.
+            // bölümdeki dokuz buzlu blok ekranda TEK bir dev camgöbeği leke
+            // olarak çıktı. Sırayla denendi ve hiçbiri tek başına yetmedi:
+            //   • koyu kenar kabuğu (`IceRim`) — kıl gibi ince kaldı,
+            //   • `BlockOut/Brick` shader'ı (köşe renkleri) — bitişik ÜST
+            //     yüzlerin tonu aynı olduğu için sınır yine doğmadı.
+            // Sorun gölgede değil GEOMETRİDE: iki levha fiziksel olarak
+            // bitişikse aralarında gösterilecek bir şey yok. %6 içeri çekmek
+            // aradan tahtanın koyu zeminini geçiriyor ve sınır kendiliğinden
+            // doğuyor — referansta da her buz kalıbının hücresi içinde payı var.
+            //
+            // Dikeydeki 1.05 z-fighting içindi, aynen kalıyor.
+            _iceShell.transform.localScale = new Vector3(0.94f, 1.05f, 0.94f);
+
+            // KOYU KENAR: komşu buz kalıpları birbirinden ayrışsın.
+            // Düz levha yapılınca (referansta saplama yok) yan yana iki buz
+            // arasında hiçbir sınır kalmıyordu — 10. bölümde dokuz buz bloğu
+            // ekranda tek bir dev camgöbeği leke olarak çıkıyordu.
+            // Kabuk tekniği (bkz. ViewKit.IceRim): silüet biraz büyütülüp ön
+            // yüzleri kırpılıyor, geriye kalan arka yüzler kenarda çerçeve
+            // bırakıyor.
+            var rim = new GameObject("IceRim");
+            rim.transform.SetParent(_iceShell.transform, worldPositionStays: false);
+            rim.transform.localPosition = Vector3.zero;
+            rim.transform.localScale = Vector3.one * 1.03f;
+            rim.AddComponent<MeshFilter>().sharedMesh =
+                BrickMeshBuilder.GetSilhouette(_model);
+            var rimRenderer = rim.AddComponent<MeshRenderer>();
+            rimRenderer.sharedMaterial = ViewKit.IceRim;
+            rimRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            rimRenderer.receiveShadows = false;
 
             // Buz OPAK olduğu için tuğlayı çizmeye gerek yok: hem referanstaki
             // gibi renk gizleniyor hem de bir çizim çağrısı tasarruf ediyoruz.

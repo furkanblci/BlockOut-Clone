@@ -104,14 +104,39 @@ namespace BlockOut.Runtime.View
             {
                 if (_ice == null)
                 {
-                    var shader = Shader.Find("Universal Render Pipeline/Lit")
+                    // SHADER DEĞİŞTİ: URP/Lit yerine oyunun kendi tuğla
+                    // shader'ı (2026-08-18).
+                    //
+                    // DERS (aynı mesh, yanlış shader = kaynaşan yüzeyler):
+                    // Buz kabuğu referanstaki gibi DÜZ levha yapılınca
+                    // (saplama yok) yan yana duran buz blokları tek bir dev
+                    // camgöbeği lekeye dönüştü — 10. bölümde dokuz buz bloğu
+                    // ekranda tek parça çıktı ve tahta okunmaz oldu.
+                    //
+                    // Sebep: URP/Lit mesh'in KÖŞE RENKLERİNİ kullanmıyor.
+                    // Tuğla mesh'i kenarlarına ve pahlarına sahte AO gömüyor
+                    // (`BrickMeshBuilder`), ama o bilgi URP/Lit'te yere
+                    // düşüyordu; ayrımı yapan tek şey saplamaların ışığı
+                    // farklı açıyla alması kalmıştı. Saplama gidince ayrım da
+                    // gitti.
+                    //
+                    // `BlockOut/Brick` o köşe renklerini çarpan olarak
+                    // kullanıyor — renkli bloklarda kenarları okunur yapan
+                    // shader'ın ta kendisi. Buz da aynı dili konuşmalı.
+                    var shader = Shader.Find("BlockOut/Brick")
+                                 ?? Shader.Find("Universal Render Pipeline/Lit")
                                  ?? Shader.Find("Universal Render Pipeline/Unlit");
                     _ice = new Material(shader) { name = "Ice_TEMP" };
 
-                    // Referans karesinden örneklendi: parlak, doygun camgöbeği.
-                    // Önceki ton (0.60, 0.85, 0.99) fazla soluktu ve buz gri
-                    // bir kutu gibi okunuyordu.
-                    var color = new Color(0.24f, 0.62f, 0.92f);
+                    // RENK YENİDEN ÖLÇÜLDÜ (2026-08-18, `Levels.mp4` 05:40,
+                    // 13. bölüm — tahtada üç buz bloğu birden var).
+                    // Referans gövde `#1DB3F8`, üst bandı `#1996F0`.
+                    // Bizimki `#3D9EEB` idi: hem daha koyu hem daha MAVİ.
+                    // Kıyas için aynı karedeki normal mavi blok `#024DFB` —
+                    // yani buzun mavi bloktan belirgin biçimde AÇIK ve
+                    // CAMGÖBEĞİ olması gerekiyor, yoksa "donmuş mavi blok" ile
+                    // "mavi blok" aynı şey gibi okunuyor.
+                    var color = new Color(0.114f, 0.702f, 0.973f);
                     if (_ice.HasProperty("_BaseColor")) _ice.SetColor("_BaseColor", color);
                     _ice.color = color;
                     // Buz parlak ve pürüzsüz: ışığı toplayınca "cam" hissi veriyor.
@@ -119,6 +144,44 @@ namespace BlockOut.Runtime.View
                     if (_ice.HasProperty("_Metallic")) _ice.SetFloat("_Metallic", 0f);
                 }
                 return _ice;
+            }
+        }
+
+        static Material _iceRim;
+
+        /// <summary>
+        /// Buz kalıbının KOYU KENARI.
+        ///
+        /// DERS (düz renkli komşular tek kütleye kaynar): Buz kabuğu düz levha
+        /// yapılınca (referansta öyle, saplama yok) yan yana duran iki buzlu
+        /// blok arasında hiçbir sınır kalmadı — 10. bölümde dokuz buz bloğu
+        /// ekranda TEK bir dev camgöbeği leke olarak çıktı ve tahta okunmaz
+        /// oldu. Sebep: `Ice` materyali URP/Lit ve mesh'in KÖŞE RENKLERİNİ
+        /// kullanmıyor; eskiden ayrımı yapan şey saplamaların ışığı farklı
+        /// açıyla almasıydı. Saplama gidince gölge kaynağı da gitti.
+        ///
+        /// Referansta her buz kalıbının kendi koyu kenarı var (gövde `#1DB3F8`,
+        /// üst bandı `#1996F0`). Aynı kabuk tekniğiyle (51. maddedeki kontur)
+        /// koyu bir bilezik çiziliyor: silüet biraz büyütülüp ön yüzleri
+        /// kırpılıyor, geriye kalan arka yüzler kenarda ince bir çerçeve
+        /// bırakıyor.
+        /// </summary>
+        public static Material IceRim
+        {
+            get
+            {
+                if (_iceRim == null)
+                {
+                    var shader = Shader.Find("Universal Render Pipeline/Unlit")
+                                 ?? Shader.Find("Sprites/Default");
+                    _iceRim = new Material(shader) { name = "IceRim" };
+                    var color = new Color(0.055f, 0.416f, 0.686f);
+                    _iceRim.SetColor("_BaseColor", color);
+                    if (_iceRim.HasProperty("_Color")) _iceRim.SetColor("_Color", color);
+                    if (_iceRim.HasProperty("_Cull"))
+                        _iceRim.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Front);
+                }
+                return _iceRim;
             }
         }
 
@@ -621,8 +684,15 @@ namespace BlockOut.Runtime.View
             renderer.sharedMaterial = _counterMaterial != null ? _counterMaterial : CounterFont.material;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
-            // Koyu lacivert zeminde krem: referanstaki sayaçlar da açık renk.
-            text.color = new Color(0.13f, 0.20f, 0.38f);
+            // SAYAÇ RENGİ REFERANSTAN ÖLÇÜLDÜ: `#FEDDD3` — krem/şeftali.
+            //
+            // DERS (yorum ile kod çelişiyorsa ikisinden biri yalan söylüyor):
+            // Buradaki yorum "koyu lacivert zeminde KREM" diyordu ama yazılan
+            // renk `(0.13, 0.20, 0.38)`, yani koyu lacivertin ta kendisiydi.
+            // Sayaç açık camgöbeği buzun üstünde duruyor; koyu bir sayı orada
+            // okunuyor ama referansın tersi ve buzun içinde eriyip gidiyor.
+            // Niyet doğru yazılmış, uygulaması yanlış kalmıştı.
+            text.color = new Color(0.996f, 0.867f, 0.827f);
             return text;
         }
 
