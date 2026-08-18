@@ -197,13 +197,35 @@ sıralı ve temiz."**
   **NASIL DOĞRULANDI.** Kod yolu: `Muted` yalnız `selected` olduğunda true;
   bırakmada ölçek 1'e sabitleniyor (yarım kalmış tween ihtimaline karşı).
 
-- [ ] **7. Kaydırmada arka plan boşluğu (overscroll).**
+- [x] **7. Kaydırmada arka plan boşluğu (overscroll).**
   > "Basılı tutup aşağı ya da yukarı kaldırdığımızda arka plandaki zemin
   > çıkıyor ve boşluğu görebiliyoruz. Orijinal oyunda arka plan o kadar
   > hareket etmiyor ve hiçbir boşluk yok, dolu. Hep kaysa da boşluk
   > görünmüyor."
 
   Mağazada görüldü ama kaydırılan her ekranı ilgilendiriyor.
+
+
+  **KÖK SEBEP.** Bu ekranda zemin ekranın değil **kaydırılan içeriğin**
+  parçası — bölüm renkleri birbirine kayarak geçsin diye (referansta da öyle).
+  Bedeli: liste esnek (`MovementType.Elastic`) olduğu için parmakla uca dayanıp
+  çekince içerik kendi sınırının ötesine gidiyor ve arkasındaki boşluk ortaya
+  çıkıyor.
+
+  **Esnekliği kapatmak (Clamped) yanlış çözüm olurdu:** kullanıcı "hep kaysa da
+  boşluk görünmüyor" dedi, yani referansta liste AYNI ŞEKİLDE esniyor.
+
+  **NE YAPILDI.** `Background` yardımcısına taşma payı eklendi; ilk bölüm
+  yukarı, son bölüm aşağı `OverscrollPad = 700` birim taşıyor. Esnek kaydırma
+  en fazla görünür alanın kabaca yarısı kadar çekilebiliyor (~960), 700 birim
+  gerçekte ulaşılan payın belirgin üstünde. Taşan zemin maskenin dışında
+  bekliyor, hiçbir ölçüye girmiyor.
+
+  **NASIL DOĞRULANDI.**
+  - Sayısal: içerik 400 birim taşırıldığında `BgOffers` üst kenarı **y=2220**,
+    yani ekran tepesinin (1920) 300 birim üstünde. 600 birimde bile 2020.
+  - Görsel: 400 birim taşmada tuğla zemin "Special Offers" bandının üstünü
+    tamamen dolduruyor; sayfa zemini hiç görünmüyor.
 
 ---
 
@@ -341,8 +363,26 @@ sıralı ve temiz."**
   **NASIL DOĞRULANDI.** Yakalama öncesi/sonrası ölçüm: "Special Offers" bandı
   %39 → %22, "Packs" bandı %40 → %22, jeton plakası %40 → %22.
 
-- [ ] **6.** > "Restore Purch kısmı en aşağıya inildiğinde direkt buton olarak
+- [x] **6.** > "Restore Purch kısmı en aşağıya inildiğinde direkt buton olarak
   çıkıyor. Orijinalde böyle ama bizde gözükmüyor, kaydırdığımızda gözüküyor."
+
+
+  **KÖK SEBEP (ölçüldü).** Kaydırma alanı bilerek ekranın **210 birim ALTINA**
+  uzatılıyor — bölüm zemini sekme çubuğunun altına kadar sürsün ve arada ana
+  ekranın manzarası sızmasın diye (1. turun düzeltmesi). Ama içeriğin dibi de o
+  alanın dibine hizalandığı için son öğe aynı 210 birim + çubuk yüksekliği
+  kadar aşağıda kalıyordu.
+
+  En alta kaydırıldığında ölçüldü: "Restore Purchases" düğmesi **y[62..172]**
+  aralığındaydı; alt çubuk 0..165'i, seçili sekme kartı ise ~250'ye kadarını
+  kaplıyor. Yani düğme neredeyse tamamen çubuğun arkasındaydı.
+  **DERS: görünür alanı büyütmek, içeriği görünür yapmaz.**
+
+  **NE YAPILDI.** İçeriğin sonuna `TabBarClearance = 330` birim eklendi
+  (eski 70 birimlik nefes payı + 260 birimlik çubuk payı).
+
+  **NASIL DOĞRULANDI.** Aynı ölçüm yeniden: düğme artık **y[322..432]**,
+  çubuğun ve seçili kartın belirgin biçimde üstünde.
 
 ### D2 — Liderlik (Leaderboard)
 

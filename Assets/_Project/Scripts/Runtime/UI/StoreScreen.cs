@@ -90,6 +90,35 @@ namespace BlockOut.Runtime.UI
 
         const float MarginX   = 0.036f;
 
+        /// <summary>
+        /// İlk ve son bölüm zemininin içeriğin dışına taştığı mesafe.
+        ///
+        /// Esnek kaydırma parmakla en fazla görünür alanın kabaca yarısı kadar
+        /// çekilebiliyor; 1920 birimlik tuvalde 700 birim, o payın belirgin
+        /// biçimde üstünde. Fazlası bedava: taşan zemin hiçbir zaman ölçüye
+        /// girmiyor, yalnız maskenin dışında bekliyor.
+        /// </summary>
+        const float OverscrollPad = 700f;
+
+        /// <summary>
+        /// İçeriğin SONUNA eklenen boşluk: en aşağı kaydırıldığında son öğe
+        /// (Geri Yükle düğmesi) alt sekme çubuğunun ÜSTÜNDE kalsın.
+        ///
+        /// DERS (görünür alanı büyütmek, içeriği görünür yapmaz): Kaydırma
+        /// alanı bilerek ekranın 210 birim ALTINA uzatılıyor — bölüm zemini
+        /// çubuğun altına kadar sürsün ve arada manzara sızmasın diye. Ama
+        /// içeriğin dibi de o alanın dibine hizalandığı için son öğe aynı
+        /// 210 birim + çubuk yüksekliği kadar aşağıda kalıyordu.
+        /// ÖLÇÜLDÜ: en alta kaydırıldığında "Restore Purchases" düğmesi
+        /// y[62..172] aralığındaydı; çubuk 0..165'i, seçili sekme kartı ise
+        /// 250'ye kadarını kaplıyor. Yani düğme neredeyse tamamen çubuğun
+        /// arkasındaydı — kullanıcının "Restore Purch bizde gözükmüyor"
+        /// bulgusu.
+        ///
+        /// 330 = eski 70 birimlik nefes payı + 260 birimlik çubuk payı.
+        /// </summary>
+        const float TabBarClearance = 330f;
+
         // ---- İçerik --------------------------------------------------------
 
         /// <summary>Referanstaki beş paket. Süreler saat; "72s" = 72 saat.</summary>
@@ -310,7 +339,10 @@ namespace BlockOut.Runtime.UI
             _carousel = carousel;
             _carouselPages = pages;
             _carouselDots = dots;
-            Background(content, sectionTop, y - sectionTop, BgOffers, "BgOffers");
+            // İLK bölüm yukarı taşar: üstten çekilen esnek kaydırmada göz
+            // içeriğin başladığı yeri görmesin (bkz. Background yorumu).
+            Background(content, sectionTop, y - sectionTop, BgOffers, "BgOffers",
+                       padTop: OverscrollPad);
 
             // --- Paketler ---
             sectionTop = y;
@@ -341,8 +373,10 @@ namespace BlockOut.Runtime.UI
             y += 2f * (TileCreamH + TileBaseH) + TileGap + 60f;
 
             BuildRestore(content, y);
-            y += RestoreH + 70f;
-            Background(content, sectionTop, y - sectionTop, BgCoins, "BgCoins");
+            y += RestoreH + TabBarClearance;
+            // SON bölüm aşağı taşar — aynı gerekçe, ters uç.
+            Background(content, sectionTop, y - sectionTop, BgCoins, "BgCoins",
+                       padBottom: OverscrollPad);
 
             return y;
         }
@@ -359,8 +393,31 @@ namespace BlockOut.Runtime.UI
         /// üstüne yalnız ışık farkı olarak çizildiği için bölüm rengi tint
         /// ile veriliyor ve tek doku üç bölümde de doğru çalışıyor.
         /// </summary>
-        static void Background(Transform content, float top, float height, Color color, string name)
+        /// <summary>
+        /// Bir bölümün döşemeli zemini.
+        ///
+        /// <paramref name="padTop"/> / <paramref name="padBottom"/>: zemini
+        /// bölümün DIŞINA taşırma payı.
+        ///
+        /// DERS (esnek kaydırmada içeriğin SINIRI görünür): Bu ekranda zemin
+        /// ekranın değil, KAYDIRILAN İÇERİĞİN parçası — bölüm renkleri birbirine
+        /// kayarak geçsin diye böyle (referansta da öyle). Bedeli şu: liste
+        /// esnek (`MovementType.Elastic`) olduğu için parmakla uca dayanıp
+        /// çekince içerik kendi sınırının ötesine gidiyor ve arkasındaki boşluk
+        /// ortaya çıkıyor. Kullanıcı "basılı tutup kaldırdığımızda arka plandaki
+        /// zemin çıkıyor, boşluğu görebiliyoruz" derken bunu gördü.
+        ///
+        /// Esnekliği kapatmak (Clamped) yanlış çözüm olurdu: referansta liste
+        /// AYNI ŞEKİLDE esniyor, yalnız boşluk görünmüyor. Doğru çözüm, ilk ve
+        /// son bölümün zeminini taşma mesafesinden DAHA UZAĞA uzatmak — göz
+        /// hiçbir zaman içeriğin bittiği yeri görmüyor.
+        /// </summary>
+        static void Background(Transform content, float top, float height, Color color,
+                               string name, float padTop = 0f, float padBottom = 0f)
         {
+            top -= padTop;
+            height += padTop + padBottom;
+
             var rect = Row(name, content, top, height);
             var image = rect.gameObject.AddComponent<Image>();
             image.sprite = MenuSprites.Quilt;
