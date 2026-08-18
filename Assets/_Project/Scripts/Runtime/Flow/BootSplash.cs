@@ -148,25 +148,34 @@ namespace BlockOut.Runtime.Flow
             UiKit.Place(page, 0f, 0f, 1f, 1f);
             var group = page.gameObject.AddComponent<CanvasGroup>();
 
-            // Zemin sanatı EKRANI DOLDURUR ve oranı korur: gökyüzü kenardan
-            // kesilse olur, ama karakterler ezilmemeli.
+            // Zemin sanatı EKRANI KAPLAR — sığmaz, KAPLAR.
+            //
+            // DERS (`preserveAspect` SIĞDIRIR, DOLDURMAZ): Burası
+            // `CreateIcon` + `preserveAspect = true` kullanıyordu. O bayrak
+            // görseli kutunun İÇİNE sığdırır (letterbox); görselin oranı
+            // ekranınkinden farklı olduğu anda üstte ve altta şerit kalır.
+            // Kod bunu biliyordu — arkasına gökyüzü renginde bir panel koyup
+            // "şerit görünmesin" diye yorum düşülmüştü. Ama düz mavi bir şerit
+            // de şerittir: kullanıcı "splash screen tamamen ekranı kaplamıyor,
+            // altında ve üstünde boşluklar var" derken tam olarak onu gördü.
+            //
+            // Doğru araç `UiKit.CreateCover`: `AspectRatioFitter.EnvelopeParent`
+            // ile görseli oranını koruyarak ebeveyni ÖRTECEK kadar büyütür,
+            // fazlası ekran dışında kalır (fotoğraftaki "cover" davranışı).
+            // Karakterler yine ezilmiyor, ama boşluk da kalmıyor.
+            //
+            // Gökyüzü paneli YİNE duruyor: görsel hiç yüklenemezse ekran
+            // simsiyah kalmasın diye. Artık bir şeridi örtmek için değil,
+            // yedek olarak.
+            var sky = UiKit.CreatePanel("Sky", page, new Color(0.129f, 0.361f, 0.741f));
+            sky.raycastTarget = false;
+
             var art = UiSkin.Get(Art.Splash);
             if (art != null)
             {
-                var cover = UiKit.CreateIcon("Art", page, art);
-                cover.preserveAspect = true;
+                var cover = UiKit.CreateCover("Art", page, art,
+                    new Color(0.129f, 0.361f, 0.741f));
                 cover.raycastTarget = false;
-                UiKit.Place(cover, 0f, 0f, 1f, 1f);
-
-                // preserveAspect kenarlarda boşluk bırakabilir; arkasına
-                // görselin gökyüzü tonu konuyor ki şerit görünmesin.
-                var sky = UiKit.CreatePanel("Sky", page, new Color(0.129f, 0.361f, 0.741f));
-                sky.raycastTarget = false;
-                sky.transform.SetAsFirstSibling();
-            }
-            else
-            {
-                UiKit.CreatePanel("Sky", page, new Color(0.129f, 0.361f, 0.741f));
             }
 
             // Logo: gerçek blok harfli görselimiz yok, başlık malzemesiyle

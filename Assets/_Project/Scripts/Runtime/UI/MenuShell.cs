@@ -84,6 +84,19 @@ namespace BlockOut.Runtime.UI
         /// <summary>Ana ekrandaki dişli düğmesi buraya bağlanır.</summary>
         public static MenuShell Instance { get; private set; }
 
+        /// <summary>
+        /// Şu an açık olan sekmenin anahtarı.
+        ///
+        /// DERS (durumu HİYERARŞİDEN okuma): Kaydırma geçişini doğrularken
+        /// "hangi ekran açık" sorusunu `Content`'in ilk aktif çocuğuna bakarak
+        /// cevaplamıştım. Yanlış cevap verdi: <see cref="SlideSwap"/> ÇIKAN
+        /// ekranı tween bitene kadar açık bırakıyor, yani geçiş sırasında iki
+        /// ekran birden aktif ve hangisinin "gerçek" olduğu kardeş sırasına
+        /// kalıyor. Görünür durum ile mantıksal durum aynı şey değil; ölçmek
+        /// isteyen mantıksal olanı okumalı.
+        /// </summary>
+        public string ActiveKey => _active;
+
         void Awake() => Instance = this;
 
         void Start()
@@ -116,6 +129,12 @@ namespace BlockOut.Runtime.UI
             _screens["settings"].SetAsLastSibling();
             _screens["profile"].SetAsLastSibling();
             _tabBarRoot = root;
+
+            // Yatay kaydırmayla sekme geçişi. Ekranlar kurulduktan SONRA
+            // ekleniyor: bileşen ilk karesinde raycast yapıyor ve hedefler
+            // hazır olmalı.
+            if (GetComponent<MenuSwipeNavigator>() == null)
+                gameObject.AddComponent<MenuSwipeNavigator>();
 
             Show("home");
         }
@@ -465,6 +484,32 @@ namespace BlockOut.Runtime.UI
                             leaving.gameObject.SetActive(false);
                         }));
             }
+        }
+
+        /// <summary>
+        /// Komşu sekmeye geçer (+1 sağdaki, -1 soldaki). Kaydırma jesti bunu
+        /// çağırıyor; <see cref="MenuSwipeNavigator"/>.
+        ///
+        /// DERS (uçlarda BAŞA SARMA yok): Son sekmeden sağa kaydırınca ilk
+        /// sekmeye atlamak "döngüsel" hissi verir ve oyuncu nerede olduğunu
+        /// kaybeder — beş sekmelik bir çubukta konum, sıranın kendisidir.
+        /// Uçta hiçbir şey yapmamak, çubuğun bir ŞERİT olduğunu öğretiyor.
+        ///
+        /// Tam ekran örtü sayfalarında (Ayarlar, Profil) kaydırma kapalı:
+        /// onlar sekme çubuğunun parçası değil, üstüne açılan sayfalar.
+        /// Oradan yana kaydırmak hangi sekmeye gideceği belirsiz bir hareket.
+        /// </summary>
+        public void StepTab(int direction)
+        {
+            if (System.Array.IndexOf(FullScreenPages, _active) >= 0) return;
+
+            int current = TabOrder(_active);
+            if (current >= Tabs.Length) return;      // listede olmayan bir ekran
+
+            int next = current + direction;
+            if (next < 0 || next >= Tabs.Length) return;
+
+            Show(Tabs[next].key);
         }
 
         /// <summary>Sekme çubuğundaki sıra; listede olmayan ekranlar sona sayılır.</summary>

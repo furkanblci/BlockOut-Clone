@@ -103,14 +103,64 @@ sıralı ve temiz."**
 
 ## B — ÇAPRAZ KESEN YAPISAL İŞLER
 
-- [ ] **1. Açılış ekranı tam ekranı kaplamıyor.**
+- [x] **1. Açılış ekranı tam ekranı kaplamıyor.**
   > "Splash screen tamamen ekranı kaplamıyor; altında ve üstünde boşluklar var."
 
-- [ ] **2. Ekranlar arası kaydırmayla geçiş yok.**
+
+  **KÖK SEBEP.** Açılış görseli `UiKit.CreateIcon` + `preserveAspect = true`
+  ile kuruluyordu. O bayrak görseli kutunun **İÇİNE SIĞDIRIR** (letterbox);
+  görselin oranı ekranınkinden farklı olduğu anda üstte ve altta şerit kalır.
+  Kod bunu zaten biliyordu — arkasına gökyüzü renginde bir panel koyup "şerit
+  görünmesin" diye yorum düşülmüştü. Ama düz mavi bir şerit de şerittir.
+
+  **NE YAPILDI.** `UiKit.CreateCover`'a geçildi
+  (`AspectRatioFitter.EnvelopeParent`): görsel oranını koruyarak ebeveyni
+  ÖRTECEK kadar büyür, fazlası ekran dışında kalır — fotoğraftaki "cover"
+  davranışı. Karakterler yine ezilmiyor, boşluk da kalmıyor.
+  **DERS: `preserveAspect` SIĞDIRIR, DOLDURMAZ.**
+
+  **NASIL DOĞRULANDI.** Play modunda görselin dünya kutusu ölçüldü:
+  x[0..1080], y[-7..1928] — 1080×1920 ekranı tam kaplıyor, taşma dışarıda.
+  Ekran görüntüsünde de üstte/altta şerit yok.
+
+- [x] **2. Ekranlar arası kaydırmayla geçiş yok.**
   > "Sağa veya sola kaydırınca ekranlar arasında geçiş olmuyor. Bunu yapalım
   > demiştim, hâlâ yapılmamış. Sadece butonlara tıklayarak ekran geçişi oluyor."
 
   **Önceki turdan devreden istek.**
+
+
+  **NEDEN `IDragHandler` DEĞİL.** İlk akla gelen çözüm tam ekran görünmez bir
+  yüzeye sürükleme işleyicisi takmak. Bu projede çalışmaz: Mağaza, Liderlik ve
+  Yolculuk ekranlarının her birinde dikey bir `ScrollRect` var ve ScrollRect
+  sürükleme olaylarını **yutar** — üstünde başlayan jest arkadaki yüzeye asla
+  ulaşmaz. Kaydırma yalnız ekranın boş köşelerinde çalışırdı; oyuncunun
+  parmağını nereye koyacağını bilmesi gereken bir jest, jest değildir.
+
+  **NE YAPILDI.** `MenuSwipeNavigator` eklendi. İşaretçi doğrudan Input
+  System'den örnekleniyor (`PointerInputService` ile aynı yöntem), yani olay
+  ağacından bağımsız. Dikey kaydırmanın bozulmaması **eksen baskınlığı**
+  kuralıyla sağlanıyor: yatay yol, dikey yolun en az iki katı olmalı.
+  Yatay kayan widget'ın (`OfferCarousel`) üstünde başlayan jest, basma anındaki
+  raycast ile baştan iptal — yoksa hem sayfa hem ekran değişirdi.
+
+  `MenuShell.StepTab(±1)` eklendi. Uçlarda **başa sarma yok** (beş sekmelik bir
+  çubukta konum sıranın kendisidir) ve tam ekran örtü sayfalarında (Ayarlar,
+  Profil) jest kapalı.
+
+  **NASIL DOĞRULANDI (iki ayrı sınama).**
+
+  1. *Gezinme* — play modunda 12 adım:
+     home→journey→collection→(uçta durdu)→journey→home→board→store→(uçta durdu),
+     Ayarlar'da her iki yön de kapalı. **Hepsi beklendiği gibi.**
+  2. *Jest matematiği* — karar saf bir metoda çıkarıldı
+     (`TryResolveSwipe`) ve **11 durum tek tek sınandı**: eşik altı/üstü, dikey
+     baskın, çapraz, tam sınır ve altı, çok yavaş, süre sınırı, salt dokunuş.
+     **11/11 geçti.**
+     **DERS: test edilemeyen mantık doğrulanmamış mantıktır.** Kural `Update`
+     içindeyken doğrulamanın tek yolu gerçek parmak hareketi üretmekti; basma
+     ile bırakma arasında KARE geçmesi gerektiği için tek komutta yapılamıyor,
+     komutlar arası geçen gerçek saniyeler de süre sınırına takılıyordu.
 
 - [x] **24. Menü başlıklarının 3B kaplaması yok.**
   > "Leaderboard, Journey, Collection bu 3 menünün üst kısmında yazan menü
