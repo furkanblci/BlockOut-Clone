@@ -141,8 +141,27 @@ namespace BlockOut.Runtime.UI
         TextMeshProUGUI _failDifficulty;
 
         // Kaybetme kartı referanstan ölçüldü: `Game over .mp4` 18. sn, 384x832.
-        const float LoseCardX0 = 0.057f, LoseCardY0 = 0.255f;
-        const float LoseCardX1 = 0.943f, LoseCardY1 = 0.786f;
+        // YENİDEN ÖLÇÜLDÜ (5. tur; kullanıcı: "failed ekranı sıkıntılı,
+        // orijinaliyle çok benzer değil, bozuk gözüküyor; scale, yapı, tarz
+        // olarak birebir benzetilmesi gerekiyor").
+        //
+        // ÖLÇÜM (`Game over .mp4` 18. saniye, BAŞARISIZ paneli; 384x832 kare,
+        // ekran oranına normalize edildi, y aşağıdan yukarı):
+        //   panel        x 0.049..0.951   y 0.254..0.700
+        //   yeşil düğme  x 0.266..0.734   y 0.308..0.389
+        //   sayı hapı    x 0.344..0.711   y 0.422..0.483
+        //   "Ödüller x3" x 0.370..0.628   y 0.393..0.418
+        //   "Seviye 54"                   y 0.608..0.644
+        //
+        // Bizim kartımız 0.255..0.786 idi: referanstan **%19 daha uzun**.
+        // Uzun kart, içindeki her şeyi de seyreltiyor; kullanıcının "bozuk"
+        // dediği şey tek tek öğeler değil, aralarındaki boşluklardı.
+        //
+        // DERS (oranı bozan tek sayı, her şeyi bozar): İçerideki öğeler kart
+        // GÖRELİ yerleştirildiği için kartın yüksekliği yanlış olunca hepsi
+        // birden kayıyor. Önce kabı ölç, sonra içindekileri.
+        const float LoseCardX0 = 0.049f, LoseCardY0 = 0.254f;
+        const float LoseCardX1 = 0.951f, LoseCardY1 = 0.700f;
 
         readonly (Button button, Image face, TextMeshProUGUI badge)[] _powerButtons =
             new (Button, Image, TextMeshProUGUI)[3];
@@ -1512,7 +1531,7 @@ namespace BlockOut.Runtime.UI
             // Zorluk etiketi bölüm numarasının ÜSTÜNDE, küçük ve sade.
             _failDifficulty = UiKit.CreateTitle("Difficulty", _resultCard.transform, "", 30,
                 Ink, TitleOutline);
-            UiKit.Place(_failDifficulty, 0.20f, 0.780f, 0.80f, 0.822f);
+            UiKit.Place(_failDifficulty, 0.20f, 0.884f, 0.80f, 0.952f);
 
             // Kaçırılan ödülün üstüne binen kırmızı çarpı — rozetin SAĞ ucunda.
             _failDenied = UiKit.CreateIcon("Denied", _rewardBadge.transform, UiSprites.Cross,
@@ -2163,14 +2182,19 @@ namespace BlockOut.Runtime.UI
 
             // Kart İÇİ yerleşim (kart-göreli oranlar); kaybetme düzeni
             // `Game over .mp4` 18. saniyeden ölçüldü.
-            UiKit.Place(_perfectBadge, won ? 0.08f : 0.244f, won ? 0.815f : 0.655f,
-                                       won ? 0.92f : 0.758f, won ? 0.955f : 0.742f);
-            UiKit.Place(_rewardArt, won ? 0.24f : 0.229f, won ? 0.400f : 0.429f,
-                                    won ? 0.76f : 0.744f, won ? 0.830f : 0.616f);
-            UiKit.Place(_rewardBadge, won ? 0.34f : 0.355f, won ? 0.285f : 0.350f,
-                                      won ? 0.66f : 0.714f, won ? 0.395f : 0.452f);
-            UiKit.Place(_resultPrimary, won ? 0.12f : 0.194f, won ? 0.075f : 0.113f,
-                                        won ? 0.88f : 0.802f, won ? 0.245f : 0.271f);
+            // Kaybetme oranları yukarıdaki ölçümden kart-göreliye çevrildi
+            // (kart x 0.049..0.951 → genişlik 0.902; y 0.254..0.700 → 0.446).
+            UiKit.Place(_perfectBadge, won ? 0.08f : 0.20f, won ? 0.815f : 0.794f,
+                                       won ? 0.92f : 0.80f, won ? 0.955f : 0.874f);
+            UiKit.Place(_rewardArt, won ? 0.24f : 0.278f, won ? 0.400f : 0.513f,
+                                    won ? 0.76f : 0.744f, won ? 0.830f : 0.794f);
+            UiKit.Place(_rewardBadge, won ? 0.34f : 0.327f, won ? 0.285f : 0.377f,
+                                      won ? 0.66f : 0.734f, won ? 0.395f : 0.513f);
+            UiKit.Place(_resultPrimary, won ? 0.12f : 0.241f, won ? 0.075f : 0.121f,
+                                        won ? 0.88f : 0.759f, won ? 0.245f : 0.303f);
+            // "Ödüller x3" rozeti yeşil düğmenin hemen ÜSTÜNDE.
+            if (_rewardsTag != null)
+                UiKit.Place(_rewardsTag, 0.356f, 0.312f, 0.642f, 0.368f);
 
             // REKLAM DÜĞMESİ KALDIRILDI (5. tur).
             //

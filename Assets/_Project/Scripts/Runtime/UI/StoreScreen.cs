@@ -72,7 +72,8 @@ namespace BlockOut.Runtime.UI
         // Tentenin en alçak noktası referansta y=286 (946×2048) → ekranın
         // %13.96'sı → 268 birim.
         const float AwningH   = 268f;
-        const float PadTop    = 34f;
+        // Tentenin hemen altı: referansta içerik festona neredeyse değiyor.
+        const float PadTop    = 10f;
         const float PillH     = 104f;
         const float PillGap   = 54f;
         const float OfferArtH = 340f;
@@ -295,7 +296,24 @@ namespace BlockOut.Runtime.UI
             // çizilmiş" görünüyordu. Araya koyu bir levha koymak tenteyi
             // duvardan AYIRIYOR — 3B hissi mesafeden geliyor, gölgenin
             // kendisinden değil.
-            const float ShadeDrop = 46f;
+            // ÖLÇÜLDÜ VE KISALDI (5. tur; kullanıcı: "brandanın altındaki mavi
+            // yer aşağıya kaydırınca bizimle beraber geliyor, orijinalde o
+            // yer sabit").
+            //
+            // İki kare (`menus,powerups,vs.mp4` 10. ve 12. saniye) farklandı:
+            // referansta içeriğin kaydığı ilk satır ekranın **%13,5'i**.
+            // Bizde %16,4 idi — yani tentenin festonları bittikten sonra 46
+            // birimlik DÜZ bir lacivert bant daha vardı ve içerik ancak ondan
+            // sonra başlıyordu. Referansta öyle bir bant yok: festonun
+            // kenarı koyulaşıyor ve hemen içerik geliyor.
+            //
+            // DERS (sabit bir katman da yanlış YERDE olabilir): Bant zaten
+            // kaydırılmıyordu, yani "sabit mi" sorusunun cevabı doğruydu;
+            // yanlış olan KALINLIĞIYDI. Kullanıcı hareketi değil, o bandın
+            // varlığını görüyordu.
+            //
+            // Pay yalnız festonun çentiklerini arkadan kapatacak kadar.
+            const float ShadeDrop = 6f;
             var shade = Row("AwningShade", root, 0f, AwningH + ShadeDrop);
             var shadeImage = shade.gameObject.AddComponent<Image>();
             shadeImage.color = new Color(0.024f, 0.137f, 0.529f);   // #062387
