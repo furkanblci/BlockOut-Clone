@@ -233,7 +233,10 @@ namespace BlockOut.Runtime.View
             var shader = Shader.Find("BlockOut/Brick")
                          ?? Shader.Find("Universal Render Pipeline/Unlit");
             var mat = new Material(shader) { name = "LayerFill_" + color };
-            var c = baseColor * 0.86f;
+            // TAM DOYGUNLUK (5. tur): renk %86'ya kısılıyordu ve iç katman
+            // "tozlu" görünüyordu. Referansta iç katman, o renkteki normal
+            // bir bloktan ayırt edilemez — aynı renk, aynı kabartma.
+            var c = baseColor;
             c.a = 1f;
             mat.SetColor("_BaseColor", c);
             _layerFill[color] = mat;
@@ -256,7 +259,8 @@ namespace BlockOut.Runtime.View
             var shader = Shader.Find("Universal Render Pipeline/Unlit")
                          ?? Shader.Find("Sprites/Default");
             var mat = new Material(shader) { name = "LayerRim_" + outerColor };
-            var c = Color.Lerp(baseColor, Color.white, 0.55f);
+            // Referansta hat, dış rengin AÇIK tonu — beyaza yakın değil.
+            var c = Color.Lerp(baseColor, Color.white, 0.42f);
             mat.SetColor("_BaseColor", c);
             if (mat.HasProperty("_Color")) mat.SetColor("_Color", c);
             _layerRim[outerColor] = mat;

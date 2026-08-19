@@ -47,6 +47,24 @@ namespace BlockOut.Runtime.FX
             _events.LayerPeeled += OnLayerPeeled;
             _events.IceShattered += OnIceShattered;
             _events.GateIceShattered += OnGateIceShattered;
+
+            // HER HAMLEDE ÇATLAMA (5. tur, kullanıcı geri bildirimi).
+            //
+            // Kullanıcı: "buz kırılıyorken her hamle yaptığımızda buz
+            // parçalanma efekti gelsin demiştim, çalışmıyor şu anda."
+            //
+            // BULUNAN SEBEP: `IceDecremented` olayına yalnız titreşim ve ses
+            // bağlıydı; GÖRSEL hiçbir şey yoktu. Parçacıklar sadece buz
+            // TAMAMEN kırılınca (`IceShattered`) çıkıyordu. Yani sayaç 5'ten
+            // 1'e inerken ekranda hiçbir şey olmuyor, oyuncu ilerlediğini
+            // göremiyordu.
+            //
+            // DERS (bir olayın DUYULMASI görülmesi demek değil): Ses ve
+            // titreşim bağlanmış olduğu için olay "yapıldı" sayılmıştı.
+            // Sessiz oynayan ya da titreşimi kapalı bir oyuncu için o hamle
+            // hiç gerçekleşmemiş gibiydi.
+            _events.IceDecremented += OnIceDecremented;
+            _events.GateIceDecremented += OnGateIceDecremented;
             _events.CurtainOpened += OnCurtainOpened;
         }
 
@@ -57,6 +75,8 @@ namespace BlockOut.Runtime.FX
             _events.LayerPeeled -= OnLayerPeeled;
             _events.IceShattered -= OnIceShattered;
             _events.GateIceShattered -= OnGateIceShattered;
+            _events.IceDecremented -= OnIceDecremented;
+            _events.GateIceDecremented -= OnGateIceDecremented;
             _events.CurtainOpened -= OnCurtainOpened;
             _events = null;
         }
@@ -103,6 +123,62 @@ namespace BlockOut.Runtime.FX
                 block.Position, block.W, block.H, BrickHeightHalf);
             IceBurst(at, block.Cells.Count);
             GameKit.FX.CameraShake.Add(0.30f);      // buz kırılması sert bir an
+        }
+
+        /// <summary>
+        /// Buz ÇATLIYOR (kırılmıyor): sayaç bir azaldı.
+        ///
+        /// Kırılmadan farkı ÖLÇEK: burada beyaz toz yok, yalnız birkaç
+        /// camgöbeği kırıntı ve hafif bir sarsıntı. Her hamlede tam
+        /// parçalanma efekti oynatmak, asıl kırılma anını değersizleştirirdi
+        /// — büyük an, küçük anlardan AYRIŞMALI.
+        /// </summary>
+        void OnIceDecremented(BlockModel block)
+        {
+            Vector3 at = _space.RectCenterToWorld(
+                block.Position, block.W, block.H, BrickHeightHalf);
+            IceCrack(at, block.Cells.Count);
+            GameKit.FX.CameraShake.Add(0.10f);
+        }
+
+        void OnGateIceDecremented(GateModel gate)
+        {
+            IceCrack(GateWorldPoint(gate), Mathf.Max(1, gate.Length));
+            GameKit.FX.CameraShake.Add(0.10f);
+        }
+
+        /// <summary>Çatlama kırıntısı: kırılmanın küçük kardeşi.</summary>
+        void IceCrack(Vector3 position, int cells)
+        {
+            int shards = 5 + cells * 2;
+            var chips = new ParticleSystem.EmitParams
+            {
+                position = position,
+                applyShapeToPosition = true,
+                startColor = new Color(0.78f, 0.94f, 1f, 1f),
+                startLifetime = 0.42f,
+                startSize = 0.20f
+            };
+            _crumbs.Emit(chips, shards);
+
+            // Tek bir beyaz kıvılcım: "çatladı" vurgusu.
+            var spark = new ParticleSystem.EmitParams
+            {
+                position = position,
+                applyShapeToPosition = true,
+                startColor = Color.white,
+                startLifetime = 0.18f,
+                startSize = 0.12f
+            };
+            _crumbs.Emit(spark, 3);
+        }
+
+        Vector3 GateWorldPoint(GateModel gate)
+        {
+            float spanCenter = (gate.SpanMin + gate.SpanMax) * 0.5f;
+            return gate.EdgeHorizontal
+                ? _space.CornerToWorld(spanCenter, gate.EdgeCoord, 0.2f)
+                : _space.CornerToWorld(gate.EdgeCoord, spanCenter, 0.2f);
         }
 
         void OnGateIceShattered(GateModel gate)

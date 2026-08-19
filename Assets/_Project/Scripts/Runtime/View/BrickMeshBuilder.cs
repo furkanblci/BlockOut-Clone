@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using BlockOut.Runtime.Config;
 using UnityEngine;
 
@@ -67,10 +67,30 @@ namespace BlockOut.Runtime.View
             // kalınca ok "çıkartma" gibi duruyordu.
             bool studs = block.Axis == BlockOut.Core.MoveAxis.Free;
 
-            int key = ShapeKey(block) ^ (studs ? 0 : unchecked((int)0x7A3C0000));
+            // İç katmanı olan blok, ortasındaki saplamaları BASMAZ: orayı
+            // içteki blok kaplıyor (bkz. GetInnerBlock).
+            bool nested = block.Layers != null && block.Layers.Count > 1;
+
+            int key = ShapeKey(block) ^ (studs ? 0 : unchecked((int)0x7A3C0000))
+                                     ^ (nested ? unchecked((int)0x1D5E0000) : 0);
             if (Cache.TryGetValue(key, out var cached) && cached != null) return cached;
 
-            var mesh = Build(block.W, block.H, block.Cells, withStuds: studs, grow: 0f);
+            List<Vector2> innerLoop = null;
+            if (studs && nested)
+            {
+                var cfg = VisualSettings.Current;
+                float inset = cfg != null ? cfg.brickInset : 0.055f;
+                float corner = cfg != null ? cfg.brickCornerRadius : 0.15f;
+                // Bastırma halkası, iç bloğun EKRANDAKİ hâli: silüetin
+                // merkeze göre `InnerShare` ile ölçeklenmişi.
+                innerLoop = BrickSilhouette.Build(block.Cells, block.W, block.H, inset, corner);
+                if (innerLoop != null)
+                    for (int i = 0; i < innerLoop.Count; i++)
+                        innerLoop[i] *= InnerShare;
+            }
+
+            var mesh = Build(block.W, block.H, block.Cells, withStuds: studs, grow: 0f,
+                suppressStudsInside: innerLoop);
             Cache[key] = mesh;
             return mesh;
         }
@@ -175,6 +195,73 @@ namespace BlockOut.Runtime.View
             return ring;
         }
 
+        /// <summary>
+        /// BLOK İÇİNDE BLOK: içteki katman da SAPLAMALI gerçek bir tuğla.
+        ///
+        /// Kullanıcı (5. tur): "blok içinde blok feature de düzgün değil, hâlâ
+        /// düz renk kare var blok yerine."
+        ///
+        /// ÖLÇÜM (Levels 1-20, 07:04, 15. bölüm): dıştaki pembe blok 2x2 hücre
+        /// ve 4x4 saplama; içindeki mavi katman aynı saplama ızgarasının orta
+        /// 3x3'ünü taşıyor — yani iç kısım küçültülmüş bir blok DEĞİL, aynı
+        /// tuğlanın KIRPILMIŞ bir parçası. Saplamalar dıştakiyle aynı boyda.
+        ///
+        /// DERS (küçültmek ile kırpmak farklı şeylerdir): İlk denemede iç
+        /// katman bloğun kendi mesh'i %58 ölçekle konmuştu; saplamalar da
+        /// küçülüp sıklaşıyordu ve dıştakilerle kesişip yıldız desenleri
+        /// üretiyordu. İkinci denemede saplamalar tamamen atıldı — bu sefer
+        /// "düz renk kare" çıktı. Doğrusu üçüncüsü: ızgara aynı kalacak,
+        /// GÖVDE küçülecek, kenara sığmayan saplama çizilmeyecek.
+        /// </summary>
+        public static Mesh GetInnerBlock(BlockOut.Core.BlockModel block)
+        {
+            int key = ShapeKey(block) ^ unchecked((int)0x3C4D0000);
+            if (Cache.TryGetValue(key, out var innerCached) && innerCached != null)
+                return innerCached;
+
+            var cfg = VisualSettings.Current;
+            int perCell = cfg != null ? cfg.studsPerCell : 2;
+
+            // Gövde her kenardan YARIM SAPLAMA ADIMI içeri çekiliyor: referansta
+            // 4 saplamalık bir kenardan 3'ü içeride kalıyor.
+            var mesh = Build(block.W, block.H, block.Cells, withStuds: true, grow: 0f);
+            mesh.name += "_Inner";
+            Cache[key] = mesh;
+            return mesh;
+        }
+
+        /// <summary>
+        /// İç bloğun çevresindeki ince açık hat.
+        ///
+        /// ÖLÇÜM (15. bölüm, 07:04): hat, dış rengin açık tonunda ve kalınlığı
+        /// hücrenin ~%3,8'i (2,7 piksel / 71 piksel hücre). Ayrı bir çizgi
+        /// mesh'i yerine iç bloktan bir tık GENİŞ, saplamasız bir silüet:
+        /// altından ince bir halka olarak görünüyor.
+        /// </summary>
+        public static Mesh GetInnerRim(BlockOut.Core.BlockModel block)
+        {
+            int key = ShapeKey(block) ^ unchecked((int)0x6E210000);
+            if (Cache.TryGetValue(key, out var rimCached) && rimCached != null) return rimCached;
+
+            var mesh = Build(block.W, block.H, block.Cells, withStuds: false, grow: 0f);
+            mesh.name += "_InnerRim";
+            Cache[key] = mesh;
+            return mesh;
+        }
+
+        /// <summary>
+        /// İç katmanın bloğa oranı — ÖLÇÜLDÜ (Levels 1-20, 07:04, 15. bölüm):
+        /// dıştaki pembe blok 140x142 piksel, içindeki mavi katman 98x94 →
+        /// %70 x %66.
+        /// </summary>
+        public const float InnerShare = 0.68f;
+
+        /// <summary>
+        /// Açık hattın oranı: iç katmandan hücrenin ~%3,8'i kadar geniş
+        /// (referansta hat 2,7 piksel / 71 piksel hücre).
+        /// </summary>
+        public const float InnerRimShare = 0.76f;
+
         public static Mesh GetOutlineShell(BlockOut.Core.BlockModel block)
         {
             int key = ShapeKey(block) ^ unchecked((int)0x2B770000);
@@ -198,7 +285,8 @@ namespace BlockOut.Runtime.View
         }
 
         /// <param name="grow">Silüeti dışa şişirme miktarı (kontur kabuğu için).</param>
-        static Mesh Build(int w, int h, List<Vector2Int> cells, bool withStuds, float grow)
+        static Mesh Build(int w, int h, List<Vector2Int> cells, bool withStuds, float grow,
+            List<Vector2> suppressStudsInside = null)
         {
             var cfg = VisualSettings.Current;
             float height = cfg != null ? cfg.brickHeight : 0.40f;
@@ -211,8 +299,13 @@ namespace BlockOut.Runtime.View
             // yayın yarıçapı, kaydırma kadar artar. Aksi hâlde kabuk köşelerde
             // gövdeden DAHA KESKİN kalır ve dört köşede beyaz sivri uçlar
             // görünür.
-            float outline = Mathf.Max(0f, grow);
-            var loop = BrickSilhouette.Build(cells, w, h, inset - outline, corner + outline);
+            // `grow` NEGATİF de olabilir: iç katman gövdesi böyle küçültülüyor.
+            // Eskiden burada `Mathf.Max(0f, grow)` vardı — kontur kabuğu için
+            // yazılmıştı ve negatif değeri sessizce yutuyordu, yani iç blok
+            // hiç küçülmüyordu (ekranda dış bloğu tamamen örtüyordu).
+            float outline = grow;
+            var loop = BrickSilhouette.Build(
+                cells, w, h, inset - outline, Mathf.Max(0.01f, corner + outline));
             if (loop == null || loop.Count < 3)
                 return new Mesh { name = "Brick_Empty" };
 
@@ -317,13 +410,45 @@ namespace BlockOut.Runtime.View
             {
                 float step = 1f / perCell;
                 float first = step * 0.5f;
+                float studRadius = cfg != null ? cfg.studRadius : 0.168f;
+
                 foreach (var cell in cells)
                     for (int sx = 0; sx < perCell; sx++)
                         for (int sz = 0; sz < perCell; sz++)
-                            AddStud(verts, normals, tris, colors, new Vector3(
+                        {
+                            var at = new Vector3(
                                 -w * 0.5f + cell.x + first + sx * step,
                                 height,
-                                h * 0.5f - cell.y - first - sz * step), studFoot, studTop);
+                                h * 0.5f - cell.y - first - sz * step);
+
+                            // KENARA TAŞAN SAPLAMA ÇİZİLMEZ.
+                            //
+                            // Silüet içeri çekilmiş bir mesh'te (blok içinde
+                            // blok, bkz. GetInnerBlock) saplama ızgarası
+                            // yerinde kalır ve dıştaki halka gövdenin kenarını
+                            // aşar: ekranda havada duran yarım saplamalar
+                            // çıkar. Saplama, ancak gövde ONU TAŞIYACAK kadar
+                            // genişse çiziliyor.
+                            //
+                            // Normal bloklarda bu koşul zaten sağlanıyor, yani
+                            // ek maliyeti yok.
+                            if (BrickSilhouette.DistanceInside(loop, new Vector2(at.x, at.z))
+                                < studRadius * 0.92f) continue;
+
+                            // İÇ KATMANIN KAPLADIĞI SAPLAMA ÇİZİLMEZ.
+                            //
+                            // İç blok aynı saplama ızgarasını kullanıyor; dış
+                            // blok o bölgede de saplama basarsa iki saplama
+                            // tam olarak üst üste gelir ve derinlik tamponu
+                            // titrer (z-fighting). Referansta dış blok zaten
+                            // yalnız KENAR saplamalarını gösteriyor.
+                            if (suppressStudsInside != null &&
+                                BrickSilhouette.DistanceInside(
+                                    suppressStudsInside, new Vector2(at.x, at.z))
+                                > -studRadius * 0.5f) continue;
+
+                            AddStud(verts, normals, tris, colors, at, studFoot, studTop);
+                        }
             }
 
             var mesh = new Mesh { name = $"Brick_{w}x{h}" };

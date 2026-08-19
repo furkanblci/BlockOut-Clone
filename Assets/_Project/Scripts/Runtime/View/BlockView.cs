@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using BlockOut.Core;
 using BlockOut.Runtime.Board;
@@ -98,51 +98,60 @@ namespace BlockOut.Runtime.View
         {
             if (_model.Layers.Count <= 1) return;
 
-            // PANEL DIŞ SAPLAMALARIN ÜSTÜNE KALDIRILIYOR.
+            // İÇ BLOK DIŞ BLOKLA AYNI HİZADA (5. tur).
             //
-            // DERS (aynı yükseklikte iki yüzey birbirini deler): Panel önce
-            // gövdeyle aynı hizada duruyordu; dış bloğun ORTA saplamaları
-            // panelin içinden çıkıp iç rengin üstünde duruyordu (mavi panelin
-            // üstünde pembe saplamalar). Paneli saplama tepesinin biraz üstüne
-            // almak, o bölgedeki saplamaları temiz biçimde örtüyor.
+            // Panel eskiden dış saplamaların ÜSTÜNE kaldırılıyordu, çünkü dış
+            // blok orta saplamalarını da basıyordu ve onlar panelin içinden
+            // çıkıyordu. Artık dış blok o bölgede saplama basmıyor (bkz.
+            // BrickMeshBuilder.Get), yani kaldırmaya gerek yok — hatta zararlı:
+            // referansta iç ve dış saplamaların tepeleri AYNI düzlemde.
             //
-            // Kaldırma miktarı ÖLÇÜLEN değerden: saplamalı mesh'in tepesi ile
-            // saplamasız gövdenin tepesi arasındaki fark. Sabit yazmak, görsel
-            // ayarlardan tuğla yüksekliği değişince yanlış kalırdı.
-            float studdedTop = _filter != null && _filter.sharedMesh != null
-                ? _filter.sharedMesh.bounds.max.y
-                : BrickMeshBuilder.Height;
-            var silhouette = BrickMeshBuilder.GetSilhouette(_model);
-            float bodyTop = silhouette != null ? silhouette.bounds.max.y : studdedTop;
-            float lift = Mathf.Max(0.012f, studdedTop - bodyTop + 0.006f);
+            // Kalan pay yalnız z-fighting içindir: iki gövdenin üst yüzü aynı
+            // düzlemde olmasın.
+            const float lift = 0.004f;
 
             // Kenar çizgisi: iç panelden biraz büyük, dış rengin AÇIK tonu.
             // Panelden bir tık AŞAĞIDA ki panelin altından ince bir hat olarak
             // görünsün, onu örtmesin.
             _innerRim = new GameObject("InnerRim");
             _innerRim.transform.SetParent(transform, worldPositionStays: false);
-            _innerRim.transform.localPosition = new Vector3(0f, lift - 0.004f, 0f);
-            _innerRim.transform.localScale = new Vector3(RimShare, 1f, RimShare);
-            _innerRim.AddComponent<MeshFilter>().sharedMesh = silhouette;
+            // Hat panelden BİR TIK AŞAĞIDA. İkisi de dolu levha; aynı
+            // yükseklikte olurlarsa üst yüzleri panelin altında ÇAKIŞIR ve
+            // ekranda yatay şeritler belirir (denendi, ölçüldü).
+            _innerRim.transform.localPosition = new Vector3(0f, lift - 0.008f, 0f);
+            _innerRim.transform.localScale = new Vector3(
+                BrickMeshBuilder.InnerRimShare, 1f, BrickMeshBuilder.InnerRimShare);
+            _innerRim.AddComponent<MeshFilter>().sharedMesh =
+                BrickMeshBuilder.GetInnerRim(_model);
             var rimRenderer = _innerRim.AddComponent<MeshRenderer>();
             rimRenderer.sharedMaterial = ViewKit.LayerRim(_palette, _model.CurrentColor);
             rimRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             rimRenderer.receiveShadows = false;
 
-            // İç panel: sıradaki katmanın rengi, DÜZ (saplamasız) bir levha.
+            // İÇ KATMAN DA SAPLAMALI BİR BLOK (5. tur, kullanıcı geri
+            // bildirimi: "hâlâ düz renk kare var blok yerine").
             //
-            // DERS (iki saplama ızgarası üst üste binmez): Panel önce tuğlanın
-            // KENDİ (saplamalı) mesh'iyle kuruldu. Küçültülen saplamalar dış
-            // gövdenin saplamalarıyla aynı yükseklikte kalıp içlerinden geçti;
-            // ekranda her saplamanın üstünde yıldız benzeri kesişme şekilleri
-            // belirdi. Referansta iç panel GÖMÜLÜ ve pürüzsüz — bir pencerenin
-            // içindeki başka renk gibi. Silüet mesh'i (51. madde için üretildi)
-            // tam olarak bunu veriyor.
+            // ÖLÇÜM (Levels 1-20, 07:04, 15. bölüm): içteki mavi katman,
+            // dıştaki pembe bloğun 4x4 saplama ızgarasının orta 3x3'ünü
+            // taşıyor. Saplamalar dıştakiyle AYNI boyda — yani iç kısım
+            // küçültülmüş bir blok değil, aynı tuğlanın kırpılmış parçası.
+            //
+            // DERS (iki başarısız deneme, bir ölçüm): Önce bloğun kendi mesh'i
+            // %58 ölçekle konuldu; saplamalar küçülüp dıştakilerle kesişti ve
+            // yıldız desenleri çıktı. Sonra saplamalar tamamen atıldı; bu kez
+            // düz bir renk lekesi oldu. Doğru cevabı iki denemeden sonra
+            // ölçüm verdi: ızgara sabit, GÖVDE küçük, sığmayan saplama
+            // çizilmiyor (bkz. BrickMeshBuilder.GetInnerBlock).
             _innerPanel = new GameObject("InnerLayer");
             _innerPanel.transform.SetParent(transform, worldPositionStays: false);
             _innerPanel.transform.localPosition = new Vector3(0f, lift, 0f);
-            _innerPanel.transform.localScale = new Vector3(PanelShare, 1f, PanelShare);
-            _innerPanel.AddComponent<MeshFilter>().sharedMesh = silhouette;
+            // ÖLÇÜLEN ORAN (referans: dış blok 140x142 px, iç katman 98x94 →
+            // %70 x %66). Saplamalar da bu oranda küçülüyor; dış blok o
+            // bölgede zaten saplama basmadığı için kesişme olmuyor.
+            _innerPanel.transform.localScale = new Vector3(
+                BrickMeshBuilder.InnerShare, 1f, BrickMeshBuilder.InnerShare);
+            _innerPanel.AddComponent<MeshFilter>().sharedMesh =
+                BrickMeshBuilder.GetInnerBlock(_model);
             var panelRenderer = _innerPanel.AddComponent<MeshRenderer>();
             panelRenderer.sharedMaterial = ViewKit.LayerFill(_palette, _model.Layers[1]);
             panelRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -816,9 +825,69 @@ namespace BlockOut.Runtime.View
             if (shard != null) Destroy(shard.gameObject);
         }
 
+        /// <summary>
+        /// Sayaç azaldı: rakam değişir VE buz kabuğu sarsılıp bir an beyazlar.
+        ///
+        /// Kullanıcı (5. tur): "buz kırılıyorken her hamle yaptığımızda buz
+        /// parçalanma efekti gelsin demiştim, çalışmıyor."
+        ///
+        /// Eskiden bu metot yalnız rakamı yazıyordu. Rakamın 5'ten 4'e
+        /// düşmesi, tahtanın karmaşasında fark edilmeyecek kadar küçük bir
+        /// değişim — hele blok ekranın kenarındaysa.
+        ///
+        /// DERS (sayı değişimi bir OLAY değildir): Bir durum göstergesini
+        /// güncellemek, oyuncuya "bir şey oldu" demez. Olayın kendisinin
+        /// hareketi, sesi ve ışığı olmalı; gösterge sonucu bildirir.
+        /// </summary>
         public void UpdateIceCount()
         {
             if (_iceCounter != null) _iceCounter.text = _model.IceCount.ToString();
+            if (_iceShell == null || !isActiveAndEnabled) return;
+            if (_iceCrack != null) StopCoroutine(_iceCrack);
+            _iceCrack = StartCoroutine(IceCrackRoutine());
+        }
+
+        Coroutine _iceCrack;
+
+        IEnumerator IceCrackRoutine()
+        {
+            const float duration = 0.22f;
+            var renderer = _iceShell.GetComponent<MeshRenderer>();
+            var shared = renderer != null ? renderer.sharedMaterial : null;
+            Material flash = null;
+            Color from = default;
+            if (shared != null)
+            {
+                from = shared.HasProperty("_BaseColor")
+                    ? shared.GetColor("_BaseColor") : shared.color;
+                flash = ViewKit.CopyFor(shared, "IceCrack");
+                renderer.sharedMaterial = flash;
+            }
+
+            Vector3 baseScale = _iceShell.transform.localScale;
+            for (float t = 0f; t < duration; t += Time.deltaTime)
+            {
+                float k = Mathf.Clamp01(t / duration);
+                float pulse = 1f - k;
+
+                // Titreme: hızlı ve sönen, "çatladı" hissi.
+                float shake = Mathf.Sin(k * Mathf.PI * 6f) * 0.035f * pulse;
+                _iceShell.transform.localScale = baseScale + new Vector3(shake, 0f, -shake);
+
+                if (flash != null)
+                {
+                    var c = Color.Lerp(from, Color.white, pulse * 0.7f);
+                    c.a = from.a;
+                    if (flash.HasProperty("_BaseColor")) flash.SetColor("_BaseColor", c);
+                    flash.color = c;
+                }
+                yield return null;
+            }
+
+            _iceShell.transform.localScale = baseScale;
+            if (renderer != null && shared != null) renderer.sharedMaterial = shared;
+            if (flash != null) Destroy(flash);
+            _iceCrack = null;
         }
 
         /// <summary>Buz kırıldı: kabuk ve sayaç gider, blok serbest kalır.</summary>

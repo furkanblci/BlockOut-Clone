@@ -363,6 +363,41 @@ namespace BlockOut.Runtime.View
             if (SignedArea(polygon) < 0f) polygon.Reverse();
         }
 
+        /// <summary>
+        /// Noktanın halkanın İÇİNDE ne kadar derinde olduğu.
+        ///
+        /// Dışarıdaysa negatif döner. Kullanım yeri: bir saplamanın gövdeye
+        /// sığıp sığmadığına karar vermek — gövde kenarına saplama
+        /// yarıçapından yakın bir saplama havada asılı kalır.
+        ///
+        /// Halka birkaç düzine noktalı, mesh de önbelleklendiği için bu kaba
+        /// (nokta-kenar) hesap fazlasıyla yeterli.
+        /// </summary>
+        public static float DistanceInside(List<Vector2> polygon, Vector2 point)
+        {
+            if (polygon == null || polygon.Count < 3) return 0f;
+
+            float best = float.MaxValue;
+            bool inside = false;
+            for (int i = 0, j = polygon.Count - 1; i < polygon.Count; j = i++)
+            {
+                Vector2 a = polygon[j], b = polygon[i];
+
+                // Kenara uzaklık
+                Vector2 edge = b - a;
+                float lengthSq = edge.sqrMagnitude;
+                float t = lengthSq > 1e-8f
+                    ? Mathf.Clamp01(Vector2.Dot(point - a, edge) / lengthSq) : 0f;
+                best = Mathf.Min(best, Vector2.Distance(point, a + edge * t));
+
+                // Işın testi: yatay ışın kenarı kesiyor mu?
+                if (a.y > point.y != b.y > point.y &&
+                    point.x < a.x + (point.y - a.y) / (b.y - a.y) * (b.x - a.x))
+                    inside = !inside;
+            }
+            return inside ? best : -best;
+        }
+
         static float Cross(Vector2 a, Vector2 b) => a.x * b.y - a.y * b.x;
 
         static bool PointInTriangle(Vector2 p, Vector2 a, Vector2 b, Vector2 c)
