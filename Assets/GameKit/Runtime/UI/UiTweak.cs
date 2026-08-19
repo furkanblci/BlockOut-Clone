@@ -134,6 +134,17 @@ namespace GameKit.UI
                 {
                     text.enableAutoSizing = false;
                     text.fontSize = over.fontSize;
+
+                    // TAŞMA KORUMASINA YENİ PUNTOYU BİLDİR (7. tur, M46).
+                    //
+                    // `UiTextFit` kurulum puntosunu bir kez okuyup TABAN
+                    // olarak saklıyor ve ölçümü hep o tabandan yapıyor
+                    // (yoksa metin kısaldığında yazı bir daha büyümezdi).
+                    // Düzen aracıyla elle verilen punto ise kurulumdan SONRA
+                    // yazılıyor; haber verilmezse bileşen bir sonraki karede
+                    // eski tabana geri döner ve kullanıcının ayarı sessizce
+                    // kaybolurdu.
+                    text.GetComponent<UiTextFit>()?.Rebase();
                 }
             }
 
