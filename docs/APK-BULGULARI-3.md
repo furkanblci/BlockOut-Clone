@@ -14,7 +14,7 @@ Referans kaynakları:
 
 ---
 
-## Bu turda çıkan dört genel ders
+## Bu turda çıkan genel dersler
 
 1. **Ekrandaki gri, dosyadaki gri değildir.** Tahtanın ızgara çizgileri
    görüntüleyicide açık gri görünüyordu ve bir saat "ızgara materyali bozuk"
@@ -34,6 +34,18 @@ Referans kaynakları:
    hesaplanıp "dışarı" konuyordu; ama arada 0,52 hücrelik çerçeve var ve
    makine onun içine giriyordu. Bir nesneyi dışarı koyan kod, görünen kenarın
    kalınlığını da bilmek zorunda.
+5. **Oynatma modunda editör KOD DERLEMEZ.** Doğrulama turunun ortasında
+   ölçtüğüm her kare, aslında değişikliklerimden ÖNCEKİ derlemeye aitti:
+   Unity oynatma modundaydı ve o hâldeyken kaydedilen betikler derlenmiyor.
+   Ölçüm doğruydu, ölçülen şey yanlıştı. **Ölçmeden önce derlemenin gerçekten
+   yenilendiğinden emin ol** — `EditorApplication.isPlaying` bir satırlık
+   kontrol, saatlerce yanlış sonucun önüne geçiyor.
+6. **Bir tekniğin çalıştığı KAMERAYI da bilmek gerekir.** Seçim konturu ters
+   kabuk (inverted hull) ile çiziliyordu; bu oyun grafiklerinde standart bir
+   yöntem ama nesneye YANDAN bakan kameralar için. Bizim kamera 80° eğimle
+   neredeyse tepeden bakıyor ve aynı teknik konturu dört kenardan yalnız
+   ikisinde gösteriyordu. "Yaygın çözüm" ile "bu sahnede doğru çözüm" aynı
+   şey değil.
 
 ---
 
@@ -291,7 +303,8 @@ Parça sayısı kırılan şeyin büyüklüğüne bağlı (18 + hücre×6). Buz 
 kapı ayrıca bir kez parlıyor.
 
 ### G26 — Outline sorunu ✅ (kapı tarafı GERİ ALINDI)
-**NE YAPILDI.** Blok konturu için bkz. H29 — orası doğru çözüldü.
+**NE YAPILDI.** Blok konturu için bkz. H29 — orası da eksikti, sonradan
+yeniden çözüldü.
 
 Kapıya eklenen koyu kenar kopyası **kaldırıldı**; kullanıcı APK'de onu gri bir
 hale olarak gördü ve haklıydı.
@@ -332,12 +345,63 @@ bloğun koyu hatları birleşip tek net ayrım çizgisi veriyor.
 tonu (`toneBodySide`) 1.0 → 0.62, yani üst yüzden (0.8) KOYU. Eskiden yan
 yüz üst yüzden parlaktı, yani bant bir ışık şeridi gibi okunuyordu.
 
-### H29 — Seçim outline'ı komşuya taşıyor ✅
-**KÖK SEBEP.** Kontur `localScale = 1.04` ile üretiliyordu; ölçek merkezden
-çalıştığı için taşma bloğun BOYUYLA orantılıydı (2 hücrede 0,04 — 6 hücrede
-0,12) ve bloklar birbirine değdiği için büyük bloklarda komşunun üstüne
-biniyordu. Artık `GetOutlineShell` silüeti dışa SABİT `outlineWidth` (0.05)
-kadar kaydırıyor; ölçek birde kalıyor.
+### H29 — Seçim outline'ı ✅ (İKİ KEZ düzeltildi)
+
+**BİRİNCİ KUSUR — kalınlık ölçekten geliyordu.** Kontur `localScale = 1.04`
+ile üretiliyordu; ölçek merkezden çalıştığı için taşma bloğun BOYUYLA
+orantılıydı (2 hücrede 0,04 — 6 hücrede 0,12) ve bloklar birbirine değdiği
+için büyük bloklarda komşunun üstüne biniyordu. Silüet artık dışa SABİT
+`outlineWidth` kadar kaydırılıyor; ölçek birde kalıyor.
+
+**İKİNCİ KUSUR — kontur DÖRT kenarda görünmüyordu** (kullanıcı geri
+bildirimi, 4. tur).
+
+Kontur "inverted hull" (ters kabuk) tekniğiyle çiziliyordu: mesh biraz
+büyütülüp ön yüzleri kırpılıyor (`Cull Front`), geriye kalan arka yüzler ince
+bir çerçeve gibi görünüyor. Bu teknik nesnenin ETRAFINI değil, kabuğun
+KAMERAYA ARKASINI DÖNEN kısmını boyar. Kameramız tahtaya 80° eğimle bakıyor;
+o açıda kabuğun yalnız iki kenarı arkasını dönüyor.
+
+**ÖLÇÜM — referans** (Levels 1-20, 00:12, tutulan kırmızı blok): kontur dört
+kenarda da var, sol 3 px, sağ 2 px, üst 3 px, alt 3 px. Hücre 80,4 px →
+kalınlık hücrenin **%3,7'si**.
+
+**ÖLÇÜM — bizde (düzeltmeden önce):** 2×2 blokta sağ kenar 6 px, üst kenar
+6 px, **sol kenar 0 px, alt kenar 0 px**.
+
+**NE YAPILDI.**
+- Kontur artık düz bir **HALKA** (`BrickMeshBuilder.GetOutlineRing`): iç
+  kenarı bloğun gerçek silüeti, dış kenarı onun `outlineWidth` kadar dışa
+  kaydırılmış hâli. İkisi de aynı `BrickSilhouette.Build` çağrısından geliyor,
+  köşe başına sabit 4 yay parçası var, yani nokta sayıları birebir eşleşiyor —
+  aralarını şerit olarak örmek yetiyor.
+- Halkanın yüksekliği `brickHeight - brickChamfer`: blok orada tam
+  genişliğinde. Bloğun ÜST yüzüne konsaydı pah kadar yukarıda kalır ve eğik
+  kamerada blokla halka arasında ince bir boşluk açılırdı.
+- `outlineWidth` 0.05 → **0.038** (referansın ölçülen oranı).
+
+**İKİNCİ ENGEL — komşu blok konturu örtüyordu.** Halka bloğun en geniş
+yüksekliğinde duruyor; komşu bloğun üst yüzü ondan yukarıda. Kontur bir SEÇİM
+VURGUSU, yani arayüz: derinlik testi kapalı çizilmeli. URP/Unlit'te `_ZTest`
+diye bir malzeme özelliği **yok** (kontrol edildi: yalnız `_ZWrite`, `_Cull`,
+`_Blend`... var), bu yüzden dört satırlık kendi geçişimiz yazıldı:
+`Assets/_Project/Art/Shaders/BlockOutline.shader`.
+
+Shader eleme riski (18. maddenin dersi): `Shader.Find` editörde her zaman
+çalışır, build'de hiçbir malzemenin kullanmadığı shader elenir. Malzeme
+`Resources/BlockOutline.mat` olarak asset hâlinde duruyor; shader onun
+bağımlılığı olarak build'e giriyor.
+
+**NASIL DOĞRULANDI (sayıyla).** 1. bölümde kırmızı blok seçilip kontur
+açık/kapalı iki kare farklandı: **sol 6 px, sağ 6 px, üst 6 px, alt 6 px**.
+Hücre 160 px → %3,75; referans %3,7. Konturun bulunduğu satır 327/327, sütun
+331/331 — halkada kopukluk yok.
+
+**DERS (bir tekniğin çalıştığı KAMERAYI da bilmek gerekir):** Ters kabuk,
+oyun grafiklerinde standart bir kontur yöntemi ve çoğu oyunda çalışır — ama
+o oyunların kamerası nesneye yandan bakar. Tepeden bakan bir kamerada aynı
+teknik sessizce yarım sonuç verir. "Yaygın çözüm" ile "bu sahnede doğru
+çözüm" aynı şey değil.
 
 ### H30 — Level 15 iç içe bloklar ✅
 **NASIL DOĞRULANDI.** 15. bölüm yakalandı: bloklarda dış renk çerçeve, ortada
