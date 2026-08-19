@@ -412,6 +412,46 @@ namespace BlockOut.Runtime.View
         public static Material Translucent(Color color) =>
             CreateTransparent("Beam", color, 3000);
 
+        /// <summary>
+        /// Bir materyalin tek kullanımlık OPAK kopyası.
+        ///
+        /// Nerede gerekiyor: bir nesnenin rengini canlandırırken saydamlık
+        /// İSTEMEDİĞİMİZ yerlerde. Kapı sönerken `Translucent` kullanılıyordu;
+        /// saydam materyal derinliğe yazmadığı için prizmanın üst kapağı, pahı
+        /// ve yan duvarı üst üste harmanlanıp ekranda uzun çizgiler bırakıyordu
+        /// (bkz. <c>GateView.FadeToGhost</c>).
+        ///
+        /// Kaynak materyalin KOPYASI alınıyor, yeni bir materyal
+        /// kurulmuyor: gölgeci, ışıklandırma ve bütün özellikler aynı kalsın
+        /// ki geçişin ilk karesinde parlaklık sıçraması olmasın.
+        /// </summary>
+        public static Material CopyFor(Material source, string name)
+        {
+            if (source == null) return new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            return new Material(source) { name = name + "_TEMP" };
+        }
+
+        /// <summary>
+        /// KATKILI (additive) ışık materyali — hale, parlama, ışın için.
+        ///
+        /// DERS (ışık ekler, boyamaz): Alfa harmanlama arkadaki rengin
+        /// ÜSTÜNE yazar; sönerken siyaha giden bir alfa katmanı arkasındaki
+        /// yüzeyi KARARTIR ve "ışık" değil "leke" gibi okunur. Katkılı
+        /// harmanlama arkadaki renge EKLER: siyah eklemek hiçbir şey yapmaz,
+        /// yani hale sönerken iz bırakmaz. Gerçek ışık da böyle davranır.
+        /// </summary>
+        public static Material Additive(Color color)
+        {
+            var mat = CreateTransparent("Glow", color, 3100);
+            if (mat.HasProperty("_SrcBlend"))
+            {
+                mat.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.One);
+                mat.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.One);
+                mat.SetFloat("_Blend", 1f);          // URP'de 1 = additive
+            }
+            return mat;
+        }
+
         static Material CreateTransparent(string name, Color color, int queue)
         {
             var shader = Shader.Find("Universal Render Pipeline/Unlit");

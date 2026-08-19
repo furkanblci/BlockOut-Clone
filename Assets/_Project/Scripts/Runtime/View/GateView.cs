@@ -41,7 +41,7 @@ namespace BlockOut.Runtime.View
         /// tek başına taşıyor.
         /// </summary>
         static float BarHeight => VisualSettings.Current == null ? 0.34f
-            : MatchesFrame ? VisualSettings.Current.frameHeight * 1.14f
+            : MatchesFrame ? VisualSettings.Current.frameHeight * 1.06f
                            : VisualSettings.Current.gateBarHeight;
 
         /// <summary>
@@ -56,12 +56,45 @@ namespace BlockOut.Runtime.View
         ///
         /// DERS (çakışan yüzey, kararsız yüzeydir): "Tam oturması" istenen iki
         /// yüzey asla aynı düzleme konmaz; birine görünmeyecek kadar küçük bir
-        /// pay verilir. %6 pay 140 piksel/hücre ölçeğinde 4 piksel ediyor ve
-        /// kapı hâlâ bandı doldurmuş görünüyor.
+        /// pay verilir.
+        ///
+        /// KAPI DUVARIN YERİNİ TAMAMEN ALIR (5. tur, kullanıcı geri bildirimi).
+        ///
+        /// Kullanıcı: "kapı komple o duvarın yerini almalı, altında bir duvar
+        /// parçası kalmamalı; ama oraya blok sokabiliyoruz, bu da oyunu
+        /// mantıksızlaştırıyor."
+        ///
+        /// ÖLÇÜM — referans (Levels 1-20, 00:12, üstteki kırmızı kapı):
+        /// kapı 158x55 piksel, yanındaki duvar bandı 47 piksel. Kapının ÜST
+        /// kenarı duvarın üst kenarıyla aynı (1 piksel fark), ALT kenarı ise
+        /// duvarın iç kenarından **7 piksel İÇERİDE** — yani kapı bandı
+        /// doldurmakla kalmıyor, oyun alanına bir tık taşıyor. Hücre 79
+        /// piksel → taşma hücrenin %9'u.
+        ///
+        /// ÖLÇÜM — bizde (düzeltmeden önce): kapı 74 piksel, duvar bandı 106
+        /// piksel; kapının alt kenarı duvarın iç kenarından **33 piksel
+        /// YUKARIDA**. Aradaki mor şerit ekranda duruyordu ve blok oraya
+        /// giriyormuş gibi görünüyordu.
+        ///
+        /// DERS (bir kapı, kapattığı şeyin TAMAMINI kaplamalı): Derinlik
+        /// bandın %94'üydü ve bar bandın ORTASINA konuyordu; kâğıt üzerinde
+        /// "bandı dolduruyor" gibi görünse de çerçevenin iç pahı (üst yüz iç
+        /// kenardan `bevelInset` kadar geride başlar) barın altında kalıyordu.
+        /// Geometriyi "ortala ve biraz küçült" diye kurmak, kenar detaylarını
+        /// hesaba katmıyor. Doğrusu iki UÇTAN tanımlamak: dış kenar
+        /// çerçevenin dış kenarı, iç kenar oyun alanının bir tık içi.
         /// </summary>
         static float BarDepth => VisualSettings.Current == null ? 0.55f
-            : MatchesFrame ? VisualSettings.Current.frameThickness * 0.94f
-                           : VisualSettings.Current.gateBarDepth;
+            : MatchesFrame
+                ? VisualSettings.Current.frameThickness + InwardOverhang + FrameOverlapBias
+                : VisualSettings.Current.gateBarDepth;
+
+        /// <summary>
+        /// Kapının oyun alanına doğru taşma payı — referansta hücrenin %9'u
+        /// (7 piksel / 79 piksel hücre). Bu pay kapının iç kenarını çerçevenin
+        /// iç pahının ötesine taşıyor; altında duvar parçası kalmıyor.
+        /// </summary>
+        const float InwardOverhang = 0.09f;
 
         /// <summary>
         /// Barın merkezi, tahta kenarından DIŞA doğru bu kadar uzakta:
@@ -73,10 +106,15 @@ namespace BlockOut.Runtime.View
         /// Kapıyı dışarı çıkarma denemesi (kalınlığın %66'sı) onu çerçeveye
         /// yapıştırılmış bir dil gibi gösterdi; ayrımı yapan şey konum değil,
         /// YÜKSEKLİK farkı.
+        ///
+        /// Merkez artık iki UÇTAN hesaplanıyor (bkz. <see cref="BarDepth"/>):
+        /// iç kenar `-InwardOverhang`, dış kenar `frameThickness + bias`;
+        /// merkez ikisinin ortası.
         /// </summary>
         static float OutwardOffset => VisualSettings.Current == null ? 0.275f
-            : MatchesFrame ? VisualSettings.Current.frameThickness * 0.5f
-                           : VisualSettings.Current.gateOutwardOffset;
+            : MatchesFrame
+                ? (VisualSettings.Current.frameThickness + FrameOverlapBias - InwardOverhang) * 0.5f
+                : VisualSettings.Current.gateOutwardOffset;
 
         MeshRenderer _renderer;
         Material _colorMaterial;
@@ -379,9 +417,32 @@ namespace BlockOut.Runtime.View
                 : new Vector3(model.OutwardSign, 0f, 0f);
             Vector3 across = new Vector3(-forward.z, 0f, forward.x);
 
-            Vector3 tip = forward * size;
-            Vector3 left = across * size * 0.78f - forward * size * 0.48f;
-            Vector3 right = -across * size * 0.78f - forward * size * 0.48f;
+            // OK BASIK, KARE DEĞİL (5. tur, kullanıcı geri bildirimi).
+            //
+            // Kullanıcı: "kapıların üzerindeki ok işareti kapıdan taşmış gibi
+            // gözüküyor; ok kapıyı tam ortalasın, biraz daha küçük olsun."
+            //
+            // ÖLÇÜM (Levels 1-20, 00:12, üstteki kırmızı kapının beyaz oku):
+            // ok 27x15 piksel, hücre 79 piksel → GENİŞLİK hücrenin %34'ü,
+            // DERİNLİK %19'u. Oran 1,8 — yani ok geniş ve BASIK.
+            //
+            // Eski katsayılarla (tip 1,0 / taban 0,48) toplam derinlik
+            // 1,48·size, genişlik 1,56·size idi: oran 1,05, neredeyse eşkenar.
+            // 0,30'luk `arrowSize` ile derinlik 0,44 hücre çıkıyordu — kapının
+            // kendi derinliğinin (0,49) neredeyse tamamı. Taşmış görünmesinin
+            // sebebi buydu.
+            //
+            // Yeni katsayılar: genişlik 1,56·size, derinlik 0,87·size.
+            // `arrowSize = 0.218` ile genişlik 0,34 ve derinlik 0,19 —
+            // referansın ölçülen oranları.
+            //
+            // DERS (bir şekli tek sayı ile küçültmek şeklini düzeltmez):
+            // "Ok büyük" denince ilk refleks `arrowSize`ı kısmak. Ama sorun
+            // boyut değil ORANDI; küçültmek oku kapıya sığdırırdı ama yine
+            // eşkenar, yani referanstakinden başka bir şekil kalırdı.
+            Vector3 tip = forward * size * 0.59f;
+            Vector3 left = across * size * 0.95f - forward * size * 0.28f;
+            Vector3 right = -across * size * 0.95f - forward * size * 0.28f;
 
             // Referans oyunda okun köşeleri YUMUŞAK; keskin üçgen sert ve
             // "vektör klibi" gibi duruyor. Her köşeyi küçük bir yay ile
@@ -521,16 +582,49 @@ namespace BlockOut.Runtime.View
 
         Coroutine _flash;
 
+        /// <summary>
+        /// Kapı bir blok yuttuğunda AYDINLANIR: beyaza patlar, kabarır ve
+        /// çevresine bir ışık halkası yayar.
+        ///
+        /// GÜÇLENDİRİLDİ (5. tur, kullanıcı: "blok soktuğumuzdaki o kapının
+        /// aydınlanması, ışık saçması bizdeki çok zayıf kalmış").
+        ///
+        /// Neden zayıf kalmıştı: parlama yalnız kapının KENDİ pikselleriydi ve
+        /// beyaza %85 gidiyordu. Kapı ekranın küçük bir şeridi; orada olan bir
+        /// renk değişimi, tahtanın ortasında olup biten hareketin yanında
+        /// görünmüyor.
+        ///
+        /// DERS (parlama, ALANLA orantılı okunur): Bir vurgunun gücü sadece
+        /// kontrastından değil, kapladığı ALANDAN gelir. Aynı beyaz, iki kat
+        /// geniş bir yüzeyde iki kat çok "ışık" olarak okunur. Bu yüzden
+        /// parlamaya kapının dışına taşan ayrı bir HALE eklendi: kapının
+        /// mesh'inin büyütülmüş, katkılı (additive) bir kopyası.
+        /// </summary>
         System.Collections.IEnumerator FlashRoutine()
         {
-            const float duration = 0.26f;
+            const float duration = 0.34f;
 
             var shared = _renderer.sharedMaterial;
             Color baseColor = ReadColor(shared);
             // Kendi örneği: paylaşılan materyali boyamak aynı renkteki BÜTÜN
             // kapıları birlikte parlatırdı.
-            var glow = ViewKit.Translucent(baseColor);
+            var glow = ViewKit.CopyFor(shared, "GateGlow");
             _renderer.sharedMaterial = glow;
+
+            // HALE: kapının büyütülmüş kopyası, katkılı harmanlama ile.
+            // Katkılı olduğu için sönerken siyaha gider, yani arkasındaki
+            // çerçeveyi karartmaz — ışık böyle davranır.
+            var halo = new GameObject("GateGlowHalo");
+            halo.transform.SetParent(transform, worldPositionStays: false);
+            halo.transform.localPosition = Vector3.zero;
+            halo.transform.localRotation = Quaternion.identity;
+            halo.transform.localScale = new Vector3(1.14f, 1.9f, 1.55f);
+            halo.AddComponent<MeshFilter>().sharedMesh = GetComponent<MeshFilter>().sharedMesh;
+            var haloRenderer = halo.AddComponent<MeshRenderer>();
+            haloRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            haloRenderer.receiveShadows = false;
+            var haloMaterial = ViewKit.Additive(baseColor);
+            haloRenderer.sharedMaterial = haloMaterial;
 
             Vector3 startScale = transform.localScale;
             for (float t = 0f; t < duration; t += Time.deltaTime)
@@ -538,9 +632,19 @@ namespace BlockOut.Runtime.View
                 float k = Mathf.Clamp01(t / duration);
                 // Hızlı yükselip yavaş inen bir vuruş: ani parlama gözü
                 // yakalar, yavaş iniş "bitti" der.
-                float pulse = k < 0.22f ? k / 0.22f : 1f - (k - 0.22f) / 0.78f;
-                Paint(glow, Color.Lerp(baseColor, Color.white, pulse * 0.85f));
-                transform.localScale = startScale * (1f + 0.09f * pulse);
+                float pulse = k < 0.18f ? k / 0.18f : 1f - (k - 0.18f) / 0.82f;
+                float eased = pulse * pulse * (3f - 2f * pulse);
+
+                Paint(glow, Color.Lerp(baseColor, Color.white, eased));
+                transform.localScale = startScale * (1f + 0.14f * eased);
+
+                // Hale hem parlar hem genişler: ışık yayılıyor izlenimi
+                // sabit boyutlu bir parlamadan çok daha güçlü.
+                var haloColor = Color.Lerp(baseColor, Color.white, 0.55f) * (eased * 0.85f);
+                haloColor.a = 1f;
+                Paint(haloMaterial, haloColor);
+                halo.transform.localScale = new Vector3(
+                    1.14f + 0.16f * eased, 1.9f, 1.55f + 1.5f * eased);
                 yield return null;
             }
 
@@ -549,6 +653,8 @@ namespace BlockOut.Runtime.View
             // yazmak parlamayı kalıcı kılardı.
             if (_fade == null) _renderer.sharedMaterial = shared;
             if (glow != null) Destroy(glow);
+            if (haloMaterial != null) Destroy(haloMaterial);
+            if (halo != null) Destroy(halo);
             _flash = null;
         }
 
@@ -638,12 +744,40 @@ namespace BlockOut.Runtime.View
             // alfa birlikte yürüyünce ara karelerde kapı ne kendi rengi ne de
             // çerçeve oluyor — "solmuş" değil "kirlenmiş" görünüyordu.
             // `ghostMaterial` artık yalnız çağrı uyumluluğu için duruyor.
+            // SAYDAMLIK YOK — RENK ÇERÇEVEYE DOĞRU YÜRÜYOR (5. tur).
+            //
+            // Kullanıcı: "bazen kapı kaybolurken üzerinde uzun çizgi
+            // işaretleri görüyoruz."
+            //
+            // TEŞHİS: Sönme `ViewKit.Translucent` kullanıyordu; o materyal
+            // derinliğe YAZMAZ (`_ZWrite = 0`, saydamların olması gerektiği
+            // gibi). Kapı yarı saydamken prizmanın üst kapağı, pahı ve yan
+            // duvarı ekranda üst üste harmanlanıyor; iki kez boyanan yerler
+            // daha koyu çıkıyor ve mesh'in iç kenarları UZUN ÇİZGİLER olarak
+            // görünüyor.
+            //
+            // DERS (saydamlık, nesnenin KENDİ içini de gösterir): "Yavaşça
+            // kaybolsun" denince ilk akla gelen alfayı indirmek. Ama alfa,
+            // nesnenin arkasındakini gösterirken kendi arka yüzeylerini de
+            // gösterir. İçi dolu bir cismin yarı saydam hâli, cismin
+            // topolojisini ele verir.
+            //
+            // ÇÖZÜM ölçümden geliyor: referansın ara karesi (150,48,95),
+            // kapı kırmızısı ile çerçeve moru arasında %51'lik düz bir
+            // karışım. Kapının ARKASINDA zaten çerçeve var; dolayısıyla
+            // "alfayı sıfıra indirmek" ile "rengi çerçeve rengine yürütmek"
+            // ekranda AYNI pikselleri üretiyor — ama ikincisi opak, yani
+            // çizgi üretmiyor.
             Color from = ReadColor(_renderer.sharedMaterial);
-            Color to = from;
+            var visualCfg = VisualSettings.Current;
+            Color to = visualCfg != null
+                ? visualCfg.frameColor
+                : new Color(0.30f, 0.26f, 0.58f);
+            to.a = from.a;
 
             // Kendi örneğimizde çalışıyoruz: paylaşılan materyali boyamak
             // aynı renkteki BÜTÜN kapıları söndürürdü.
-            var fading = ViewKit.Translucent(from);
+            var fading = ViewKit.CopyFor(_renderer.sharedMaterial, "GateFade");
             _renderer.sharedMaterial = fading;
 
             var arrowRenderer = _arrow != null ? _arrow.GetComponent<MeshRenderer>() : null;
@@ -652,8 +786,9 @@ namespace BlockOut.Runtime.View
             if (arrowRenderer != null)
             {
                 arrowFrom = ReadColor(arrowRenderer.sharedMaterial);
-                arrowTo = arrowFrom;
-                arrowFading = ViewKit.Translucent(arrowFrom);
+                arrowTo = to;
+                arrowTo.a = arrowFrom.a;
+                arrowFading = ViewKit.CopyFor(arrowRenderer.sharedMaterial, "ArrowFade");
                 arrowRenderer.sharedMaterial = arrowFading;
             }
 
@@ -672,9 +807,6 @@ namespace BlockOut.Runtime.View
             // halka olarak örüyor, kapı yalnız onun üstünde duruyor. Kapı
             // saydamlaşınca altından çerçevenin kendisi çıkıyor — referansta
             // da görünen bu.
-            to.a = 0f;
-            arrowTo.a = 0f;
-
             for (float t = 0f; t < duration; t += Time.deltaTime)
             {
                 // DOĞRUSAL, `SmoothStep` DEĞİL: ölçülen ara kare tam ortada

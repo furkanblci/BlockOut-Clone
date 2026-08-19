@@ -50,6 +50,6 @@ MonoBehaviour:
   gateBarHeight: 0.8
   gateBarDepth: 0.524
   gateOutwardOffset: 0.252
-  arrowSize: 0.30
+  arrowSize: 0.218
   arrowRise: 0.10
   arrowCornerRadius: 0.5

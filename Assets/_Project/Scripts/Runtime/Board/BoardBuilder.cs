@@ -69,8 +69,16 @@ namespace BlockOut.Runtime.Board
             {
                 var frameGo = new GameObject("Frame");
                 frameGo.transform.SetParent(root, false);
+                // Çerçeve OYNANABİLİR HÜCRELERİN silüetini izler, sınır
+                // kutusunu değil: kesilmiş bölgelerde duvar o çıkıntının
+                // çevresini dolanır (bkz. BoardFrameMeshBuilder).
+                var playable = new List<Vector2Int>(board.Width * board.Height);
+                for (int y = 0; y < board.Height; y++)
+                    for (int x = 0; x < board.Width; x++)
+                        if (board.IsPlayable(x, y)) playable.Add(new Vector2Int(x, y));
+
                 frameGo.AddComponent<MeshFilter>().sharedMesh = BoardFrameMeshBuilder.Build(
-                    board.Width, board.Height, frameThickness, frameHeight,
+                    playable, board.Width, board.Height, frameThickness, frameHeight,
                     cfg != null ? cfg.frameCornerRadius : 0.6f,
                     cfg != null ? cfg.frameBevel : 0.09f);
 
@@ -263,7 +271,35 @@ namespace BlockOut.Runtime.Board
                     queue.Enqueue(cell);
                 }
 
-                BuildDeadZone(component, index++);
+                // KENARA DAYANAN BOŞLUK ARTIK ÇİZİLMİYOR (5. tur).
+                //
+                // Kullanıcı: "bazı levellerde boşluk olmalı, kullanılmayan
+                // kısımlar kesilmeli... hatta ekstra doldurmuşsun oraları."
+                //
+                // Referansta (8., 9., 11., 12., 13. bölümler) kullanılmayan
+                // bölge tahtanın DIŞINDA: duvar o çıkıntının çevresini
+                // dolanıyor ve ötesinde arka plan var. Bizde her oynanamaz
+                // hücre çerçeve renginde kabarık bir kütle olarak
+                // çiziliyordu — yani "kesilmiş" değil "doldurulmuş"
+                // görünüyordu; kullanıcının gördüğü buydu.
+                //
+                // Artık çerçeve maskeyi izlediği (bkz. BoardFrameMeshBuilder)
+                // için kenara dayanan boşluğun zaten dışarısı olduğu
+                // biliniyor. Yalnız İÇ DELİKLER — çepeçevre oynanabilir
+                // hücreyle sarılı adacıklar — kütle olarak kalıyor; onları
+                // silüet halkası kapsamıyor.
+                //
+                // DERS (aynı şeyi iki yerde anlatmak, ikisini de bozar):
+                // Boşluk hem çerçevenin silüetinde hem de ayrı bir kütlede
+                // temsil edilirse, ikisi ilk fırsatta çelişir. Sınır bir kez
+                // çizilir.
+                bool touchesBorder = false;
+                foreach (var cell in component)
+                    if (cell.x == 0 || cell.y == 0 ||
+                        cell.x == board.Width - 1 || cell.y == board.Height - 1)
+                    { touchesBorder = true; break; }
+
+                if (!touchesBorder) BuildDeadZone(component, index++);
             }
 
             void BuildDeadZone(List<Vector2Int> component, int id)
@@ -404,14 +440,55 @@ namespace BlockOut.Runtime.Board
                 line.transform.localScale = scale;
             }
 
-            // İç çizgiler: kenarlar çerçeve tarafından zaten belirtiliyor.
+            // IZGARA MASKEYİ İZLER (5. tur).
+            //
+            // Çizgiler tahtanın SINIR KUTUSU boyunca uçtan uca çiziliyordu.
+            // Tahta dikdörtgenken sorun yoktu; kesilmiş tahtalarda ise
+            // çizgiler oyun alanının dışına, boş bölgeye taşıyor ve orada
+            // hayalet bir ızgara bırakıyordu.
+            //
+            // Bir iç çizgi parçası yalnız İKİ YANI DA oynanabilir olan hücre
+            // sınırlarında çiziliyor: tek yanı oynanabilirse orası tahtanın
+            // kenarıdır ve zaten çerçeve tarafından belirtiliyor.
+            //
+            // Bitişik parçalar tek bir çubuğa birleştiriliyor: hücre başına
+            // ayrı nesne, 6x8 bir tahtada bile gereksiz yüzlerce çizim çağrısı
+            // demek.
             for (int x = 1; x < board.Width; x++)
-                Line(space.CornerToWorld(x, board.Height * 0.5f, 0.012f),
-                     new Vector3(thickness, 0.02f, board.Height));
+            {
+                int runStart = -1;
+                for (int y = 0; y <= board.Height; y++)
+                {
+                    bool seam = y < board.Height &&
+                                board.IsPlayable(x - 1, y) && board.IsPlayable(x, y);
+                    if (seam && runStart < 0) runStart = y;
+                    else if (!seam && runStart >= 0)
+                    {
+                        float length = y - runStart;
+                        Line(space.CornerToWorld(x, runStart + length * 0.5f, 0.012f),
+                             new Vector3(thickness, 0.02f, length));
+                        runStart = -1;
+                    }
+                }
+            }
 
             for (int y = 1; y < board.Height; y++)
-                Line(space.CornerToWorld(board.Width * 0.5f, y, 0.012f),
-                     new Vector3(board.Width, 0.02f, thickness));
+            {
+                int runStart = -1;
+                for (int x = 0; x <= board.Width; x++)
+                {
+                    bool seam = x < board.Width &&
+                                board.IsPlayable(x, y - 1) && board.IsPlayable(x, y);
+                    if (seam && runStart < 0) runStart = x;
+                    else if (!seam && runStart >= 0)
+                    {
+                        float length = x - runStart;
+                        Line(space.CornerToWorld(runStart + length * 0.5f, y, 0.012f),
+                             new Vector3(length, 0.02f, thickness));
+                        runStart = -1;
+                    }
+                }
+            }
 
             // KESİŞİM NOKTALARI — referansta her iç kesişimde küçük koyu bir
             // nokta var (oynanış videosu, 00:28 karesi). Tek başına küçük bir
@@ -421,8 +498,15 @@ namespace BlockOut.Runtime.Board
             const float dot = thickness * 2.6f;
             for (int x = 1; x < board.Width; x++)
                 for (int y = 1; y < board.Height; y++)
+                {
+                    // Perçin yalnız DÖRT hücrenin de oynanabilir olduğu
+                    // köşede: tahtanın kenarındaki bir köşede nokta,
+                    // çerçevenin üstünde asılı kalırdı.
+                    if (!board.IsPlayable(x - 1, y - 1) || !board.IsPlayable(x, y - 1) ||
+                        !board.IsPlayable(x - 1, y) || !board.IsPlayable(x, y)) continue;
                     Line(space.CornerToWorld(x, y, 0.013f),
                          new Vector3(dot, 0.02f, dot));
+                }
         }
 
         static Mesh BuildFloorMesh(BoardModel board, BoardSpace space)
