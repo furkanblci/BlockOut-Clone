@@ -69,6 +69,14 @@ namespace BlockOut.Runtime.Flow
         bool _lifeSpent;
 
         LevelModel _level;
+
+        /// <summary>
+        /// Oynanan bölümün canlı modeli — geliştirici konsolu "tahtada ne
+        /// kaldı" verisini buradan okuyor. Salt okunur bir pencere: değişiklik
+        /// yine oynanış sistemlerinden geçer.
+        /// </summary>
+        public LevelModel ActiveLevel => _level;
+
         BoardEvents _events;
         DragController _drag;
         Camera _camera;
@@ -564,7 +572,15 @@ namespace BlockOut.Runtime.Flow
         void BindHaptics(BoardEvents events)
         {
             if (_haptics == null || events == null) return;
+
+            // Emilme oyunun ANA kazanım anı; onu hissettirmemek, oyunun en
+            // sık tekrarlanan başarısını sessiz bırakmak demekti (4. tur A4).
+            // Blok başına bir kez olduğu için yorucu değil.
+            events.BlockAbsorbed    += (_, __) => _haptics.Play(GameKit.Services.HapticStrength.Medium);
+            events.LayerPeeled      += (_, __) => _haptics.Play(GameKit.Services.HapticStrength.Light);
+            events.IceDecremented   += _ => _haptics.Play(GameKit.Services.HapticStrength.Light);
             events.IceShattered     += _ => _haptics.Play(GameKit.Services.HapticStrength.Medium);
+            events.GateIceDecremented += _ => _haptics.Play(GameKit.Services.HapticStrength.Light);
             events.GateIceShattered += _ => _haptics.Play(GameKit.Services.HapticStrength.Medium);
             events.CurtainOpened    += _ => _haptics.Play(GameKit.Services.HapticStrength.Medium);
             events.BoardCleared     += () => _haptics.Play(GameKit.Services.HapticStrength.Heavy);
@@ -608,10 +624,39 @@ namespace BlockOut.Runtime.Flow
         /// bir ekran doğrularsın. Bu metot normal bitiş yolunun ta kendisini
         /// çağırıyor; tek farkı tetiğin nereden çekildiği.
         /// </summary>
-        public void DebugForceWin()
+        /// <param name="stars">
+        /// 0 = süreye dokunma (gerçek durumla bitir). 1-3 = o yıldızı ÜRETECEK
+        /// kalan süreyi yazıp öyle bitir; kazanma panelinin üç varyasyonunu da
+        /// (1★ / 2★ / PERFECT) oynamadan görebilmek için.
+        /// </param>
+        public void DebugForceWin(int stars = 0)
         {
-            if (State != GameState.Playing && State != GameState.Intro) return;
+            if (State != GameState.Playing && State != GameState.Intro &&
+                State != GameState.Paused) return;
+
+            // Yıldız kuralı tek yerde (OnBoardCleared) yaşıyor; burada onu
+            // KOPYALAMIYORUZ, girdisini (kalan süre) ayarlayıp aynı kuralı
+            // çalıştırıyoruz. Kural değişirse bu kanca kendiliğinden uyar.
+            if (stars > 0 && Timer.Total > 0)
+            {
+                float ratio = stars >= 3 ? 1f : stars == 2 ? 0.35f : 0.1f;
+                Timer.DebugSetRemaining(Timer.Total * ratio);
+            }
+
             OnBoardCleared();
+        }
+
+        /// <summary>
+        /// Bölümü kaybettirir — geliştirici konsolundaki "başarısız panelini
+        /// göster". Süre gerçekten sıfırlanır ki panel, sayacı bitmiş bir
+        /// bölümün gösterdiği şeyin aynısını göstersin.
+        /// </summary>
+        public void DebugForceLose()
+        {
+            if (State == GameState.Won || State == GameState.Lost) return;
+            SetPaused(false);
+            Timer.DebugSetRemaining(0f);
+            FailLevel("devmenu");
         }
 
         void OnBoardCleared()
@@ -737,20 +782,27 @@ namespace BlockOut.Runtime.Flow
             if (State != GameState.Playing && State != GameState.Paused) return;
 
             SetPaused(false);
-            State = GameState.Lost;
-            _audio?.PlayLose();
-            _haptics?.Play(GameKit.Services.HapticStrength.Heavy);
-
-            if (Services.MetaServices.Ready)
-                GameKit.Services.Analytics.LevelFailed(
-                    _levelIndex,
-                    Services.MetaServices.Progress.Record(LevelId).Attempts,
-                    "restart");
+            FailLevel("restart");
         }
 
         void OnTimeExpired()
         {
             if (State != GameState.Playing) return;
+            FailLevel("timeout");
+        }
+
+        /// <summary>
+        /// Kaybetmenin TEK yolu: durum, ses, titreşim ve analitik burada.
+        ///
+        /// DERS (aynı sonucu üç yerde kurma): Süre bitti / pes edildi /
+        /// konsoldan kaybettirildi — üçü de aynı sonucu doğurur, farkları
+        /// yalnız analitiğe yazılan SEBEP. Üç kopya bırakılsaydı yarın
+        /// kaybetmeye eklenen bir şey (ör. "seri bozuldu" kaydı) birinde
+        /// unutulur ve fark, sebebi bilinmeyen bir tutarsızlık olarak
+        /// aylar sonra ortaya çıkardı.
+        /// </summary>
+        void FailLevel(string reason)
+        {
             State = GameState.Lost;
             _audio?.PlayLose();
             _haptics?.Play(GameKit.Services.HapticStrength.Heavy);
@@ -759,7 +811,7 @@ namespace BlockOut.Runtime.Flow
                 GameKit.Services.Analytics.LevelFailed(
                     _levelIndex,
                     Services.MetaServices.Progress.Record(LevelId).Attempts,
-                    "timeout");
+                    reason);
         }
     }
 }

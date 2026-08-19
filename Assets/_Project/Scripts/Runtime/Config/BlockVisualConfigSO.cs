@@ -27,6 +27,15 @@ namespace BlockOut.Runtime.Config
         [Tooltip("Üst kenar pahı — büyüdükçe tuğla yuvarlak hisseder.")]
         [Range(0f, 0.2f)] public float brickChamfer = 0.06f;
 
+        [Tooltip("Bloğun DIŞ SİLÜETİNİN köşe yarıçapı (hücre biriminde). " +
+                 "Referansta bloklar yuvarlak köşeli plastik parçalar; keskin " +
+                 "köşede yan yana duran aynı renkten iki blok tek kütle görünür.")]
+        [Range(0f, 0.45f)] public float brickCornerRadius = 0.16f;
+
+        [Tooltip("Tutulan bloğun beyaz konturunun KALINLIĞI (hücre biriminde). " +
+                 "Ölçek değil kalınlık: blok büyüdükçe kontur kalınlaşmaz.")]
+        [Range(0.01f, 0.16f)] public float outlineWidth = 0.05f;
+
         [Header("Saplamalar")]
         [Tooltip("Hücre başına saplama sayısı (referans oyunda 2 = 2×2).")]
         [Range(1, 3)] public int studsPerCell = 2;

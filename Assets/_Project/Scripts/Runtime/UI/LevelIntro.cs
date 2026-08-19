@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UiKit = GameKit.UI.UiKit;
@@ -30,9 +29,7 @@ namespace BlockOut.Runtime.UI
         Canvas _canvas;
         RectTransform _root;
         Image _curtain;
-        RectTransform _logo;
         Coroutine _running;
-        TMPro.TextMeshProUGUI _logoTop, _logoBottom;
 
         public static LevelIntro Ensure(Transform parent)
         {
@@ -57,19 +54,28 @@ namespace BlockOut.Runtime.UI
             _curtain = UiKit.CreatePanel("Curtain", _root, new Color(0.02f, 0.01f, 0.06f, 1f));
             _curtain.raycastTarget = true;
 
-            // Logo: kendi görseli yok, yazıyla kuruluyor. İki satır ve iki renk
-            // referanstaki dizilimi veriyor.
-            _logo = UiKit.CreateRect("Logo", _root);
-            UiKit.Place(_logo, 0.10f, 0.42f, 0.90f, 0.62f);
-
-            _logoTop = UiKit.CreateTitle("Top", _logo, "BLOCK", 96,
-                new Color(0.98f, 0.31f, 0.29f), new Color(0.24f, 0.06f, 0.30f));
-            UiKit.Place(_logoTop, 0f, 0.50f, 1f, 1f);
-
-            _logoBottom = UiKit.CreateTitle("Bottom", _logo, "OUT!", 96,
-                new Color(1f, 0.79f, 0.13f), new Color(0.24f, 0.06f, 0.30f));
-            UiKit.Place(_logoBottom, 0f, 0f, 1f, 0.50f);
-
+            // LOGO KALDIRILDI — ÇİFT KAZANMA EKRANI HATASI (4. tur, J40).
+            //
+            // Kullanıcı: "2 tane üst üste 'BLOCKOUT kazandın' ekranı çıkıyor,
+            // biri eski versiyon."
+            //
+            // TEŞHİS: Kazanma dizilimi şuydu — `WinCelebration` (GERÇEK logo
+            // görseli + fişek) → PERFECT kartı → Continue → `LevelIntro`
+            // (YAZIYLA kurulmuş "BLOCK"/"OUT!" + konfeti) → yeni bölüm. Yani
+            // oyuncu aynı kutlamayı iki kez, ikincisini de eski/çirkin
+            // biçimiyle görüyordu.
+            //
+            // Bu sınıf `WinCelebration`'dan ÖNCE yazılmıştı ve o zaman tek
+            // kutlama oydu; yenisi eklenirken eskisi kaldırılmadı.
+            //
+            // DERS (yeni bir şey eklerken ESKİSİNİ aramak, işin yarısıdır):
+            // İki ekran ayrı dosyalarda, ayrı akışlarda yaşıyordu ve ikisi de
+            // tek başına doğru çalışıyordu. Hata ancak ikisi ARDIŞIK
+            // oynandığında görülüyor — yani hiçbir birim testinin
+            // yakalayamayacağı, yalnız oynayarak bulunabilecek bir hata.
+            //
+            // Geriye kalan iş bu sınıfın ASIL işi: tahtayı perde arkasında
+            // değiştirmek. Logo ve fişek oraya sonradan eklenmiş süstü.
             _root.gameObject.SetActive(false);
         }
 
@@ -83,25 +89,13 @@ namespace BlockOut.Runtime.UI
         IEnumerator Routine(System.Action swap)
         {
             _root.gameObject.SetActive(true);
-            _logo.localScale = Vector3.zero;
 
             yield return GameKit.FX.Juice.Tween(FadeIn, t => SetAlpha(t));
 
             // Tahta perdenin ARKASINDA değişir: oyuncu iki tahtayı birlikte
-            // görmediği için karışıklık olmuyor.
+            // görmediği için karışıklık olmuyor. Perdenin TEK işi bu; logo,
+            // fişek ve ses buradan kaldırıldı (bkz. Build, J40).
             swap?.Invoke();
-
-            // DERS (logo BİR PARÇA değil, iki hamledir): Tek bir PopIn ile
-            // logo bir bütün olarak büyüyordu — temiz ama cansız. İki satırı
-            // sırayla göndermek (üst gelir, hemen ardından alt) hareketi bir
-            // OLAYA çeviriyor; göz ikinci satırı beklerken yakalanıyor.
-            _logo.localScale = Vector3.one;
-            GameKit.FX.Juice.Run(DropIn(_logoTop.rectTransform, 0f));
-            GameKit.FX.Juice.Run(DropIn(_logoBottom.rectTransform, 0.10f));
-            // Fişek gösterisi FX.CelebrationFX içinde; kazanma ekranı da
-            // aynısını kullanıyor (2. tur, 50. madde).
-            GameKit.FX.Juice.Run(FX.CelebrationFX.Show(_root, bursts: 3, interval: 0.16f));
-            Services.AudioService.Star();
 
             yield return new WaitForSecondsRealtime(Hold);
             yield return GameKit.FX.Juice.Tween(FadeOut, t => SetAlpha(1f - t));
@@ -115,37 +109,6 @@ namespace BlockOut.Runtime.UI
             var color = _curtain.color;
             color.a = alpha;
             _curtain.color = color;
-
-            foreach (var text in _logo.GetComponentsInChildren<TextMeshProUGUI>())
-            {
-                var c = text.color;
-                c.a = alpha;
-                text.color = c;
-            }
-        }
-
-        /// <summary>
-        /// Satırın yukarıdan düşüp yaylanarak oturması.
-        /// </summary>
-        static IEnumerator DropIn(RectTransform line, float delay)
-        {
-            if (line == null) yield break;
-
-            Vector2 target = line.anchoredPosition;
-            if (delay > 0f) yield return new WaitForSecondsRealtime(delay);
-
-            const float duration = 0.34f;
-            for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
-            {
-                if (line == null) yield break;
-                float k = GameKit.FX.Juice.EaseOutBack(t / duration, 2.4f);
-                line.anchoredPosition = target + new Vector2(0f, (1f - k) * 420f);
-                line.localScale = Vector3.one * (0.65f + 0.35f * k);
-                yield return null;
-            }
-
-            line.anchoredPosition = target;
-            line.localScale = Vector3.one;
         }
 
     }

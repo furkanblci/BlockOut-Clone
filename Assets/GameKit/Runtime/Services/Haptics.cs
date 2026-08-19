@@ -53,12 +53,34 @@ namespace GameKit.Services
         /// </summary>
         public HapticStrength Threshold { get; set; } = HapticStrength.Light;
 
+        /// <summary>
+        /// En son kurulan örnek.
+        ///
+        /// DERS (her çağrı yerine referans taşımak imkânsızdır): Titreşim
+        /// üretmesi gereken yerler oyunun her katmanına dağılmış durumda —
+        /// sürükleme denetleyicisi, kapı sistemi, yardımcı efektleri, menü
+        /// kabuğu. Her birine kurucudan bir `Haptics` geçirmek, hiçbir işi
+        /// olmayan sınıfları da taşıyıcı yapardı. Servis TEK olduğu için
+        /// (uygulama başına bir titreşim motoru var) statik bir kapı doğru
+        /// karşılık; yine de örnek bir MonoBehaviour, yani ayarları ve
+        /// yaşam döngüsü normal biçimde işliyor.
+        /// </summary>
+        public static Haptics Active { get; private set; }
+
+        /// <summary>Örnek yoksa sessizce geçer — editörde ve testte güvenli.</summary>
+        public static void Tap(HapticStrength strength = HapticStrength.Light) =>
+            Active?.Play(strength);
+
         public static Haptics Create(Transform parent = null)
         {
             var go = new GameObject("Haptics");
             if (parent != null) go.transform.SetParent(parent, worldPositionStays: false);
-            return go.AddComponent<Haptics>();
+            var haptics = go.AddComponent<Haptics>();
+            Active = haptics;
+            return haptics;
         }
+
+        void OnEnable() { if (Active == null) Active = this; }
 
         /// <summary>Şiddetin süre (ms) ve genlik (0-255) karşılığı.</summary>
         static void Shape(HapticStrength strength, out int ms, out int amplitude)

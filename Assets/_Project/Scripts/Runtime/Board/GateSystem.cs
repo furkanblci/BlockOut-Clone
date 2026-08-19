@@ -144,6 +144,9 @@ namespace BlockOut.Runtime.Board
                 view.SetLayerMaterial(BoardBuilder.GetBlockMaterial(_palette, block.CurrentColor));
             }
 
+            if (_views.Gates.TryGetValue(gate, out var peelGateView) && peelGateView != null)
+                peelGateView.PlayAbsorbFlash();
+
             _events.RaiseLayerPeeled(block, gate);
             _obstacles.NotifyBlockExit();          // emilim sayılır: buz erir, perde sayar
             RecomputeGateStates(); // soyulan rengin son örneğiyse kapısı ghost olabilir
@@ -167,6 +170,10 @@ namespace BlockOut.Runtime.Board
                 float travel = (gate.EdgeHorizontal ? block.H : block.W) * 0.5f + 0.2f;
                 view.PlayAbsorb(dir, travel, _config.absorbDuration);
             }
+
+            // Kapı da tepki versin: yutma iki taraflı bir olay (4. tur G23).
+            if (_views.Gates.TryGetValue(gate, out var gateView) && gateView != null)
+                gateView.PlayAbsorbFlash();
 
             _events.RaiseBlockAbsorbed(block, gate);
 

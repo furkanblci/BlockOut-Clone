@@ -166,6 +166,69 @@ namespace BlockOut.Runtime.FX
             }
         }
 
+        /// <summary>
+        /// Ekranın ALTINDAN yukarı fırlayan beyaz roket izleri; tepede
+        /// patlarlar (4. tur, J38).
+        ///
+        /// REFERANS (`Levels 1-20` yürüyüşü, 32-34. saniyeler): logo
+        /// tamamlandıktan sonra ekranın alt kenarından yukarı doğru ince
+        /// BEYAZ çizgiler çıkıyor ve ucunda renkli patlama oluyor. Bizde
+        /// yalnız havada beliren patlamalar vardı; patlamanın NEREDEN geldiği
+        /// görünmüyordu.
+        ///
+        /// DERS (bir olayın sebebini göstermek, sonucunu göstermekten
+        /// önemlidir): Havada beliren patlama "bir şey patladı" der; yükselen
+        /// iz "biri fişek attı" der. İkincisi sahneye bir fail ekliyor ve
+        /// kutlamayı biri tarafından YAPILMIŞ bir şeye çeviriyor.
+        /// </summary>
+        public static IEnumerator Rockets(RectTransform root, int count, float interval)
+        {
+            float[] lanes = { -0.34f, 0.28f, -0.12f, 0.38f, 0.05f, -0.40f, 0.20f, -0.24f };
+
+            for (int i = 0; i < count; i++)
+            {
+                if (root == null) yield break;
+                float lane = lanes[i % lanes.Length];
+                float apex = Random.Range(0.10f, 0.34f);
+                GameKit.FX.Juice.Run(RocketFly(root, lane, apex,
+                    Palette[(i * 3) % Palette.Length]));
+                yield return new WaitForSecondsRealtime(interval);
+            }
+        }
+
+        static IEnumerator RocketFly(RectTransform root, float lane, float apex, Color color)
+        {
+            var trail = UiKit.CreatePanel("Rocket", root, new Color(1f, 1f, 1f, 0.9f));
+            trail.raycastTarget = false;
+
+            var rect = trail.rectTransform;
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0f);          // aşağı ucu sabit
+            rect.sizeDelta = new Vector2(5f, 10f);
+
+            float startY = -1020f;
+            float endY = apex * 1900f;
+            const float rise = 0.42f;
+
+            for (float t = 0f; t < rise; t += Time.unscaledDeltaTime)
+            {
+                if (rect == null) yield break;
+                float k = t / rise;
+                float y = Mathf.Lerp(startY, endY, k * (2f - k));   // yavaşlayarak
+                rect.anchoredPosition = new Vector2(lane * 1080f, y);
+                // İz yükselirken uzuyor, tepeye yaklaşınca kısalıyor: roketin
+                // yavaşladığı bilgisi boydan okunuyor.
+                rect.sizeDelta = new Vector2(5f, Mathf.Lerp(220f, 40f, k));
+                var c = trail.color;
+                c.a = 0.9f * (1f - k * 0.6f);
+                trail.color = c;
+                yield return null;
+            }
+
+            if (root != null) Explode(root, new Vector2(lane, apex), color, 42);
+            if (trail != null) Object.Destroy(trail.gameObject);
+        }
+
         // ---- Konfeti -------------------------------------------------------
 
         /// <summary>

@@ -106,6 +106,9 @@ namespace BlockOut.Runtime.Board
                 {
                     if (_views.Blocks.TryGetValue(block, out var frozen)) frozen.PlayRefusal();
                     Services.AudioService.Refuse();
+                    // "Duydum ama olmaz": reddin de bir dokunsal karşılığı olmalı,
+                    // yoksa oyuncu dokunuşunun kaydedilmediğini sanıp tekrar basar.
+                    GameKit.Services.Haptics.Tap(GameKit.Services.HapticStrength.Medium);
                     return;
                 }
 
@@ -114,6 +117,7 @@ namespace BlockOut.Runtime.Board
                 // Oyuncu parmağını koyduğunda ekranı kendi eli örtüyor;
                 // "tuttum" bilgisi büyük ölçüde sesle geliyor.
                 Services.AudioService.PickUp();
+                GameKit.Services.Haptics.Tap(GameKit.Services.HapticStrength.Light);
 
                 _grabOffset = block.Position - cell;
                 _obstacles.Clear();
@@ -161,6 +165,7 @@ namespace BlockOut.Runtime.Board
             }
 
             Services.AudioService.Drop();
+            GameKit.Services.Haptics.Tap(GameKit.Services.HapticStrength.Light);
 
             // Kapıya dayalı bırakıldıysa oturur oturmaz emilsin/soyulsun.
             _gates.ResolveContact(block);

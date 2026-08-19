@@ -18,6 +18,15 @@ namespace BlockOut.Runtime.View
     /// MERKEZDEN DIŞA (radyal). Radyal normal silindiri pürüzsüz gösterir ve
     /// parlaklık saplamanın üstünde kayar.
     ///
+    /// DERS (gövde artık hücre hücre değil, TEK SİLÜETTEN örülüyor — 4. tur):
+    /// Eski hâl her hücre için ayrı bir kutu çiziyor, yalnız komşusuz kenarlara
+    /// duvar örüyordu. Sonuç KESKİN köşeli bir dikdörtgendi ve `brickInset`
+    /// sıfırlandığında yan yana iki blok tek kütle gibi görünüyordu (H27).
+    /// Şimdi <see cref="BrickSilhouette"/> bloğun dış çevre çizgisini yuvarlak
+    /// köşeli tek bir halka olarak veriyor; üst yüz o halkanın üçgenlenmesi,
+    /// yan duvar ise halkanın aşağı doğru süpürülmesi. Saplamalar hücre hücre
+    /// kalıyor, çünkü onların ızgarası gerçekten hücreye bağlı.
+    ///
     /// Tüm ölçüler <see cref="BlockVisualConfigSO"/>'dan gelir; ayar değişince
     /// <see cref="ClearCache"/> ile mesh'ler yeniden üretilir.
     /// </summary>
@@ -50,16 +59,24 @@ namespace BlockOut.Runtime.View
         /// </summary>
         public static Mesh Get(BlockOut.Core.BlockModel block)
         {
-            int key = ShapeKey(block);
+            // YÖNLÜ BLOKTA SAPLAMA YOK (4. tur, H31).
+            //
+            // Referans (41-50 yürüyüşü, 50. bölüm): eksen kısıtlı bloklar
+            // PÜRÜZSÜZ karolar; üstlerinde saplama değil, aynı renkten
+            // kabartma bir çift yönlü ok var. Saplama ızgarası okun altında
+            // kalınca ok "çıkartma" gibi duruyordu.
+            bool studs = block.Axis == BlockOut.Core.MoveAxis.Free;
+
+            int key = ShapeKey(block) ^ (studs ? 0 : unchecked((int)0x7A3C0000));
             if (Cache.TryGetValue(key, out var cached) && cached != null) return cached;
 
-            var mesh = Build(block.W, block.H, block.Cells, withStuds: true);
+            var mesh = Build(block.W, block.H, block.Cells, withStuds: studs, grow: 0f);
             Cache[key] = mesh;
             return mesh;
         }
 
         /// <summary>
-        /// Aynı şeklin SAPLAMASIZ hâli — tutma konturunun kabuğu için.
+        /// Aynı şeklin SAPLAMASIZ hâli — iç katman paneli ve kontur kabuğu için.
         ///
         /// DERS (kontur kabuğu, gövdenin AYNISI olmamalı): Kontur ilk denemede
         /// tuğlanın kendi mesh'ini %4 büyüterek kuruldu. Silüet doğru çıktı ama
@@ -75,8 +92,32 @@ namespace BlockOut.Runtime.View
             int key = ShapeKey(block) ^ unchecked((int)0x5D1E0000);
             if (Cache.TryGetValue(key, out var cached) && cached != null) return cached;
 
-            var mesh = Build(block.W, block.H, block.Cells, withStuds: false);
+            var mesh = Build(block.W, block.H, block.Cells, withStuds: false, grow: 0f);
             mesh.name += "_Silhouette";
+            Cache[key] = mesh;
+            return mesh;
+        }
+
+        /// <summary>
+        /// Tutma konturunun kabuğu: silüetin dışa doğru SABİT kalınlıkta
+        /// şişirilmiş hâli.
+        ///
+        /// DERS (kontur bir kalınlıktır, bir oran değil — 4. tur H29): Kabuk
+        /// eskiden `localScale = 1.04` ile üretiliyordu. Ölçek merkezden
+        /// çalıştığı için taşma miktarı bloğun boyuna bağlıydı: 6 hücrelik bir
+        /// blokta 0,12 hücre taşıyor ve KOMŞU BLOĞUN İÇİNE giriyordu. Burada
+        /// silüet dışa doğru `outlineWidth` kadar kaydırılıyor; kalınlık her
+        /// blokta aynı ve komşuya taşma, boşluk payı kadar sınırlı.
+        /// </summary>
+        public static Mesh GetOutlineShell(BlockOut.Core.BlockModel block)
+        {
+            int key = ShapeKey(block) ^ unchecked((int)0x2B770000);
+            if (Cache.TryGetValue(key, out var cached) && cached != null) return cached;
+
+            var cfg = VisualSettings.Current;
+            float width = cfg != null ? cfg.outlineWidth : 0.05f;
+            var mesh = Build(block.W, block.H, block.Cells, withStuds: false, grow: width);
+            mesh.name += "_Outline";
             Cache[key] = mesh;
             return mesh;
         }
@@ -90,20 +131,33 @@ namespace BlockOut.Runtime.View
             return key;
         }
 
-        static Mesh Build(int w, int h, List<Vector2Int> cells, bool withStuds)
+        /// <param name="grow">Silüeti dışa şişirme miktarı (kontur kabuğu için).</param>
+        static Mesh Build(int w, int h, List<Vector2Int> cells, bool withStuds, float grow)
         {
             var cfg = VisualSettings.Current;
             float height = cfg != null ? cfg.brickHeight : 0.40f;
             float inset = cfg != null ? cfg.brickInset : 0.055f;
             float chamfer = cfg != null ? cfg.brickChamfer : 0.06f;
+            float corner = cfg != null ? cfg.brickCornerRadius : 0.15f;
             int perCell = cfg != null ? cfg.studsPerCell : 2;
+
+            // Kontur kabuğunda köşe yarıçapı da büyümeli: dışa kaydırılan bir
+            // yayın yarıçapı, kaydırma kadar artar. Aksi hâlde kabuk köşelerde
+            // gövdeden DAHA KESKİN kalır ve dört köşede beyaz sivri uçlar
+            // görünür.
+            float outline = Mathf.Max(0f, grow);
+            var loop = BrickSilhouette.Build(cells, w, h, inset - outline, corner + outline);
+            if (loop == null || loop.Count < 3)
+                return new Mesh { name = "Brick_Empty" };
+
+            BrickSilhouette.MakeCounterClockwise(loop);
 
             var verts = new List<Vector3>();
             var normals = new List<Vector3>();
             var tris = new List<int>();
             var colors = new List<Color>();
 
-            float shoulder = height - chamfer;
+            float shoulder = Mathf.Max(0f, height - chamfer);
 
             Color bottom = Tone(cfg != null ? cfg.toneBodyBottom : 0.48f);
             Color side = Tone(cfg != null ? cfg.toneBodySide : 0.86f);
@@ -111,90 +165,99 @@ namespace BlockOut.Runtime.View
             Color studFoot = Tone(cfg != null ? cfg.toneStudFoot : 0.42f);
             Color studTop = Tone(cfg != null ? cfg.toneStudTop : 1f);
 
-            // Hücre kümesi: komşuluk sorgusu için.
-            var filled = new HashSet<Vector2Int>(cells);
-            bool Has(int x, int z) => filled.Contains(new Vector2Int(x, z));
+            int count = loop.Count;
 
-            // DERS (polyomino gövdesi): Her hücre için kutu çizip birleştirmek
-            // iç yüzleri de üretir — hem israf hem de saydam olmayan yüzeylerde
-            // z-fighting kaynağı. Bunun yerine yalnızca KOMŞUSU OLMAYAN kenarlara
-            // duvar örülür; iç kenarlar hiç var olmaz. Boşluk payı (inset) da
-            // yalnızca dış kenarlara uygulanır ki bitişik hücreler kusursuz
-            // birleşsin, blok dışarıdan tek parça görünsün.
-            foreach (var cell in cells)
+            // --- Yan duvar: tabandan omuza --------------------------------
+            //
+            // Halkanın dış normali, kenar teğetinin dik izdüşümü. Köşe
+            // noktalarında komşu iki kenarın ortalaması alınıyor ki yay
+            // boyunca ışık pürüzsüz kaysın.
+            var outward = new Vector3[count];
+            for (int i = 0; i < count; i++)
             {
-                bool left = Has(cell.x - 1, cell.y);
-                bool right = Has(cell.x + 1, cell.y);
-                bool up = Has(cell.x, cell.y - 1);     // hücre uzayında y aşağı artar
-                bool down = Has(cell.x, cell.y + 1);
+                var prev = loop[(i - 1 + count) % count];
+                var next = loop[(i + 1) % count];
+                var tangent = (next - prev).normalized;
+                outward[i] = new Vector3(tangent.y, 0f, -tangent.x);
+            }
 
-                float x0 = -w * 0.5f + cell.x + (left ? 0f : inset);
-                float x1 = -w * 0.5f + cell.x + 1f - (right ? 0f : inset);
-                // Hücre uzayı y aşağı, dünya Z yukarı: ters çevrilir.
-                float z1 = h * 0.5f - cell.y - (up ? 0f : inset);
-                float z0 = h * 0.5f - cell.y - 1f + (down ? 0f : inset);
+            int wallStart = verts.Count;
+            for (int i = 0; i < count; i++)
+            {
+                var p = loop[i];
+                verts.Add(new Vector3(p.x, 0f, p.y));
+                verts.Add(new Vector3(p.x, shoulder, p.y));
+                normals.Add(outward[i]); normals.Add(outward[i]);
+                colors.Add(bottom); colors.Add(side);
+            }
+            RingQuads(tris, wallStart, count);
 
-                // Üst yüz (hücre başına; bitişik hücrelerde kusursuz döşenir)
-                Quad(verts, normals, tris, colors, Vector3.up,
-                    new Vector3(x0, height, z0), new Vector3(x1, height, z0),
-                    new Vector3(x1, height, z1), new Vector3(x0, height, z1), face, face);
+            // --- Pah bandı: omuzdan üst yüze ------------------------------
+            //
+            // DERS (pahı GEOMETRİ ile yapmak): Eski hâl pahı yalnız eğik bir
+            // NORMAL ile taklit ediyordu; silüet keskin kalıyor ve blok
+            // kenarından bakınca "kesilmiş karton" gibi görünüyordu (H28).
+            // Gerçek bir bant, tepeden bakan kamerada bile bloğun etrafında
+            // ince bir açık şerit üretir — 3B kenarı okutan şey budur.
+            float chamferInset = Mathf.Min(chamfer, 0.5f);
+            int bevelStart = verts.Count;
+            for (int i = 0; i < count; i++)
+            {
+                var p = loop[i];
+                var n = outward[i];
+                var top = new Vector3(p.x, height, p.y) - n * chamferInset;
+                var bevelNormal = (n + Vector3.up * 1.1f).normalized;
 
-                // Alt yüz
-                Quad(verts, normals, tris, colors, Vector3.down,
-                    new Vector3(x0, 0, z1), new Vector3(x1, 0, z1),
-                    new Vector3(x1, 0, z0), new Vector3(x0, 0, z0), bottom, bottom);
+                verts.Add(new Vector3(p.x, shoulder, p.y));
+                verts.Add(top);
+                normals.Add(bevelNormal); normals.Add(bevelNormal);
+                colors.Add(side); colors.Add(face);
+            }
+            RingQuads(tris, bevelStart, count);
 
-                // Dış kenarlar: yan duvar + pah bandı (pah, eğik NORMAL ile
-                // taklit edilir; geometriyi içeri kaçırmak polyomino köşelerinde
-                // boşluk bırakırdı).
-                if (!down)
-                {
-                    Quad(verts, normals, tris, colors, Vector3.back,
-                        new Vector3(x0, 0, z0), new Vector3(x1, 0, z0),
-                        new Vector3(x1, shoulder, z0), new Vector3(x0, shoulder, z0), bottom, side);
-                    Quad(verts, normals, tris, colors, new Vector3(0, 0.7f, -0.7f),
-                        new Vector3(x0, shoulder, z0), new Vector3(x1, shoulder, z0),
-                        new Vector3(x1, height, z0), new Vector3(x0, height, z0), side, face);
-                }
-                if (!up)
-                {
-                    Quad(verts, normals, tris, colors, Vector3.forward,
-                        new Vector3(x1, 0, z1), new Vector3(x0, 0, z1),
-                        new Vector3(x0, shoulder, z1), new Vector3(x1, shoulder, z1), bottom, side);
-                    Quad(verts, normals, tris, colors, new Vector3(0, 0.7f, 0.7f),
-                        new Vector3(x1, shoulder, z1), new Vector3(x0, shoulder, z1),
-                        new Vector3(x0, height, z1), new Vector3(x1, height, z1), side, face);
-                }
-                if (!right)
-                {
-                    Quad(verts, normals, tris, colors, Vector3.right,
-                        new Vector3(x1, 0, z0), new Vector3(x1, 0, z1),
-                        new Vector3(x1, shoulder, z1), new Vector3(x1, shoulder, z0), bottom, side);
-                    Quad(verts, normals, tris, colors, new Vector3(0.7f, 0.7f, 0),
-                        new Vector3(x1, shoulder, z0), new Vector3(x1, shoulder, z1),
-                        new Vector3(x1, height, z1), new Vector3(x1, height, z0), side, face);
-                }
-                if (!left)
-                {
-                    Quad(verts, normals, tris, colors, Vector3.left,
-                        new Vector3(x0, 0, z1), new Vector3(x0, 0, z0),
-                        new Vector3(x0, shoulder, z0), new Vector3(x0, shoulder, z1), bottom, side);
-                    Quad(verts, normals, tris, colors, new Vector3(-0.7f, 0.7f, 0),
-                        new Vector3(x0, shoulder, z1), new Vector3(x0, shoulder, z0),
-                        new Vector3(x0, height, z0), new Vector3(x0, height, z1), side, face);
-                }
+            // --- Üst yüz ---------------------------------------------------
+            var topRing = new List<Vector2>(count);
+            for (int i = 0; i < count; i++)
+            {
+                var p = loop[i];
+                var n = outward[i];
+                topRing.Add(new Vector2(p.x - n.x * chamferInset, p.y - n.z * chamferInset));
+            }
 
-                // Saplamalar — hücre başına perCell². Silüet mesh'inde atlanır.
-                if (!withStuds) continue;
+            int faceStart = verts.Count;
+            for (int i = 0; i < count; i++)
+            {
+                verts.Add(new Vector3(topRing[i].x, height, topRing[i].y));
+                normals.Add(Vector3.up);
+                colors.Add(face);
+            }
+            BrickSilhouette.Triangulate(topRing, tris, faceStart, faceUp: true);
 
+            // --- Alt yüz ---------------------------------------------------
+            //
+            // Tepeden bakan kamerada hiç görünmez ama emilme animasyonunda
+            // blok eğilebiliyor; açık kalan bir taban orada delik gibi durur.
+            int bottomStart = verts.Count;
+            for (int i = 0; i < count; i++)
+            {
+                verts.Add(new Vector3(loop[i].x, 0f, loop[i].y));
+                normals.Add(Vector3.down);
+                colors.Add(bottom);
+            }
+            BrickSilhouette.Triangulate(loop, tris, bottomStart, faceUp: false);
+
+            // --- Saplamalar -------------------------------------------------
+            if (withStuds)
+            {
                 float step = 1f / perCell;
                 float first = step * 0.5f;
-                for (int sx = 0; sx < perCell; sx++)
-                    for (int sz = 0; sz < perCell; sz++)
-                        AddStud(verts, normals, tris, colors, new Vector3(
-                            -w * 0.5f + cell.x + first + sx * step,
-                            height,
-                            h * 0.5f - cell.y - first - sz * step), studFoot, studTop);
+                foreach (var cell in cells)
+                    for (int sx = 0; sx < perCell; sx++)
+                        for (int sz = 0; sz < perCell; sz++)
+                            AddStud(verts, normals, tris, colors, new Vector3(
+                                -w * 0.5f + cell.x + first + sx * step,
+                                height,
+                                h * 0.5f - cell.y - first - sz * step), studFoot, studTop);
             }
 
             var mesh = new Mesh { name = $"Brick_{w}x{h}" };
@@ -210,19 +273,6 @@ namespace BlockOut.Runtime.View
         }
 
         static Color Tone(float value) => new Color(value, value, value, 1f);
-
-        static void Quad(List<Vector3> verts, List<Vector3> normals, List<int> tris,
-            List<Color> colors, Vector3 normal,
-            Vector3 a, Vector3 b, Vector3 c, Vector3 d, Color c0, Color c1)
-        {
-            int start = verts.Count;
-            normal = normal.normalized;
-            verts.Add(a); verts.Add(b); verts.Add(c); verts.Add(d);
-            normals.Add(normal); normals.Add(normal); normals.Add(normal); normals.Add(normal);
-            colors.Add(c0); colors.Add(c0); colors.Add(c1); colors.Add(c1);
-            tris.Add(start); tris.Add(start + 2); tris.Add(start + 1);
-            tris.Add(start); tris.Add(start + 3); tris.Add(start + 2);
-        }
 
         /// <summary>
         /// Bir saplama: dik yan duvar + PAHLI üst kenar + düz kapak.

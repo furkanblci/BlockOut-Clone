@@ -192,6 +192,15 @@ namespace BlockOut.Runtime.View
         /// ekranda okunabilir olmalı — referans oyun da bu yüzden oku bloğun
         /// tam ortasına, iri ve kabartmalı basıyor.
         ///
+        /// DERS (ok BİR PARÇA değil, İKİ KATMANDIR — 4. tur H31): Ok eskiden
+        /// düz BEYAZ bir levhaydı ve blokla hiçbir ilişkisi yoktu; ekranda
+        /// "üstüne yapıştırılmış çıkartma" gibi duruyordu. Referansta
+        /// (41-50 yürüyüşü, 50. bölüm) ok BLOĞUN KENDİ RENGİNDE ve üç şeyle
+        /// okunuyor: altında koyu bir oluk hattı, üstünde açık tonlu alçak bir
+        /// prizma, ve altındaki gövdenin SAPLAMASIZ olması (bkz.
+        /// <see cref="BrickMeshBuilder.Get"/>). Rengi kimliğin kendisi olan bir
+        /// oyunda beyaz bir ok, bilginin üstünü çiziyordu.
+        ///
         /// Ok bloğun ÇOCUĞU: blok sürüklenirken onunla birlikte gitsin ve
         /// tutma animasyonundaki ölçeği paylaşsın.
         /// </summary>
@@ -203,24 +212,189 @@ namespace BlockOut.Runtime.View
 
             bool horizontal = _model.Axis == MoveAxis.Horizontal;
             var center = ArrowAnchor();
-            // Ok, bloğun kısa kenarına göre ölçeklenir ki taşmasın.
-            float span = Mathf.Min(_model.W, _model.H);
-            float length = Mathf.Min(horizontal ? _model.W : _model.H, span * 1.6f) * 0.34f;
-            float thickness = span * 0.10f;
-            float head = span * 0.17f;
 
-            var mesh = BuildDoubleArrow(horizontal, length, thickness, head);
-            go.AddComponent<MeshFilter>().sharedMesh = mesh;
-
-            var renderer = go.AddComponent<MeshRenderer>();
-            renderer.sharedMaterial = ViewKit.AxisArrowMaterial;
-            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            renderer.receiveShadows = false;
+            // Ölçüler referans karesinden (50. bölüm, mavi 1×3 blok):
+            // gövde kalınlığı kısa kenarın ~%26'sı, baş genişliği ~%62'si,
+            // baş uzunluğu ~%42'si; ok, uzun kenarın neredeyse tamamını kaplıyor.
+            //
+            // ÜST SINIR ŞART: ok kısa kenarla orantılı büyüyor ama 2×2 bir
+            // blokta orantı korunursa ok tahtanın en iri nesnesi hâline
+            // geliyor ve blok "ok tutan bir levha" gibi okunuyor. Referansta
+            // iri bloklardaki ok yalnız BİR TIK büyük.
+            float span = Mathf.Min(Mathf.Min(_model.W, _model.H), 1.5f);
+            float axisExtent = horizontal ? _model.W : _model.H;
+            float half = Mathf.Max(0.16f, axisExtent * 0.5f - 0.22f);
+            float headWidth = span * 0.26f;
+            float thickness = span * 0.105f;
+            float headLength = Mathf.Min(span * 0.33f, half * 0.5f);
 
             float top = _filter != null && _filter.sharedMesh != null
                 ? _filter.sharedMesh.bounds.max.y
                 : BrickMeshBuilder.Height;
+
+            var polygon = ArrowPolygon(half, thickness, headWidth, headLength);
+            if (!horizontal) RotateQuarter(polygon);
+
+            // OLUK: okun bir tık büyütülmüş KOYU kopyası. Referansta okun
+            // çevresinde koyu bir hat var; onsuz açık tonlu ok gövdenin
+            // üstünde yüzüyormuş gibi duruyor.
+            var groove = Grow(polygon, span * 0.032f);
+            var grooveGo = new GameObject("AxisArrowGroove");
+            grooveGo.transform.SetParent(go.transform, worldPositionStays: false);
+            grooveGo.transform.localPosition = new Vector3(0f, 0.003f, 0f);
+            grooveGo.AddComponent<MeshFilter>().sharedMesh = FlatShape(groove, "AxisArrowGroove");
+            var grooveRenderer = grooveGo.AddComponent<MeshRenderer>();
+            grooveRenderer.sharedMaterial = ViewKit.AxisArrowGroove(_palette, _model.CurrentColor);
+            grooveRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            grooveRenderer.receiveShadows = false;
+
+            // KABARTMA: alçak bir prizma. Düz bir levha tepeden bakan kamerada
+            // hiçbir kenar üretmez; yan duvarı olan prizma, ışığı farklı açıyla
+            // alan ince bir şerit verir ve ok "basılmış" görünür.
+            go.AddComponent<MeshFilter>().sharedMesh =
+                Prism(polygon, span * 0.05f, "AxisArrow");
+
+            var renderer = go.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = ViewKit.AxisArrowFace(_palette, _model.CurrentColor);
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+
             go.transform.localPosition = new Vector3(center.x, top + 0.005f, center.y);
+        }
+
+        /// <summary>
+        /// Çift başlı okun çevre çizgisi (yatay, ±X yönünde). Saat yönünün
+        /// TERSİNE sıralı.
+        /// </summary>
+        static List<Vector2> ArrowPolygon(
+            float half, float thickness, float headWidth, float headLength)
+        {
+            float shoulder = half - headLength;
+            return new List<Vector2>
+            {
+                new Vector2(half, 0f),
+                new Vector2(shoulder, headWidth),
+                new Vector2(shoulder, thickness),
+                new Vector2(-shoulder, thickness),
+                new Vector2(-shoulder, headWidth),
+                new Vector2(-half, 0f),
+                new Vector2(-shoulder, -headWidth),
+                new Vector2(-shoulder, -thickness),
+                new Vector2(shoulder, -thickness),
+                new Vector2(shoulder, -headWidth)
+            };
+        }
+
+        /// <summary>
+        /// Yatay oku dikeye çevirir.
+        ///
+        /// DERS (eksen TAKASI el yönünü tersine çevirir): Eski kod dikey oku
+        /// (x,z) → (z,-x) ile üretiyordu; bu gerçek bir dönüş olduğu için
+        /// doğruydu. (x,z) → (z,x) gibi bir TAKAS ise aynayı katardı ve
+        /// çokgenin sarım yönü tersine dönüp ok görünmez olurdu.
+        /// </summary>
+        static void RotateQuarter(List<Vector2> polygon)
+        {
+            for (int i = 0; i < polygon.Count; i++)
+                polygon[i] = new Vector2(-polygon[i].y, polygon[i].x);
+        }
+
+        /// <summary>
+        /// Çokgeni dışa doğru gönye (miter) ile şişirir.
+        ///
+        /// DERS (köşede iki normalin ORTALAMASI yetmez): Ortalama almak dar
+        /// açılı köşelerde kaydırmayı istenen kalınlığın altına düşürür ve okun
+        /// sivri ucu körelir. Gönye uzunluğu 1/cos(yarımaçı) ile büyür; burada
+        /// o, birim toplamın uzunluğuna bölmek olarak yazılı.
+        /// </summary>
+        static List<Vector2> Grow(List<Vector2> polygon, float amount)
+        {
+            int count = polygon.Count;
+            var result = new List<Vector2>(count);
+            for (int i = 0; i < count; i++)
+            {
+                var prev = polygon[(i - 1 + count) % count];
+                var cur = polygon[i];
+                var nxt = polygon[(i + 1) % count];
+                var sum = Outward(cur - prev) + Outward(nxt - cur);
+                float length = sum.magnitude;
+                // Çok sivri köşede gönye sonsuza gider; 3 kat ile sınırlanıyor.
+                float miter = length > 1e-4f ? Mathf.Min(2f / length, 1.8f) : 0f;
+                result.Add(cur + sum.normalized * amount * miter);
+            }
+            return result;
+        }
+
+        /// <summary>Saat yönünün tersine halkada dış normal SAĞDADIR.</summary>
+        static Vector2 Outward(Vector2 direction)
+        {
+            direction = direction.normalized;
+            return new Vector2(direction.y, -direction.x);
+        }
+
+        /// <summary>Yatay, tek yüzlü levha.</summary>
+        static Mesh FlatShape(List<Vector2> polygon, string name)
+        {
+            var verts = new List<Vector3>(polygon.Count);
+            var normals = new List<Vector3>(polygon.Count);
+            var tris = new List<int>();
+            foreach (var p in polygon)
+            {
+                verts.Add(new Vector3(p.x, 0f, p.y));
+                normals.Add(Vector3.up);
+            }
+            BrickSilhouette.Triangulate(polygon, tris, 0, faceUp: true);
+
+            var mesh = new Mesh { name = name };
+            mesh.SetVertices(verts);
+            mesh.SetNormals(normals);
+            mesh.SetTriangles(tris, 0);
+            mesh.RecalculateBounds();
+            return mesh;
+        }
+
+        /// <summary>Alçak prizma: yan duvar + üst kapak.</summary>
+        static Mesh Prism(List<Vector2> polygon, float height, string name)
+        {
+            int count = polygon.Count;
+            var verts = new List<Vector3>();
+            var normals = new List<Vector3>();
+            var tris = new List<int>();
+
+            for (int i = 0; i < count; i++)
+            {
+                var prev = polygon[(i - 1 + count) % count];
+                var nxt = polygon[(i + 1) % count];
+                var tangent = (nxt - prev).normalized;
+                var n = new Vector3(tangent.y, 0.35f, -tangent.x).normalized;
+
+                var p = polygon[i];
+                verts.Add(new Vector3(p.x, 0f, p.y));
+                verts.Add(new Vector3(p.x, height, p.y));
+                normals.Add(n); normals.Add(n);
+            }
+            for (int i = 0; i < count; i++)
+            {
+                int a = i * 2;
+                int b = ((i + 1) % count) * 2;
+                tris.Add(a); tris.Add(a + 1); tris.Add(b);
+                tris.Add(b); tris.Add(a + 1); tris.Add(b + 1);
+            }
+
+            int capStart = verts.Count;
+            foreach (var p in polygon)
+            {
+                verts.Add(new Vector3(p.x, height, p.y));
+                normals.Add(Vector3.up);
+            }
+            BrickSilhouette.Triangulate(polygon, tris, capStart, faceUp: true);
+
+            var mesh = new Mesh { name = name };
+            mesh.SetVertices(verts);
+            mesh.SetNormals(normals);
+            mesh.SetTriangles(tris, 0);
+            mesh.RecalculateBounds();
+            return mesh;
         }
 
         /// <summary>
@@ -262,75 +436,6 @@ namespace BlockOut.Runtime.View
             return new Vector2(-_model.W * 0.5f + cx, _model.H * 0.5f - cy);
         }
 
-        /// <summary>
-        /// Çift başlı ok: ortada gövde, iki uçta üçgen baş. Düz bir quad yerine
-        /// alçak prizma olarak kurulur — yan yüzler ışığı farklı açıyla alınca
-        /// ok "kabartma" gibi okunur, çıkartma gibi değil.
-        ///
-        /// DERS (sarım yönü / winding): Üçgenin köşe SIRASI hangi yüzün "ön"
-        /// olduğunu belirler; ters sıralı üçgen backface culling ile tamamen
-        /// kaybolur. Bu yüzden ok HER ZAMAN yatay kurulur, dikey isteniyorsa
-        /// mesh 90° DÖNDÜRÜLÜR — eksenleri (right ↔ forward) takas etmek
-        /// el yönünü tersine çevirir ve okun görünmemesine yol açardı.
-        /// </summary>
-        static Mesh BuildDoubleArrow(bool horizontal, float length, float thickness, float head)
-        {
-            var verts = new List<Vector3>();
-            var normals = new List<Vector3>();
-            var tris = new List<int>();
-            const float rise = 0.035f;
-
-            Vector3 along = Vector3.right;
-            Vector3 across = Vector3.forward;
-
-            void Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 d)
-            {
-                int s = verts.Count;
-                verts.Add(a); verts.Add(b); verts.Add(c); verts.Add(d);
-                for (int i = 0; i < 4; i++) normals.Add(Vector3.up);
-                tris.Add(s); tris.Add(s + 2); tris.Add(s + 1);
-                tris.Add(s); tris.Add(s + 3); tris.Add(s + 2);
-            }
-
-            void Triangle(Vector3 a, Vector3 b, Vector3 c)
-            {
-                int s = verts.Count;
-                verts.Add(a); verts.Add(b); verts.Add(c);
-                for (int i = 0; i < 3; i++) normals.Add(Vector3.up);
-                tris.Add(s); tris.Add(s + 2); tris.Add(s + 1);
-            }
-
-            Vector3 up = Vector3.up * rise;
-            float body = length - head;
-
-            Quad(-along * body - across * thickness + up,
-                  along * body - across * thickness + up,
-                  along * body + across * thickness + up,
-                 -along * body + across * thickness + up);
-
-            Triangle(along * length + up,
-                     along * body + across * head + up,
-                     along * body - across * head + up);
-            Triangle(-along * length + up,
-                     -along * body - across * head + up,
-                     -along * body + across * head + up);
-
-            // Dikey ok: sarımı bozmayan gerçek bir 90° dönüş (x,z) → (z,-x).
-            if (!horizontal)
-                for (int i = 0; i < verts.Count; i++)
-                {
-                    var v = verts[i];
-                    verts[i] = new Vector3(v.z, v.y, -v.x);
-                }
-
-            var mesh = new Mesh { name = "AxisArrow" };
-            mesh.SetVertices(verts);
-            mesh.SetNormals(normals);
-            mesh.SetTriangles(tris, 0);
-            mesh.RecalculateBounds();
-            return mesh;
-        }
-
         /// <summary>Modelin hücre konumunu dünyaya yansıtır. Sürükleme sırasında her kare çağrılır.</summary>
         public void SyncFromModel()
         {
@@ -363,15 +468,23 @@ namespace BlockOut.Runtime.View
             _outline.transform.SetParent(transform, worldPositionStays: false);
             _outline.transform.localPosition = Vector3.zero;
             _outline.transform.localRotation = Quaternion.identity;
-            // Kalınlık ölçekten geliyor: %4 büyütme, blok boyundan bağımsız
-            // olarak ekranda ince ve tutarlı bir çerçeve veriyor.
-            _outline.transform.localScale = Vector3.one * 1.04f;
+
+            // KALINLIK ÖLÇEKTEN GELMİYOR (4. tur, H29).
+            //
+            // DERS (oran ile kalınlık aynı şey değildir): Burada eskiden
+            // `localScale = 1.04` vardı. Ölçek merkezden çalışır, yani taşma
+            // bloğun BOYUYLA orantılıdır: 2 hücrelik blokta 0,04 hücre,
+            // 6 hücrelik blokta 0,12 hücre. Bloklar birbirine değdiği için
+            // büyük bloklarda beyaz kontur komşunun ÜSTÜNE biniyordu.
+            // Kabuk artık silüetin dışa doğru SABİT kaydırılmış hâli; ölçek
+            // birde kalıyor.
+            _outline.transform.localScale = Vector3.one;
 
             // SAPLAMASIZ mesh: kabuk yalnız silüeti çizmeli. Tuğlanın kendi
             // mesh'i kullanılınca her saplama da büyüyüp kendi konturunu
             // üretiyor ve blok "beyaz benekli" görünüyordu (denendi, ölçüldü).
             _outline.AddComponent<MeshFilter>().sharedMesh =
-                BrickMeshBuilder.GetSilhouette(_model);
+                BrickMeshBuilder.GetOutlineShell(_model);
 
             var renderer = _outline.AddComponent<MeshRenderer>();
             renderer.sharedMaterial = ViewKit.Outline;
@@ -466,32 +579,52 @@ namespace BlockOut.Runtime.View
             renderer.sharedMaterial.color = color;
         }
 
-        /// <summary>Bloğun hücrelerini kaplayan yatay gölge mesh'i (yerel uzayda).</summary>
+        /// <summary>
+        /// Bloğun SİLÜETİNİ kaplayan yatay gölge mesh'i (yerel uzayda).
+        ///
+        /// DERS (gölge, gövdeyle aynı silüeti taşımalı): Gölge eskiden hücre
+        /// hücre quad'lardan kuruluyor ve her quad yumuşak kenarlı bir dokuyu
+        /// 0-1 UV ile geriyordu. Çok hücreli bir blokta bu, HER HÜCRENİN
+        /// altında ayrı bir leke demekti: bloğun içinde açık şeritler beliriyor
+        /// ve gölge blok değil "birbirine yapışmış karolar" gibi okunuyordu.
+        /// Ayrıca köşeler keskin kalıyor, yuvarlak köşeli gövdenin altından
+        /// sivri uçlar taşıyordu.
+        ///
+        /// Şimdi gölge de <see cref="BrickSilhouette"/>'ten geliyor ve dışa
+        /// doğru bir tık şişiriliyor — referansta blokların çevresinde görülen
+        /// koyu ince hat (4. tur H27/H28) tam olarak budur.
+        /// </summary>
         Mesh BuildShadowMesh()
         {
-            var verts = new List<Vector3>();
-            var uvs = new List<Vector2>();
-            var normals = new List<Vector3>();
-            var tris = new List<int>();
+            var cfg = VisualSettings.Current;
+            float inset = cfg != null ? cfg.brickInset : 0.055f;
+            float corner = cfg != null ? cfg.brickCornerRadius : 0.16f;
 
-            float halfW = _model.W * 0.5f, halfH = _model.H * 0.5f;
-            foreach (var cell in _model.Cells)
-            {
-                float x0 = -halfW + cell.x, x1 = x0 + 1f;
-                float z1 = halfH - cell.y, z0 = z1 - 1f;
-
-                int start = verts.Count;
-                verts.Add(new Vector3(x0, 0f, z0)); verts.Add(new Vector3(x1, 0f, z0));
-                verts.Add(new Vector3(x1, 0f, z1)); verts.Add(new Vector3(x0, 0f, z1));
-                uvs.Add(new Vector2(0f, 0f)); uvs.Add(new Vector2(1f, 0f));
-                uvs.Add(new Vector2(1f, 1f)); uvs.Add(new Vector2(0f, 1f));
-                for (int n = 0; n < 4; n++) normals.Add(Vector3.up);
-
-                tris.Add(start); tris.Add(start + 2); tris.Add(start + 1);
-                tris.Add(start); tris.Add(start + 3); tris.Add(start + 2);
-            }
+            // Gölge gövdeden BİRAZ TAŞAR: iki yan yana blokta iki koyu hat
+            // birleşip tek, net bir ayrım çizgisi oluşturuyor.
+            const float spread = 0.035f;
+            var loop = BrickSilhouette.Build(_model.Cells, _model.W, _model.H,
+                inset - spread, corner + spread);
 
             var mesh = new Mesh { name = "BlockShadow" };
+            if (loop == null || loop.Count < 3) return mesh;
+            BrickSilhouette.MakeCounterClockwise(loop);
+
+            var verts = new List<Vector3>(loop.Count);
+            var uvs = new List<Vector2>(loop.Count);
+            var normals = new List<Vector3>(loop.Count);
+            var tris = new List<int>();
+
+            foreach (var p in loop)
+            {
+                verts.Add(new Vector3(p.x, 0f, p.y));
+                // Doku artık yalnız düz bir ton veriyor: yumuşaklık silüetin
+                // kendisinden geliyor, UV geriminden değil.
+                uvs.Add(new Vector2(0.5f, 0.5f));
+                normals.Add(Vector3.up);
+            }
+            BrickSilhouette.Triangulate(loop, tris, 0, faceUp: true);
+
             mesh.SetVertices(verts);
             mesh.SetUVs(0, uvs);
             mesh.SetNormals(normals);
@@ -592,6 +725,27 @@ namespace BlockOut.Runtime.View
             rimRenderer.sharedMaterial = ViewKit.IceRim;
             rimRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             rimRenderer.receiveShadows = false;
+
+            // KIRAĞI PANELİ: kalıbın üstünde daha AÇIK, içeri çekilmiş bir alan
+            // (4. tur, I35 — "daha çok buza benzemeli").
+            //
+            // DERS (tek renkli bir kalıp buz değil, boyanmış plastiktir):
+            // Kabuk tek düz camgöbeğiydi ve tepeden bakan kamerada hiçbir iç
+            // yapı üretmiyordu. Referansta (10. bölüm) her kalıbın ortasında
+            // neredeyse beyaz bir alan var — donmuş suyun içindeki hava. İki
+            // ton arasındaki fark, malzemeyi saydam gösteren şeyin ta kendisi.
+            // Panel gövdenin ÇOCUĞU değil kardeşi değil: kabuğun çocuğu, yani
+            // kabuğun %6 içeri çekilmesini de paylaşıyor.
+            var frost = new GameObject("IceFrost");
+            frost.transform.SetParent(_iceShell.transform, worldPositionStays: false);
+            frost.transform.localPosition = new Vector3(0f, 0.004f, 0f);
+            frost.transform.localScale = new Vector3(0.72f, 1f, 0.72f);
+            frost.AddComponent<MeshFilter>().sharedMesh =
+                BrickMeshBuilder.GetSilhouette(_model);
+            var frostRenderer = frost.AddComponent<MeshRenderer>();
+            frostRenderer.sharedMaterial = ViewKit.IceFrost;
+            frostRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            frostRenderer.receiveShadows = false;
 
             // Buz OPAK olduğu için tuğlayı çizmeye gerek yok: hem referanstaki
             // gibi renk gizleniyor hem de bir çizim çağrısı tasarruf ediyoruz.

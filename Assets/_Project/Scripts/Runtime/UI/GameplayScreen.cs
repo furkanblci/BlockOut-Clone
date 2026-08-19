@@ -607,18 +607,46 @@ namespace BlockOut.Runtime.UI
             head.transform.localRotation = Quaternion.Euler(0f, 0f, 45f);
         }
 
-        /// <summary>Üst bardaki kare düğme: mor yüzey, ortada simge.</summary>
+        /// <summary>
+        /// Üst bardaki kare düğme — ÜÇ KATMAN, referanstan ölçüldü (4. tur F17).
+        ///
+        /// Kullanıcı: "Yeniden başla ve durdur butonları daha renkli / koyu mor
+        /// olmalı; beyaz kısımları kesik duruyor."
+        ///
+        /// DERS (hazır bir görsel, ölçülmemiş bir karardır): Düğme
+        /// `btn_square` sprite'ıyla kuruluyordu. O görsel soluk bir leylak ve
+        /// simge de açık lavanta olduğu için düğme ekranda neredeyse
+        /// kayboluyordu — "beyaz kısımlar kesik" bulgusu tam olarak bu düşük
+        /// kontrasttan geliyor. Referans ÖLÇÜLDÜ (Levels 1-20 yürüyüşü, 00:12):
+        ///
+        ///   dış kenar  #2A1D8C  (42, 29, 140)
+        ///   gövde      #5D46FC  (93, 70, 252)   ← DOYGUN mor-mavi
+        ///   simge      #D2C8FF  (210, 200, 255)
+        ///
+        /// Gövde ile simge arasındaki parlaklık farkı referansta 2,4 kat;
+        /// bizdeki soluk leylakta 1,2 katmış. Üç katman (kenar / gövde / simge)
+        /// hem o farkı hem de düğmenin kalınlığını geri getiriyor.
+        /// </summary>
         static Button SquareButton(Transform root, string name,
             float x0, float x1, float y0, float y1)
         {
-            var square = UiSkin.Get(Art.ButtonSquare);
-            var button = square != null
-                ? UiKit.CreateIconButton(name, root, square)
-                : UiKit.CreateSpriteButton(name, root, UiSkin.Get(Art.PanelDark), null, 0, Ink);
-            if (square == null && button.targetGraphic is Image face) face.color = Periwinkle;
+            var button = UiKit.CreateSpriteButton(name, root, null, null, 0, Ink);
             UiKit.Place(button, x0, y0, x1, y1);
+
+            if (button.targetGraphic is Image face) face.color = HudButtonEdge;
+
+            // Gövde ALT KENARDAN daha çok pay bırakıyor: koyu kenar aşağıda
+            // kalınlaşınca düğme "basılabilir bir kapak" gibi okunuyor.
+            var body = UiKit.CreateRoundedPanel("Body", button.transform, HudButtonFace);
+            body.raycastTarget = false;
+            UiKit.Place(body, 0.055f, 0.14f, 0.945f, 0.945f);
+
             return button;
         }
+
+        /// REFERANS ÖLÇÜMÜ (00:12 karesi) — bkz. <see cref="SquareButton"/>.
+        static readonly Color HudButtonEdge = new Color(0.165f, 0.114f, 0.549f);  // #2A1D8C
+        static readonly Color HudButtonFace = new Color(0.365f, 0.275f, 0.988f);  // #5D46FC
 
         /// <summary>
         /// Alt yardımcı çubuğu: çalar saat / roket / UFO.
@@ -677,20 +705,39 @@ namespace BlockOut.Runtime.UI
                 var button = UiKit.CreateSpriteButton($"Power_{i}", root, null, null, 0, Ink);
                 UiKit.Place(button, x0, 0.028f, x0 + 0.150f, 0.122f);
 
+                // ÜÇ YEŞİL, REFERANSTAN ÖLÇÜLDÜ (4. tur, F18).
+                //
+                // Kullanıcı: "Power-up ikonları daha koyu ve gölgeli olacak —
+                // yeşil ikonlar daha ön planda çıkmalı."
+                //
+                // ÖLÇÜM (00:12 karesi, düğmenin ortasından dikey tarama):
+                //   y+2   #1C7521  (28, 117, 33)   ince üst kenar
+                //   y+4…  #46F037  (70, 240, 55)   ÜST alan — en parlak
+                //   …     #01AB00  (1, 171, 0)     alt gövde
+                //   son ~10 piksel #005506 → #003B09  KOYU alt bandı
+                //
+                // DERS (yeşil TEK ton değil, bir DÜŞÜŞTÜR): Bizde üç katman
+                // vardı ama sıralaması tersti — iç kuyu gövdeden KOYUYDU ve
+                // aşağıda hiç koyu bant yoktu. Sonuç düz, plastik bir leke:
+                // ikonlar arkalarındaki parlak yeşile karışıyordu. Referansta
+                // parlaklık yukarıdan aşağıya düşüyor ve en altta sert bir koyu
+                // bant var; ikon o düşüşün ortasında durduğu için öne çıkıyor.
                 var face = button.targetGraphic as Image;
-                if (face != null) face.color = new Color(0.106f, 0.451f, 0.031f);  // koyu kenar
+                if (face != null) face.color = PowerEdge;
 
-                var body = UiKit.CreateRoundedPanel("Body", button.transform, PowerGreen);
+                // Gövde alt kenardan 12% pay bırakıyor: koyu bant orada doğuyor.
+                var body = UiKit.CreateRoundedPanel("Body", button.transform, PowerBody);
                 body.raycastTarget = false;
-                UiKit.Place(body, 0f, 0f, 1f, 1f, padding: 7f);
+                UiKit.Place(body, 0.045f, 0.115f, 0.955f, 0.965f);
 
-                var well = UiKit.CreateRoundedPanel("Well", body.transform,
-                    new Color(0.298f, 0.831f, 0.114f));
+                // Parlak üst alan: ikonun oturduğu yuva.
+                var well = UiKit.CreateRoundedPanel("Well", button.transform, PowerWell);
                 well.raycastTarget = false;
-                UiKit.Place(well, 0.10f, 0.10f, 0.90f, 0.90f);
+                UiKit.Place(well, 0.10f, 0.30f, 0.90f, 0.925f);
 
-                var icon = UiKit.CreateIcon("Icon", well.transform, UiSkin.Get(icons[i]));
-                UiKit.Place(icon, 0.02f, 0.04f, 0.98f, 1.00f);
+                var icon = UiKit.CreateIcon("Icon", button.transform, UiSkin.Get(icons[i]));
+                icon.raycastTarget = false;
+                UiKit.Place(icon, 0.10f, 0.16f, 0.90f, 0.94f);
 
                 // ADET ROZETİ: sağ alt KÖŞEDEN taşan, koyu kenarlı KIRMIZI
                 // YUVARLAK KARE.
@@ -723,21 +770,32 @@ namespace BlockOut.Runtime.UI
                 // Fiyat kapsülü de HAP değil yuvarlak kutu: aynı
                 // `SetSliceScale(0.10f)` hatası buradaydı. Rozetle aynı
                 // ailedenler, aynı yarıçap kuralına uymalılar.
+                // FİYAT KAPSÜLÜ ARTIK MOR VE DAHA KALIN (4. tur, F19).
+                //
+                // Kullanıcı: "Power-upların altındaki para birimi barının arka
+                // planı mor olacak (bizde sarı) ve daha kalın olacak."
+                //
+                // DERS (para SİMGEDEN okunur, zeminden değil): Kapsül sarıydı,
+                // çünkü "para = altın" diye düşünülmüştü. Ama sarı zemin,
+                // üstündeki altın jeton simgesini yutuyor ve rakam da sarı
+                // üstünde okunmuyordu. Parayı anlatan şey jeton simgesi;
+                // zeminin işi onu OKUNUR kılmak. Mor zemin hem HUD'un geri
+                // kalanıyla aynı dili konuşuyor hem de altını öne çıkarıyor.
                 var priceRim = UiKit.CreateRoundedPanel("PriceRim", button.transform,
-                    new Color(0.639f, 0.416f, 0.031f));
-                UiKit.Place(priceRim, 0.02f, -0.14f, 1.02f, 0.26f);
+                    HudButtonEdge);
+                UiKit.Place(priceRim, -0.02f, -0.22f, 1.02f, 0.28f);
 
                 var price = UiKit.CreateRoundedPanel("Price", priceRim.transform,
-                    new Color(1f, 0.780f, 0.140f));
-                UiKit.Place(price, 0f, 0f, 1f, 1f, padding: 5f);
+                    HudButtonFace);
+                UiKit.Place(price, 0f, 0f, 1f, 1f, padding: 6f);
 
                 var priceCoin = UiKit.CreateIcon("PriceCoin", price.transform,
                     UiSkin.Get(Art.Coin));
                 priceCoin.raycastTarget = false;
                 UiKit.Place(priceCoin, 0.04f, 0.10f, 0.34f, 0.90f);
 
-                var priceText = UiKit.CreateTitle("PriceText", price.transform, "", 24,
-                    new Color(0.32f, 0.16f, 0.55f), new Color(1f, 0.93f, 0.70f));
+                var priceText = UiKit.CreateTitle("PriceText", price.transform, "", 26,
+                    Ink, new Color(0.13f, 0.08f, 0.36f));
                 UiKit.Place(priceText, 0.34f, 0.06f, 0.96f, 0.94f);
 
                 // Göster/gizle artık KENARLIĞA bakıyor: rozet ve fiyat birer
@@ -753,32 +811,34 @@ namespace BlockOut.Runtime.UI
             }
         }
 
-        static readonly Color PowerGreen = new Color(0.365f, 0.878f, 0.259f);
+        // REFERANS ÖLÇÜMÜ — bkz. BuildPowerUpBar.
+        static readonly Color PowerEdge = new Color(0.000f, 0.290f, 0.035f);  // #004A09
+        static readonly Color PowerBody = new Color(0.004f, 0.671f, 0.000f);  // #01AB00
+        static readonly Color PowerWell = new Color(0.275f, 0.941f, 0.216f);  // #46F037
 
         /// <summary>
-        /// Combo rozeti: tahtanın sağ üstünde, zincir varken beliren sayaç.
+        /// COMBO ROZETİ EKRANDAN KALDIRILDI (4. tur, K42).
         ///
-        /// DERS (geri bildirim ELİN OLDUĞU yerde olmalı): Combo yazısını ekranın
-        /// ortasına koymak blokların önünü kapatır; en alta koymak ise parmağın
-        /// altında kalır. Sağ üst köşe, sürükleme sırasında gözün doğal olarak
-        /// uğradığı ama parmağın örtmediği yer.
+        /// Kullanıcı: "Combo yazısı — orijinal oyunda var mı kontrol edilecek.
+        /// Yoksa kaldırılacak."
+        ///
+        /// KONTROL EDİLDİ: 1-20 ve 41-50 yürüyüşlerinden çıkarılan ~140 karenin
+        /// tamamı tarandı (oynanış, kazanma, duraklama, ödül ekranları dahil).
+        /// Referans oyunun HUD'ında jeton, bölüm, yeniden başlat, süre,
+        /// duraklat ve üç yardımcı var — **combo göstergesi YOK.**
+        ///
+        /// DERS (klonlarken "iyi fikir" eklemek, klonu bozar): Combo bizim
+        /// eklememizdi ve kendi başına kötü bir fikir değil; ama referansa
+        /// birebir benzemek hedefken ekranda referansta OLMAYAN bir şey
+        /// bulunması, hedefin kendisiyle çelişiyor. Sayaç mantığı
+        /// (<see cref="ComboTracker"/>) yerinde bırakıldı: ses kademelenmesi
+        /// ve bölüm sonu "en uzun zincir" istatistiği onu kullanıyor, ikisi de
+        /// oyuncuya ekranda bir kutu göstermeden çalışıyor.
         /// </summary>
         void BuildComboBadge(Transform root)
         {
-            _comboBadge = UiKit.CreateRect("Combo", root);
-            UiKit.Place(_comboBadge, 0.66f, 0.820f, 0.985f, 0.900f);
-
-            var back = UiKit.CreateRoundedPanel("Back", _comboBadge,
-                new Color(0.96f, 0.53f, 0.05f));
-            UiKit.SetSliceScale(back, 0.16f);
-            back.raycastTarget = false;
-            UiKit.Place(back, 0f, 0f, 1f, 1f);
-
-            _comboLabel = UiKit.CreateTitle("Text", _comboBadge, "", 32, Ink,
-                new Color(0.42f, 0.18f, 0.01f));
-            UiKit.Place(_comboLabel, 0.06f, 0.08f, 0.94f, 0.92f);
-
-            _comboBadge.gameObject.SetActive(false);
+            _comboBadge = null;
+            _comboLabel = null;
         }
 
 
@@ -1618,16 +1678,7 @@ namespace BlockOut.Runtime.UI
             if (chain == _shownChain) return;
             _shownChain = chain;
 
-            bool show = chain >= ComboTracker.MinimumChain;
-            _comboBadge.gameObject.SetActive(show);
-            if (!show) return;
-
-            _comboLabel.text = _scratch.Clear().Append("COMBO x").Append(chain).ToString();
-
-            // Her yeni halkada vuruş: sayının değiştiğini sessizce yazmak
-            // zinciri fark ettirmiyordu.
-            GameKit.FX.Juice.Replace(_comboBadge,
-                GameKit.FX.Juice.PunchScale(_comboBadge, 0.30f, 0.26f));
+            if (chain < ComboTracker.MinimumChain) return;
 
             // DERS (tekrar eden ses zinciri ÖLDÜRÜR): Burada her halkada aynı
             // "star" sesi çalıyordu. Zincir uzadıkça ödül aynı kalınca oyuncu
@@ -1713,7 +1764,7 @@ namespace BlockOut.Runtime.UI
                 if (face != null)
                     face.color = power.Pending == kind
                         ? new Color(1f, 0.82f, 0.15f)
-                        : PowerGreen;
+                        : PowerEdge;
             }
 
             // Süre donmuşken ekranın kenarında buzlu bir çerçeve dursun:

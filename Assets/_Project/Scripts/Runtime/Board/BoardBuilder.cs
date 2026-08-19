@@ -80,6 +80,9 @@ namespace BlockOut.Runtime.Board
                 frameRenderer.receiveShadows = false;
             }
 
+            // --- Oynanamaz bölgeler: çerçevenin bir parçası gibi DOLDURULUR ---
+            BuildDeadZones(root, board, space, frameMat, cfg);
+
             // --- Kapı kenarlarını topla: o kenarlara duvar örülmeyecek ---
             var gateEdges = new HashSet<EdgeId>();
             foreach (var gate in level.Gates)
@@ -107,34 +110,18 @@ namespace BlockOut.Runtime.Board
             float wallT = wallLikeFrame
                 ? Mathf.Max(WallThickness, frameThickness * 0.6f) : WallThickness;
 
-            for (int y = 0; y < board.Height; y++)
-            {
-                for (int x = 0; x < board.Width; x++)
-                {
-                    if (!board.IsPlayable(x, y)) continue;
-                    TryBuildBoundaryWall(x, y, Side.North, x, y - 1);
-                    TryBuildBoundaryWall(x, y, Side.South, x, y + 1);
-                    TryBuildBoundaryWall(x, y, Side.West, x - 1, y);
-                    TryBuildBoundaryWall(x, y, Side.East, x + 1, y);
-                }
-            }
-
-            void TryBuildBoundaryWall(int cx, int cy, Side side, int nx, int ny)
-            {
-                if (board.IsPlayable(nx, ny)) return; // sınır değil
-
-                // Tahtanın DIŞ çevresine duvar ÇİZİLMEZ: o işi çerçeve yapıyor.
-                // Ayrıca çizmek çerçevenin içinde ikinci bir halka ve yuvarlak
-                // köşelerde kare çentikler bırakıyordu. Yalnızca tahtanın
-                // İÇİNDEKİ oynanamaz bölgelerin (delik/girinti) kenarı örülür.
-                bool outsideBoard = nx < 0 || ny < 0 || nx >= board.Width || ny >= board.Height;
-                if (outsideBoard) return;
-
-                var edge = EdgeId.OfCellSide(cx, cy, side);
-                if (gateEdges.Contains(edge) || !builtEdges.Add(edge)) return;
-                BuildWallSegment(edge);
-            }
-
+            // OYNANAMAZ BÖLGELERİN ÇEVRESİNE ARTIK DUVAR ÇUBUĞU ÖRÜLMÜYOR.
+            //
+            // DERS (aynı sınırı iki kez anlatma): Buradaki döngü, oynanabilir
+            // bir hücrenin oynanamaz komşusuna baktığı her yere ince bir çubuk
+            // koyuyordu. `BuildDeadZones` o bölgeleri artık kabartma bir kütle
+            // olarak DOLDURDUĞU için sınır zaten çiziliyor; çubuk üstüne
+            // binince oynanabilir alana 0,15 hücrelik ikinci bir raf taşıyor
+            // ve yuvarlak köşelerin ucunu kesiyordu. Sınırı bir kere çizen
+            // taraf, o sınırın SAHİBİ olan taraf olmalı.
+            //
+            // Şemadaki AÇIK iç duvarlar (board.Walls) hâlâ çubuk: onlar bir
+            // bölge sınırı değil, iki oynanabilir hücre arasındaki engel.
             foreach (var edge in board.Walls)
                 if (!gateEdges.Contains(edge) && builtEdges.Add(edge))
                     BuildWallSegment(edge);
@@ -195,6 +182,194 @@ namespace BlockOut.Runtime.Board
             // Kurulum aracı materyalleri henüz üretmediyse görünür kal: geçici materyal.
             Debug.LogWarning($"[BoardBuilder] '{color}' için palet materyali yok — geçici materyal üretildi.");
             return MakeMat($"Fallback_{color}", entry?.uiColor ?? Color.magenta);
+        }
+
+        /// <summary>
+        /// ŞEKİLLİ TAHTALARDA oynanamaz hücreleri, çerçeveyle aynı malzemeden
+        /// KABARTMA bir kütle olarak doldurur (4. tur I32/I33/I34).
+        ///
+        /// Kullanıcı: "Level 8 — '1' sayısına benzer tasarım; sol alt kısım
+        /// orijinalde boş ama bizde kapatılmış... boşluklu olan tüm levellerde
+        /// boş alanlar bizde görünüyor."
+        ///
+        /// DERS (bir boşluğu göstermemek, orayı boş bırakmak DEĞİLDİR): Kod
+        /// zaten doğru şeyi yapıyordu — zemin yalnız oynanabilir hücrelere
+        /// örülüyor, oynanamaz hücrelere zemin çizilmiyordu. Ama ekranda kalan
+        /// şey ARKA PLAN oluyordu: ızgara çizgileri o bölgenin üstünden geçmeye
+        /// devam ediyor, sınırına ince bir duvar çubuğu düşüyor ve bölge
+        /// "tahtada açılmış bir delik" gibi görünüyordu. Referansta (41-50
+        /// yürüyüşü, 48-49. bölümler) o alanlar DOLU: çerçeveyle aynı açık
+        /// mor, aynı yükseklikte, yuvarlak köşeli bir kütle — yani tahta
+        /// oradan hiç başlamamış gibi. Şekli okutan şey deliğin kendisi değil,
+        /// çevresindeki DOLULUKTUR.
+        ///
+        /// DERS (kenardaki yuvarlaklık çerçevenin ALTINDA kalmalı): Bölge
+        /// tahtanın kenarına dayanıyorsa köşe yayı orada çentik açar ve
+        /// çerçeveyle arasında arka plan sızar. Bu yüzden bölge önce tahtanın
+        /// DIŞINA bir hücre taşırılıyor, sonra çerçevenin dış yüzüne
+        /// KIRPILIYOR: yay çerçevenin altında kalıyor, görünen kenar düz.
+        /// </summary>
+        static void BuildDeadZones(Transform root, BoardModel board, BoardSpace space,
+            Material frameMat, BlockVisualConfigSO cfg)
+        {
+            var dead = new HashSet<Vector2Int>();
+            for (int y = 0; y < board.Height; y++)
+                for (int x = 0; x < board.Width; x++)
+                    if (!board.IsPlayable(x, y)) dead.Add(new Vector2Int(x, y));
+
+            if (dead.Count == 0) return;
+
+            float height = cfg != null ? cfg.frameHeight : 0.34f;
+            float bevel = cfg != null ? cfg.frameBevel : 0.09f;
+            float thickness = cfg != null ? cfg.frameThickness : 0.55f;
+            float radius = cfg != null ? cfg.frameCornerRadius : 0.6f;
+
+            // Çerçeveyle üst yüzde z-fighting olmasın: bölge saç teli kadar alçak.
+            height = Mathf.Max(0.02f, height - 0.006f);
+            float limitX = board.Width * 0.5f + thickness * 0.85f;
+            float limitZ = board.Height * 0.5f + thickness * 0.85f;
+
+            var holder = new GameObject("DeadZones").transform;
+            holder.SetParent(root, worldPositionStays: false);
+
+            var remaining = new HashSet<Vector2Int>(dead);
+            var queue = new Queue<Vector2Int>();
+            int index = 0;
+
+            while (remaining.Count > 0)
+            {
+                // Bağlı bileşen: ayrı boşluklar ayrı kütlelerdir, tek mesh'e
+                // basmak aralarında hayalet bağlantı üretirdi.
+                var component = new List<Vector2Int>();
+                var seed = default(Vector2Int);
+                foreach (var cell in remaining) { seed = cell; break; }
+
+                queue.Clear();
+                queue.Enqueue(seed);
+                remaining.Remove(seed);
+                while (queue.Count > 0)
+                {
+                    var cell = queue.Dequeue();
+                    component.Add(cell);
+                    TryTake(cell + Vector2Int.left);
+                    TryTake(cell + Vector2Int.right);
+                    TryTake(cell + Vector2Int.up);
+                    TryTake(cell + Vector2Int.down);
+                }
+
+                void TryTake(Vector2Int cell)
+                {
+                    if (!remaining.Remove(cell)) return;
+                    queue.Enqueue(cell);
+                }
+
+                BuildDeadZone(component, index++);
+            }
+
+            void BuildDeadZone(List<Vector2Int> component, int id)
+            {
+                // Kenara dayanan hücreleri tahtanın DIŞINA taşır — köşegenler
+                // dahil, yoksa köşede üçgen bir boşluk kalır.
+                var cells = new HashSet<Vector2Int>(component);
+                foreach (var cell in component)
+                    for (int dx = -1; dx <= 1; dx++)
+                        for (int dy = -1; dy <= 1; dy++)
+                        {
+                            var neighbour = new Vector2Int(cell.x + dx, cell.y + dy);
+                            bool outside = neighbour.x < 0 || neighbour.y < 0 ||
+                                           neighbour.x >= board.Width || neighbour.y >= board.Height;
+                            if (outside) cells.Add(neighbour);
+                        }
+
+                var list = new List<Vector2Int>(cells);
+                var loop = View.BrickSilhouette.Build(
+                    list, board.Width, board.Height, -0.01f,
+                    Mathf.Min(radius, 0.5f));
+                if (loop == null || loop.Count < 3) return;
+
+                View.BrickSilhouette.MakeCounterClockwise(loop);
+                for (int i = 0; i < loop.Count; i++)
+                    loop[i] = new Vector2(
+                        Mathf.Clamp(loop[i].x, -limitX, limitX),
+                        Mathf.Clamp(loop[i].y, -limitZ, limitZ));
+
+                var go = new GameObject($"DeadZone_{id}");
+                go.transform.SetParent(holder, worldPositionStays: false);
+                go.AddComponent<MeshFilter>().sharedMesh = ExtrudeCapped(loop, height, bevel);
+                var renderer = go.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = frameMat;
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+            }
+        }
+
+        /// <summary>Kapalı bir halkayı yan duvar + pah + üst kapak olarak kabartır.</summary>
+        static Mesh ExtrudeCapped(List<Vector2> loop, float height, float bevel)
+        {
+            int count = loop.Count;
+            bevel = Mathf.Clamp(bevel, 0f, height * 0.5f);
+            float shoulder = height - bevel;
+
+            var verts = new List<Vector3>();
+            var normals = new List<Vector3>();
+            var tris = new List<int>();
+
+            var outward = new Vector3[count];
+            for (int i = 0; i < count; i++)
+            {
+                var prev = loop[(i - 1 + count) % count];
+                var next = loop[(i + 1) % count];
+                var tangent = (next - prev).normalized;
+                outward[i] = new Vector3(tangent.y, 0f, -tangent.x);
+            }
+
+            void Ring(System.Func<int, Vector3> lower, System.Func<int, Vector3> upper,
+                      System.Func<int, Vector3> normal)
+            {
+                int start = verts.Count;
+                for (int i = 0; i < count; i++)
+                {
+                    verts.Add(lower(i)); verts.Add(upper(i));
+                    var n = normal(i);
+                    normals.Add(n); normals.Add(n);
+                }
+                for (int i = 0; i < count; i++)
+                {
+                    int a = start + i * 2;
+                    int b = start + ((i + 1) % count) * 2;
+                    tris.Add(a); tris.Add(a + 1); tris.Add(b);
+                    tris.Add(b); tris.Add(a + 1); tris.Add(b + 1);
+                }
+            }
+
+            Ring(i => new Vector3(loop[i].x, 0f, loop[i].y),
+                 i => new Vector3(loop[i].x, shoulder, loop[i].y),
+                 i => outward[i]);
+
+            Ring(i => new Vector3(loop[i].x, shoulder, loop[i].y),
+                 i => new Vector3(loop[i].x, height, loop[i].y) - outward[i] * bevel,
+                 i => (outward[i] + Vector3.up).normalized);
+
+            var top = new List<Vector2>(count);
+            for (int i = 0; i < count; i++)
+                top.Add(new Vector2(loop[i].x - outward[i].x * bevel,
+                                    loop[i].y - outward[i].z * bevel));
+
+            int capStart = verts.Count;
+            foreach (var p in top)
+            {
+                verts.Add(new Vector3(p.x, height, p.y));
+                normals.Add(Vector3.up);
+            }
+            View.BrickSilhouette.Triangulate(top, tris, capStart, faceUp: true);
+
+            var mesh = new Mesh { name = "DeadZone" };
+            mesh.SetVertices(verts);
+            mesh.SetNormals(normals);
+            mesh.SetTriangles(tris, 0);
+            mesh.RecalculateBounds();
+            mesh.UploadMeshData(true);
+            return mesh;
         }
 
         /// <summary>Oynanabilir hücrelerin tamamını tek mesh'e örer; her hücre 0-1 UV alır.</summary>

@@ -145,6 +145,69 @@ namespace BlockOut.Runtime.View
             }
         }
 
+        static Material _gateIce;
+        static Material _iceFrost;
+
+        /// <summary>
+        /// KAPI buzu — blok buzundan AYRI ve belirgin biçimde daha SOLUK
+        /// (4. tur, G24/I35).
+        ///
+        /// Kullanıcı: "Kapılardaki buz ile blokların üstündeki buz aynı —
+        /// ayrıştırılmalı."
+        ///
+        /// DERS (iki farklı KURAL aynı görünemez): Blok buzu "bu bloğu
+        /// tutamazsın" der; kapı buzu "bu kapı henüz açılmadı" der. İkisi de
+        /// aynı camgöbeği kalıpla çizilince oyuncu tahtayı okurken hangisinin
+        /// hangisi olduğunu ancak konumdan çıkarabiliyordu. Referansta
+        /// (`Levels.mp4` 6. bölüm) kapı buzu neredeyse BEYAZ, blok buzu ise
+        /// doygun camgöbeği.
+        /// </summary>
+        public static Material GateIce
+        {
+            get
+            {
+                if (_gateIce == null)
+                {
+                    var shader = Shader.Find("BlockOut/Brick")
+                                 ?? Shader.Find("Universal Render Pipeline/Lit")
+                                 ?? Shader.Find("Universal Render Pipeline/Unlit");
+                    _gateIce = new Material(shader) { name = "GateIce" };
+                    var color = new Color(0.70f, 0.90f, 0.98f);
+                    if (_gateIce.HasProperty("_BaseColor")) _gateIce.SetColor("_BaseColor", color);
+                    _gateIce.color = color;
+                    if (_gateIce.HasProperty("_Smoothness")) _gateIce.SetFloat("_Smoothness", 0.95f);
+                    if (_gateIce.HasProperty("_Metallic")) _gateIce.SetFloat("_Metallic", 0f);
+                }
+                return _gateIce;
+            }
+        }
+
+        /// <summary>
+        /// Buz kalıbının üstündeki AÇIK kırağı paneli.
+        ///
+        /// DERS (buzu buz yapan şey, tek bir mavi değil İKİ derinliktir):
+        /// Kalıp tek düz camgöbeğiyken "mavi plastik levha" gibi okunuyordu.
+        /// Referansta yüzeyin ortasında daha açık, neredeyse beyaz bir alan
+        /// var: donmuş suyun içindeki hava. İki ton arasındaki fark, malzemeyi
+        /// saydam gösteren şey.
+        /// </summary>
+        public static Material IceFrost
+        {
+            get
+            {
+                if (_iceFrost == null)
+                {
+                    var shader = Shader.Find("Universal Render Pipeline/Unlit")
+                                 ?? Shader.Find("Sprites/Default");
+                    _iceFrost = new Material(shader) { name = "IceFrost" };
+                    var color = new Color(0.78f, 0.94f, 1f);
+                    if (_iceFrost.HasProperty("_BaseColor")) _iceFrost.SetColor("_BaseColor", color);
+                    if (_iceFrost.HasProperty("_Color")) _iceFrost.SetColor("_Color", color);
+                }
+                return _iceFrost;
+            }
+        }
+
         static readonly Dictionary<BlockColor, Material> _layerFill =
             new Dictionary<BlockColor, Material>();
         static readonly Dictionary<BlockColor, Material> _layerRim =
@@ -580,6 +643,8 @@ namespace BlockOut.Runtime.View
         public static void ClearCache()
         {
             _ice = null;
+            _gateIce = null;
+            _iceFrost = null;
             foreach (var mat in _counterMaterials.Values)
                 if (mat != null) Object.DestroyImmediate(mat);
             _counterMaterials.Clear();
@@ -589,7 +654,8 @@ namespace BlockOut.Runtime.View
             _badgeRim = _badgeFace = null;
             _generatorBody = null;
             _arrow = null;
-            _axisArrow = null;
+            _arrowFace.Clear();
+            _arrowGroove.Clear();
             _arrowGhost = null;
             _particle = null;
             _floor = null;
@@ -619,26 +685,64 @@ namespace BlockOut.Runtime.View
             }
         }
 
-        static Material _axisArrow;
+        static readonly Dictionary<BlockColor, Material> _arrowFace =
+            new Dictionary<BlockColor, Material>();
+
+        static readonly Dictionary<BlockColor, Material> _arrowGroove =
+            new Dictionary<BlockColor, Material>();
 
         /// <summary>
-        /// Yönlü blokların üstündeki ok. Kapı okundan AYRI bir materyal, çünkü
-        /// bu ok bloğun üstünde durur: bembeyaz olursa rengi bastırır. Hafif
-        /// koyu ve saydamsız bir ton, "aynı parçanın kabartması" gibi okunur.
+        /// Yönlü blokların üstündeki okun ÜST yüzü — bloğun renginin AÇIK tonu.
+        ///
+        /// DERS (beyaz, renk oyununda bilgiyi siler): Ok eskiden bembeyazdı ve
+        /// bloğun rengini bastırıyordu; oyuncu "hangi renk?" sorusunu okun
+        /// etrafından cevaplamak zorunda kalıyordu (4. tur H31). Referansta ok
+        /// bloğun KENDİ renginin açığı: okunabilir ama rengi ele geçirmiyor.
+        ///
+        /// Renk başına tek materyal — SRP Batcher paylaşımlı materyalleri
+        /// tek çizim çağrısında toplayabiliyor.
         /// </summary>
-        public static Material AxisArrowMaterial
+        public static Material AxisArrowFace(ColorPaletteSO palette, BlockColor color)
         {
-            get
-            {
-                if (_axisArrow == null)
-                {
-                    var shader = Shader.Find("BlockOut/Brick")
-                                 ?? Shader.Find("Universal Render Pipeline/Unlit");
-                    _axisArrow = new Material(shader) { name = "AxisArrow" };
-                    _axisArrow.SetColor("_BaseColor", new Color(1f, 1f, 1f, 1f));
-                }
-                return _axisArrow;
-            }
+            if (_arrowFace.TryGetValue(color, out var cached) && cached != null) return cached;
+
+            var entry = palette != null ? palette.Get(color) : null;
+            Color baseColor = entry != null ? entry.uiColor : Color.gray;
+
+            var shader = Shader.Find("BlockOut/Brick")
+                         ?? Shader.Find("Universal Render Pipeline/Unlit");
+            var mat = new Material(shader) { name = "AxisArrowFace_" + color };
+            var c = Color.Lerp(baseColor, Color.white, 0.34f);
+            c.a = 1f;
+            mat.SetColor("_BaseColor", c);
+            if (mat.HasProperty("_Color")) mat.SetColor("_Color", c);
+            _arrowFace[color] = mat;
+            return mat;
+        }
+
+        /// <summary>
+        /// Okun altındaki KOYU oluk hattı — aynı rengin koyusu.
+        ///
+        /// DERS (kabartmayı okutan şey gölgedir): Yalnız açık tonlu bir ok,
+        /// tepeden bakan kamerada düz bir leke gibi durur; kenarını çizen bir
+        /// koyu hat olmadan "basılmış" değil "boyanmış" görünür.
+        /// </summary>
+        public static Material AxisArrowGroove(ColorPaletteSO palette, BlockColor color)
+        {
+            if (_arrowGroove.TryGetValue(color, out var cached) && cached != null) return cached;
+
+            var entry = palette != null ? palette.Get(color) : null;
+            Color baseColor = entry != null ? entry.uiColor : Color.gray;
+
+            var shader = Shader.Find("Universal Render Pipeline/Unlit")
+                         ?? Shader.Find("Sprites/Default");
+            var mat = new Material(shader) { name = "AxisArrowGroove_" + color };
+            var c = baseColor * 0.5f;
+            c.a = 1f;
+            mat.SetColor("_BaseColor", c);
+            if (mat.HasProperty("_Color")) mat.SetColor("_Color", c);
+            _arrowGroove[color] = mat;
+            return mat;
         }
 
         static Material _particle;

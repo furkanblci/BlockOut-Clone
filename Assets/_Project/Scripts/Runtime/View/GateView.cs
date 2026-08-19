@@ -30,17 +30,38 @@ namespace BlockOut.Runtime.View
         // Kapıyı bir tık büyük yapmak çakışmayı kaldırır; fark gözle görülmez.
         const float FrameOverlapBias = 0.02f;
 
+        /// <summary>
+        /// Kapı çerçeveden BİR TIK YÜKSEK durur.
+        ///
+        /// DERS (aynı hizadaki iki yüzey tek parça okunur — 4. tur): Kapı
+        /// çerçeveyle tıpatıp aynı yükseklik ve derinlikteydi; sonuç, çerçeveye
+        /// SÜRÜLMÜŞ renkli bir şerit gibi görünmesiydi. Referansta kapı ayrı
+        /// bir parça: çerçevenin üstünden biraz taşıyor ve dışa doğru
+        /// çıkıntı yapıyor. Yükseklik farkı, "bu bir kapak" bilgisini
+        /// tek başına taşıyor.
+        /// </summary>
         static float BarHeight => VisualSettings.Current == null ? 0.34f
-            : MatchesFrame ? VisualSettings.Current.frameHeight + FrameOverlapBias
+            : MatchesFrame ? VisualSettings.Current.frameHeight * 1.14f
                            : VisualSettings.Current.gateBarHeight;
 
         static float BarDepth => VisualSettings.Current == null ? 0.55f
-            : MatchesFrame ? VisualSettings.Current.frameThickness + FrameOverlapBias
+            : MatchesFrame ? VisualSettings.Current.frameThickness * 1.0f
                            : VisualSettings.Current.gateBarDepth;
 
+        /// <summary>
+        /// Barın merkezi, tahta kenarından DIŞA doğru bu kadar uzakta:
+        /// çerçeve bandının TAM ORTASI.
+        ///
+        /// ÖLÇÜM (Levels 1-20 yürüyüşü, 00:12 karesi): üstteki kırmızı kapının
+        /// dış kenarı çerçevenin dış kenarıyla AYNI hizada, iç kenarı da tahta
+        /// zemininin başladığı yerde. Yani kapı bandı doldurur, dışarı TAŞMAZ.
+        /// Kapıyı dışarı çıkarma denemesi (kalınlığın %66'sı) onu çerçeveye
+        /// yapıştırılmış bir dil gibi gösterdi; ayrımı yapan şey konum değil,
+        /// YÜKSEKLİK farkı.
+        /// </summary>
         static float OutwardOffset => VisualSettings.Current == null ? 0.275f
             : MatchesFrame ? VisualSettings.Current.frameThickness * 0.5f
-                           : VisualSettings.Current.gateOutwardOffset;   // kabartma yüksekliği
+                           : VisualSettings.Current.gateOutwardOffset;
 
         MeshRenderer _renderer;
         Material _colorMaterial;
@@ -51,8 +72,7 @@ namespace BlockOut.Runtime.View
         public static GateView Create(
             Transform parent, GateModel model, BoardSpace space, Material colorMaterial)
         {
-            var go = ViewKit.CreateShape(PrimitiveType.Cube, "Shape");
-            go.name = $"Gate_{model.ActiveColor}_{model.Side.ToId()}";
+            var go = new GameObject($"Gate_{model.ActiveColor}_{model.Side.ToId()}");
             go.transform.SetParent(parent, worldPositionStays: false);
             // Kapı barının kenar boyunca kapladığı aralık — açıklığın tamamı.
             ResolveSpan(model, out float barMin, out float barMax);
@@ -62,19 +82,34 @@ namespace BlockOut.Runtime.View
             float offCoord = model.EdgeCoord + model.OutwardSign * OutwardOffset;
 
             Vector3 center;
-            Vector3 scale;
+            float alongX;   // barın X eksenindeki uzunluğu
+            float alongZ;
             if (model.EdgeHorizontal)
             {
-                center = space.CornerToWorld(spanCenter, offCoord, BarHeight * 0.5f);
-                scale = new Vector3(barLength, BarHeight, BarDepth);
+                center = space.CornerToWorld(spanCenter, offCoord, 0f);
+                alongX = barLength; alongZ = BarDepth;
             }
             else
             {
-                center = space.CornerToWorld(offCoord, spanCenter, BarHeight * 0.5f);
-                scale = new Vector3(BarDepth, BarHeight, barLength);
+                center = space.CornerToWorld(offCoord, spanCenter, 0f);
+                alongX = BarDepth; alongZ = barLength;
             }
+
+            // KAPI ARTIK KESKİN BİR KÜP DEĞİL (4. tur, G20/G26).
+            //
+            // Kullanıcı: "Kapılar köşelerden taşıyor... Kapılar duvarla iç içe
+            // geçmeyecek."
+            //
+            // DERS (keskin bir kutu, yuvarlak bir çerçevenin içine sığmaz):
+            // Bar `PrimitiveType.Cube` idi. Tahtanın köşesine dayanan bir kapı
+            // (1., 2., 4., 5. bölümler) çerçevenin yuvarlak köşesinin DIŞINA
+            // taşıyor ve sivri bir dilim olarak sırıtıyordu. Referansta her
+            // kapı yuvarlak köşeli bir plastik parça; köşeye dayandığında
+            // yayı çerçevenin yayını izliyor. Silüeti düzeltmek, barı
+            // kısaltmaktan (yani açıklığı hakkında yalan söylemekten) iyi.
+            go.AddComponent<MeshFilter>().sharedMesh = BuildBarMesh(alongX, alongZ, BarHeight);
+            go.AddComponent<MeshRenderer>();
             go.transform.position = center;
-            go.transform.localScale = scale;
 
             var view = go.AddComponent<GateView>();
             view._model = model;
@@ -86,7 +121,7 @@ namespace BlockOut.Runtime.View
             if (model.IsIced)
             {
                 // Buz rengi GİZLER (video kuralı) — bar buz materyaliyle başlar.
-                view._renderer.sharedMaterial = ViewKit.Ice;
+                view._renderer.sharedMaterial = ViewKit.GateIce;
                 // Donmuş KAPININ sayacı krem: kapının buzu bloğunkinden çok
                 // daha soluk, rakam da onun açık tonunda.
                 //
@@ -118,6 +153,117 @@ namespace BlockOut.Runtime.View
             }
 
             return view;
+        }
+
+        /// <summary>
+        /// Kapı barının mesh'i: yuvarlak köşeli, üst kenarı pahlı alçak prizma.
+        ///
+        /// Ölçüler bloklarla AYNI dilden geliyor: köşe yarıçapı ve pah,
+        /// <see cref="Config.BlockVisualConfigSO"/>'daki tuğla değerlerinin
+        /// aynısı. Referansta kapı ile blok aynı malzemeden dökülmüş gibi
+        /// duruyor; iki ayrı yuvarlaklık kullanmak o birliği bozardı.
+        /// </summary>
+        static Mesh BuildBarMesh(float sizeX, float sizeZ, float height)
+        {
+            var cfg = VisualSettings.Current;
+            float radius = cfg != null ? cfg.brickCornerRadius : 0.16f;
+            float bevel = cfg != null ? cfg.brickChamfer : 0.06f;
+
+            // Kapının uçları BLOKTAN daha yuvarlak: uçlar çerçevenin köşe
+            // yayına dayandığında keskin kalan her köşe dışarı taşıyor
+            // (4. tur G20). Yarıçapı barın DAR kenarının yarısına kadar
+            // açmak, ucu yarım daireye çevirip taşmayı kapatıyor.
+            radius = Mathf.Max(radius, Mathf.Min(sizeX, sizeZ) * 0.44f);
+            radius = Mathf.Min(radius, Mathf.Min(sizeX, sizeZ) * 0.5f);
+            bevel = Mathf.Clamp(bevel, 0f, height * 0.4f);
+
+            var loop = RoundedRect(sizeX * 0.5f, sizeZ * 0.5f, radius);
+
+            var verts = new List<Vector3>();
+            var normals = new List<Vector3>();
+            var tris = new List<int>();
+            int count = loop.Count;
+
+            var outward = new Vector3[count];
+            for (int i = 0; i < count; i++)
+            {
+                var prev = loop[(i - 1 + count) % count];
+                var next = loop[(i + 1) % count];
+                var tangent = (next - prev).normalized;
+                outward[i] = new Vector3(tangent.y, 0f, -tangent.x);
+            }
+
+            void Ring(System.Func<int, Vector3> lower, System.Func<int, Vector3> upper,
+                      System.Func<int, Vector3> normal)
+            {
+                int start = verts.Count;
+                for (int i = 0; i < count; i++)
+                {
+                    verts.Add(lower(i)); verts.Add(upper(i));
+                    var n = normal(i);
+                    normals.Add(n); normals.Add(n);
+                }
+                for (int i = 0; i < count; i++)
+                {
+                    int a = start + i * 2;
+                    int b = start + ((i + 1) % count) * 2;
+                    tris.Add(a); tris.Add(a + 1); tris.Add(b);
+                    tris.Add(b); tris.Add(a + 1); tris.Add(b + 1);
+                }
+            }
+
+            float shoulder = height - bevel;
+            Ring(i => new Vector3(loop[i].x, 0f, loop[i].y),
+                 i => new Vector3(loop[i].x, shoulder, loop[i].y),
+                 i => outward[i]);
+            Ring(i => new Vector3(loop[i].x, shoulder, loop[i].y),
+                 i => new Vector3(loop[i].x, height, loop[i].y) - outward[i] * bevel,
+                 i => (outward[i] + Vector3.up).normalized);
+
+            var top = new List<Vector2>(count);
+            for (int i = 0; i < count; i++)
+                top.Add(new Vector2(loop[i].x - outward[i].x * bevel,
+                                    loop[i].y - outward[i].z * bevel));
+
+            int capStart = verts.Count;
+            foreach (var p in top)
+            {
+                verts.Add(new Vector3(p.x, height, p.y));
+                normals.Add(Vector3.up);
+            }
+            BrickSilhouette.Triangulate(top, tris, capStart, faceUp: true);
+
+            var mesh = new Mesh { name = "GateBar" };
+            mesh.SetVertices(verts);
+            mesh.SetNormals(normals);
+            mesh.SetTriangles(tris, 0);
+            mesh.RecalculateBounds();
+            mesh.UploadMeshData(true);
+            return mesh;
+        }
+
+        /// <summary>Yuvarlatılmış dikdörtgenin çevre noktaları (saat yönünün tersine).</summary>
+        static List<Vector2> RoundedRect(float halfX, float halfZ, float radius)
+        {
+            const int segments = 4;
+            var points = new List<Vector2>((segments + 1) * 4);
+            var centers = new[]
+            {
+                new Vector2(halfX - radius, -halfZ + radius),
+                new Vector2(halfX - radius, halfZ - radius),
+                new Vector2(-halfX + radius, halfZ - radius),
+                new Vector2(-halfX + radius, -halfZ + radius)
+            };
+            float[] start = { -90f, 0f, 90f, 180f };
+
+            for (int c = 0; c < 4; c++)
+                for (int s = 0; s <= segments; s++)
+                {
+                    float angle = (start[c] + s / (float)segments * 90f) * Mathf.Deg2Rad;
+                    points.Add(centers[c] +
+                        new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius);
+                }
+            return points;
         }
 
         /// <summary>
@@ -252,7 +398,10 @@ namespace BlockOut.Runtime.View
             renderer.sharedMaterial = ViewKit.ArrowMaterial;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
-            go.transform.position = barCenter + Vector3.up * (BarHeight * 0.5f + 0.005f);
+            // Bar artık TABANINDAN konumlanıyor (mesh y=0'dan başlıyor), bu
+            // yüzden ok barın TAM YÜKSEKLİĞİ kadar kaldırılıyor; eskiden küpün
+            // merkezine göre yarım yükseklikti.
+            go.transform.position = barCenter + Vector3.up * (BarHeight + 0.005f);
             return go;
         }
 
@@ -295,6 +444,62 @@ namespace BlockOut.Runtime.View
                 }
             }
             return outline;
+        }
+
+        /// <summary>
+        /// Kapı bir bloğu YUTARKEN kısa bir parlama (4. tur, G23).
+        ///
+        /// Kullanıcı: "Blok parçalanması + kapının objeyi alırken aydınlanması
+        /// efekti bizde yok."
+        ///
+        /// DERS (bir olayın İKİ tarafı da tepki vermeli): Emilmede yalnız blok
+        /// oynuyordu — küçülüyor, beyazlıyor, kırıntıya dönüşüyordu. Kapı ise
+        /// hiç kımıldamıyor; ekranda bloğun "kaybolduğu" görülüyor ama onu
+        /// KİMİN aldığı görünmüyordu. Kapının bir an aydınlanması, olayı iki
+        /// nesne arasındaki bir alışverişe çeviriyor.
+        ///
+        /// Parlama kapının KENDİ rengi üzerinden yürüyor (beyaza doğru), yani
+        /// hangi kapının yuttuğu bilgisi kaybolmuyor; ayrıca bar boyunca
+        /// hafifçe şişiyor — ışık tek başına küçük bir ekranda zayıf kalıyor.
+        /// </summary>
+        public void PlayAbsorbFlash()
+        {
+            if (!isActiveAndEnabled || _renderer == null || !_renderer.enabled) return;
+            if (_flash != null) StopCoroutine(_flash);
+            _flash = StartCoroutine(FlashRoutine());
+        }
+
+        Coroutine _flash;
+
+        System.Collections.IEnumerator FlashRoutine()
+        {
+            const float duration = 0.26f;
+
+            var shared = _renderer.sharedMaterial;
+            Color baseColor = ReadColor(shared);
+            // Kendi örneği: paylaşılan materyali boyamak aynı renkteki BÜTÜN
+            // kapıları birlikte parlatırdı.
+            var glow = ViewKit.Translucent(baseColor);
+            _renderer.sharedMaterial = glow;
+
+            Vector3 startScale = transform.localScale;
+            for (float t = 0f; t < duration; t += Time.deltaTime)
+            {
+                float k = Mathf.Clamp01(t / duration);
+                // Hızlı yükselip yavaş inen bir vuruş: ani parlama gözü
+                // yakalar, yavaş iniş "bitti" der.
+                float pulse = k < 0.22f ? k / 0.22f : 1f - (k - 0.22f) / 0.78f;
+                Paint(glow, Color.Lerp(baseColor, Color.white, pulse * 0.85f));
+                transform.localScale = startScale * (1f + 0.09f * pulse);
+                yield return null;
+            }
+
+            transform.localScale = startScale;
+            // Sönmüş bir kapıya dönmüş olabiliriz; o durumda materyali geri
+            // yazmak parlamayı kalıcı kılardı.
+            if (_fade == null) _renderer.sharedMaterial = shared;
+            if (glow != null) Destroy(glow);
+            _flash = null;
         }
 
         public void UpdateIceCount()
@@ -376,6 +581,24 @@ namespace BlockOut.Runtime.View
                 arrowRenderer.sharedMaterial = arrowFading;
             }
 
+            // KAPI TAMAMEN SAYDAMLAŞIYOR (4. tur, G22).
+            //
+            // Kullanıcı: "Kapı kaybolma efekti — bizde soluklaşıyor;
+            // orijinalde tamamen transparan olarak kayboluyor."
+            //
+            // DERS (yarım kalmış bir geçiş, geçiş değil ARIZA gibi okunur):
+            // Kapı ghost rengine solup ORADA KALIYORDU. Ekranda "rengi
+            // atmış bir kapı" duruyor ve oyuncu onu hâlâ kullanılabilir
+            // sanıyordu. Kapının işi bittiyse ekranda yeri de bitmeli.
+            //
+            // Gizlemenin eskiden kaçınılan bedeli "duvarda boşluk kalması"ydı;
+            // bu doğru değil: `BoardFrameMeshBuilder` çerçeveyi KESİNTİSİZ bir
+            // halka olarak örüyor, kapı yalnız onun üstünde duruyor. Kapı
+            // saydamlaşınca altından çerçevenin kendisi çıkıyor — referansta
+            // da görünen bu.
+            to.a = 0f;
+            arrowTo.a = 0f;
+
             for (float t = 0f; t < duration; t += Time.deltaTime)
             {
                 float k = Mathf.SmoothStep(0f, 1f, t / duration);
@@ -385,12 +608,10 @@ namespace BlockOut.Runtime.View
                 yield return null;
             }
 
-            // Sonunda PAYLAŞILAN ghost materyaline dönülüyor: geçiş için
-            // yaratılan örnekler burada bırakılırsa her sönen kapı bellekte
-            // iki materyal biriktirir.
-            _renderer.sharedMaterial = ghostMaterial;
-            if (arrowRenderer != null)
-                arrowRenderer.sharedMaterial = ViewKit.ArrowGhostMaterial;
+            // Görünmez bir nesneyi çizmeye devam etmenin anlamı yok: renderer
+            // kapatılıyor, geçiş için üretilen materyaller yok ediliyor.
+            _renderer.enabled = false;
+            if (arrowRenderer != null) arrowRenderer.enabled = false;
 
             if (fading != null) Destroy(fading);
             if (arrowFading != null) Destroy(arrowFading);
