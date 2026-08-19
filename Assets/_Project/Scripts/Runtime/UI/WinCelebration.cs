@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -190,7 +190,10 @@ namespace BlockOut.Runtime.UI
                         baseU + u0 * spanU, baseV + v0 * spanV,
                         (u1 - u0) * spanU, (v1 - v0) * spanV);
 
+                    // Sırası gelene kadar hem ölçeği hem alfası sıfır: alfa
+                    // olmasa dilim bir kare tam boyda parlardı.
                     slice.localScale = Vector3.zero;
+                    raw.color = new Color(1f, 1f, 1f, 0f);
                     _letters.Add(slice);
                 }
             }
@@ -205,11 +208,14 @@ namespace BlockOut.Runtime.UI
         /// </summary>
         IEnumerator RevealLetters()
         {
-            const float step = 0.075f;
-            const float pop = 0.20f;
+            // ÖLÇÜM (Levels 1-20, 01:31 kutlaması, 15 fps'te çıkarılan kareler):
+            // harfler ~0,07 saniye arayla soldan sağa ekleniyor; "BLOCK"
+            // tamamlanır tamamlanmaz "OUT!" geliyor. Logo bu sırada büyümeye
+            // devam ediyor, sonra son boyuna oturuyor.
+            const float step = 0.07f;
 
             _logo.localScale = Vector3.one * 0.42f;
-            float total = _letters.Count * step + pop;
+            float total = _letters.Count * step;
 
             for (int i = 0; i < _letters.Count; i++)
             {
@@ -218,28 +224,73 @@ namespace BlockOut.Runtime.UI
                 for (float t = 0f; t < step && !_skip; t += Time.unscaledDeltaTime)
                 {
                     float progress = Mathf.Clamp01((i * step + t) / total);
+                    // Referansta logo son boyunu AŞIP geri oturuyor; tek yönlü
+                    // büyüme "bitti" demiyor, geri yaylanma diyor.
                     _logo.localScale = Vector3.one *
-                        Mathf.Lerp(0.42f, 1f, GameKit.FX.Juice.EaseOutBack(progress, 1.1f));
+                        Mathf.Lerp(0.42f, 1.12f, progress);
                     yield return null;
                 }
                 if (_skip) break;
             }
 
-            foreach (var letter in _letters) if (letter != null) letter.localScale = Vector3.one;
+            foreach (var letter in _letters)
+            {
+                if (letter == null) continue;
+                letter.localScale = Vector3.one;
+                var image = letter.GetComponent<RawImage>();
+                if (image != null) image.color = Color.white;
+            }
+
+            // Aşırı boydan son boya oturma.
+            for (float t = 0f; t < 0.16f && !_skip; t += Time.unscaledDeltaTime)
+            {
+                float k = Mathf.Clamp01(t / 0.16f);
+                _logo.localScale = Vector3.one * Mathf.Lerp(1.12f, 1f, k * k);
+                yield return null;
+            }
             _logo.localScale = Vector3.one;
         }
 
+        /// <summary>
+        /// Tek bir harf dilimini getirir.
+        ///
+        /// YAPBOZ GÖRÜNÜMÜ DÜZELTİLDİ (5. tur, kullanıcı: "bölüm geçince
+        /// çıkan BLOCKOUT yazısı yapboz gibi parça parça geliyor, kastettiğim
+        /// bu değildi").
+        ///
+        /// SEBEP: Logo TEK bir görsel ve harflere UV dikdörtgenleriyle
+        /// bölünüyor. Dilim sıfırdan büyütülünce ekranda görünen şey harf
+        /// değil, KÜÇÜLTÜLMÜŞ BİR DİKDÖRTGEN: içinde harfin bir parçası,
+        /// mor zeminin bir parçası ve iki yanında dümdüz kesik kenarlar.
+        /// Göz bunu "yapboz parçası" olarak okuyor.
+        ///
+        /// Referansta (01:31 kutlaması) her harfin KENDİ mor zemini var, yani
+        /// harf küçülünce zemini de onunla küçülüyor; kesik kenar hiç yok.
+        /// Tek parça bir görselle bunu birebir yapmak mümkün değil.
+        ///
+        /// DERS (varlığın yapısı, animasyonun sınırını çizer): Animasyonu
+        /// düzeltmeye çalışmak yanlış uçtan tutmaktı; sorun eğride değil,
+        /// tek parça görselde. Yapılabilecek en iyi şey kesik kenarı GÖRÜNMEZ
+        /// kılmak: dilim sıfırdan değil %86'dan başlıyor (kenar boşluğu bir
+        /// karede bile fark edilmiyor) ve asıl geliş ALFA ile oluyor.
+        /// </summary>
         static IEnumerator PopLetter(RectTransform letter)
         {
-            const float duration = 0.20f;
+            const float duration = 0.13f;
+            var image = letter != null ? letter.GetComponent<RawImage>() : null;
+            if (image != null) image.color = new Color(1f, 1f, 1f, 0f);
+
             for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
             {
                 if (letter == null) yield break;
-                float k = GameKit.FX.Juice.EaseOutBack(t / duration, 3.0f);
-                letter.localScale = Vector3.one * k;
+                float k = Mathf.Clamp01(t / duration);
+                letter.localScale = Vector3.one *
+                    Mathf.Lerp(0.86f, 1f, GameKit.FX.Juice.EaseOutBack(k, 2.2f));
+                if (image != null) image.color = new Color(1f, 1f, 1f, k);
                 yield return null;
             }
             if (letter != null) letter.localScale = Vector3.one;
+            if (image != null) image.color = Color.white;
         }
 
         /// <summary>Kutlamayı oynatır; bittiğinde <paramref name="done"/> çağrılır.</summary>
@@ -295,7 +346,11 @@ namespace BlockOut.Runtime.UI
 
             // ROKETLER: referansta konfetiden ÖNCE ekranın altından yukarı
             // beyaz izler fırlıyor, patlamalar onların ucunda oluyor.
-            GameKit.FX.Juice.Run(FX.CelebrationFX.Rockets(_root, count: 6, interval: 0.22f));
+            // SAYILDI (referans kutlaması, 15 fps kareler): ekranda aynı anda
+            // ÜÇ beyaz iz birden yükseliyor ve seri boyunca kesilmiyor.
+            // Altı roket 0,22 aralıkla, ömrü 0,42 olan bir izle en fazla iki
+            // tanesini aynı karede gösteriyordu.
+            GameKit.FX.Juice.Run(FX.CelebrationFX.Rockets(_root, count: 11, interval: 0.13f));
 
             // Fişek ARKADA, konfeti ÖNDE: ikisi de aynı kökte yaşıyor ama
             // fişekler önce yaratıldığı için çizim sırasında altta kalıyor.
@@ -305,8 +360,11 @@ namespace BlockOut.Runtime.UI
             // Referansta her patlama bizimkinden çok daha KALABALIK ve
             // patlamalar üst üste biniyor; 30 ışınlı seyrek bir çelenk
             // "havai fişek" değil "pusula gülü" gibi okunuyordu.
+            // Serbest patlamalar AZALTILDI: referansta her patlamanın altında
+            // bir roket izi var, gökte kendiliğinden beliren patlama yok.
+            // Bunlar yalnız aradaki boşlukları doldurmak için.
             GameKit.FX.Juice.Run(FX.CelebrationFX.Show(
-                _root, bursts: 10, interval: 0.20f, sparks: 48));
+                _root, bursts: 4, interval: 0.34f, sparks: 48));
 
             // KONFETİ SAYISI SAYILDI, tahmin edilmedi.
             //

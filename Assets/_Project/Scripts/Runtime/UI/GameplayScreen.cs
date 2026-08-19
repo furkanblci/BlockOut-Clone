@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using BlockOut.Core;
 using BlockOut.Runtime.Flow;
 using BlockOut.Runtime.Services;
@@ -37,11 +37,28 @@ namespace BlockOut.Runtime.UI
 
         /// <summary>Kart moru. panel_card krem olduğu için maviyi biraz fazla
         /// veriyoruz — çarpım kremin sarısını içeri katıyor.</summary>
-        static readonly Color CardPurple   = new Color(0.300f, 0.245f, 0.930f);
+        // ÖLÇÜLDÜ (Levels 1-20, 02:53, PERFECT kartının iç dolgusu): (65,49,192).
+        // Eskiden (77,62,237) idi — referanstan belirgin biçimde parlak ve
+        // daha doygun; kart "neon" görünüyordu.
+        static readonly Color CardPurple   = new Color(0.255f, 0.192f, 0.753f);
         static readonly Color TitleGold    = new Color(1f, 0.760f, 0.180f);
         static readonly Color TitleOutline = new Color(0.290f, 0.160f, 0.620f);
         static readonly Color CoinGold     = new Color(1f, 0.820f, 0.320f);
         static readonly Color BadgeDark    = new Color(0.165f, 0.125f, 0.430f);
+
+        // ÖLÇÜLDÜ (`Game over .mp4` 18. saniye, "Ödüller x3" rozeti).
+        // ÖLÇÜLDÜ (`Game over .mp4` 2. saniye, yardımcı fiyat kapsülü).
+        static readonly Color PriceFill = new Color(0.353f, 0.271f, 0.945f);  // #5A45F1
+        static readonly Color PriceEdge = new Color(0.196f, 0.145f, 0.596f);
+        static readonly Color PriceInk  = new Color(0.075f, 0.063f, 0.275f);  // #131046
+
+        static readonly Color TagOrange     = new Color(0.965f, 0.616f, 0.129f);
+        static readonly Color TagOrangeDark = new Color(0.545f, 0.286f, 0.043f);
+
+        // ÖLÇÜLDÜ (`Game over .mp4` 18. saniye, BAŞARISIZ panelinin dolgusu):
+        // (95,32,186). Kaybetme paneli kazanma panelinden BAŞKA bir mor —
+        // ikisini aynı renge boyamak "aynı sonuç" izlenimi veriyordu.
+        static readonly Color CardFailViolet = new Color(0.373f, 0.125f, 0.729f);
         static readonly Color CloseRed     = new Color(0.898f, 0.196f, 0.235f);
 
         // ---- Duraklat panelindeki Off/On anahtarları (referans: 1-20, 00:03) ----
@@ -748,13 +765,34 @@ namespace BlockOut.Runtime.UI
                 // yani kutu ne olursa olsun tamamen yuvarlanıyor. Referansta
                 // rozet 45×50 ve yarıçapı 10 piksel — belirgin biçimde KARE.
                 // Oransal hesabı (varsayılan %22) kapatmaya gerek yok.
+                // ROZET KÜÇÜLDÜ VE KÖŞEYE OTURDU (5. tur).
+                //
+                // Kullanıcı: "powerupların adet göstergesi daha küçük, koyu
+                // gölgeli şık bir kırmızı ile gösteriliyor."
+                //
+                // ÖLÇÜM (Levels 1-20, 02:32 karesi, sol yardımcı düğmesi):
+                // düğme 112x89 piksel, rozet 36x34 — yani düğme genişliğinin
+                // %31'i. Rozetin SAĞ kenarı düğmenin sağ kenarının bir tık
+                // içinde (x %64..%95,5), gövdesinin üçte ikisi düğmenin ALT
+                // kenarının altında kalıyor.
+                // Bizdeki rozet düğmenin YARISI kadardı ve sağa taşıyordu.
+                //
+                // Renkler aynı kareden: gövde #DC1612, kenar #7C0200 (altta
+                // kalınlaşan koyu bir gölge), rakam saf beyaz, üst kenarda
+                // ince bir mercan parlaması (#FF5E40).
                 var badgeRim = UiKit.CreateRoundedPanel("BadgeRim", button.transform,
-                    new Color(0.541f, 0.055f, 0.055f));
-                UiKit.Place(badgeRim, 0.60f, -0.14f, 1.10f, 0.36f);
+                    new Color(0.486f, 0.008f, 0f));
+                UiKit.Place(badgeRim, 0.643f, -0.247f, 0.955f, 0.124f);
 
                 var badge = UiKit.CreateRoundedPanel("Badge", badgeRim.transform,
-                    new Color(0.937f, 0.161f, 0.161f));
-                UiKit.Place(badge, 0f, 0f, 1f, 1f, padding: 5f);
+                    new Color(0.863f, 0.086f, 0.071f));
+                UiKit.Place(badge, 0f, 0.10f, 1f, 1f, padding: 3f);
+
+                // Üstteki mercan parlaması: rozete hacim veren tek ayrıntı.
+                var badgeShine = UiKit.CreateRoundedPanel("BadgeShine", badge.transform,
+                    new Color(1f, 0.369f, 0.251f, 0.85f));
+                UiKit.Place(badgeShine, 0.14f, 0.62f, 0.86f, 0.94f);
+                badgeShine.raycastTarget = false;
 
                 var count = UiKit.CreateTitle("Count", badge.transform, "", 26, Ink,
                     new Color(0.40f, 0.03f, 0.03f));
@@ -782,22 +820,37 @@ namespace BlockOut.Runtime.UI
                 // üstünde okunmuyordu. Parayı anlatan şey jeton simgesi;
                 // zeminin işi onu OKUNUR kılmak. Mor zemin hem HUD'un geri
                 // kalanıyla aynı dili konuşuyor hem de altını öne çıkarıyor.
+                // FİYAT KAPSÜLÜ YENİDEN ÖLÇÜLDÜ (5. tur; kullanıcı:
+                // "powerupların para birimi yazdığı kısmın da güncellenmesi
+                // lazım").
+                //
+                // ÖLÇÜM (`Game over .mp4` 2. saniye, üç yardımcının fiyatı):
+                // hap PARLAK mavi-mor (#5A45F1), rakam ÇOK KOYU lacivert
+                // (#131046) — açık zemin üstünde koyu yazı. Jeton hapın SOL
+                // ucunda ve haptan BÜYÜK: dışına taşıyor, yani hap onu
+                // çerçevelemiyor, jeton hapın üstüne oturuyor.
+                //
+                // Bizdeki hap HUD'un koyu morlarıyla boyanmıştı ve yazı
+                // açıktı — referansın tam tersi. Koyu hap, koyu HUD'un
+                // içinde kaybolyordu.
                 var priceRim = UiKit.CreateRoundedPanel("PriceRim", button.transform,
-                    HudButtonEdge);
-                UiKit.Place(priceRim, -0.02f, -0.22f, 1.02f, 0.28f);
+                    PriceEdge);
+                UiKit.Place(priceRim, 0.10f, -0.24f, 1.06f, 0.20f);
 
                 var price = UiKit.CreateRoundedPanel("Price", priceRim.transform,
-                    HudButtonFace);
-                UiKit.Place(price, 0f, 0f, 1f, 1f, padding: 6f);
+                    PriceFill);
+                UiKit.Place(price, 0f, 0f, 1f, 1f, padding: 4f);
 
-                var priceCoin = UiKit.CreateIcon("PriceCoin", price.transform,
+                var priceText = UiKit.CreateTitle("PriceText", price.transform, "", 28,
+                    PriceInk, new Color(0f, 0f, 0f, 0f));
+                UiKit.Place(priceText, 0.30f, 0.04f, 0.94f, 0.96f);
+
+                // Jeton hapın DIŞINDA (kardeşi, çocuğu değil): hapın kenarını
+                // aşması gerekiyor, çocuk olsaydı hapın içine sıkışırdı.
+                var priceCoin = UiKit.CreateIcon("PriceCoin", priceRim.transform,
                     UiSkin.Get(Art.Coin));
                 priceCoin.raycastTarget = false;
-                UiKit.Place(priceCoin, 0.04f, 0.10f, 0.34f, 0.90f);
-
-                var priceText = UiKit.CreateTitle("PriceText", price.transform, "", 26,
-                    Ink, new Color(0.13f, 0.08f, 0.36f));
-                UiKit.Place(priceText, 0.34f, 0.06f, 0.96f, 0.94f);
+                UiKit.Place(priceCoin, -0.20f, -0.18f, 0.30f, 1.18f);
 
                 // Göster/gizle artık KENARLIĞA bakıyor: rozet ve fiyat birer
                 // katman kazandı, yalnız iç yüzeyi gizlemek kenarlığı ekranda
@@ -1268,23 +1321,49 @@ namespace BlockOut.Runtime.UI
         /// dışa doğru açılıyorlar. Tek renk ve düşük alfa: amaç ışık hissi,
         /// desen değil.
         /// </summary>
+        /// <summary>
+        /// Jeton yığınının arkasındaki ışık huzmesi.
+        ///
+        /// YENİDEN ÖLÇÜLDÜ (5. tur, kullanıcı: "level sonu perfect para gelme
+        /// yeri daha çok benzetilsin, şu an iyi durmuyor").
+        ///
+        /// REFERANS (Levels 1-20, 02:53, 8. bölümün PERFECT kartı): ışınlar
+        /// TAM DAİRE değil, yığının üstünden yukarı açılan bir YELPAZE; sayısı
+        /// az, kalınlıkları eşit ve renkleri panelin morundan yalnız bir tık
+        /// açık. Ekranda "ışık" olarak değil, "arkada bir parlaklık var"
+        /// olarak okunuyorlar.
+        ///
+        /// Bizdeki hâl 16 ışınlı tam daireydi ve alfa 0,20'ydi; mor panelin
+        /// üstünde GRİ bir çark gibi duruyordu — kullanıcının gördüğü buydu.
+        ///
+        /// DERS (bir vurgunun görevi, dikkat çekmek değil YÖNLENDİRMEK):
+        /// Tam daire ışın, bakışı merkeze değil çevreye dağıtır. Yelpaze
+        /// yukarı bakar, yani "buradan yukarı bir şey çıkıyor" der; ödülün
+        /// hikâyesi de bu.
+        /// </summary>
         static void BuildSunburst(RectTransform parent)
         {
-            const int rays = 16;
+            const int rays = 9;
+            const float spread = 118f;   // toplam açı, dikeyin iki yanına
+
             var holder = UiKit.CreateRect("Sunburst", parent);
-            UiKit.Place(holder, -0.22f, -0.18f, 1.22f, 1.18f);
+            // Merkez yığının ÜST kenarında: ışınlar oradan yukarı açılıyor.
+            UiKit.Place(holder, -0.10f, 0.10f, 1.10f, 1.10f);
 
             for (int i = 0; i < rays; i++)
             {
                 var ray = UiKit.CreateRect($"Ray_{i}", holder);
-                ray.anchorMin = ray.anchorMax = new Vector2(0.5f, 0.5f);
+                ray.anchorMin = ray.anchorMax = new Vector2(0.5f, 0.30f);
                 ray.pivot = new Vector2(0.5f, 0f);
-                ray.sizeDelta = new Vector2(i % 2 == 0 ? 26f : 15f, 300f);
+                ray.sizeDelta = new Vector2(20f, 260f);
                 ray.anchoredPosition = Vector2.zero;
-                ray.localRotation = Quaternion.Euler(0f, 0f, i * (360f / rays));
+
+                float t = rays == 1 ? 0.5f : i / (float)(rays - 1);
+                ray.localRotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(spread * 0.5f, -spread * 0.5f, t));
 
                 var image = ray.gameObject.AddComponent<Image>();
-                image.color = new Color(1f, 0.94f, 0.62f, i % 2 == 0 ? 0.20f : 0.13f);
+                // Panelin morundan bir tık açık, sıcak beyaza kaçan bir ton.
+                image.color = new Color(0.86f, 0.84f, 1f, 0.11f);
                 image.raycastTarget = false;
             }
         }
@@ -1441,11 +1520,14 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(_failDenied, 0.74f, -0.08f, 1.20f, 1.08f);
 
             // "Rewards x3" etiketi yeşil düğmenin üst kenarına oturur.
+            // ÖLÇÜM (`Game over .mp4` 18. saniye): rozet TURUNCU bir hap,
+            // yazısı beyaz — koyu lacivert değil. Koyu rozet yeşil düğmenin
+            // üstünde bir "ikinci gölge" gibi duruyordu.
             _rewardsTag = UiKit.CreateSlicedPanel("RewardsTag", _resultCard.transform,
-                UiSkin.Get(Art.PanelDark), BadgeDark);
+                UiSkin.Get(Art.PanelDark), TagOrange);
             UiKit.Place(_rewardsTag, 0.370f, 0.260f, 0.641f, 0.312f);
             var tagLabel = UiKit.CreateTitle("Label", _rewardsTag.transform, "Rewards x3", 24,
-                CoinGold, TitleOutline);
+                Color.white, TagOrangeDark);
             UiKit.Place(tagLabel, 0.04f, 0.06f, 0.96f, 0.94f);
         }
 
@@ -2019,9 +2101,11 @@ namespace BlockOut.Runtime.UI
             // biterse ellinci kutlama birinciyle aynı hissettirir. Referans
             // yalnız rengi değiştirerek "bu zordu" diyor — yeni bir ekran,
             // yeni bir animasyon gerekmiyor.
+            // Kaybetme paneli AYRI bir mor (ölçüm: 95,32,186); kazanma
+            // panelinin moruyla aynı olması "aynı sonuç" izlenimi veriyordu.
             var difficultyTint = won
                 ? CardTint(_session != null ? _session.Difficulty : Core.LevelDifficulty.Normal)
-                : CardPurple;
+                : CardFailViolet;
             if (_resultCard != null) _resultCard.color = difficultyTint;
             if (_resultTitle != null)
                 UiKit.SetOutline(_resultTitle, OutlineFor(difficultyTint));
@@ -2088,16 +2172,23 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(_resultPrimary, won ? 0.12f : 0.194f, won ? 0.075f : 0.113f,
                                         won ? 0.88f : 0.802f, won ? 0.245f : 0.271f);
 
-            UiKit.Place(_adButton, 0.16f, won ? 0.185f : 0.150f, 0.84f, won ? 0.252f : 0.215f);
-
-            // Reklam düğmesi: kazanınca katlama (yalnız ödül varsa), kaybedince
-            // devam etme. Ödül yoksa katlanacak bir şey de yok, düğme gizlenir.
-            bool adUseful = won ? hasReward : true;
-            _adButton.gameObject.SetActive(adUseful);
-            _adButton.interactable = true;
-            if (adUseful)
-                _adLabel.text = won ? "Watch Ad · Double Reward"
-                                    : $"Watch Ad · +{ExtraSeconds}s Continue";
+            // REKLAM DÜĞMESİ KALDIRILDI (5. tur).
+            //
+            // Kullanıcı: "watch ad double reward orijinal oyunda var mı,
+            // yoksa kaldır; varsa buton ve yeri kötü, bozuk duruyor."
+            //
+            // REFERANS TARANDI (`Game over .mp4` tamamı, 2 fps'te 50 kare;
+            // Türkçe yerelleştirilmiş sürüm): kaybetme akışı üç panel —
+            // "Süre Doldu" (+30 saniye, yeşil düğme "Zaman Ekle 900"),
+            // "Devam Et?" (kırık kalp, "Oyna 900") ve "BAŞARISIZ"
+            // ("Yeniden Dene"). PERFECT kartında da yalnız "Continue" var.
+            // Hiçbirinde REKLAM düğmesi YOK; devam etmenin bedeli JETON.
+            //
+            // DERS (bir özellik "olmalı" diye eklenmez): Ödüllü reklam mobil
+            // bulmacalarda o kadar yaygın ki referansı açıp bakmadan
+            // eklenmişti. Referansın para modeli başka: oyuncuya reklam
+            // değil, biriktirdiği jetonu harcama seçeneği sunuyor.
+            _adButton.gameObject.SetActive(false);
 
             GameKit.FX.Juice.Replace(_resultCard,
                 GameKit.FX.Juice.CardEntrance(_resultCard.transform));
