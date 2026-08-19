@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using BlockOut.Core;
 using BlockOut.Runtime.Config;
 using BlockOut.Runtime.View;
@@ -164,7 +164,7 @@ namespace BlockOut.Runtime.Board
             gateRoot.SetParent(root, false);
             foreach (var gate in level.Gates)
                 views.Gates[gate] = GateView.Create(
-                    gateRoot, gate, space, GetBlockMaterial(palette, gate.ActiveColor));
+                    gateRoot, gate, space, GetBlockMaterial(palette, gate.ActiveColor), palette);
 
             var obstacleRoot = new GameObject("Obstacles").transform;
             obstacleRoot.SetParent(root, false);

@@ -1,4 +1,4 @@
-using BlockOut.Core;
+﻿using BlockOut.Core;
 using BlockOut.Runtime.Board;
 using BlockOut.Runtime.Config;
 using BlockOut.Runtime.View;
@@ -102,8 +102,16 @@ namespace BlockOut.Runtime.FX
             // sayıldı ve bunların bir kısmı birbirine değdiği için tek küme
             // olarak ölçüldü — gerçek sayı daha yüksek. 14 + alan*4 (1x1 blok
             // için 18) yığın hissini vermiyordu.
+            // SAYI YENİDEN SAYILDI (6. tur): 20 fps'te kare kare bakıldığında
+            // kapının dışında aynı anda 12-16 parça var. Eskiden 30 + alan*8
+            // yazıyordu (1x1 blok için 38); parçalar iri hâle gelince o sayı
+            // ekranı dolduran bir bulut üretiyordu.
+            //
+            // DERS (iki ayarı birlikte değiştirmek): Boyut büyütülürken SAYI
+            // aynı bırakılırsa toplam alan kat kat artar. Referansta değişen
+            // şey parça sayısı değil, parçanın kendisiydi.
             BurstFromGate(gate, ColorOf(block.CurrentColor),
-                          30 + block.W * block.H * 8);
+                          12 + block.Cells.Count * 3);
 
             // Sarsıntı bloğun BÜYÜKLÜĞÜNE bağlı: 1x1 bir parçanın emilmesiyle
             // 2x4'lük bir kütlenin emilmesi aynı ağırlıkta hissedilmemeli.
@@ -114,7 +122,7 @@ namespace BlockOut.Runtime.FX
         {
             // Soyulan katmanın rengi zaten listeden çıktı; kapının rengi doğru olan.
             // Soyulma da kapıda olur — kırıntı orada doğmalı, blok yerinde kalır.
-            BurstFromGate(gate, ColorOf(gate.ActiveColor), 12);
+            BurstFromGate(gate, ColorOf(gate.ActiveColor), 14);
         }
 
         void OnIceShattered(BlockModel block)
@@ -313,12 +321,26 @@ namespace BlockOut.Runtime.FX
                     sideways * Random.Range(-1.5f, 1.5f) +
                     Vector3.up * Random.Range(1.2f, 3.4f);
 
+                // İRİ PARÇALAR (6. tur).
+                //
+                // ÖLÇÜM (Levels 1-20, 00:24, 20 fps'te kare kare): blok kapıya
+                // girerken kendi renginde 12-16 adet İRİ parçaya ayrılıyor;
+                // parça kenarı 10-14 piksel / 79 piksellik hücre = hücrenin
+                // %13-18'i. Bizimki varsayılan boyutta ince kırıntıydı, yani
+                // "toz" gibi okunuyordu.
+                //
+                // DERS (parçanın boyu, kırılan şeyin boyunu anlatır): Küçük
+                // kırıntı "bir şey ufalandı" der; iri parça "bir BLOK kırıldı"
+                // der. Referans ikincisini seçmiş — çünkü kaybolan şey bir
+                // blok.
                 var emit = new ParticleSystem.EmitParams
                 {
                     position = at,
                     velocity = velocity,
                     applyShapeToPosition = false,
-                    startColor = color
+                    startColor = color,
+                    startSize = Random.Range(0.26f, 0.42f),
+                    startLifetime = Random.Range(0.55f, 0.80f)
                 };
                 _crumbs.Emit(emit, 1);
             }

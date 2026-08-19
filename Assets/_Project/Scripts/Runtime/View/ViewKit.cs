@@ -413,6 +413,60 @@ namespace BlockOut.Runtime.View
         /// yine opak hattında çizilir.
         /// </summary>
         /// <summary>Verilen renkte yeni bir saydam materyal — efektler için.</summary>
+        static readonly Dictionary<BlockColor, Material> _gateShine =
+            new Dictionary<BlockColor, Material>();
+
+        /// <summary>
+        /// Kapının üst kenarındaki PARLAMA şeridi.
+        ///
+        /// ÖLÇÜM (Levels 1-20, 00:12): kapının kırmızısı (250,35,37), şeridin
+        /// rengi (255,112,102) — daha açık VE daha az doygun. Işıksız, çünkü
+        /// bu bir yüzey değil bir parlama; sahne ışığından etkilenirse kapının
+        /// yönüne göre kaybolur.
+        /// </summary>
+        static readonly Dictionary<BlockColor, Material> _gateArrowRing =
+            new Dictionary<BlockColor, Material>();
+
+        /// <summary>
+        /// Okun etrafındaki KOYU halka: ok, kapağa gömülmüş bir düğme gibi
+        /// dursun diye. Kapının kendi renginin koyusu — ayrı bir renk değil.
+        /// </summary>
+        public static Material GateArrowRing(ColorPaletteSO palette, BlockColor color)
+        {
+            if (_gateArrowRing.TryGetValue(color, out var cached) && cached != null) return cached;
+
+            var entry = palette != null ? palette.Get(color) : null;
+            Color baseColor = entry != null ? entry.uiColor : Color.gray;
+
+            var shader = Shader.Find("Universal Render Pipeline/Unlit")
+                         ?? Shader.Find("Sprites/Default");
+            var mat = new Material(shader) { name = "GateArrowRing_" + color };
+            var c = baseColor * 0.55f;
+            c.a = 1f;
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", c);
+            mat.color = c;
+            _gateArrowRing[color] = mat;
+            return mat;
+        }
+
+        public static Material GateShine(ColorPaletteSO palette, BlockColor color)
+        {
+            if (_gateShine.TryGetValue(color, out var cached) && cached != null) return cached;
+
+            var entry = palette != null ? palette.Get(color) : null;
+            Color baseColor = entry != null ? entry.uiColor : Color.gray;
+
+            var shader = Shader.Find("Universal Render Pipeline/Unlit")
+                         ?? Shader.Find("Sprites/Default");
+            var mat = new Material(shader) { name = "GateShine_" + color };
+            var c = Color.Lerp(baseColor, Color.white, 0.44f);
+            c.a = 1f;
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", c);
+            mat.color = c;
+            _gateShine[color] = mat;
+            return mat;
+        }
+
         public static Material Translucent(Color color) =>
             CreateTransparent("Beam", color, 3000);
 

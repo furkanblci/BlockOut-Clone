@@ -41,7 +41,7 @@ namespace BlockOut.Runtime.View
         /// tek başına taşıyor.
         /// </summary>
         static float BarHeight => VisualSettings.Current == null ? 0.34f
-            : MatchesFrame ? VisualSettings.Current.frameHeight * 1.06f
+            : MatchesFrame ? VisualSettings.Current.frameHeight + 0.02f
                            : VisualSettings.Current.gateBarHeight;
 
         /// <summary>
@@ -123,7 +123,8 @@ namespace BlockOut.Runtime.View
         GameObject _arrow;
 
         public static GateView Create(
-            Transform parent, GateModel model, BoardSpace space, Material colorMaterial)
+            Transform parent, GateModel model, BoardSpace space, Material colorMaterial,
+            BlockOut.Runtime.Config.ColorPaletteSO palette = null)
         {
             var go = new GameObject($"Gate_{model.ActiveColor}_{model.Side.ToId()}");
             go.transform.SetParent(parent, worldPositionStays: false);
@@ -160,7 +161,11 @@ namespace BlockOut.Runtime.View
             // kapı yuvarlak köşeli bir plastik parça; köşeye dayandığında
             // yayı çerçevenin yayını izliyor. Silüeti düzeltmek, barı
             // kısaltmaktan (yani açıklığı hakkında yalan söylemekten) iyi.
-            go.AddComponent<MeshFilter>().sharedMesh = BuildBarMesh(alongX, alongZ, BarHeight);
+            Vector3 outwardDir = model.EdgeHorizontal
+                ? new Vector3(0f, 0f, -model.OutwardSign)
+                : new Vector3(model.OutwardSign, 0f, 0f);
+            go.AddComponent<MeshFilter>().sharedMesh =
+                BuildBarMesh(alongX, alongZ, BarHeight, outwardDir);
             go.AddComponent<MeshRenderer>();
             go.transform.position = center;
 
@@ -190,7 +195,7 @@ namespace BlockOut.Runtime.View
             view._renderer = go.GetComponent<MeshRenderer>();
             view._renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             view._colorMaterial = colorMaterial;
-            view._arrow = CreateArrow(parent, model, center);
+            view._arrow = CreateArrow(parent, model, center, palette);
 
             if (model.IsIced)
             {
@@ -237,100 +242,127 @@ namespace BlockOut.Runtime.View
         /// aynısı. Referansta kapı ile blok aynı malzemeden dökülmüş gibi
         /// duruyor; iki ayrı yuvarlaklık kullanmak o birliği bozardı.
         /// </summary>
-        static Mesh BuildBarMesh(float sizeX, float sizeZ, float height)
+        /// <summary>
+        /// Kapı barı — TEK PARÇA, dikey degradeli.
+        ///
+        /// Kullanıcı (6. tur): "Kapılarda ciddi problem var, son hali çok
+        /// kötüye gitmiş."
+        ///
+        /// TEŞHİS (ölçümle): Referans kapının dikey profili KESİNTİSİZ bir
+        /// degrade —
+        ///   üst kenar  (144, 17, 35)   koyu hat
+        ///   parlama    (255,112,102)   ince açık şerit
+        ///   gövde üstü (255, 43, 45)
+        ///   gövde altı (246, 26, 27)   yavaş koyulaşma
+        ///   alt kenar  (119,  5,  6)   koyu hat
+        /// Bizimki ise ÜÇ DÜZ BANT ve aralarında sert basamaklar:
+        ///   (255,0,0) → (248,0,0) → (211,0,0)
+        ///
+        /// SEBEP: Bar mesh'i hiç KÖŞE RENGİ yazmıyordu. Malzeme
+        /// `BlockOut/Brick`, köşe rengini çarpan olarak kullanıyor; renk
+        /// olmayınca Unity beyaz varsayıyor ve tüm yüzeyler aynı tonda
+        /// çıkıyor. Ekrandaki üç bandı ayıran tek şey NORMAL'lerin ışığı
+        /// farklı açıyla alması — o da düz basamaklar üretiyor.
+        ///
+        /// DERS (bir malzemenin beklediği veriyi vermezsen sessizce düzleşir):
+        /// Tuğla mesh'i bu köşe renklerini baştan beri yazıyordu ve bloklar
+        /// bu yüzden hacimli görünüyordu. Kapı aynı malzemeyi kullanıyor ama
+        /// aynı veriyi vermiyordu; eksik olan shader değil, mesh'in kendisiydi.
+        ///
+        /// <paramref name="outward"/> barın DIŞA bakan yönü: degrade o yöne
+        /// doğru açılıyor, çünkü referansta parlama dış kenarda.
+        /// </summary>
+        /// <summary>
+        /// Kapı barı — DÜZ İKİ KATLI PLAKA (6. tur, yeniden yazıldı).
+        ///
+        /// Kullanıcı iki görsel gönderdi: bizimki ve olması gereken. Referans
+        /// kapı bir prizma gibi okunmuyor; düz bir plaka: çepeçevre ince KOYU
+        /// bir kenar, içinde dikey degradeli parlak bir yüz.
+        ///
+        /// ÜÇ DENEME, ÜÇ BAŞARISIZLIK:
+        ///   1. Prizmaya köşe rengi verildi → üç düz bant, sert basamaklar.
+        ///   2. Pah genişletilip ton rampası kuruldu → basamak yumuşadı ama
+        ///      "ikinci kütle" görüntüsü kaldı.
+        ///   3. Üst kapak halka + kapak diye ikiye bölündü → halka, yuvarlak
+        ///      köşelerde kendi kendini kesti ve dört köşede ok biçimli
+        ///      kırıklar çıktı (dışa doğru kaydırma, yarıçaptan büyük olunca
+        ///      komşu noktalar birbirinin üstünden geçiyor).
+        ///
+        /// DERS (biçimi taklit etmek yerine YAPIYI kur): Üç denemenin ortak
+        /// hatası, referansa benzemeyen bir gövdeyi (prizma) gölgelendirerek
+        /// benzetmeye çalışmaktı. Referansın gerçekte yaptığı şey basit: iki
+        /// düz katman. Kamera zaten tepeden bakıyor, üçüncü boyut kimseye
+        /// görünmüyor.
+        ///
+        /// Katmanlar AYRI ÜÇGENLENİYOR (aralarında şerit yok): kaydırma
+        /// yarıçaptan büyük olsa bile kendi kendini kesme ihtimali kalmıyor.
+        /// </summary>
+        static Mesh BuildBarMesh(float sizeX, float sizeZ, float height, Vector3 outwardDir)
         {
             var cfg = VisualSettings.Current;
             float radius = cfg != null ? cfg.brickCornerRadius : 0.16f;
-            float bevel = cfg != null ? cfg.brickChamfer : 0.06f;
 
-            // KAPININ UCU HAP DEĞİL, NEREDEYSE DÜZ (4. tur G20 revizyon).
-            //
-            // Önce yarıçap barın dar kenarının yarısına açılmıştı; amaç köşe
-            // taşmasını yuvarlayarak kapatmaktı. Sonuç ekranda hap biçiminde
-            // bir kapsüldü ve referansla alakası yoktu.
-            //
-            // ÖLÇÜM (Levels 1-20, 00:12; kırmızı kapının sol ucunda satır satır
-            // tarama): kapının sol kenarı y=350'den y=401'e kadar SABİT x=338.
-            // Yani uç düz bir dikey çizgi; köşedeki kıvrım 4-5 piksel, hücre
-            // 80 piksel → yarıçap hücrenin ~%6'sı.
-            //
-            // Köşe taşması yuvarlaklıkla değil, asıl sebepleriyle çözüldü:
-            // çerçeve köşe yarıçapı 0,6 → 0,32 ve köşeye sıkışmış kapı
-            // (1. bölüm) bir birim içeri alındı.
-            //
-            // DERS (bir kusuru gizlemek, başka bir kusur üretebilir):
-            // "Taşmasın diye yuvarlayalım" kolay bir çözümdü ama silüeti
-            // referanstan uzaklaştırdı. Ölçmeden yapılan her düzeltme, bir
-            // sorunu başka bir sorunla takas etme riskidir.
+            // ÖLÇÜM (Levels 1-20, 00:12): kapının sol ucu y 350..401 boyunca
+            // SABİT x=338 — uç düz, köşedeki kıvrım 4-5 piksel / 80 piksellik
+            // hücre = ~%6.
             radius = Mathf.Min(radius * 0.45f, Mathf.Min(sizeX, sizeZ) * 0.22f);
-            bevel = Mathf.Clamp(bevel, 0f, height * 0.4f);
 
-            var loop = RoundedRect(sizeX * 0.5f, sizeZ * 0.5f, radius);
+            // ÖLÇÜM: kenar kalınlığı ~2 piksel / 79 piksellik hücre = %2,5.
+            float border = Mathf.Min(0.026f, Mathf.Min(sizeX, sizeZ) * 0.10f);
 
             var verts = new List<Vector3>();
             var normals = new List<Vector3>();
+            var colors = new List<Color>();
             var tris = new List<int>();
-            int count = loop.Count;
 
-            var outward = new Vector3[count];
-            for (int i = 0; i < count; i++)
-            {
-                var prev = loop[(i - 1 + count) % count];
-                var next = loop[(i + 1) % count];
-                var tangent = (next - prev).normalized;
-                outward[i] = new Vector3(tangent.y, 0f, -tangent.x);
-            }
+            // Referans profilinden: yüzün dış kenarı (255,43,45), iç kenarı
+            // (246,26,27), çepeçevre kenar (119,5,6).
+            const float ToneEdge = 0.52f;
+            const float ToneFaceOuter = 1.06f;
+            const float ToneFaceInner = 0.90f;
 
-            void Ring(System.Func<int, Vector3> lower, System.Func<int, Vector3> upper,
-                      System.Func<int, Vector3> normal)
+            float span = Mathf.Max(0.001f,
+                Mathf.Abs(outwardDir.x) * sizeX + Mathf.Abs(outwardDir.z) * sizeZ);
+
+            void Plate(float halfX, float halfZ, float r, float y,
+                       System.Func<Vector2, Color> tone)
             {
+                var loop = RoundedRect(halfX, halfZ, r);
                 int start = verts.Count;
-                for (int i = 0; i < count; i++)
+                foreach (var q in loop)
                 {
-                    verts.Add(lower(i)); verts.Add(upper(i));
-                    var n = normal(i);
-                    normals.Add(n); normals.Add(n);
+                    verts.Add(new Vector3(q.x, y, q.y));
+                    normals.Add(Vector3.up);
+                    colors.Add(tone(q));
                 }
-                for (int i = 0; i < count; i++)
-                {
-                    int a = start + i * 2;
-                    int b = start + ((i + 1) % count) * 2;
-                    tris.Add(a); tris.Add(a + 1); tris.Add(b);
-                    tris.Add(b); tris.Add(a + 1); tris.Add(b + 1);
-                }
+                BrickSilhouette.Triangulate(loop, tris, start, faceUp: true);
             }
 
-            float shoulder = height - bevel;
-            Ring(i => new Vector3(loop[i].x, 0f, loop[i].y),
-                 i => new Vector3(loop[i].x, shoulder, loop[i].y),
-                 i => outward[i]);
-            Ring(i => new Vector3(loop[i].x, shoulder, loop[i].y),
-                 i => new Vector3(loop[i].x, height, loop[i].y) - outward[i] * bevel,
-                 i => (outward[i] + Vector3.up).normalized);
+            Color Tone(float t) => new Color(t, t, t, 1f);
 
-            var top = new List<Vector2>(count);
-            for (int i = 0; i < count; i++)
-                top.Add(new Vector2(loop[i].x - outward[i].x * bevel,
-                                    loop[i].y - outward[i].z * bevel));
+            // 1) KOYU KENAR: tam boy plaka.
+            Plate(sizeX * 0.5f, sizeZ * 0.5f, radius, height, _ => Tone(ToneEdge));
 
-            int capStart = verts.Count;
-            foreach (var p in top)
-            {
-                verts.Add(new Vector3(p.x, height, p.y));
-                normals.Add(Vector3.up);
-            }
-            BrickSilhouette.Triangulate(top, tris, capStart, faceUp: true);
+            // 2) PARLAK YÜZ: kenar kadar içeride, bir tık yukarıda
+            //    (z-fighting olmasın), dikey degradeli.
+            Plate(sizeX * 0.5f - border, sizeZ * 0.5f - border,
+                  Mathf.Max(0.01f, radius - border * 0.5f), height + 0.004f,
+                  q =>
+                  {
+                      float t = Mathf.Clamp01(
+                          0.5f + (q.x * outwardDir.x + q.y * outwardDir.z) / span);
+                      return Tone(Mathf.Lerp(ToneFaceInner, ToneFaceOuter, t));
+                  });
 
             var mesh = new Mesh { name = "GateBar" };
             mesh.SetVertices(verts);
             mesh.SetNormals(normals);
+            mesh.SetColors(colors);
             mesh.SetTriangles(tris, 0);
             mesh.RecalculateBounds();
             mesh.UploadMeshData(true);
             return mesh;
         }
-
-        /// <summary>Yuvarlatılmış dikdörtgenin çevre noktaları (saat yönünün tersine).</summary>
         static List<Vector2> RoundedRect(float halfX, float halfZ, float radius)
         {
             const int segments = 4;
@@ -401,7 +433,8 @@ namespace BlockOut.Runtime.View
         /// renk kalır ve "detaysız" görünür; prizmanın yan yüzleri ışığı farklı
         /// açıyla aldığı için kenarları belirginleşir.
         /// </summary>
-        static GameObject CreateArrow(Transform parent, GateModel model, Vector3 barCenter)
+        static GameObject CreateArrow(Transform parent, GateModel model, Vector3 barCenter,
+                                      BlockOut.Runtime.Config.ColorPaletteSO palette)
         {
             var go = new GameObject("Arrow");
             go.transform.SetParent(parent, worldPositionStays: false);
@@ -504,6 +537,55 @@ namespace BlockOut.Runtime.View
             mesh.SetTriangles(tris, 0);
             mesh.RecalculateBounds();
 
+            // OKU SARAN KOYU HALKA (6. tur).
+            //
+            // Kullanıcının gönderdiği referansta ok, kapının koyu tonundan
+            // bir halkanın içinde oturuyor — kapağa GÖMÜLMÜŞ bir düğme gibi.
+            // Bizde ok doğrudan kırmızının üstündeydi ve "yapıştırılmış"
+            // duruyordu.
+            //
+            // ÖLÇÜM (00:12): halka ~2,4 piksel / 79 piksellik hücre = %3.
+            // DİKKAT: `outline` bir List<Vector3> ve noktalar XZ düzleminde
+            // (y = 0). Vector2'ye kopyalamak Z'yi düşürüp halkayı tek bir
+            // çizgiye indirdi — ölçüm: halkanın Z uzanımı 0,00 çıkıyordu ve
+            // ekranda hiç görünmüyordu.
+            //
+            // DERS (boyut düşürmek sessiz bir veri kaybıdır): `Vector3` →
+            // `Vector2` dönüşümü derleyicide hata vermez, çalışma anında da
+            // patlamaz; yalnız mesh boş çıkar. Aynı düzlemde çalışan iki tip
+            // arasında gidip gelirken hangi eksenin düştüğünü bilmek gerekiyor.
+            var ringOutline = new List<Vector2>(outline.Count);
+            for (int i = 0; i < outline.Count; i++)
+            {
+                var d = new Vector2(outline[i].x, outline[i].z);
+                float len = d.magnitude;
+                ringOutline.Add(len > 1e-4f ? d + d / len * (size * 0.30f) : d);
+            }
+            BrickSilhouette.MakeCounterClockwise(ringOutline);
+
+            var ringGo = new GameObject("ArrowRing");
+            ringGo.transform.SetParent(go.transform, worldPositionStays: false);
+            ringGo.transform.localPosition = new Vector3(0f, -0.005f, 0f);
+            var ringVerts = new List<Vector3>(ringOutline.Count);
+            var ringNormals = new List<Vector3>(ringOutline.Count);
+            foreach (var q in ringOutline)
+            {
+                ringVerts.Add(new Vector3(q.x, 0f, q.y));
+                ringNormals.Add(Vector3.up);
+            }
+            var ringTris = new List<int>();
+            BrickSilhouette.Triangulate(ringOutline, ringTris, 0, faceUp: true);
+            var ringMesh = new Mesh { name = "ArrowRing" };
+            ringMesh.SetVertices(ringVerts);
+            ringMesh.SetNormals(ringNormals);
+            ringMesh.SetTriangles(ringTris, 0);
+            ringMesh.RecalculateBounds();
+            ringGo.AddComponent<MeshFilter>().sharedMesh = ringMesh;
+            var ringRenderer = ringGo.AddComponent<MeshRenderer>();
+            ringRenderer.sharedMaterial = ViewKit.GateArrowRing(palette, model.ActiveColor);
+            ringRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            ringRenderer.receiveShadows = false;
+
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             var renderer = go.AddComponent<MeshRenderer>();
             renderer.sharedMaterial = ViewKit.ArrowMaterial;
@@ -512,7 +594,9 @@ namespace BlockOut.Runtime.View
             // Bar artık TABANINDAN konumlanıyor (mesh y=0'dan başlıyor), bu
             // yüzden ok barın TAM YÜKSEKLİĞİ kadar kaldırılıyor; eskiden küpün
             // merkezine göre yarım yükseklikti.
-            go.transform.position = barCenter + Vector3.up * (BarHeight + 0.005f);
+            // Ok, parlak yüzün (BarHeight + 0,004) ÜSTÜNDE olmalı; yoksa
+            // altındaki koyu halka yüzün içinde kalıp hiç görünmüyor.
+            go.transform.position = barCenter + Vector3.up * (BarHeight + 0.012f);
             return go;
         }
 
@@ -558,104 +642,35 @@ namespace BlockOut.Runtime.View
         }
 
         /// <summary>
-        /// Kapı bir bloğu YUTARKEN kısa bir parlama (4. tur, G23).
+        /// Kapı bir blok yuttuğunda ne olur? — ÖLÇÜLDÜ: HİÇBİR ŞEY.
         ///
-        /// Kullanıcı: "Blok parçalanması + kapının objeyi alırken aydınlanması
-        /// efekti bizde yok."
+        /// Kullanıcı (6. tur): "Blok kapıdan içeri girince o beyaz parlama
+        /// çok büyük ve alakasız, kötü bir görünüm; şu an bizdeki bug gibi
+        /// gözüküyor."
         ///
-        /// DERS (bir olayın İKİ tarafı da tepki vermeli): Emilmede yalnız blok
-        /// oynuyordu — küçülüyor, beyazlıyor, kırıntıya dönüşüyordu. Kapı ise
-        /// hiç kımıldamıyor; ekranda bloğun "kaybolduğu" görülüyor ama onu
-        /// KİMİN aldığı görünmüyordu. Kapının bir an aydınlanması, olayı iki
-        /// nesne arasındaki bir alışverişe çeviriyor.
+        /// REFERANS KARE KARE İNCELENDİ (Levels 1-20, 00:24 civarı, 20 fps'te
+        /// çıkarılan 280 kare; turuncu kapıya turuncu blok giriyor):
+        ///   • Blok kapıya yaklaşır — kapı DEĞİŞMEZ.
+        ///   • Blok kapının çizgisine değer — kapı DEĞİŞMEZ.
+        ///   • Blok, kendi renginde İRİ PARÇALARA ayrılıp kapının dışına
+        ///     savrulur — kapı yine DEĞİŞMEZ.
+        /// Dokuz karenin hiçbirinde kapıda beyazlama, büyüme ya da hale yok.
         ///
-        /// Parlama kapının KENDİ rengi üzerinden yürüyor (beyaza doğru), yani
-        /// hangi kapının yuttuğu bilgisi kaybolmuyor; ayrıca bar boyunca
-        /// hafifçe şişiyor — ışık tek başına küçük bir ekranda zayıf kalıyor.
+        /// Bizde ise kapı beyaza patlıyor, %14 büyüyor ve etrafına kendi
+        /// boyunun üç katı bir katkılı hale yayıyordu. Bu 4. turda "kapı da
+        /// tepki versin" diye eklenmişti — ölçmeden.
+        ///
+        /// DERS (bir tepki EKLEMEK, tepkiyi iyileştirmek değildir): "Olay iki
+        /// taraflı olmalı" mantıklı bir cümle ve o yüzden sorgulanmadı. Ama
+        /// referansın anlatımı başka: olayın öznesi BLOK, kapı yalnızca bir
+        /// kapı. Kapıyı da oynatmak, sahnede iki şey birden hareket ettiği
+        /// için gözü böler ve asıl olayı — bloğun parçalanmasını — gölgeler.
+        ///
+        /// Metot çağrı uyumluluğu için duruyor (GateSystem üç yerden
+        /// çağırıyor) ama artık yalnız buz sayacını tazeliyor.
         /// </summary>
         public void PlayAbsorbFlash()
         {
-            if (!isActiveAndEnabled || _renderer == null || !_renderer.enabled) return;
-            if (_flash != null) StopCoroutine(_flash);
-            _flash = StartCoroutine(FlashRoutine());
-        }
-
-        Coroutine _flash;
-
-        /// <summary>
-        /// Kapı bir blok yuttuğunda AYDINLANIR: beyaza patlar, kabarır ve
-        /// çevresine bir ışık halkası yayar.
-        ///
-        /// GÜÇLENDİRİLDİ (5. tur, kullanıcı: "blok soktuğumuzdaki o kapının
-        /// aydınlanması, ışık saçması bizdeki çok zayıf kalmış").
-        ///
-        /// Neden zayıf kalmıştı: parlama yalnız kapının KENDİ pikselleriydi ve
-        /// beyaza %85 gidiyordu. Kapı ekranın küçük bir şeridi; orada olan bir
-        /// renk değişimi, tahtanın ortasında olup biten hareketin yanında
-        /// görünmüyor.
-        ///
-        /// DERS (parlama, ALANLA orantılı okunur): Bir vurgunun gücü sadece
-        /// kontrastından değil, kapladığı ALANDAN gelir. Aynı beyaz, iki kat
-        /// geniş bir yüzeyde iki kat çok "ışık" olarak okunur. Bu yüzden
-        /// parlamaya kapının dışına taşan ayrı bir HALE eklendi: kapının
-        /// mesh'inin büyütülmüş, katkılı (additive) bir kopyası.
-        /// </summary>
-        System.Collections.IEnumerator FlashRoutine()
-        {
-            const float duration = 0.34f;
-
-            var shared = _renderer.sharedMaterial;
-            Color baseColor = ReadColor(shared);
-            // Kendi örneği: paylaşılan materyali boyamak aynı renkteki BÜTÜN
-            // kapıları birlikte parlatırdı.
-            var glow = ViewKit.CopyFor(shared, "GateGlow");
-            _renderer.sharedMaterial = glow;
-
-            // HALE: kapının büyütülmüş kopyası, katkılı harmanlama ile.
-            // Katkılı olduğu için sönerken siyaha gider, yani arkasındaki
-            // çerçeveyi karartmaz — ışık böyle davranır.
-            var halo = new GameObject("GateGlowHalo");
-            halo.transform.SetParent(transform, worldPositionStays: false);
-            halo.transform.localPosition = Vector3.zero;
-            halo.transform.localRotation = Quaternion.identity;
-            halo.transform.localScale = new Vector3(1.14f, 1.9f, 1.55f);
-            halo.AddComponent<MeshFilter>().sharedMesh = GetComponent<MeshFilter>().sharedMesh;
-            var haloRenderer = halo.AddComponent<MeshRenderer>();
-            haloRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            haloRenderer.receiveShadows = false;
-            var haloMaterial = ViewKit.Additive(baseColor);
-            haloRenderer.sharedMaterial = haloMaterial;
-
-            Vector3 startScale = transform.localScale;
-            for (float t = 0f; t < duration; t += Time.deltaTime)
-            {
-                float k = Mathf.Clamp01(t / duration);
-                // Hızlı yükselip yavaş inen bir vuruş: ani parlama gözü
-                // yakalar, yavaş iniş "bitti" der.
-                float pulse = k < 0.18f ? k / 0.18f : 1f - (k - 0.18f) / 0.82f;
-                float eased = pulse * pulse * (3f - 2f * pulse);
-
-                Paint(glow, Color.Lerp(baseColor, Color.white, eased));
-                transform.localScale = startScale * (1f + 0.14f * eased);
-
-                // Hale hem parlar hem genişler: ışık yayılıyor izlenimi
-                // sabit boyutlu bir parlamadan çok daha güçlü.
-                var haloColor = Color.Lerp(baseColor, Color.white, 0.55f) * (eased * 0.85f);
-                haloColor.a = 1f;
-                Paint(haloMaterial, haloColor);
-                halo.transform.localScale = new Vector3(
-                    1.14f + 0.16f * eased, 1.9f, 1.55f + 1.5f * eased);
-                yield return null;
-            }
-
-            transform.localScale = startScale;
-            // Sönmüş bir kapıya dönmüş olabiliriz; o durumda materyali geri
-            // yazmak parlamayı kalıcı kılardı.
-            if (_fade == null) _renderer.sharedMaterial = shared;
-            if (glow != null) Destroy(glow);
-            if (haloMaterial != null) Destroy(haloMaterial);
-            if (halo != null) Destroy(halo);
-            _flash = null;
         }
 
         public void UpdateIceCount()
@@ -792,6 +807,27 @@ namespace BlockOut.Runtime.View
                 arrowRenderer.sharedMaterial = arrowFading;
             }
 
+            // OKUN KOYU HALKASI DA SÖNMELİ (6. tur, kullanıcı: "kapının
+            // gidişi, kayboluşu daha smooth olsun; bizde bir bozulma var").
+            //
+            // Halka `_arrow`ın çocuğu; sönme onu boyamıyordu. Bar ve ok
+            // çerçeve rengine yürürken halka koyu kalıyor, sonunda hepsi bir
+            // anda kapanıyordu — geçişin son karesinde ekranda ok biçiminde
+            // koyu bir leke beliriyordu. Kullanıcının gördüğü "bozulma" buydu.
+            var ringRenderers = new List<MeshRenderer>();
+            var ringMaterials = new List<Material>();
+            var ringFrom = new List<Color>();
+            if (_arrow != null)
+                foreach (var r in _arrow.GetComponentsInChildren<MeshRenderer>(true))
+                {
+                    if (arrowRenderer != null && r == arrowRenderer) continue;
+                    var copy = ViewKit.CopyFor(r.sharedMaterial, "RingFade");
+                    ringFrom.Add(ReadColor(r.sharedMaterial));
+                    r.sharedMaterial = copy;
+                    ringRenderers.Add(r);
+                    ringMaterials.Add(copy);
+                }
+
             // KAPI TAMAMEN SAYDAMLAŞIYOR (4. tur, G22).
             //
             // Kullanıcı: "Kapı kaybolma efekti — bizde soluklaşıyor;
@@ -813,9 +849,14 @@ namespace BlockOut.Runtime.View
                 // %51'de. SmoothStep aynı anda %50 verirdi ama uçlarda
                 // yavaşlar; referansın üç karesi eşit aralıklı.
                 float k = Mathf.Clamp01(t / duration);
-                Paint(fading, Color.Lerp(from, to, k));
+                // Hafif yavaşlayan bir eğri: doğrusal geçişte son kare "kesik"
+                // hissettiriyordu. Ölçülen ara kare hâlâ ~%51'de kalıyor.
+                float e = k * k * (3f - 2f * k) * 0.35f + k * 0.65f;
+                Paint(fading, Color.Lerp(from, to, e));
                 if (arrowFading != null)
-                    Paint(arrowFading, Color.Lerp(arrowFrom, arrowTo, k));
+                    Paint(arrowFading, Color.Lerp(arrowFrom, arrowTo, e));
+                for (int i = 0; i < ringMaterials.Count; i++)
+                    Paint(ringMaterials[i], Color.Lerp(ringFrom[i], to, e));
                 yield return null;
             }
 
@@ -831,10 +872,16 @@ namespace BlockOut.Runtime.View
             // olur. `GetComponentsInChildren` o listeyi kendi tutuyor.
             foreach (var renderer in GetComponentsInChildren<MeshRenderer>(true))
                 renderer.enabled = false;
-            if (arrowRenderer != null) arrowRenderer.enabled = false;
+            // Ok ve ONUN ÇOCUKLARI (koyu halka) kapının ağacında değil —
+            // `CreateArrow` onları tahta köküne bağlıyor. Ada göre değil,
+            // OKUN ağacına göre kapatılıyorlar.
+            if (_arrow != null)
+                foreach (var renderer in _arrow.GetComponentsInChildren<MeshRenderer>(true))
+                    renderer.enabled = false;
 
             if (fading != null) Destroy(fading);
             if (arrowFading != null) Destroy(arrowFading);
+            foreach (var m in ringMaterials) if (m != null) Destroy(m);
             _fade = null;
         }
 
