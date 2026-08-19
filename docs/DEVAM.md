@@ -8,6 +8,87 @@ Bu dosya her oturum sonunda güncellenir. Aşağısı 2026-08-10 itibarıyla ge�
 
 ---
 
+## 2026-08-19 — 6. TUR KAPANDI (8/8)
+
+Kullanıcının üçüncü geri bildirim turu. Sekiz madde de kapandı; ayrıntılı
+ölçümler commit mesajlarında (`976a079`, `601c48b`).
+
+### Kapatılanlar
+
+1. **Kapı görseli baştan kuruldu.** Kullanıcı bizimkini ve olması gerekeni
+   yan yana gönderdi. Referansın dikey kesiti KESİNTİSİZ bir degrade;
+   bizimki üç düz bant + sert basamaklardı, çünkü bar mesh'i **hiç köşe
+   rengi yazmıyordu** (`BlockOut/Brick` onu çarpan olarak kullanıyor).
+   Üç düzeltme denemesi yetmedi; doğru cevap yapıyı kurmaktı: kapı bir
+   prizma değil, **düz iki katlı plaka** — çepeçevre ince koyu kenar
+   (%2,5 hücre), içinde dikey degradeli parlak yüz. Okun etrafına da
+   referanstaki koyu halka eklendi.
+2. **Beyaz parlama kaldırıldı.** 20 fps'te 280 kare: blok kapıya girerken
+   kapı HİÇ değişmiyor. Bizdeki beyaza patlama + %14 büyüme + üç katlık
+   hale, 4. turda ölçülmeden eklenmişti. Asıl olan blok parçalarının iri
+   olması (hücrenin %13-18'i); sayı 38 → 15.
+3. **Sönmedeki bozulma:** okun koyu halkası boyanmıyor, son karede ok
+   biçimli koyu bir leke bırakıyordu.
+4. **PERFECT / FAILED kartları ölçüldü** ve — önemlisi — **editörde
+   görülebilir hâle geldi.** Yerleşim `ApplyResultLayout`'a çıkarıldı,
+   `GameplayScreen.CreateResultPreview` (yalnız `UNITY_EDITOR`) eklendi.
+   Puntolarımız referansın kabaca yarısıydı (88/58/46/44 → 132/84/76/66);
+   Continue kartın %76'sıydı, referansta %55.
+5. **Jeton yığını:** `Art/UI/coin_pile_1..5.png` zaten projede duruyordu
+   (mağaza kullanıyor). Ödül kartı on tek jetonu elle istifliyordu.
+6. **Işık yansıması:** referansta ışın YOK, yumuşak hale var. Yeni
+   `UiSprites.Radial`.
+7. **BLOCKOUT harf harf gelişi terk edildi.** Ön koşulu harf başına ayrı
+   görsel; elimizde tek PNG var. Logo tek parça, ölçek+alfa ile oturuyor.
+8. **Mağaza:** festonun altındaki bant tamamen kaldırıldı (46 → 0).
+
+### Bu turun dersleri
+
+- **Bir malzemenin beklediği veriyi vermezsen sessizce düzleşir.** Kapı,
+  bloklarla aynı shader'ı kullanıyordu ama aynı veriyi (köşe rengi)
+  vermiyordu.
+- **Biçimi taklit etmek yerine YAPIYI kur.** Üç tur boyunca referansa
+  benzemeyen bir gövdeyi gölgelendirerek benzetmeye çalıştım.
+- **Bir tepki EKLEMEK, tepkiyi iyileştirmek değildir.** "Olay iki taraflı
+  olmalı" mantıklı bir cümle olduğu için sorgulanmadı.
+- **Ölçmek saymaktan ibaret değil — NE OLMADIĞINI da görmek.** "Işınlar
+  kaç tane" diye ölçtüm; sorulacak ilk soru "ışın var mı" idi.
+- **İkinci kez aynı duvara çarpınca duvarı kabul et.** Harf animasyonu
+  için gereken varlık yok; kötü taklit yerine sade ve temiz çözüm.
+- **Elde olanı aramak, üretmekten ucuzdur.** "Bu varlık yok" varsayımı
+  bir kez kurulunca üstüne kod yazılıyor ve varsayım kodun içinde donuyor.
+- **Vector3 → Vector2 sessiz bir veri kaybıdır.** Ok halkası tek çizgiye
+  inmişti; derleyici hata vermez, çalışma anında patlamaz, mesh boş çıkar.
+- **Doğrulanamayan kod üçüncü kez bozulur.** Sonuç kartı üç turdur
+  düzeltiliyordu çünkü yalnız APK'de görülebiliyordu.
+
+### Yeni araçlar (sonraki oturum bunları kullansın)
+
+- `GameplayScreen.CreateResultPreview(canvasTransform, won, reward,
+  levelName, title)` — oturum olmadan sonuç kartını kurar. Kanvası
+  ÇAĞIRAN vermeli (`UiKit.CreateCanvas` edit modunda `DontDestroyOnLoad`
+  yüzünden patlıyor) ve kök RectTransform olmalı.
+- `StoreScreen.Build(canvasTransform)` — mağaza edit modunda kurulabiliyor.
+- Tahta yakalama: boş sahne nesnesi + `LevelLoader.Parse` →
+  `LevelModel.Build` → `BoardBuilder.Build` + kapalı kamera (80° eğim,
+  27° FOV, ikili aramayla mesafe) + `RenderTexture`.
+
+### AÇIK KALANLAR (öncelik sırasıyla)
+
+1. **SES VE MÜZİK HİÇ YOK.** `Resources/AudioSkin.asset` → `entries: []`,
+   projede tek bir `.wav/.mp3/.ogg` yok. `AudioService` tamamen bağlı ama
+   çalacak klip yok — oyun baştan sona SESSİZ. Kullanıcıya soruldu,
+   cevabı beklendi.
+2. **Titreşim gerçek cihazda doğrulanmadı** (manifest izni eklendi).
+3. **27 bölümün tasarımı referanstan değil, yaklaşık.**
+4. **`DeviceErrorOverlay.cs:33` → `Enabled = true`**, yayından önce
+   `false` yapılacak.
+5. **A2 (4. tur)** — yazı/panel boyutları: kullanıcının kendi işi.
+6. Animasyonlar (yığın gelişi, sönme eğrisi, parçalanma, kutlama akışı)
+   edit modunda oynatılamıyor; ancak APK'de görülebilir.
+
+---
+
 ## 2026-08-19 — 5. TUR KAPANDI (17/17)
 
 **Tek doğruluk kaynağı: `docs/APK-BULGULARI-4.md`.** Kullanıcının ikinci
