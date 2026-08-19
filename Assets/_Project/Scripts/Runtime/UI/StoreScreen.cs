@@ -1,4 +1,4 @@
-using BlockOut.Core;
+﻿using BlockOut.Core;
 using BlockOut.Runtime.Services;
 using TMPro;
 using UnityEngine;
@@ -322,14 +322,34 @@ namespace BlockOut.Runtime.UI
             // jeton X 0.036-0.123 — yani jeton kapsülün soluna taşıyor,
             // kapsülün altında başlamıyor. Bizimki 0.055'ten başlıyordu ve
             // jetonun tamamı kapsülün üstünde kalıyordu (12. APK bulgusu).
+            // JETON KAPSÜLÜ (5. tur, kullanıcı: "gold yerinin o arka planı,
+            // dış çizgisi daha fazla ve gölgeli gözükmeli, ayrıca ufak bir
+            // radiusu daha fazla; bununla beraber coin ikonu o arka planının
+            // BAŞLANGIÇ NOKTASINDA").
+            //
+            // Üç katman: koyu gölge (bir tık aşağıda), koyu kenar, krem yüz.
+            // Tek katmanlı krem kapsül tentenin mavisinde "kesilmiş kâğıt"
+            // gibi duruyordu; kenar ve gölge onu yüzeyden KALDIRIYOR.
+            const float PillX0 = 0.088f, PillX1 = 0.352f;
+
+            var pillShadow = Capsule("CoinPillShadow", bar, new Color(0f, 0f, 0f, 0.32f));
+            UiKit.Place(pillShadow, PillX0, 0.485f, PillX1, 0.685f);
+
+            var pillRim = Capsule("CoinPillRim", bar, new Color(0.137f, 0.075f, 0.035f));
+            UiKit.Place(pillRim, PillX0, 0.50f, PillX1, 0.70f);
+
             var pill = Capsule("CoinPill", bar, new Color(1f, 0.976f, 0.925f));
-            UiKit.Place(pill, 0.112f, 0.50f, 0.338f, 0.70f);
+            UiKit.Place(pill, PillX0 + 0.008f, 0.516f, PillX1 - 0.008f, 0.684f);
 
+            // Rakam jetonun SAĞINDA: jeton artık kapsülün başlangıcında
+            // duruyor, yazı da ona göre kaydı.
             _coinLabel = UiKit.CreateLabel("Coins", pill.transform, "0", 40, Cocoa);
-            UiKit.Place(_coinLabel, 0.28f, 0.04f, 0.92f, 0.96f);
+            UiKit.Place(_coinLabel, 0.34f, 0.04f, 0.94f, 0.96f);
 
+            // Jeton kapsülün BAŞLANGIÇ noktasında ve ondan büyük: sol kenarı
+            // kapsülün sol kenarıyla aynı hizada başlayıp yukarı-aşağı taşıyor.
             var coin = UiKit.CreateIcon("Coin", bar, UiSkin.Get(Art.Coin));
-            UiKit.Place(coin, 0.030f, 0.475f, 0.135f, 0.725f);
+            UiKit.Place(coin, PillX0 - 0.028f, 0.462f, PillX0 + 0.086f, 0.738f);
 
             // Başlık ekranın ortasında DEĞİL: referansta merkezi 0.524'te,
             // yani jeton kapsülünün sağında kalan alanın ortasında. Bizimki
@@ -467,12 +487,50 @@ namespace BlockOut.Runtime.UI
             rect.SetAsFirstSibling();
         }
 
+        /// <summary>
+        /// Bölüm başlığı: kurdele.
+        ///
+        /// Kullanıcı (5. tur): "packs ve special offers kısmının şeritleri var
+        /// bitiş sınırı gibi orijinalinde, onu da yapalım."
+        ///
+        /// ÖLÇÜM (`menus,powerups,vs.mp4` 07. saniye): başlık düz bir kapsül
+        /// değil KURDELE — sağ ucundan, kapsülün dışına taşan küçük bir
+        /// dil çıkıyor ve o dilin kendi koyu gölgesi var. Kitap ayracı gibi:
+        /// "bu bölüm burada bitiyor" diyen şey o dil.
+        ///
+        /// DERS (bir çizgi de bilgi taşır): Kapsül tek başına bir etiket;
+        /// üzerine oturan dil onu bir BÖLÜM SINIRI yapıyor. Aynı yazı, aynı
+        /// renk — fark yalnız o küçük çıkıntıda.
+        /// </summary>
         static void SectionPill(Transform content, float top, string text, Color face,
                                 Color? rimColor = null)
         {
             var row = Row("Pill_" + text, content, top, PillH, MarginX, 1f - MarginX);
 
-            var rim = Capsule("Rim", row, rimColor ?? PillRim);
+            var rimTone = rimColor ?? PillRim;
+
+            // Kurdelenin dili: kapsülün SAĞ ucundan dışarı taşar. Kapsülden
+            // ÖNCE kuruluyor ki kapsül onun sol kenarını örtsün ve dil
+            // "arkadan çıkıyor" görünsün.
+            var tail = UiKit.CreateRect("Tail", row);
+            tail.anchorMin = new Vector2(0.93f, 0.16f);
+            tail.anchorMax = new Vector2(1.045f, 0.84f);
+            tail.offsetMin = Vector2.zero;
+            tail.offsetMax = Vector2.zero;
+            var tailImage = tail.gameObject.AddComponent<Image>();
+            tailImage.color = rimTone;
+            tailImage.raycastTarget = false;
+
+            var tailFace = UiKit.CreateRect("TailFace", tail);
+            tailFace.anchorMin = new Vector2(0f, 0.12f);
+            tailFace.anchorMax = new Vector2(0.86f, 0.88f);
+            tailFace.offsetMin = Vector2.zero;
+            tailFace.offsetMax = Vector2.zero;
+            var tailFaceImage = tailFace.gameObject.AddComponent<Image>();
+            tailFaceImage.color = new Color(face.r * 0.72f, face.g * 0.72f, face.b * 0.72f);
+            tailFaceImage.raycastTarget = false;
+
+            var rim = Capsule("Rim", row, rimTone);
             UiKit.Place(rim, 0f, 0f, 1f, 1f);
 
             var fill = Capsule("Face", row, face);
@@ -648,8 +706,22 @@ namespace BlockOut.Runtime.UI
             // Mor bant tüm kartı kaplar; krem alan onun üstüne oturur ve alt
             // köşeleri bandın arkasında kalır — böylece iki ayrı görsel
             // gerekmeden referanstaki "krem üst + mor alt" biçimi çıkar.
+            // MOR KUTUNUN ALT GÖLGESİ (5. tur, kullanıcı: "mor kutuların da
+            // alt kısmında yine gölgeler daha belirgin"). Kartın altına taşan
+            // koyu bir katman: kart listede "yatıyor" değil "duruyor" olsun.
+            var cardDrop = UiKit.CreateRoundedPanel("Drop", card,
+                new Color(0f, 0f, 0f, 0.34f));
+            UiKit.Place(cardDrop, 0.012f, -0.035f, 0.988f, 0.96f);
+            cardDrop.raycastTarget = false;
+
             var band = UiKit.CreateRoundedPanel("Band", card, BandPurple);
             UiKit.Place(band, 0f, 0f, 1f, 1f);
+
+            // Bandın alt kenarındaki koyu şerit: mor yüzeyin kendi kalınlığı.
+            var bandLip = UiKit.CreateRoundedPanel("BandLip", card,
+                new Color(BandPurple.r * 0.55f, BandPurple.g * 0.45f, BandPurple.b * 0.60f));
+            UiKit.Place(bandLip, 0f, 0f, 1f, 0.055f);
+            bandLip.raycastTarget = false;
 
             var shelf = UiKit.CreateRoundedPanel("Shelf", card, CardShelf);
             UiKit.Place(shelf, 0f, (PackBandH - 16f) / height, 1f, 1f);
@@ -672,9 +744,20 @@ namespace BlockOut.Runtime.UI
 
             if (pack.Ribbon != null) Ribbon(clip, pack.Ribbon);
 
+            // PAKET ADI SOLA YASLI (5. tur, kullanıcı: "paket yazıları yine
+            // biraz daha solda, dikdörtgenin başlangıcında").
+            //
+            // Kutu zaten solda başlıyordu ama yazı ORTALIYDI; kısa adlar
+            // ("Brick Pack") kutunun ortasına kaçıyor, uzun adlar sola
+            // dayanıyordu — yani kartlar arasında ad hizası oynuyordu.
+            //
+            // DERS (hizalama, konumdan daha çok belirler): Bir etiketi sola
+            // taşımak yetmez; İÇİNDEKİ yazının da sola yaslı olması gerekir,
+            // yoksa konum yalnız en uzun metin için doğru olur.
             var name = UiKit.CreateTitle("Name", band.transform, pack.Name, 58,
                 new Color(1f, 0.99f, 0.96f), new Color(0.24f, 0.03f, 0.36f));
-            UiKit.Place(name, 0.05f, 0.02f, 0.62f, PackBandH / height * 0.92f);
+            UiKit.Place(name, 0.042f, 0.02f, 0.62f, PackBandH / height * 0.92f);
+            name.alignment = TextAlignmentOptions.Left;
 
             var buy = PriceButton("Buy", band.transform, pack.Price, 44);
             UiKit.Place(buy, 0.63f, PackBandH / height * 0.18f,
@@ -1058,12 +1141,21 @@ namespace BlockOut.Runtime.UI
         {
             var root = UiKit.CreateRect(name, parent);
 
-            var shadow = Capsule("Shadow", root, Darken(PriceGreen, 0.58f));
+            // DIŞ GÖLGE (5. tur, kullanıcı: "yeşil butonların bir tık daha
+            // fazla gölgesi var"). Düğmenin ALTINA taşan, düğmeden koyu ve
+            // yumuşak bir kapsül: yeşili yüzeyden kaldıran şey bu.
+            var drop = Capsule("Drop", root, new Color(0f, 0f, 0f, 0.30f));
+            UiKit.Place(drop, 0.004f, -0.10f, 0.996f, 0.94f);
+            drop.raycastTarget = false;
+
+            // Koyu yeşil taban: düğmenin kendi kalınlığı. Payı 0,16'dan
+            // 0,22'ye çıktı — referansta taban daha kalın görünüyor.
+            var shadow = Capsule("Shadow", root, Darken(PriceGreen, 0.52f));
             UiKit.Place(shadow, 0f, 0f, 1f, 1f);
             shadow.raycastTarget = true;
 
             var face = Capsule("Face", root, PriceGreen);
-            UiKit.Place(face, 0.012f, 0.16f, 0.988f, 1f);
+            UiKit.Place(face, 0.012f, 0.22f, 0.988f, 1f);
 
             var label = UiKit.CreateTitle("Label", face.transform, text, fontSize,
                 new Color(1f, 1f, 1f), new Color(0.05f, 0.24f, 0.04f));

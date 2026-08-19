@@ -772,7 +772,12 @@ namespace BlockOut.Runtime.View
             var shader = Shader.Find("BlockOut/Brick")
                          ?? Shader.Find("Universal Render Pipeline/Unlit");
             var mat = new Material(shader) { name = "AxisArrowFace_" + color };
-            var c = Color.Lerp(baseColor, Color.white, 0.34f);
+            // ÖLÇÜM (41-50 yürüyüşü, 12:32): okun DOLGUSU bloğun rengiyle
+            // neredeyse aynı — blok gövdesi (253,192,13), okun yüzü aynı
+            // aralıkta. Ayrımı yapan şey renk değil, kenarındaki koyu oluk ve
+            // kabartmanın ışığı. Beyaza %34 karıştırmak oku bloğun üstüne
+            // YAPIŞTIRILMIŞ açık bir çıkartma gibi gösteriyordu.
+            var c = Color.Lerp(baseColor, Color.white, 0.10f);
             c.a = 1f;
             mat.SetColor("_BaseColor", c);
             if (mat.HasProperty("_Color")) mat.SetColor("_Color", c);

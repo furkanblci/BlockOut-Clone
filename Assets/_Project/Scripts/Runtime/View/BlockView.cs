@@ -230,12 +230,29 @@ namespace BlockOut.Runtime.View
             // blokta orantı korunursa ok tahtanın en iri nesnesi hâline
             // geliyor ve blok "ok tutan bir levha" gibi okunuyor. Referansta
             // iri bloklardaki ok yalnız BİR TIK büyük.
+            // YENİDEN ÖLÇÜLDÜ (5. tur, kullanıcı: "50. seviyedeki ok bloklar
+            // daha iyi ama orijinaldeki tarzda değil, biraz daha
+            // benzetilebilir").
+            //
+            // REFERANS (41-50 yürüyüşü, 12:32 — "New Item Unlocked!" panelinde
+            // yön bloğu tek başına ve büyük görünüyor; ölçmek için en iyi
+            // kare): blok 145x144 piksel, ok 60x130 →
+            //   • baş genişliği bloğun %41'i  (bizde %52 idi — çok İRİ)
+            //   • gövde kalınlığı %23         (bizde %21 — doğru)
+            //   • ok boyu bloğun %90'ı        (bizde %56 — çok KISA)
+            //
+            // DERS (bir şekli "büyüt/küçült" diye ayarlamak yetmez): Bizim ok
+            // hem fazla geniş hem fazla kısaydı; tek bir ölçek çarpanı ikisini
+            // birden düzeltemezdi. Baş ile boy AYRI ölçülmeli, çünkü okun
+            // karakteri ikisinin ORANINDAN geliyor: referansın oku ince ve
+            // uzun, yani "bu yönde KAYAR" diyor; bizimki tıknazdı ve
+            // "bir işaret" gibi duruyordu.
             float span = Mathf.Min(Mathf.Min(_model.W, _model.H), 1.5f);
             float axisExtent = horizontal ? _model.W : _model.H;
-            float half = Mathf.Max(0.16f, axisExtent * 0.5f - 0.22f);
-            float headWidth = span * 0.26f;
-            float thickness = span * 0.105f;
-            float headLength = Mathf.Min(span * 0.33f, half * 0.5f);
+            float half = Mathf.Max(0.16f, axisExtent * 0.5f - 0.10f);
+            float headWidth = span * 0.205f;
+            float thickness = span * 0.115f;
+            float headLength = Mathf.Min(span * 0.32f, half * 0.45f);
 
             float top = _filter != null && _filter.sharedMesh != null
                 ? _filter.sharedMesh.bounds.max.y
