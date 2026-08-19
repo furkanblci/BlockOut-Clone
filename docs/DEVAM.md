@@ -8,6 +8,44 @@ Bu dosya her oturum sonunda güncellenir. Aşağısı 2026-08-10 itibarıyla ge�
 
 ---
 
+## 2026-08-19 — 5. TUR KAPANDI (17/17)
+
+**Tek doğruluk kaynağı: `docs/APK-BULGULARI-4.md`.** Kullanıcının ikinci
+geri bildirim turundaki 17 madde oraya döküldü; her maddede referans ÖLÇÜMÜ,
+tespit edilen sebep ve doğrulama sayıları var.
+
+Bu turda kapatılanlar, kabaca:
+- **Kapılar:** duvarı tamamen kaplıyor (altında mor şerit kalmıyor), ok
+  referans oranına (%34 × %19, basık) çekildi, sönerken uzun çizgiler
+  gitti (saydam → opak), yutma parlaması katkılı haleyle güçlendi.
+- **Tahta:** kullanılmayan bölgeler artık gerçekten KESİLİYOR — çerçeve
+  maskenin silüetini izliyor, ızgara da öyle; kenara dayanan boşluklar hiç
+  çizilmiyor.
+- **Blok içinde blok:** iç katman artık saplamalı gerçek bir blok.
+- **Buz:** her hamlede çatlama efekti (eskiden yalnız ses ve titreşim vardı).
+- **Yön blokları:** baş/boy oranı "New Item Unlocked!" karesinden ölçüldü.
+- **Kutlama:** harfler yapboz gibi değil, alfa ile geliyor; roket/patlama
+  sayıları sayıldı.
+- **PERFECT / BAŞARISIZ:** ışın yelpazesi, ölçülen panel renkleri ve
+  BAŞARISIZ kartının ölçeği.
+- **Reklam düğmesi kaldırıldı** — referansta yok, devam etme jetonla.
+- **Yardımcılar:** adet rozeti %50 → %31, fiyat kapsülü ters renkteydi.
+- **Mağaza:** kurdele şeritleri, jeton kapsülü, sola yaslı paket adları,
+  gölgeler, sabit başlığın kalınlığı.
+
+### Bu turun en pahalı dersi
+
+**Unity oynatma modundayken kaydedilen betikler DERLENMEZ.** Doğrulama
+turunun bir kısmı, değişikliklerden ÖNCEKİ derlemeyi ölçmüştü: ölçüm doğru
+çalışıyordu, ölçtüğü şey yanlıştı. Ölçmeden önce `EditorApplication.isPlaying`
+kontrol et. Tahta yakalamaları oynatma modu gerektirmiyor — boş bir sahne
+nesnesi altında `LevelLoader.Parse` → `LevelModel.Build` → `BoardBuilder.Build`
++ kapalı bir kamera + `RenderTexture` ile edit modunda kurulabiliyor
+(kamera `FitCamera`'nın kopyası: 80° eğim, 27° FOV, ikili aramayla mesafe).
+Arayüz ekranları da aynı yolla yakalanabiliyor: `StoreScreen.Build(canvas)`.
+
+---
+
 ## 2026-08-19 — 4. TUR KAPANDI (43/44)
 
 **Tek doğruluk kaynağı: `docs/APK-BULGULARI-3.md`.** Kullanıcının 44 maddesi
