@@ -109,6 +109,72 @@ namespace BlockOut.Runtime.View
         /// silüet dışa doğru `outlineWidth` kadar kaydırılıyor; kalınlık her
         /// blokta aynı ve komşuya taşma, boşluk payı kadar sınırlı.
         /// </summary>
+        /// <summary>
+        /// Seçili bloğun beyaz konturu: bloğun EN GENİŞ olduğu yükseklikte,
+        /// silüetin hemen dışına oturan DÜZ bir halka.
+        ///
+        /// DERS (ters kabuk her kamerada çalışmaz): Kontur eskiden "inverted
+        /// hull" ile çiziliyordu — blok büyütülüp ön yüzleri atılıyor, arka
+        /// yüzleri beyaz görünüyordu. Bu teknik nesnenin ETRAFINI değil,
+        /// kabuğun kameraya arkasını dönen kısmını boyar. Tepeden eğik bakan
+        /// bir kamerada bu yalnız iki kenara denk geliyor; ölçtüm, referansta
+        /// kontur DÖRT kenarda da 2-3 piksel (hücrenin ~%3,7'si).
+        ///
+        /// Halka çözümü açıdan bağımsız: iç kenarı bloğun gerçek silüeti, dış
+        /// kenarı onun `outlineWidth` kadar dışa kaydırılmış hâli. İkisi de
+        /// aynı `BrickSilhouette.Build` çağrısından geldiği için nokta
+        /// sayıları ve sıraları birebir eşleşiyor — aralarını şerit olarak
+        /// örmek yetiyor.
+        ///
+        /// Yükseklik neden `height - chamfer`? Blok orada tam genişliğinde.
+        /// Halkayı bloğun ÜST yüzüne koysaydık, pah kadar yukarıda kalır ve
+        /// eğik kamerada blokla halka arasında ince bir boşluk açılırdı.
+        /// </summary>
+        public static Mesh GetOutlineRing(BlockOut.Core.BlockModel block)
+        {
+            int key = ShapeKey(block) ^ unchecked((int)0x51170000);
+            if (Cache.TryGetValue(key, out var ringCached) && ringCached != null) return ringCached;
+
+            var cfg = VisualSettings.Current;
+            float width = cfg != null ? cfg.outlineWidth : 0.05f;
+            float height = cfg != null ? cfg.brickHeight : 0.40f;
+            float inset = cfg != null ? cfg.brickInset : 0.055f;
+            float chamfer = cfg != null ? cfg.brickChamfer : 0.06f;
+            float corner = cfg != null ? cfg.brickCornerRadius : 0.15f;
+
+            var inner = BrickSilhouette.Build(block.Cells, block.W, block.H, inset, corner);
+            var outer = BrickSilhouette.Build(
+                block.Cells, block.W, block.H, inset - width, corner + width);
+            if (inner == null || outer == null || inner.Count < 3 || inner.Count != outer.Count)
+                return new Mesh { name = "Brick_OutlineRing_Empty" };
+
+            BrickSilhouette.MakeCounterClockwise(inner);
+            BrickSilhouette.MakeCounterClockwise(outer);
+
+            float y = Mathf.Max(0f, height - chamfer);
+            int ringCount = inner.Count;
+            var ringVerts = new Vector3[ringCount * 2];
+            var ringNormals = new Vector3[ringCount * 2];
+            for (int i = 0; i < ringCount; i++)
+            {
+                ringVerts[i * 2] = new Vector3(inner[i].x, y, inner[i].y);
+                ringVerts[i * 2 + 1] = new Vector3(outer[i].x, y, outer[i].y);
+                ringNormals[i * 2] = Vector3.up;
+                ringNormals[i * 2 + 1] = Vector3.up;
+            }
+
+            var ringTris = new List<int>(ringCount * 6);
+            RingQuads(ringTris, 0, ringCount);
+
+            var ring = new Mesh { name = "Brick_OutlineRing" };
+            ring.SetVertices(new List<Vector3>(ringVerts));
+            ring.SetNormals(new List<Vector3>(ringNormals));
+            ring.SetTriangles(ringTris, 0);
+            ring.RecalculateBounds();
+            Cache[key] = ring;
+            return ring;
+        }
+
         public static Mesh GetOutlineShell(BlockOut.Core.BlockModel block)
         {
             int key = ShapeKey(block) ^ unchecked((int)0x2B770000);

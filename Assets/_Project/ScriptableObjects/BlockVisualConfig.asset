@@ -15,7 +15,7 @@ MonoBehaviour:
   brickHeight: 0.8
   brickInset: 0.032
   brickCornerRadius: 0.16
-  outlineWidth: 0.05
+  outlineWidth: 0.038
   brickChamfer: 0.13
   studsPerCell: 2
   studRadius: 0.18

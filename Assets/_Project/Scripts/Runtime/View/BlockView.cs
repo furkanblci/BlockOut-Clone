@@ -480,11 +480,12 @@ namespace BlockOut.Runtime.View
             // birde kalıyor.
             _outline.transform.localScale = Vector3.one;
 
-            // SAPLAMASIZ mesh: kabuk yalnız silüeti çizmeli. Tuğlanın kendi
-            // mesh'i kullanılınca her saplama da büyüyüp kendi konturunu
-            // üretiyor ve blok "beyaz benekli" görünüyordu (denendi, ölçüldü).
+            // DÜZ HALKA, kabuk değil (4. tur, kullanıcı geri bildirimi).
+            // Ters kabuk yalnız kameraya arkasını dönen kenarlarda görünüyordu;
+            // referansta kontur dört kenarı da sarıyor. Ayrıntılı gerekçe
+            // BrickMeshBuilder.GetOutlineRing üstünde.
             _outline.AddComponent<MeshFilter>().sharedMesh =
-                BrickMeshBuilder.GetOutlineShell(_model);
+                BrickMeshBuilder.GetOutlineRing(_model);
 
             var renderer = _outline.AddComponent<MeshRenderer>();
             renderer.sharedMaterial = ViewKit.Outline;
@@ -961,8 +962,12 @@ namespace BlockOut.Runtime.View
             Material flashMaterial = null;
             if (flash != null)
             {
-                // Kontur normalde ince; parlama anında kalınlaşıyor ki
-                // beyaz gerçekten GÖRÜNSÜN.
+                // Kontur normalde yalnız bir HALKA; parlama için o yetmez,
+                // bloğun tamamı beyazlamalı. Bu yüzden mesh bir karelik
+                // süreliğine dolu kabukla değiştiriliyor. Blok zaten yok
+                // oluyor, geri alınmasına gerek yok.
+                var filter = _outline.GetComponent<MeshFilter>();
+                if (filter != null) filter.sharedMesh = BrickMeshBuilder.GetOutlineShell(_model);
                 _outline.transform.localScale = Vector3.one * 1.16f;
                 flashMaterial = ViewKit.Translucent(Color.white);
                 flash.sharedMaterial = flashMaterial;

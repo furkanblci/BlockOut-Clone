@@ -543,20 +543,22 @@ namespace BlockOut.Runtime.View
         /// <summary>
         /// Tutulan bloğun etrafındaki BEYAZ kontur (2. tur, 51. madde).
         ///
-        /// DERS (3B konturun ucuz ve doğru yolu — KABUK): Bir mesh'in
-        /// silüetini çizmenin akla ilk gelen yolu ayrı bir "outline" geçişi
-        /// yazmaktır; URP'de bu bir Renderer Feature demek ve tek bir blok
-        /// için fazlasıyla ağır. Klasik ve bedava yöntem KABUK: aynı mesh
-        /// biraz büyütülüp ÖN YÜZLERİ kırpılarak (Cull Front) çizilir. Geriye
-        /// yalnız arka yüzler kalır, onlar da bloğun arkasında olduğu için
-        /// ekranda yalnızca kenardan taşan ince bir çerçeve görünür.
+        /// Kontur, bloğun etrafını saran DÜZ bir halka
+        /// (<see cref="BrickMeshBuilder.GetOutlineRing"/>) ve `BlockOut/Outline`
+        /// shader'ı ile ÇİZİLDİĞİ ANDA her şeyin üstüne biniyor.
         ///
-        /// Işıksız (Unlit) olmalı: kontur bir yüzey değil bir İŞARET; sahnenin
+        /// DERS (denenip ELENEN yöntem — ters kabuk): İlk sürüm klasik
+        /// "inverted hull" idi: aynı mesh biraz büyütülüp ön yüzleri
+        /// kırpılarak (Cull Front) çizilir, geriye kalan arka yüzler ince bir
+        /// çerçeve gibi görünür. Bu teknik nesnenin ETRAFINI değil, kabuğun
+        /// KAMERAYA ARKASINI DÖNEN kısmını boyar. Bizim kamera tahtaya 80°
+        /// eğimle, yani neredeyse tepeden bakıyor; o açıda kabuğun yalnız iki
+        /// kenarı arkasını dönüyor ve kontur diğer iki kenarda hiç
+        /// görünmüyordu. Referansta ise dört kenarda da 2-3 piksel var.
+        ///
+        /// Işıksız olmalı: kontur bir yüzey değil bir İŞARET; sahnenin
         /// ışığından etkilenirse bir yüzü parlak diğeri sönük çıkar ve
         /// "çerçeve" okuması bozulur.
-        ///
-        /// Sıra numarası bloğunkinden KÜÇÜK: kabuk önce çizilsin ki blok onun
-        /// üstüne otursun ve kontur yalnız dışarıda kalan kısımda görünsün.
         /// </summary>
         public static Material Outline
         {
@@ -564,17 +566,30 @@ namespace BlockOut.Runtime.View
             {
                 if (_outline == null)
                 {
-                    // BackgroundView de bu shader'ı kullanıyor, yani derlemeye
-                    // GİRDİĞİ zaten sahada doğrulanmış durumda (18. maddenin
-                    // dersi: Shader.Find editörde her zaman çalışır).
-                    var shader = Shader.Find("Universal Render Pipeline/Unlit")
-                                 ?? Shader.Find("Sprites/Default");
-                    _outline = new Material(shader) { name = "BlockOutline" };
-                    _outline.SetColor("_BaseColor", Color.white);
-                    if (_outline.HasProperty("_Color")) _outline.SetColor("_Color", Color.white);
-                    if (_outline.HasProperty("_Cull"))
-                        _outline.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Front);
-                    _outline.renderQueue = 2000;
+                    // Malzeme bir ASSET; Resources'ta duruyor.
+                    //
+                    // DERS (build'de elenen shader): `Shader.Find` editörde
+                    // her zaman çalışır çünkü editörde bütün shader'lar
+                    // yüklüdür — 18. maddede bunu bir kez yaşadık. Build'de
+                    // ise hiçbir malzemenin kullanmadığı shader ELENİR.
+                    // Malzemeyi asset olarak tutup Resources'tan yüklemek
+                    // shader'ı o malzemenin bağımlılığı yapar; eleme riski
+                    // ortadan kalkar.
+                    _outline = Resources.Load<Material>("BlockOutline");
+
+                    if (_outline == null)
+                    {
+                        // Asset silinirse oyun pembe bloklarla değil, biraz
+                        // eksik bir konturla çalışsın.
+                        var shader = Shader.Find("Universal Render Pipeline/Unlit")
+                                     ?? Shader.Find("Sprites/Default");
+                        _outline = new Material(shader) { name = "BlockOutline" };
+                        _outline.SetColor("_BaseColor", Color.white);
+                        if (_outline.HasProperty("_Color")) _outline.SetColor("_Color", Color.white);
+                        if (_outline.HasProperty("_Cull"))
+                            _outline.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Off);
+                        _outline.renderQueue = 3100;
+                    }
                 }
                 return _outline;
             }
