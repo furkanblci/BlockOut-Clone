@@ -73,7 +73,7 @@ namespace BlockOut.Runtime.UI
         // %13.96'sı → 268 birim.
         const float AwningH   = 268f;
         // Tentenin hemen altı: referansta içerik festona neredeyse değiyor.
-        const float PadTop    = 10f;
+        const float PadTop    = 4f;
         const float PillH     = 104f;
         const float PillGap   = 54f;
         const float OfferArtH = 340f;
@@ -313,7 +313,15 @@ namespace BlockOut.Runtime.UI
             // varlığını görüyordu.
             //
             // Pay yalnız festonun çentiklerini arkadan kapatacak kadar.
-            const float ShadeDrop = 6f;
+            // SIFIR (6. tur). Kullanıcı bandı hâlâ görüyor: "o mavi arka plan
+            // sabit kalsın, aşağı kaydırdığımızda bizimle gelmesin."
+            //
+            // Referansta festonun altında BAND YOK — koyu kenar bitiyor ve
+            // içerik başlıyor (menüler videosu 10. ve 12. saniye farkı:
+            // içeriğin kaydığı ilk satır ekranın %13,5'i, tentenin dibiyle
+            // aynı yer). Levha yalnız festonun çentiklerini ARKADAN kapatmak
+            // için var; tentenin altına taşmasının hiçbir gerekçesi yok.
+            const float ShadeDrop = 0f;
             var shade = Row("AwningShade", root, 0f, AwningH + ShadeDrop);
             var shadeImage = shade.gameObject.AddComponent<Image>();
             shadeImage.color = new Color(0.024f, 0.137f, 0.529f);   // #062387

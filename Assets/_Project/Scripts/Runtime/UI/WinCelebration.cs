@@ -92,12 +92,32 @@ namespace BlockOut.Runtime.UI
             _logo = UiKit.CreateRect("Logo", _root);
             UiKit.Place(_logo, 0.1525f, 0.366f, 0.8475f, 0.626f);   // %69,5 genişlik
 
+            // LOGO TEK PARÇA GELİYOR (6. tur).
+            //
+            // Kullanıcı: "BLOCKOUT yazısının gelişi çok kötü. Kelime kelime
+            // ayırıp animasyonunu yapabiliyorsan orijinaldeki gibi yap, veya
+            // direkt düz bir şekilde gelsin — o açılma muhabbeti olmasın,
+            // çünkü çok kötü gözüküyor."
+            //
+            // HARF HARF GELİŞ TERK EDİLDİ. Logo TEK bir PNG; harflere UV
+            // dikdörtgenleriyle bölünüyordu. Bir dilim küçültülünce ekranda
+            // görünen şey harf değil, KÜÇÜLTÜLMÜŞ BİR DİKDÖRTGEN oluyor:
+            // içinde harfin bir parçası, mor zeminin bir parçası ve iki
+            // yanında dümdüz kesik kenarlar. 5. turda kesik kenarı alfa ile
+            // gizlemeye çalıştım; kullanıcı yine "yapboz" dedi ve haklıydı —
+            // kesik kenar hâlâ oradaydı, yalnız daha soluk.
+            //
+            // DERS (ikinci kez aynı duvara çarpınca duvarı kabul et):
+            // Referanstaki animasyonun ön koşulu HARF BAŞINA AYRI GÖRSEL.
+            // O varlık elimizde yok; "elimizdekiyle yaklaşık yapayım"
+            // denemesi iki kez daha kötü bir sonuç verdi. Bu durumda doğru
+            // hamle, kötü bir taklit yerine SADE ama temiz bir çözüm: logo
+            // tek parça, hafif bir yaylanmayla oturuyor.
+            //
+            // Harf başına PNG'ler geldiği gün `BuildLetters` hazır duruyor —
+            // silinmedi, yalnız çağrılmıyor.
             var art = UiSkin.Get(Art.GameLogo);
-            if (art != null && art.texture != null)
-            {
-                BuildLetters(art);
-            }
-            else if (art != null)
+            if (art != null)
             {
                 _logoImage = UiKit.CreateIcon("Mark", _logo, art);
                 UiKit.Place(_logoImage, 0f, 0f, 1f, 1f);
@@ -332,7 +352,11 @@ namespace BlockOut.Runtime.UI
             }
             else if (_logoImage != null)
             {
-                GameKit.FX.Juice.Run(DropIn(_logo, 0f));
+                // BEKLENİYOR, fırlatılıp unutulmuyor: referansta logo
+                // TAMAMLANDIKTAN sonra fişekler başlıyor. Eskiden `Run(...)`
+                // ile başlatılıp hemen devam ediliyordu ve konfeti logonun
+                // üstüne biniyordu.
+                yield return LogoEntrance();
             }
             else
             {
@@ -439,6 +463,35 @@ namespace BlockOut.Runtime.UI
         }
 
         /// <summary>Satırın yukarıdan düşüp yaylanarak oturması.</summary>
+        /// <summary>
+        /// Logonun gelişi: yalnız ÖLÇEK ve ALFA — kayma yok.
+        ///
+        /// Kullanıcı (6. tur): "Direkt düz bir şekilde gelsin, o açılma
+        /// muhabbeti olmasın."
+        ///
+        /// Yukarıdan düşürmek (eski `DropIn`) siyah perdede logonun nereden
+        /// geldiğini belirsiz bırakıyordu; referanstaki hareket zaten
+        /// merkezden BÜYÜME. Küçükten başlayıp son boyunu bir tık aşıp
+        /// oturuyor — tek bir hareket, kesik kenar yok, dilim yok.
+        /// </summary>
+        IEnumerator LogoEntrance()
+        {
+            var group = _logo.GetComponent<CanvasGroup>();
+            if (group == null) group = _logo.gameObject.AddComponent<CanvasGroup>();
+
+            const float duration = 0.36f;
+            for (float t = 0f; t < duration && !_skip; t += Time.unscaledDeltaTime)
+            {
+                float k = Mathf.Clamp01(t / duration);
+                _logo.localScale = Vector3.one *
+                    Mathf.Lerp(0.62f, 1f, GameKit.FX.Juice.EaseOutBack(k, 2.2f));
+                group.alpha = Mathf.Clamp01(k * 2.2f);
+                yield return null;
+            }
+            _logo.localScale = Vector3.one;
+            group.alpha = 1f;
+        }
+
         static IEnumerator DropIn(RectTransform line, float delay)
         {
             if (line == null) yield break;

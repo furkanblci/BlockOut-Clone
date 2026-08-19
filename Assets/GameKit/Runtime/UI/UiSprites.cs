@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace GameKit.UI
 {
@@ -478,6 +478,61 @@ namespace GameKit.UI
         /// yüksek kuvveti dar ve keskin ışınlar verir, düşük kuvveti geniş ve
         /// yumuşak. Taban parlaklık hep var ki ışınların arası kararmasın.
         /// </summary>
+        static Sprite _radial;
+
+        /// <summary>
+        /// IŞINSIZ yumuşak hale: merkezden dışa doğru sönen düz bir daire.
+        ///
+        /// <see cref="Burst"/> ile farkı, ışın olmaması. Referansta (Block
+        /// Out! PERFECT kartı) jeton yığınının arkasındaki parlaklık çizgisel
+        /// değil; ışın koymak ekranda gri bir çark üretiyordu.
+        ///
+        /// Sönüm eğrisi KÜP: karesel sönüm kenarda hâlâ görünür bir daire
+        /// bırakıyor, küp alınca kenar tamamen kayboluyor ve hale "bir yerde
+        /// biten" bir şekil olmaktan çıkıyor.
+        /// </summary>
+        public static Sprite Radial
+        {
+            get
+            {
+                if (_radial != null) return _radial;
+
+                const int size = 128;
+                var tex = new Texture2D(size, size, TextureFormat.RGBA32, false)
+                {
+                    name = "UiRadial",
+                    hideFlags = HideFlags.HideAndDontSave,
+                    wrapMode = TextureWrapMode.Clamp,
+                    filterMode = FilterMode.Bilinear
+                };
+
+                var pixels = new Color32[size * size];
+                float half = size * 0.5f;
+                for (int y = 0; y < size; y++)
+                    for (int x = 0; x < size; x++)
+                    {
+                        float dx = x + 0.5f - half;
+                        float dy = y + 0.5f - half;
+                        float r = Mathf.Clamp01(Mathf.Sqrt(dx * dx + dy * dy) / half);
+                        // Sönüm KÜP değil 1,5. KÜP alınca hale merkezde bir
+                        // noktaya toplanıyor ve jetonların altında kalıp
+                        // ekranda hiç görünmüyordu (ölçüldü: ödül kartında
+                        // parlaklık farkı fark edilmiyor). 1,5 daha geniş bir
+                        // bulut veriyor, kenarı yine tamamen kayboluyor.
+                        float fade = Mathf.Pow(1f - r, 1.5f);
+                        pixels[y * size + x] = new Color(1f, 1f, 1f, fade);
+                    }
+
+                tex.SetPixels32(pixels);
+                tex.Apply(false, true);
+                _radial = Sprite.Create(tex, new Rect(0f, 0f, size, size),
+                    new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
+                _radial.name = "UiRadial";
+                _radial.hideFlags = HideFlags.HideAndDontSave;
+                return _radial;
+            }
+        }
+
         public static Sprite Burst
         {
             get
