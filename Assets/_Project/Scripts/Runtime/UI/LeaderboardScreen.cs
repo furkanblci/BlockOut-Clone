@@ -622,7 +622,6 @@ namespace BlockOut.Runtime.UI
         void BuildRows(Transform root)
         {
             const float rowH = 158f, gap = 24f, step = rowH + gap;
-            const float top = 1006f;
 
             // KAYDIRILABİLİR LİSTE.
             //
@@ -652,9 +651,32 @@ namespace BlockOut.Runtime.UI
             // sıra yeşil satırın arkasında yarı yarıya kaldı.
             // DERS: sabit bir öğeyi yukarı almak, üstündeki kaydırma alanını
             // AYNI KADAR kısaltmayı gerektirir; ikisi tek bir bütçeyi paylaşıyor.
+            // KAYDIRMA, SAHNENİN İÇİNDE DEĞİL ALTINDA BAŞLAR (7. tur, O54).
+            //
+            // Kullanıcı: "Sıralama kaydırılırken üst kısım maskelenmiş gibi
+            // kötü görünüyor… Kürsünün hemen altında düz, çerçevesiz mor bir
+            // çizgi olacak. Scroll edilen alanın üstünde çerçeve olacak."
+            //
+            // SEBEP: Görüntü alanı 1006'da başlıyordu, park sahnesi ise
+            // 1042'de bitiyor — yani listenin ilk 36 birimi ÇİMİN ÜSTÜNDE
+            // duruyordu ve kaydırılan satırlar tam orada, çimenli bir
+            // görselin ortasında kesiliyordu. Maske çizgisi hiçbir kenara
+            // denk gelmediği için "bir şey yanlışlıkla kırpılmış" gibi
+            // okunuyordu.
+            //
+            // DERS (kesim, BİR KENARDA olmalı): Bir maske görünmez değildir;
+            // içeriği nerede bitirdiğini gösterir. Kesim çizgisi tasarımda
+            // zaten var olan bir sınıra (burada sahnenin dibine) oturursa göz
+            // onu kesim değil kenar olarak okur. Kesim serbest bir yerdeyse
+            // hangi kenarlığı koyarsan koy rahatsız etmeye devam eder.
+            const float sceneBottom = 556f + 486f;      // BuildScene ile aynı
+            const float railH = 26f;                    // düz mor çizgi
+            const float frameH = 7f;                    // kaydırma alanının çerçevesi
+            float viewportTop = sceneBottom + railH + frameH;
+
             const float viewportBottom = 1446f;
-            var viewport = MenuPage.Row("RowsViewport", root, top,
-                viewportBottom - top, 0f, 1f);
+            var viewport = MenuPage.Row("RowsViewport", root, viewportTop,
+                viewportBottom - viewportTop, 0f, 1f);
             viewport.gameObject.AddComponent<RectMask2D>();
 
             var content = UiKit.CreateRect("Rows", viewport);
@@ -690,6 +712,30 @@ namespace BlockOut.Runtime.UI
                         rival.score, RowFace, i);
                 _rows.Add((nameText, scoreText));
             }
+
+            // --- Kürsü ile liste ARASI ---
+            //
+            // İki parça, ikisi de görüntü alanından SONRA kuruluyor (kardeş
+            // sırası = çizim sırası): kaydırılan satırlar bunların ardına
+            // girip kayboluyor.
+            //
+            // 1) DÜZ, ÇERÇEVESİZ MOR ÇİZGİ — kürsünün hemen altında. Ekranın
+            //    gövde rengiyle aynı: sahne biter bitmez ekranın kendi zemini
+            //    başlıyor, arada başka bir malzeme yok.
+            var rail = MenuPage.Row("ListRail", root, sceneBottom, railH, 0f, 1f);
+            var railImage = rail.gameObject.AddComponent<Image>();
+            railImage.color = MenuPage.Body;
+            railImage.raycastTarget = false;
+
+            // 2) ÇERÇEVE — kaydırılan alanın üst kenarı. Satır genişliğinde,
+            //    satırların yüzü kadar açık mor: "liste burada başlıyor"
+            //    diyen tek çizgi. Kaydırma bu çizginin ALTINDA kesildiği için
+            //    kesim artık bir kenarlığa denk geliyor.
+            var frame = MenuPage.Row("ListFrame", root, sceneBottom + railH, frameH,
+                0.035f, 0.965f);
+            var frameImage = frame.gameObject.AddComponent<Image>();
+            frameImage.color = MenuPage.Panel;
+            frameImage.raycastTarget = false;
         }
 
         /// <summary>Aynı anda görünen satır sayısı (referansta beş).</summary>

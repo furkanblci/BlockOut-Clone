@@ -250,7 +250,12 @@ namespace BlockOut.Runtime.View
             float span = Mathf.Min(Mathf.Min(_model.W, _model.H), 1.5f);
             float axisExtent = horizontal ? _model.W : _model.H;
             float half = Mathf.Max(0.16f, axisExtent * 0.5f - 0.10f);
-            float headWidth = span * 0.205f;
+            // 0.205 → 0.235 (7. tur, V70). Yuvarlatma ve pah, okun UÇLARINDAN
+            // pay yiyor: yay yarıçapı 0.032 + pah 0.024 = 0.056 birim. Ölçülen
+            // oran (baş genişliği bloğun %41'i) SİLUETİN oranı; onu korumak
+            // için çokgen o kadar büyük başlamalı. Yoksa "ölçüme uygun" bir
+            // sayı yazıp ekranda daha küçük bir ok elde edersin.
+            float headWidth = span * 0.235f;
             float thickness = span * 0.115f;
             float headLength = Mathf.Min(span * 0.32f, half * 0.45f);
 
@@ -260,6 +265,14 @@ namespace BlockOut.Runtime.View
 
             var polygon = ArrowPolygon(half, thickness, headWidth, headLength);
             if (!horizontal) RotateQuarter(polygon);
+
+            // KÖŞELERİ YUVARLA (7. tur, V70). Referansta (41-50 yürüyüşü,
+            // 50. bölüm) okun HİÇBİR köşesi keskin değil — sivri uç bile
+            // yuvarlatılmış. Keskin köşeli bir çokgen, ne kadar iyi
+            // gölgelendirilirse gölgelendirilsin "vektör çizim" gibi duruyor;
+            // oyunun geri kalanında (blok, kapı, çerçeve) tek bir keskin köşe
+            // yok.
+            polygon = Round(polygon, span * 0.032f);
 
             // OLUK: okun bir tık büyütülmüş KOYU kopyası. Referansta okun
             // çevresinde koyu bir hat var; onsuz açık tonlu ok gövdenin
@@ -274,11 +287,32 @@ namespace BlockOut.Runtime.View
             grooveRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             grooveRenderer.receiveShadows = false;
 
-            // KABARTMA: alçak bir prizma. Düz bir levha tepeden bakan kamerada
-            // hiçbir kenar üretmez; yan duvarı olan prizma, ışığı farklı açıyla
-            // alan ince bir şerit verir ve ok "basılmış" görünür.
+            // KABARTMA: PAHLI prizma — taban geniş, üst yüz içeri çekilmiş.
+            //
+            // BULUNAN HATA (7. tur, V70). Kullanıcı: "Ok şeklindeki blokların
+            // tasarımı daha iyi, gerçek 3D modelmiş gibi hale getirilecek."
+            //
+            // Ok mesh'i KÖŞE RENGİ YAZMIYORDU. `BlockOut/Brick` gölgelendirici
+            // albedo'yu `_BaseColor * IN.color` diye hesaplıyor; renk verilmeyen
+            // bir mesh'te Unity beyaz (1,1,1,1) veriyor, yani ok TAM parlaklıkta
+            // ve tek tonda çiziliyordu. Bloğun gövdesi ise yüz 0.72, yan 0.86,
+            // saplama tepesi 1.0 gibi PİŞMİŞ tonlar taşıyor. Ok bu yüzden
+            // bloğun üstünde 3B bir kabartma değil, açık renkli düz bir leke
+            // gibi duruyordu.
+            //
+            // DERS (bu projede İKİNCİ kez): Aynı hata 6. turda KAPIDA çıkmıştı
+            // — "bir malzemenin beklediği veriyi vermezsen sessizce düzleşir".
+            // O zaman kapı için not düşülmüştü ama aynı gölgelendiriciyi
+            // kullanan DİĞER mesh'ler taranmamıştı. Bir tuzağı bulunca onu
+            // yalnız bulunduğu yerde değil, AYNI SÖZLEŞMEYİ paylaşan her yerde
+            // aramak gerekiyor.
+            //
+            // Pah da yeni: dik yan duvarlı bir prizmanın tepeden görünen tek
+            // şeyi üst kapağıdır. Üstü içeri çekince aradaki eğik şerit ışığı
+            // farklı açıyla alıyor — referanstaki "üst-solda parlak, alt-sağda
+            // koyu" kenar tam olarak o şerit.
             go.AddComponent<MeshFilter>().sharedMesh =
-                Prism(polygon, span * 0.05f, "AxisArrow");
+                BevelPrism(polygon, span * 0.090f, span * 0.024f, "AxisArrow");
 
             var renderer = go.AddComponent<MeshRenderer>();
             renderer.sharedMaterial = ViewKit.AxisArrowFace(_palette, _model.CurrentColor);
@@ -379,26 +413,118 @@ namespace BlockOut.Runtime.View
             return mesh;
         }
 
-        /// <summary>Alçak prizma: yan duvar + üst kapak.</summary>
-        static Mesh Prism(List<Vector2> polygon, float height, string name)
+        /// <summary>
+        /// Çokgenin her köşesini yay ile yuvarlar.
+        ///
+        /// <see cref="BrickSilhouette"/> içindeki `Fillet` ile aynı matematik;
+        /// orası özel olduğu ve hücre ızgarasına bağlı çalıştığı için ok
+        /// çokgeni burada yuvarlanıyor. Yarıçap komşu kenarların yarısını
+        /// aşamaz — aşarsa iki yay birbirine girip siluet düğümlenir.
+        /// </summary>
+        static List<Vector2> Round(List<Vector2> polygon, float radius, int segments = 3)
         {
             int count = polygon.Count;
-            var verts = new List<Vector3>();
-            var normals = new List<Vector3>();
+            var result = new List<Vector2>(count * (segments + 1));
+
+            for (int i = 0; i < count; i++)
+            {
+                var prev = polygon[(i - 1 + count) % count];
+                var cur = polygon[i];
+                var nxt = polygon[(i + 1) % count];
+
+                var inDir = cur - prev;
+                var outDir = nxt - cur;
+                float inLen = inDir.magnitude, outLen = outDir.magnitude;
+                if (inLen < 1e-5f || outLen < 1e-5f) { result.Add(cur); continue; }
+
+                var a = inDir / inLen;
+                var b = outDir / outLen;
+                float r = Mathf.Min(radius, Mathf.Min(inLen, outLen) * 0.5f);
+                if (r < 1e-4f) { result.Add(cur); continue; }
+
+                var p1 = cur - a * r;
+                var p2 = cur + b * r;
+                var center = cur + (b - a) * r;
+
+                float angle1 = Mathf.Atan2(p1.y - center.y, p1.x - center.x);
+                float angle2 = Mathf.Atan2(p2.y - center.y, p2.x - center.x);
+                float delta = Mathf.DeltaAngle(angle1 * Mathf.Rad2Deg, angle2 * Mathf.Rad2Deg)
+                              * Mathf.Deg2Rad;
+
+                for (int s = 0; s <= segments; s++)
+                {
+                    float t = angle1 + delta * (s / (float)segments);
+                    var point = center + new Vector2(Mathf.Cos(t), Mathf.Sin(t)) * r;
+
+                    // ÜST ÜSTE BİNEN NOKTAYI ATLA — yoksa kabartma bozuluyor.
+                    //
+                    // BULUNAN HATA (7. tur, V70): Okun omuz kenarı
+                    // (baş genişliği − gövde kalınlığı) yalnız 0,09 birim ve
+                    // yarıçap onun tam yarısı. İki komşu yay o kenarın TAM
+                    // ORTASINDA bitip başlıyor, yani AYNI noktayı iki kez
+                    // üretiyorlar. Sıfır uzunluklu kenarın "dış normali"
+                    // sıfıra bölme demek; <see cref="Grow"/> orada NaN
+                    // üretiyor ve pah halkası kendi içine kıvrılıyordu.
+                    // Ekranda ok, ortadan incelen bir kama gibi çıkıyordu.
+                    //
+                    // DERS (sıfır uzunluklu kenar bir "kenar durumu" değil,
+                    // normal bir sonuçtur): Yay yarıçapı komşu kenarın yarısına
+                    // eşit olduğu anda kaçınılmaz. Çokgen üreten her yerde
+                    // tekrar eden noktayı ayıklamak zorunlu.
+                    if (result.Count > 0 &&
+                        (point - result[result.Count - 1]).sqrMagnitude < 1e-8f) continue;
+                    result.Add(point);
+                }
+            }
+
+            // Halkanın kapandığı yerde de aynı tekrar olabilir.
+            while (result.Count > 3 &&
+                   (result[0] - result[result.Count - 1]).sqrMagnitude < 1e-8f)
+                result.RemoveAt(result.Count - 1);
+
+            return result;
+        }
+
+        /// <summary>
+        /// PAHLI kabartma: geniş taban → eğik omuz → içeri çekilmiş üst kapak.
+        ///
+        /// Köşe renkleri bloğun saplamalarıyla aynı aileden: dip koyu, omuz
+        /// parlak, kapak arada. Bu tonlar <see cref="BrickMeshBuilder"/>'ın
+        /// gövde için kullandıklarıyla aynı ölçekte (yüz 0.72, saplama tepesi
+        /// 1.0) — ok bu sayede bloğun ÜSTÜNDEN çıkmış gibi okunuyor, üstüne
+        /// konmuş gibi değil.
+        /// </summary>
+        static Mesh BevelPrism(List<Vector2> polygon, float height, float bevel, string name)
+        {
+            int count = polygon.Count;
+            var top = Grow(polygon, -bevel);          // üst halka: içeri çekik
+
+            var verts = new List<Vector3>(count * 3);
+            var normals = new List<Vector3>(count * 3);
+            var colors = new List<Color>(count * 3);
             var tris = new List<int>();
+
+            // Dip, saplama ayağıyla (0.42) gövde yüzü (0.72) arasında; omuz
+            // saplama tepesi kadar parlak.
+            Color footTone = Tone(0.50f);
+            Color rimTone = Tone(1.00f);
+            Color capTone = Tone(0.88f);
 
             for (int i = 0; i < count; i++)
             {
                 var prev = polygon[(i - 1 + count) % count];
                 var nxt = polygon[(i + 1) % count];
                 var tangent = (nxt - prev).normalized;
-                var n = new Vector3(tangent.y, 0.35f, -tangent.x).normalized;
+                // Pah eğik olduğu için normalin yukarı bileşeni dik duvardan
+                // büyük: ışığı üstten alsın, kenar "yumuşak" görünsün.
+                var n = new Vector3(tangent.y, 0.75f, -tangent.x).normalized;
 
-                var p = polygon[i];
-                verts.Add(new Vector3(p.x, 0f, p.y));
-                verts.Add(new Vector3(p.x, height, p.y));
+                verts.Add(new Vector3(polygon[i].x, 0f, polygon[i].y));
+                verts.Add(new Vector3(top[i].x, height, top[i].y));
                 normals.Add(n); normals.Add(n);
+                colors.Add(footTone); colors.Add(rimTone);
             }
+
             for (int i = 0; i < count; i++)
             {
                 int a = i * 2;
@@ -408,20 +534,45 @@ namespace BlockOut.Runtime.View
             }
 
             int capStart = verts.Count;
-            foreach (var p in polygon)
+            foreach (var p in top)
             {
                 verts.Add(new Vector3(p.x, height, p.y));
                 normals.Add(Vector3.up);
+                colors.Add(capTone);
             }
+
+            // ÜST KAPAK, TABANIN ÜÇGENLEMESİNİ KULLANIR — kendi çokgeninin
+            // değil (7. tur, V70).
+            //
+            // BULUNAN HATA: `top`, tabanın içeri kaydırılmış hâli. Okun omuz
+            // ÇENTİKLERİ içbükey ve derinliği yalnız (baş − gövde) = 0,12
+            // birim; içeri kaydırma o çentiği kapatıp halkayı kendi üstüne
+            // katlıyor. Kulak kırpma böyle bir çokgende kırpacak kulak
+            // bulamıyor, "hiç kapatmamaktan iyidir" diyerek kalanı YELPAZE ile
+            // dolduruyor — ve yelpaze 0 numaralı köşeden açıldığı için ok,
+            // sağ ucundan sola doğru genişleyen bir KAMA olarak çiziliyordu.
+            // (Ölçüldü: parlak bant sol uçta 49, sağ uçta 25 piksel; mesh'in
+            // kendisi ise tam simetrikti — hata geometride değil,
+            // üçgenlemedeydi.)
+            //
+            // DERS (topoloji ile geometri ayrı şeylerdir): İki halkanın köşe
+            // SAYISI ve SIRASI birebir aynı; hangi üçgenin hangi üç köşeyi
+            // bağladığı yalnız sıraya bağlı. Sağlam olan halkadan çıkarılan
+            // üçgen listesi diğerinde de geçerli. Kaydırılmış halka bir tık
+            // bozuksa üçgenler kıl payı üst üste biner — 0,024 birimde
+            // görünmez; yelpaze ise şekli tamamen değiştiriyordu.
             BrickSilhouette.Triangulate(polygon, tris, capStart, faceUp: true);
 
             var mesh = new Mesh { name = name };
             mesh.SetVertices(verts);
             mesh.SetNormals(normals);
+            mesh.SetColors(colors);
             mesh.SetTriangles(tris, 0);
             mesh.RecalculateBounds();
             return mesh;
         }
+
+        static Color Tone(float value) => new Color(value, value, value, 1f);
 
         /// <summary>
         /// Okun oturacağı yer: hücrelerin AĞIRLIK MERKEZİ. Dikdörtgende bu tam

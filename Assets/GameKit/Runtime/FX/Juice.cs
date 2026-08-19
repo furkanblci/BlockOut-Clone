@@ -247,6 +247,28 @@ namespace GameKit.FX
             return onDone != null ? tween.OnComplete(onDone) : tween;
         }
 
+        /// <summary>
+        /// <see cref="SlideX"/>'in dikey kardeşi.
+        ///
+        /// Eklenme gerekçesi (7. tur, S61): duraklatılan oyunda süre
+        /// göstergesi ekranın üstünden çıkıp geri iniyor. Yatay kaydırma
+        /// sekme geçişleri için vardı; dikeyi yoktu ve her çağrı yeri kendi
+        /// tween'ini yazmak zorundaydı.
+        /// </summary>
+        public static PT.Tween SlideY(RectTransform target, float fromY, float toY,
+            float duration = 0.17f, PT.Ease ease = PT.Ease.OutQuad, Action onDone = null)
+        {
+            if (target == null) return default;
+
+            var position = target.anchoredPosition;
+            target.anchoredPosition = new Vector2(position.x, fromY);
+
+            var tween = PT.Tween.UIAnchoredPositionY(target, fromY, toY, duration,
+                ease, useUnscaledTime: true);
+
+            return onDone != null ? tween.OnComplete(onDone) : tween;
+        }
+
         /// <summary>Hedefi sıfıra büzerek kapatır — panel çıkışı.</summary>
         public static PT.Tween PopOut(Transform target, float duration = 0.20f,
             Action onDone = null)

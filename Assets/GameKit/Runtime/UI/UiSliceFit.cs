@@ -65,9 +65,15 @@ namespace GameKit.UI
             float height = _rect.rect.height;
             if (width <= 1f || height <= 1f) return;
 
-            // border = (sol, alt, sağ, üst)
-            float needX = border.x + border.z;
-            float needY = border.y + border.w;
+            // border = (sol, alt, sağ, üst) — SPRITE PİKSELİ cinsinden, kutu
+            // ise KANVAS BİRİMİ. İkisi ancak sprite'ın piksel/birim oranı
+            // kanvasınkiyle (100) aynıysa doğrudan karşılaştırılabilir.
+            // Yüksek çözünürlüklü sprite'lar (bkz. UiSprites.PanelPixelsPerUnit)
+            // 200 kullanıyor; oranı düşmeden pay iki katı sanılır ve bileşen
+            // sığan bir kutuyu sığmıyor sanıp köşeleri gereksiz yere ezerdi.
+            float perUnit = sprite.pixelsPerUnit > 0f ? 100f / sprite.pixelsPerUnit : 1f;
+            float needX = (border.x + border.z) * perUnit;
+            float needY = (border.y + border.w) * perUnit;
 
             // Çarpan payları BÖLER: 2 vermek payları yarıya indirir.
             float mulX = needX > 0f ? needX / (width * MaxBorderShare) : 1f;

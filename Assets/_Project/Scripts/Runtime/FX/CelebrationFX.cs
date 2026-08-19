@@ -26,16 +26,50 @@ namespace BlockOut.Runtime.FX
     /// </summary>
     public static class CelebrationFX
     {
-        /// <summary>Referanstaki konfeti/fişek renkleri: oyunun blok paleti.</summary>
+        /// <summary>
+        /// Konfeti/fişek renkleri — REFERANSTAN ÖRNEKLENDİ VE AĞIRLIKLANDI
+        /// (7. tur, R60).
+        ///
+        /// Kullanıcı: "Perfect Coin ekranı ve oyun kazanma BLOCKOUT
+        /// ekranındaki konfeti efektleri revize edilip daha iyi hale
+        /// getirilecek."
+        ///
+        /// ÖLÇÜM (`…Levels 1-20 Walkthrough.mp4` 11:26, BLOCKOUT kutlaması;
+        /// logo bölgesi dışlanıp bağlı bileşenler ayrıştırıldı, 192 parça):
+        ///   yeşil  (75,177,129)  62 parça   %32
+        ///   mavi   (61, 65,213)  49         %26
+        ///   sarı   (230,165, 26) 25         %13
+        ///   kırmızı(192, 11, 35) 24         %13
+        ///   beyaz  (239,234,220) 15         %8
+        ///   pembe  (216, 68,156)  6         %3
+        ///
+        /// Bizim palet YEDİ RENGİ EŞİT olasılıkla dağıtıyordu ve tonları
+        /// pastel-parlaktı (mercan, camgöbeği, lavanta). Referansın konfetisi
+        /// hem daha DOYGUN hem de yeşil-mavi ağırlıklı; eşit dağılım ekrana
+        /// "gökkuşağı" veriyor, referanstaki ise oyunun kendi renk kimliğini
+        /// taşıyor.
+        ///
+        /// DERS (bir palet yalnız renklerden ibaret değil, ORANLARDAN da
+        /// ibarettir): Doğru renkleri eşit dağıtmak yanlış bir görüntü
+        /// üretiyor. Ağırlık, dizide tekrar ederek veriliyor — rastgele
+        /// seçimin kendisi değişmiyor.
+        /// </summary>
         public static readonly Color[] Palette =
         {
-            new Color(1f, 0.85f, 0.20f),   // altın
-            new Color(0.98f, 0.31f, 0.38f),// mercan
-            new Color(0.35f, 0.78f, 1f),   // camgöbeği
-            new Color(0.55f, 1f, 0.45f),   // yeşil
-            new Color(0.85f, 0.55f, 1f),   // mor
-            new Color(1f, 0.45f, 0.78f),   // pembe
-            new Color(1f, 1f, 1f),         // beyaz
+            new Color(0.294f, 0.694f, 0.506f),  // yeşil  ×4
+            new Color(0.294f, 0.694f, 0.506f),
+            new Color(0.294f, 0.694f, 0.506f),
+            new Color(0.294f, 0.694f, 0.506f),
+            new Color(0.239f, 0.255f, 0.835f),  // mavi   ×4
+            new Color(0.239f, 0.255f, 0.835f),
+            new Color(0.239f, 0.255f, 0.835f),
+            new Color(0.239f, 0.255f, 0.835f),
+            new Color(0.902f, 0.647f, 0.102f),  // sarı   ×2
+            new Color(0.902f, 0.647f, 0.102f),
+            new Color(0.753f, 0.043f, 0.137f),  // kırmızı ×2
+            new Color(0.753f, 0.043f, 0.137f),
+            new Color(0.937f, 0.918f, 0.863f),  // beyaz  ×1
+            new Color(0.847f, 0.267f, 0.612f),  // pembe  ×1
         };
 
         // ---- Havai fişek ---------------------------------------------------
@@ -321,11 +355,27 @@ namespace BlockOut.Runtime.FX
             rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
             rect.pivot = new Vector2(0.5f, 0.5f);
 
-            // ÖLÇÜM: referans karelerde parça alanı medyanı 17 piksel², yani
-            // kenarı ~4,1 piksel — 384 genişlikteki karede ekranın %1,07'si.
-            // Bizim tuval 1080 geniş; oran korunuyor, piksel değeri değil.
-            float size = Random.Range(9f, 16f);
-            rect.sizeDelta = new Vector2(size, size * Random.Range(0.5f, 1.1f));
+            // PARÇALAR İKİ KAT BÜYÜDÜ — YENİDEN ÖLÇÜLDÜ (7. tur, R60).
+            //
+            // Eski ölçüm `menus,powerups,vs.mp4`ten (384×832) alınmıştı ve
+            // kenarı ekranın %1,07'si buluyordu. Ama kullanıcının şikâyet
+            // ettiği ekran BLOCKOUT kutlaması; o kare 592×1280 ve orada
+            // bağlı bileşenler ayrıştırıldığında:
+            //   genişlik ortancası 12 piksel  → ekranın **%2,03'ü**
+            //   genişlik %90'lık   18 piksel  → **%3,04**
+            //   yükseklik ortancası 10 piksel (genişliğin %83'ü)
+            // Yani parçalar bizimkinin İKİ KATI. Küçük konfeti uzaktan
+            // "gürültü" gibi okunuyor; kutlama hissini veren şey parçanın
+            // TANINABİLİR olması.
+            //
+            // DERS (ölçümün alındığı kare, ölçümün kendisi kadar önemli):
+            // İki farklı kutlama sahnesi iki farklı konfeti kullanıyor.
+            // "Referanstan ölçtük" demek, doğru referanstan ölçtüğümüz
+            // anlamına gelmiyor.
+            //
+            // 1080 birimlik tuvalde: ortanca 22, %90'lık 33 birim.
+            float size = Random.Range(13f, 34f);
+            rect.sizeDelta = new Vector2(size, size * Random.Range(0.55f, 1.05f));
             // `spread` ilk parti: ekranın her yerinde. Değilse tepeden.
             rect.anchoredPosition = new Vector2(
                 Random.Range(-560f, 560f),

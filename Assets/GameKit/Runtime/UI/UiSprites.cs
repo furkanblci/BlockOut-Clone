@@ -27,11 +27,45 @@ namespace GameKit.UI
         static Sprite _haptics;
         static Sprite _bell;
         static Sprite _pencil;
+        static Sprite _pencilTip;
         static Sprite _triangle;
+        static Sprite _clockFace;
 
         const int Size = 64;
         const float Radius = 18f;      // piksel; 9-dilim payı bunun biraz üstü
         const int Border = 20;
+
+        /// <summary>
+        /// YUVARLAK PANELİN KENDİ ÇÖZÜNÜRLÜĞÜ — 2× (7. tur, P56).
+        ///
+        /// Kullanıcı: "Seçili butonun dış köşelerinde piksel bozulmaları var."
+        ///
+        /// ÖLÇÜM: Alt çubuktaki seçili kart 263×277 birim ve köşe yarıçapı 44
+        /// birim (<c>pixelsPerUnitMultiplier = 0.45</c>). Dokudaki yay ise
+        /// 18 piksel — yani yay ekrana **2,4 KAT BÜYÜTÜLEREK** çiziliyor.
+        /// Yayın 1,5 piksellik yumuşatma bandı da onunla birlikte 3,6 birime
+        /// çıkıyor; köşe hem bulanıklaşıyor hem dokunun kendi basamakları
+        /// görünür oluyor. Ekranın en büyük yuvarlak yüzeyi olduğu için de
+        /// bozulma en çok orada okunuyor.
+        ///
+        /// DERS (9-dilim, çözünürlükten muaf değildir): Dokuz dilim KENARLARI
+        /// bozulmadan uzatır — köşeleri değil. Köşe her zaman dokudaki yayın
+        /// kendisidir ve ekrandaki yarıçap dokudakinden büyükse büyütülür.
+        /// Bu yüzden "9-dilim kullanıyoruz, boyut önemli değil" yanlıştır.
+        ///
+        /// ÇÖZÜM ÇAĞRI YERLERİNE DOKUNMADAN: Doku 128'e, yay 36 piksele,
+        /// dilim payı 40 piksele çıktı — VE sprite'ın piksel/birim oranı da
+        /// 100'den 200'e. Unity dilim payını
+        /// <c>pay_px × referans_ppu / (sprite_ppu × çarpan)</c> ile birime
+        /// çevirdiğinden 40×100/(200×m) = 20/m, yani eski değerin AYNISI.
+        /// Projedeki kırk kadar elle ölçülmüş <c>SetSliceScale</c> değeri ve
+        /// <see cref="UiCornerFit"/>'in hesabı olduğu gibi geçerli kalıyor;
+        /// değişen tek şey köşenin keskinliği (büyütme 2,4× → 1,2×).
+        /// </summary>
+        const int PanelSize = 128;
+        const float PanelRadius = 36f;
+        const int PanelBorder = 40;
+        const float PanelPixelsPerUnit = 200f;
 
         /// <summary>Dolu, yuvarlak köşeli panel (9-dilim).</summary>
         public static Sprite RoundedPanel =>
@@ -160,6 +194,27 @@ namespace GameKit.UI
             : (_pencil = BuildIcon("UiPencil", PencilDistance));
 
         /// <summary>
+        /// Kalemin YALNIZ ucu — gövdenin üstüne KOYU renkte konur (7. tur, Q57).
+        ///
+        /// Kullanıcı: "Avatar isim değiştirme ikonu hâlâ düzgün değil; gölgeli
+        /// ve daha kaliteli hale getirilecek."
+        ///
+        /// Tek renk beyaz bir kalem, 80 birimlik yeşil bir dairede KALEM değil
+        /// "eğik beyaz bir işaret" okunuyordu — kullanıcının gördüğü şey buydu
+        /// (ekran görüntüsünde tik sanılıyor). Bir kalemi kalem yapan iki
+        /// renk vardır: gövde ve GRAFİT uç. Aynı mesafe fonksiyonunun yalnız
+        /// uç parçası ayrı bir maske olarak üretiliyor; iki katman üst üste
+        /// konunca şekil tek bakışta okunuyor.
+        ///
+        /// DERS (bir simgeyi büyütmek onu anlaşılır yapmaz): Önceki turda
+        /// çözüm "sivri uç ekle" olmuştu ve şekil doğruydu — eksik olan
+        /// KONTRASTTI. Tek renkli bir siluet, ayrıntısı ne kadar doğru olursa
+        /// olsun küçük boyutta kendi lekesine dönüşüyor.
+        /// </summary>
+        public static Sprite PencilTip => _pencilTip != null ? _pencilTip
+            : (_pencilTip = BuildIcon("UiPencilTip", PencilTipDistance));
+
+        /// <summary>
         /// Yuvarlak köşeli, YUKARI bakan üçgen — ok başı ve kapı işareti.
         ///
         /// DERS (üçgen sprite ı olmayan projede üçgen çizmek): Bu projede
@@ -170,6 +225,28 @@ namespace GameKit.UI
         /// </summary>
         public static Sprite Triangle => _triangle != null ? _triangle
             : (_triangle = BuildIcon("UiTriangle", TriangleDistance));
+
+        /// <summary>
+        /// SAAT KADRANI — ince halka + iki akrep (7. tur, U67).
+        ///
+        /// Kullanıcı: "Süre ikonu mor olacak… tasarım orijinaliyle birebir
+        /// aynı olacak."
+        ///
+        /// ÖLÇÜM (`…Levels 1-20 Walkthrough.mp4`, 01:20 karesi, 592×1280;
+        /// süre hapı x 215-380, y 120-171 piksel): haptaki simge x 226-256,
+        /// y 132-159 — yani 30×27 piksellik, İÇİ BOŞ, tek renk MOR bir kadran.
+        /// Bizde onun yerine `Art.Clock` vardı: mavi-turkuaz, 3B render
+        /// edilmiş bir ÇALAR SAAT. Aynı görsel mağazada yardımcı simgesi
+        /// olarak da kullanılıyor; oysa referansta HUD'daki saat bir SÜS
+        /// değil, sayının etiketi.
+        ///
+        /// DERS (aynı kavram, iki farklı rol, iki farklı görsel): "Saat"
+        /// gereken her yere aynı çalar saati koymak, süre göstergesini bir
+        /// yardımcı düğmesi gibi okutuyordu. Bir simgenin doğru olması
+        /// yetmez; bulunduğu yerin diline ait olması gerekir.
+        /// </summary>
+        public static Sprite ClockFace => _clockFace != null ? _clockFace
+            : (_clockFace = BuildIcon("UiClockFace", ClockFaceDistance));
 
         /// <summary>Verilen mesafe fonksiyonundan alfa maskesi üretir.</summary>
         static Sprite BuildIcon(string name, System.Func<Vector2, float> distance)
@@ -317,6 +394,50 @@ namespace GameKit.UI
             return Mathf.Min(body, tip);
         }
 
+        /// <summary>
+        /// Saat kadranı: halka + akrep (yukarı) + yelkovan (sağ-aşağı).
+        ///
+        /// Ölçüler referans kareden (30×27 piksellik simge) oranlandı:
+        /// halka çapı simgenin %86'sı, kalınlığı çapın %13'ü.
+        /// Akreplerin ucu halkaya DEĞMİYOR — değseydi bu boyutta kadran
+        /// dolu bir leke gibi okunurdu.
+        /// </summary>
+        static float ClockFaceDistance(Vector2 p)
+        {
+            const float radius = 0.365f;      // halkanın orta yarıçapı
+            const float ring = 0.048f;        // halka kalınlığının yarısı
+            const float hand = 0.040f;        // akrep kalınlığının yarısı
+
+            float dial = Mathf.Abs(p.magnitude - radius) - ring;
+
+            // 12 yönünde kısa akrep, 4 yönünde uzun yelkovan (referanstaki
+            // duruş). Merkezde birleştikleri için ayrı bir göbek gerekmiyor.
+            float hour = CapsuleDistance(p, Vector2.zero, new Vector2(0f, 0.185f), hand);
+            float minute = CapsuleDistance(p, Vector2.zero, new Vector2(0.145f, -0.115f), hand);
+
+            return Mathf.Min(dial, Mathf.Min(hour, minute));
+        }
+
+        /// <summary>
+        /// <see cref="PencilDistance"/>'in YALNIZ uç üçgeni — aynı koordinat
+        /// sisteminde, aynı sayılarla. İki maske aynı yerleşimde üst üste
+        /// konduğunda uç, gövdenin tam ucuna oturuyor.
+        /// </summary>
+        static float PencilTipDistance(Vector2 p)
+        {
+            var axis = new Vector2(0.7071f, 0.7071f);
+            var side = new Vector2(-0.7071f, 0.7071f);
+            float u = p.x * axis.x + p.y * axis.y;
+            float v = p.x * side.x + p.y * side.y;
+            var local = new Vector2(u, v);
+
+            return Mathf.Max(
+                -(u - 0.15f),
+                Mathf.Max(
+                    Dot(local, new Vector2(0.15f, 0.085f), new Vector2(0.391f, 0.920f)),
+                    Dot(local, new Vector2(0.15f, -0.085f), new Vector2(0.391f, -0.920f))));
+        }
+
         // ---------------------------------------------------------------- mesafe araçları
 
         /// <summary>Yarı düzlem: normal yönünde pozitif, ters yönde negatif.</summary>
@@ -417,26 +538,36 @@ namespace GameKit.UI
 
         static Sprite Build(string name, bool filled, float outlineWidth)
         {
-            var tex = NewTexture(name);
-            var pixels = new Color32[Size * Size];
-
-            for (int y = 0; y < Size; y++)
+            var tex = new Texture2D(PanelSize, PanelSize, TextureFormat.RGBA32, false)
             {
-                for (int x = 0; x < Size; x++)
+                name = name,
+                hideFlags = HideFlags.HideAndDontSave,
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear
+            };
+            var pixels = new Color32[PanelSize * PanelSize];
+
+            // Yumuşatma bandı ve çerçeve kalınlığı da 2× — yoksa doku
+            // büyüdükçe kenar İNCELİR ve köşe bu sefer fazla keskin çıkar.
+            const float feather = 1.5f;
+
+            for (int y = 0; y < PanelSize; y++)
+            {
+                for (int x = 0; x < PanelSize; x++)
                 {
                     float d = RoundedRectDistance(x + 0.5f, y + 0.5f);
 
-                    // d < 0 içeride, d > 0 dışarıda. Kenarda 1.5 piksellik yumuşama.
-                    float alpha = 1f - Step(-0.75f, 0.75f, d);
+                    // d < 0 içeride, d > 0 dışarıda.
+                    float alpha = 1f - Step(-feather, feather, d);
 
                     if (!filled)
                     {
                         // Çerçeve: dış kenardan `outlineWidth` kadar içerisi boş.
-                        float inner = 1f - Step(-0.75f, 0.75f, d + outlineWidth);
+                        float inner = 1f - Step(-feather, feather, d + outlineWidth * 2f);
                         alpha = Mathf.Clamp01(alpha - inner);
                     }
 
-                    pixels[y * Size + x] = new Color(1f, 1f, 1f, alpha);
+                    pixels[y * PanelSize + x] = new Color(1f, 1f, 1f, alpha);
                 }
             }
 
@@ -444,10 +575,10 @@ namespace GameKit.UI
             tex.Apply(false, true);
 
             // 9-dilim: köşe payı yarıçaptan biraz büyük olmalı, yoksa esnerken
-            // yuvarlaklık bozulur.
-            return Sprite.Create(tex, new Rect(0, 0, Size, Size),
-                new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect,
-                new Vector4(Border, Border, Border, Border));
+            // yuvarlaklık bozulur. Piksel/birim 200 — bkz. PanelPixelsPerUnit.
+            return Sprite.Create(tex, new Rect(0, 0, PanelSize, PanelSize),
+                new Vector2(0.5f, 0.5f), PanelPixelsPerUnit, 0, SpriteMeshType.FullRect,
+                new Vector4(PanelBorder, PanelBorder, PanelBorder, PanelBorder));
         }
 
         /// <summary>
@@ -456,13 +587,13 @@ namespace GameKit.UI
         /// </summary>
         static float RoundedRectDistance(float x, float y)
         {
-            float halfW = Size * 0.5f, halfH = Size * 0.5f;
-            float dx = Mathf.Abs(x - halfW) - (halfW - Radius);
-            float dy = Mathf.Abs(y - halfH) - (halfH - Radius);
+            float halfW = PanelSize * 0.5f, halfH = PanelSize * 0.5f;
+            float dx = Mathf.Abs(x - halfW) - (halfW - PanelRadius);
+            float dy = Mathf.Abs(y - halfH) - (halfH - PanelRadius);
 
             float outside = new Vector2(Mathf.Max(dx, 0f), Mathf.Max(dy, 0f)).magnitude;
             float inside = Mathf.Min(Mathf.Max(dx, dy), 0f);
-            return outside + inside - Radius;
+            return outside + inside - PanelRadius;
         }
 
         /// <summary>
@@ -595,6 +726,9 @@ namespace GameKit.UI
         {
             _roundedPanel = null;
             _roundedOutline = null;
+            _pencil = null;
+            _pencilTip = null;
+            _clockFace = null;
             _circle = null;
             _cross = null;
             _burst = null;

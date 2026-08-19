@@ -8,6 +8,81 @@ Bu dosya her oturum sonunda güncellenir. Aşağısı 2026-08-10 itibarıyla ge�
 
 ---
 
+## 2026-08-19 — 7. TUR KAPANDI (26/26)
+
+**Tek doğruluk kaynağı: `docs/APK-BULGULARI-5.md`.** Kullanıcının 26 maddesi
+(M45 … V70) oraya döküldü; her maddede referans ÖLÇÜMÜ, tespit edilen sebep,
+yapılan iş ve doğrulama var.
+
+### Kapatılanlar — başlıklar
+
+- **M45/M46 — taşma.** `GameKit.UI.UiTextFit`: `UiKit.CreateLabel` artık her
+  etikete takıyor, sığmayan yazının puntosunu küçültüyor (yalnız genişlik,
+  taban %45). Ekran ekran düzeltme değil, YAPISAL çözüm.
+- **N47-N53 — mağaza.** Branda levhası içeriğe taşındı (kaydırınca gidiyor),
+  kurdele dilleri iki uçta/altın/ince, jeton kutularının kırmızı tabanı
+  132 → 176 birim + gölge, taşıyıcı noktaları büyüdü, %90 flaması ve Starter
+  Pack yerleşimi ortalandı.
+- **O54 — liderlik.** Kesim artık bir KENARA denk geliyor: kürsünün altında
+  26 birim düz mor çizgi, altında 7 birimlik açık mor çerçeve, sonra liste.
+- **P55/P56 — ana ekran + sekme çubuğu.** OYNA düğmesindeki yazı çifti
+  düğmenin GÖRÜNEN yüzüne ortalandı; seçili sekme kartının köşe bozulması
+  iki sebepten (doku çözünürlüğü + eş merkezli olmayan yarıçaplar) düzeldi.
+- **Q57/Q58 — profil.** Kalem rozeti üç katman + gölge, kalem üç renk
+  (kontur/gövde/grafit uç); ayraç çizgisi koyu tarafa geçti.
+- **R59/R60 — ödül.** "Level 20" kendi açık mor plakasına girdi, ödül sayısı
+  siyah elipsten koyu mor yuvarlak dikdörtgene döndü, kart referans ölçüsüne
+  çekildi; konfeti İKİ KAT büyüdü ve palet referans oranlarına ağırlıklandı.
+- **S61-S64 — duraklat.** Süre hapı duraklatınca yukarı kayıyor (referansta da
+  yok), Quit kartın dudağından çıktı, çarpı gölge+koyu bilezik aldı, ayar
+  simgeleri koyu mor oldu.
+- **T65/T66 — kapılar.** Üst kapının altındaki duvar payı PARALAKS kaynaklıydı
+  (`InwardOverhang` 0,09 → 0,235); çerçevenin dış köşe yarıçapı yanlış kod
+  yolundan 0,84 hücre çıkıyordu, referansta 0,19.
+- **U67/U68 — HUD.** Saat simgesi mor ve içi boş (`UiSprites.ClockFace`),
+  süre 42 → 58 punto, seviye ve jeton 42 punto, süre hapı referans ölçüsünde.
+- **V69/V70 — perde ve ok blokları.** Parıltılar katmanlı örneklemeyle eşit
+  dağıldı, dört uçlu yıldız oldu ve beyazlıktan kurtuldu; ok blokları köşe
+  rengi kazanıp gerçek bir kabartmaya döndü.
+
+### YENİ DOĞRULAMA ARAÇLARI (sonraki oturum bunları kullansın)
+
+| araç | işi |
+|---|---|
+| `BoardCaptureTool.Capture(bölümYolu, ad)` | tahtayı oynatma kipine girmeden PNG'ye çeker |
+| `UiOverflowAudit.Report(ad, kök)` | kutusuna sığmayan yazıları listeler, sayı döndürür |
+| `MenuShell.CreateTabBarPreview(kanvas, sekme)` | alt sekme çubuğu, oturumsuz |
+| `GameplayScreen.CreatePausePreview(kanvas)` | duraklat paneli, oturumsuz |
+| `GameplayScreen.CreateHudPreview(kanvas)` | üst şerit, oturumsuz |
+
+Hepsi `UNITY_EDITOR` altında; kanvası ÇAĞIRAN vermeli
+(`UiKit.CreateCanvas` edit modunda `DontDestroyOnLoad` yüzünden patlıyor).
+
+### TUZAK — MCP komutu ESKİ DERLEMEYİ ölçebilir
+
+`Unity_RunCommand` kendi parçacığını O ANKİ derlemeye karşı derliyor. Kaynak
+dosyayı düzenledikten hemen sonra çağrılan ölçüm komutu, değişiklikten ÖNCEKİ
+kodu ölçebiliyor — bu turda perde parıltısı üç kez "değişmedi" göründü.
+**Kural: düzenlemeden sonra ÖNCE yalnız `AssetDatabase.Refresh` yapan bir
+komut, SONRA ölçen komut.** (5. turdaki "oynatma modunda derlemez" dersinin
+edit modundaki kardeşi.)
+
+Ayrıca: `ViewKit.ClearCache()` ve `UiSprites.ClearCache()` çağrılmazsa statik
+materyal/sprite önbelleği domain reload'a kadar bayat kalıyor.
+
+### AÇIK KALANLAR (6. turdan devam)
+
+1. **SES VE MÜZİK HİÇ YOK** — `Resources/AudioSkin.asset` boş, projede tek
+   ses dosyası yok. Kullanıcıya soruldu, cevap bekleniyor.
+2. Titreşim gerçek cihazda doğrulanmadı.
+3. 27 bölümün tasarımı referanstan değil, yaklaşık.
+4. `DeviceErrorOverlay.cs:33` → `Enabled = true`, yayından önce `false`.
+5. **S61'in animasyonu APK'de görülmeli** — tween'ler oynatma kipi istiyor;
+   yerleşim ve kod yolu doğrulandı, hareketin kendisi doğrulanmadı.
+6. R60'ın konfetisi de aynı sebeple yalnız sayı olarak doğrulandı.
+
+---
+
 ## 2026-08-19 — 6. TUR KAPANDI (8/8)
 
 Kullanıcının üçüncü geri bildirim turu. Sekiz madde de kapandı; ayrıntılı

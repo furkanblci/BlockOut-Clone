@@ -396,10 +396,31 @@ namespace BlockOut.Runtime.View
         /// Çizgi ile parıltı aynı materyali paylaşamaz: biri oluk, diğeri
         /// ışık. Aynı yüzeyde ikisi de var ve zıt yönde çalışıyorlar.
         /// </summary>
+        /// <remarks>
+        /// ALFA 0.10 → 0.07 (7. tur, V69) — YANİ DAHA DA SÖNÜK.
+        ///
+        /// ÖLÇÜM (referans `…Levels 1-20 Walkthrough.mp4` 11:01, 20. bölümün
+        /// perdesi; rozet bölgesi hariç tutularak yüzdelik alındı):
+        ///   zemin  (%50) = (63, 43, 182)
+        ///   parıltı(%99) = (72, 51, 204)
+        /// Yani parıltı ile zemin arasındaki fark en fazla 9-22 birim.
+        /// Bizim ekranımızda aynı ölçüm ORTALAMA (145,141,206), tepe
+        /// (249,248,248) çıktı — parıltılar beyazdı.
+        ///
+        /// DERS (bir sayının "doğru" olması, ekranda doğru olduğu anlamına
+        /// gelmez): Materyalde 0.10 yazıyordu ve makul görünüyordu; ekranda
+        /// ölçülen etkin alfa 0.44'tü. Aradaki farkı üreten şey geometriydi
+        /// (üst üste binen saydam yüzler). Alfa artık tek yüzlü yıldıza göre
+        /// ayarlı; geometri değişirse bu sayı da yeniden ölçülmeli.
+        ///
+        /// SON DEĞER ÖLÇÜMLE BULUNDU: nominal 0.07 ekranda zemine göre
+        /// (+34, +41, +4) fark üretti — referanstaki fark (+9, +8, +22).
+        /// Etkin alfa nominalin ~2,5 katı çıkıyor, bu yüzden 0.03.
+        /// </remarks>
         public static Material CurtainSparkle =>
             _curtainSparkle != null ? _curtainSparkle
                 : (_curtainSparkle = CreateTransparent(
-                    "CurtainSparkle", new Color(1f, 1f, 1f, 0.10f), 3011));
+                    "CurtainSparkle", new Color(1f, 1f, 1f, 0.03f), 3011));
 
         /// <summary>
         /// URP için doğru kurulmuş yarı saydam materyal.

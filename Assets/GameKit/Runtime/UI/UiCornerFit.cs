@@ -63,7 +63,7 @@ namespace GameKit.UI
         /// Köşe YAYI 18 piksel, 9-dilim payı 20 piksel — pay yaydan biraz
         /// geniş ki yayın bittiği yer dilim sınırının içinde kalsın.
         /// </summary>
-        const float SpriteArcPixels = 18f;
+        public const float SpriteArcPixels = 18f;
 
         [SerializeField, Range(0f, 0.5f)] float share = HouseShare;
         [SerializeField] float maxRadius = MaxRadius;

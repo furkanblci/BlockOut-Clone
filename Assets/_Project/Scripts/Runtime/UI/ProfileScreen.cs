@@ -101,10 +101,35 @@ namespace BlockOut.Runtime.UI
             // düz `Image` olduğu için daire ELİPSE geriliyordu.
             var pencil = UiKit.CreateRect("Edit", frame);
             UiKit.Place(pencil, 0.779f, 0.029f, 1.043f, 0.333f);
+
+            // ROZET ÜÇ KATMAN + GÖLGE (7. tur, Q57). Kullanıcı: "Avatar isim
+            // değiştirme ikonu hâlâ düzgün değil; gölgeli ve daha kaliteli
+            // hale getirilecek."
+            //
+            // Eskiden TEK düz yeşil daireydi. Bu ekrandaki her yüzeyin (kart,
+            // ad levhası, istatistik kutuları) bir koyu kenarı var; rozet
+            // onlarla aynı dili konuşmadığı için "sonradan yapıştırılmış"
+            // duruyordu. Sıra: gölge → koyu kenar → yüz → üst ışık.
+            var pencilShadow = UiKit.CreateIcon("Shadow", pencil,
+                GameKit.UI.UiSprites.Circle, new Color(0f, 0f, 0f, 0.34f));
+            UiKit.Place(pencilShadow, 0.02f, -0.075f, 1.02f, 0.925f);
+
+            var pencilRim = UiKit.CreateIcon("Rim", pencil,
+                GameKit.UI.UiSprites.Circle, new Color(0.055f, 0.318f, 0.020f));
+            UiKit.Place(pencilRim, 0f, 0f, 1f, 1f);
+
             var pencilFace = UiKit.CreateIcon("Face", pencil,
                 GameKit.UI.UiSprites.Circle, MenuPage.Green);
-            UiKit.Place(pencilFace, 0f, 0f, 1f, 1f);
-            UiKit.MakeClickable(pencil.gameObject, pencilFace, screen.OpenNamePanel);
+            UiKit.Place(pencilFace, 0.085f, 0.085f, 0.915f, 0.915f);
+
+            // Üstte toplanan ışık: rozeti düz bir disk olmaktan çıkaran şey.
+            // Keskin kenarlı bir daire ikinci bir disk gibi okunuyordu;
+            // `Radial` kenarına doğru sönüyor ve ışık gibi duruyor.
+            var pencilSheen = UiKit.CreateIcon("Sheen", pencil,
+                GameKit.UI.UiSprites.Radial, new Color(1f, 1f, 1f, 0.30f));
+            UiKit.Place(pencilSheen, 0.16f, 0.42f, 0.84f, 0.94f);
+
+            UiKit.MakeClickable(pencil.gameObject, pencilRim, screen.OpenNamePanel);
             // KALEM ARTIK GERÇEK BİR KALEM ŞEKLİ (4. tur, C10).
             //
             // Kullanıcı: "Player çerçevesinin sağ alt köşesindeki düzenleme
@@ -119,17 +144,34 @@ namespace BlockOut.Runtime.UI
             // ayrıntısıdır): Uzunluk/kalınlık oranını doğru tutmak yetmedi;
             // sivri uç olmadan o şekil bir kalem değil, bir çubuk. Simgeyi
             // taşıyan bilgi çoğu zaman en küçük parçasında saklı.
+            // ÜÇ KATMANLI KALEM: koyu kontur, beyaz gövde, GRAFİT uç.
+            //
+            // DERS (aynı şekil, iki renk = tanınır simge): Tek renk beyaz
+            // kalem bu boyutta (80 birimlik rozet, ~50 birimlik simge) bir
+            // TİK gibi okunuyordu — kullanıcının "hâlâ düzgün değil"
+            // dediği şey. Ucu ayrı bir maskeyle koyu boyamak şekli tek
+            // bakışta kalem yapıyor; kontur ise onu yeşil zeminden ayırıyor.
+            const float markPad = 0.155f;
+            var pencilEdge = UiKit.CreateIcon("MarkEdge", pencil,
+                GameKit.UI.UiSprites.Pencil, new Color(0.043f, 0.243f, 0.016f, 0.85f));
+            UiKit.Place(pencilEdge, markPad - 0.035f, markPad - 0.055f,
+                                    1f - markPad + 0.035f, 1f - markPad - 0.020f);
+            pencilEdge.preserveAspect = true;
+            pencilEdge.raycastTarget = false;
+
             var pencilMark = UiKit.CreateIcon("Mark", pencil,
                 GameKit.UI.UiSprites.Pencil, MenuPage.Ink);
-            UiKit.Place(pencilMark, 0.14f, 0.14f, 0.86f, 0.86f);
+            UiKit.Place(pencilMark, markPad, markPad, 1f - markPad, 1f - markPad);
             pencilMark.preserveAspect = true;
             pencilMark.raycastTarget = false;
 
-            // Ucu: kalemin sivri tarafı. Küçük koyu bir üçgen yerine kısa bir
-            // koyu çizgi — o boyutta ikisi aynı şeyi anlatıyor.
-            var pencilTip = MenuPage.Capsule("Tip", pencil, new Color(0.20f, 0.14f, 0.05f));
-            UiKit.Place(pencilTip, 0.20f, 0.455f, 0.32f, 0.545f);
-            pencilTip.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -45f);
+            // Grafit uç — gövdeyle AYNI kutuda: iki maske aynı koordinat
+            // sisteminden üretildiği için uç kendiliğinden yerine oturuyor.
+            var pencilLead = UiKit.CreateIcon("Lead", pencil,
+                GameKit.UI.UiSprites.PencilTip, new Color(0.216f, 0.145f, 0.055f));
+            UiKit.Place(pencilLead, markPad, markPad, 1f - markPad, 1f - markPad);
+            pencilLead.preserveAspect = true;
+            pencilLead.raycastTarget = false;
 
             // Ad kapsülü avatarın ALTINDA ve ondan geniş (referansta X
             // 0.119-0.590 ekran, avatar 0.211-0.492): levha avatarın iki
@@ -140,8 +182,16 @@ namespace BlockOut.Runtime.UI
                 MenuPage.Ink, MenuPage.InkDark);
             UiKit.Place(screen._name, 0.05f, 0.06f, 0.95f, 0.94f);
 
-            var divider = UiKit.CreatePanel("Divider", card, new Color(1f, 1f, 1f, 0.30f));
-            UiKit.Place(divider, 0.663f, 0.16f, 0.669f, 0.84f);
+            // AYRAÇ DAHA KOYU (7. tur, Q58). Kullanıcı: "İkonun yanındaki
+            // seviyenin dikey ayraç çizgisi daha koyu yapılacak."
+            //
+            // Beyazın %30'u, kartın açık mor yüzeyinde neredeyse kayboluyordu:
+            // ölçüldüğünde yüzeyle arasındaki parlaklık farkı %8'di. Ayraç
+            // KOYU tarafa geçti (kartın kendi koyu tonuna doğru %55) ve bir
+            // tık kalınlaştı — bir çizgi, ayırdığı iki şeyden farklı olmalı.
+            var divider = UiKit.CreatePanel("Divider", card,
+                new Color(0.216f, 0.161f, 0.478f, 0.85f));
+            UiKit.Place(divider, 0.661f, 0.14f, 0.671f, 0.86f);
 
             // PUNTO REFERANSTAN: "Seviye" cap yüksekliği 35 birim (→ ~52
             // punto), sayı 53 birim (→ ~74). 44/64 idi.

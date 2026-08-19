@@ -384,6 +384,16 @@ namespace BlockOut.Runtime.UI
 
         // ------------------------------------------------------------ oyna düğmesi
 
+        // --- OYNA düğmesindeki iki yazının dikey yerleşimi (7. tur, P55) ---
+        //
+        // Düğmenin alt %34'ü 3B dudak; yazı yüzeyi 0.34-1.00, ortası 0.67.
+        //   zorluk VARSA : blok 0.375-0.955, ortası 0.665
+        //   zorluk YOKSA : blok 0.385-0.955, ortası 0.670
+        const float LevelTop = 0.955f;
+        const float LevelH = 0.350f;                     // seviye yazısının kutusu
+        const float LevelBottomWithDifficulty = LevelTop - LevelH;   // 0.605
+        const float LevelBottomAlone = 0.385f;
+
         void BuildPlayButton(Transform root)
         {
             _playButton = UiKit.CreateSpriteButton("Play", root, UiSkin.Get(Art.ButtonGreen),
@@ -419,9 +429,28 @@ namespace BlockOut.Runtime.UI
             // yüksek, o yüzden "yazı/düğme" oranı iki tarafta farklı şeyi
             // anlatıyor. Doğru ölçü EKRANA göre olan: oyuncunun gözü düğmeyi
             // değil yazıyı okuyor.
+            //
+            // YAZI ÇİFTİ DÜĞMENİN GÖRÜNEN YÜZÜNE ORTALANDI (7. tur, P55).
+            //
+            // Kullanıcı: "Ana ekrandaki level yazıları biraz daha ortalanmış
+            // olacak, taşma olmayacak."
+            //
+            // ÖLÇÜM: `btn_*` görselinin alt 9-dilim payı 68 piksel; 201,6
+            // birimlik düğmede alt %34 3B DUDAK, yani yazının oturabileceği
+            // yüz 0.34-1.00 ve ortası 0.67. İki yazının kapladığı blok ise
+            // 0.355-0.94, ortası 0.6475 idi — %2,3 aşağıda. Üstelik iki kutu
+            // 0.58-0.60 arasında ÜST ÜSTE biniyordu.
+            //
+            // DERS (ortalamanın ölçüsü kutu değil, GÖRÜNEN yüzeydir): Bu tur
+            // aynı hata mağazadaki teklif bandında da çıktı (N49). Bir
+            // yüzeyin bir kısmını başka bir katman (orada sanat paneli,
+            // burada düğmenin dudağı) yiyorsa ortalama o payı düşmeli.
+            //
+            // Taşma tarafı artık yapısal olarak kapalı: `UiKit.CreateLabel`
+            // her etikete <see cref="GameKit.UI.UiTextFit"/> takıyor.
             _levelLabel = UiKit.CreateTitle("Level", face, "", 84, CoinInk,
                 new Color(0.10f, 0.06f, 0.22f));
-            UiKit.Place(_levelLabel, 0.05f, 0.58f, 0.95f, 0.97f);
+            UiKit.Place(_levelLabel, 0.05f, LevelTop - LevelH, 0.95f, LevelTop);
 
             // DERS (yazı butonun YÜZÜNE oturur, kenarına değil): "Zor Seviye"
             // düğmenin alt %34'lük 3B kenarına denk geliyordu ve gölgenin
@@ -435,7 +464,8 @@ namespace BlockOut.Runtime.UI
             // görünmemesiydi.
             _difficultyLabel = UiKit.CreateTitle("Difficulty", face, "", 48,
                 new Color(0.86f, 0.88f, 1f), new Color(0.10f, 0.06f, 0.22f));
-            UiKit.Place(_difficultyLabel, 0.06f, 0.355f, 0.94f, 0.60f);
+            UiKit.Place(_difficultyLabel, 0.06f, LevelBottomWithDifficulty - 0.230f,
+                                          0.94f, LevelBottomWithDifficulty);
 
             BuildRewardRibbon();
         }
@@ -837,9 +867,8 @@ namespace BlockOut.Runtime.UI
             // seviye yazısı düğmenin ORTASINA oturur; alt satır boş kaldığında
             // tek satırın yukarıda asılı durması dengesiz görünüyordu.
             bool hasDifficulty = !string.IsNullOrEmpty(label);
-            float top = 0.94f;
-            float bottom = hasDifficulty ? 0.58f : 0.40f;
-            UiKit.Place(_levelLabel, 0.08f, bottom, 0.92f, top);
+            float bottom = hasDifficulty ? LevelBottomWithDifficulty : LevelBottomAlone;
+            UiKit.Place(_levelLabel, 0.05f, bottom, 0.95f, LevelTop);
         }
 
         void PlayCurrent()

@@ -164,31 +164,128 @@ namespace BlockOut.Runtime.View
         static void AddSparkles(Transform parent, Vector3 center, float panelTop,
                                 CurtainModel model, float border)
         {
-            int count = Mathf.Clamp(Mathf.RoundToInt(model.W * model.H * 0.8f), 3, 14);
+            // ---- 7. tur, V69 ----
+            //
+            // Kullanıcı: "Perde tasarımı daha iyi hale getirilecek. Parıltılar
+            // tek bir yerde toplanmak yerine eşit şekilde dağıtılacak."
+            //
+            // ÜÇ AYRI HATA VARDI, üçü de referansla ölçülerek bulundu
+            // (`…Levels 1-20 Walkthrough.mp4` 11:01, 20. bölümün perdesi):
+            //
+            // 1) DAĞILIM. Konumlar düz `Range(-half, half)` ile atılıyordu.
+            //    Düzgün rastgelelik KÜMELENİR — bu iyi bilinen bir şeydir ama
+            //    göz onu "rastgele" değil "bir yere yığılmış" diye okur.
+            //    Çözüm katmanlı (stratified) örnekleme: yüzey ızgaraya
+            //    bölünüyor, her hücreye BİR parıltı ve hücre içinde rastgele
+            //    bir sapma. Hem eşit dağılım hem organik görünüm.
+            //
+            // 2) PARLAKLIK. Referansta parıltı ile zemin arasındaki fark
+            //    NEREDEYSE YOK: zemin (57,36,187), parıltı (64,44,183) — yedi
+            //    birim. Bizimki ekranda (206,201,201) ölçüldü, yani BEYAZ.
+            //    Sebep: parıltı bir KÜP idi; saydam bir küpün ön ve arka
+            //    yüzleri üst üste harmanlanıyor, üstelik kümelenen parıltılar
+            //    birbirinin üstüne biniyordu — %10'luk alfa ekranda %75'e
+            //    çıkıyordu. Tek yüzlü bir levha bu birikmeyi ortadan kaldırıyor.
+            //
+            // 3) BİÇİM. 45° döndürülmüş küp bir EŞKENAR DÖRTGEN verir;
+            //    referanstaki ise içbükey kollu DÖRT UÇLU YILDIZ. Elmas
+            //    "mücevher", yıldız "parıltı" anlatıyor.
+            //
+            // DERS (saydamlık ÜST ÜSTE BİNMEYİ affetmez): Bir yüzeyin
+            // görünürlüğünü alfa ile ayarlarken o yüzeyin kaç kez çizildiğini
+            // de hesaba katmak gerekiyor. Aynı alfa, tek katmanda görünmez,
+            // altı katmanda bembeyaz olur.
+            float halfW = (model.W - border * 2f) * 0.44f;
+            float halfH = (model.H - border * 2f) * 0.44f;
+
+            // Izgara oranı yüzeyin en-boyunu izliyor: kare hücreler, yani
+            // yatayda ve dikeyde AYNI yoğunluk.
+            int cols = Mathf.Clamp(Mathf.RoundToInt(halfW * 2f / 0.95f), 2, 7);
+            int rows = Mathf.Clamp(Mathf.RoundToInt(halfH * 2f / 0.95f), 2, 7);
+
             var random = new System.Random(model.X * 73856093 ^ model.Y * 19349663);
             float Range(float a, float b) => a + (float)random.NextDouble() * (b - a);
 
-            for (int i = 0; i < count; i++)
+            float cellW = halfW * 2f / cols;
+            float cellH = halfH * 2f / rows;
+
+            // Sayaç rozeti perdenin ORTASINDA duruyor; oradaki hücreler
+            // atlanıyor, yoksa parıltı rakamın arkasında kalıp kirletiyor.
+            float guardX = Mathf.Min(halfW * 0.42f, 0.55f);
+            float guardZ = Mathf.Min(halfH * 0.42f, 0.55f);
+
+            for (int row = 0; row < rows; row++)
+            for (int col = 0; col < cols; col++)
             {
-                var spark = ViewKit.CreateShape(PrimitiveType.Cube, "Shape");
-                spark.name = "Sparkle";
+                float x = -halfW + (col + 0.5f) * cellW + Range(-cellW * 0.30f, cellW * 0.30f);
+                float z = -halfH + (row + 0.5f) * cellH + Range(-cellH * 0.30f, cellH * 0.30f);
+                if (Mathf.Abs(x) < guardX && Mathf.Abs(z) < guardZ) continue;
+
+                var spark = new GameObject("Sparkle");
                 spark.transform.SetParent(parent, worldPositionStays: false);
-                var renderer = spark.GetComponent<MeshRenderer>();
+                spark.AddComponent<MeshFilter>().sharedMesh = StarMesh;
+                var renderer = spark.AddComponent<MeshRenderer>();
                 // Parıltı AÇIK, tırtıl çizgisi KOYU — aynı materyali
                 // paylaşamazlar (bkz. ViewKit.CurtainSparkle).
                 renderer.sharedMaterial = ViewKit.CurtainSparkle;
                 renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 renderer.receiveShadows = false;
 
-                float size = Range(0.07f, 0.13f);
-                float halfW = (model.W - border * 2f) * 0.45f;
-                float halfH = (model.H - border * 2f) * 0.45f;
-                spark.transform.position = new Vector3(
-                    center.x + Range(-halfW, halfW),
-                    panelTop + 0.006f,
-                    center.z + Range(-halfH, halfH));
-                spark.transform.localScale = new Vector3(size, 0.02f, size);
-                spark.transform.rotation = Quaternion.Euler(0f, 45f, 0f);   // eşkenar dörtgen
+                // Boy hücreden hücreye değişiyor: eşit dağılım ile eşit BOYUT
+                // ayrı şeyler; ikincisi deseni ızgara gibi gösterirdi.
+                // Referansta yıldızlar ~18 piksel, hücre ~60 → hücrenin %30'u.
+                float size = Range(0.22f, 0.40f);
+                spark.transform.position =
+                    new Vector3(center.x + x, panelTop + 0.006f, center.z + z);
+                spark.transform.localScale = new Vector3(size, 1f, size);
+                spark.transform.rotation = Quaternion.Euler(0f, Range(-14f, 14f), 0f);
+            }
+        }
+
+        static Mesh _starMesh;
+
+        /// <summary>
+        /// Dört uçlu parıltı yıldızı — TEK YÜZLÜ yatay levha.
+        ///
+        /// Kollar 0/90/180/270 derecede dış yarıçapta, aralar 45 derecede iç
+        /// yarıçapta. İç yarıçap dışın %22'si: referanstaki gibi ince, uzun
+        /// kollu bir parıltı. (%50 olsaydı sekizgen, %70 olsaydı daire olurdu.)
+        /// </summary>
+        static Mesh StarMesh
+        {
+            get
+            {
+                if (_starMesh != null) return _starMesh;
+
+                const int arms = 4;
+                const float inner = 0.22f;
+                var verts = new Vector3[arms * 2 + 1];
+                var normals = new Vector3[verts.Length];
+                var tris = new int[arms * 2 * 3];
+
+                verts[0] = Vector3.zero;                       // merkez
+                for (int i = 0; i < arms * 2; i++)
+                {
+                    float angle = Mathf.PI * 2f * i / (arms * 2f);
+                    float r = (i % 2 == 0) ? 0.5f : 0.5f * inner;
+                    verts[i + 1] = new Vector3(Mathf.Cos(angle) * r, 0f, Mathf.Sin(angle) * r);
+                }
+                for (int i = 0; i < verts.Length; i++) normals[i] = Vector3.up;
+
+                for (int i = 0; i < arms * 2; i++)
+                {
+                    // Yukarıdan bakıldığında ön yüz: saat yönünde sıralı.
+                    tris[i * 3 + 0] = 0;
+                    tris[i * 3 + 1] = 1 + (i + 1) % (arms * 2);
+                    tris[i * 3 + 2] = 1 + i;
+                }
+
+                _starMesh = new Mesh { name = "CurtainSparkle" };
+                _starMesh.vertices = verts;
+                _starMesh.normals = normals;
+                _starMesh.triangles = tris;
+                _starMesh.RecalculateBounds();
+                return _starMesh;
             }
         }
 

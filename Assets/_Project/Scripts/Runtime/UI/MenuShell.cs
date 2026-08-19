@@ -262,19 +262,39 @@ namespace BlockOut.Runtime.UI
                 var card = UiKit.CreateRect("Card", button.transform);
                 UiKit.Place(card, -0.11f, -0.10f, 1.11f, 1.42f);
 
+                // KÖŞELER EŞ MERKEZLİ OLMALI (7. tur, P56). Kullanıcı:
+                // "Seçili butonun dış köşelerinde piksel bozulmaları var."
+                //
+                // Kartın koyu bandı her yerde 20 birim; öyleyse iç yüzeyin
+                // köşe yarıçapı, dış yarıçaptan TAM 20 EKSİK olmalı. Bizde
+                // dış 20/0.45 = 44,4 iken iç 20/0.50 = 40 idi — olması
+                // gereken 24,4. İç köşe 15,6 birim FAZLA yuvarlaktı, yani
+                // köşegen boyunca dış bandı yiyor, kenarlarda 20 birim olan
+                // bant köşede 8-9 birime iniyordu. Göz bunu "köşe bozulmuş"
+                // diye okuyor: bant aniden inceliyor, sonra yine kalınlaşıyor.
+                //
+                // DERS (iç içe iki yuvarlak dikdörtgen tek bir sayı paylaşır):
+                // İki yüzeyin yarıçapını ayrı ayrı seçmek, aradaki bandın
+                // KALINLIĞINI köşede değiştirmek demektir. Bant sabit
+                // kalsın isteniyorsa iç yarıçap = dış yarıçap − bant.
+                // (Aynı hata mağaza kartlarında da mümkün; orada
+                // `UiCornerFit` iki yüzeye de aynı oranı verdiği için
+                // yarıçaplar zaten kutu boyuyla birlikte değişiyor.)
+                const float cardBand = 20f;                 // koyu bandın kalınlığı
+                const float cardRadius = 44.4f;             // dış köşe yarıçapı
                 var cardRim = UiKit.CreateRoundedPanel("Rim", card,
                     new Color(0.161f, 0.106f, 0.549f));
-                UiKit.SetSliceScale(cardRim, 0.45f);
+                UiKit.SetSliceScale(cardRim, UiKit.SliceScaleFor(cardRadius));
                 cardRim.raycastTarget = false;
                 UiKit.Place(cardRim, 0f, 0f, 1f, 1f);
 
                 var cardFace = UiKit.CreateRoundedPanel("Face", card,
                     new Color(0.420f, 0.396f, 0.976f));
-                UiKit.SetSliceScale(cardFace, 0.50f);
+                UiKit.SetSliceScale(cardFace, UiKit.SliceScaleFor(cardRadius - cardBand));
                 cardFace.raycastTarget = false;
                 // Kenarlık genişliği referanstan: kartın koyu bandı 18 piksel
                 // (946 genişlikte), yani bizim tuvalde ~20 birim.
-                UiKit.Place(cardFace, 0f, 0f, 1f, 1f, padding: 20f);
+                UiKit.Place(cardFace, 0f, 0f, 1f, 1f, padding: cardBand);
 
                 // Üstte toplanan ışık — kartı düz bir dikdörtgen olmaktan
                 // çıkaran tek şey. `FadeDown` altta opak olduğu için ters
@@ -298,15 +318,20 @@ namespace BlockOut.Runtime.UI
                 // İngilizce etiketler ("Leaderboard", "Collection") Türkçe
                 // karşılıklarından uzun olduğu için üst sınır 40'ta tutulup
                 // küçülmesine izin veriliyor.
+                // TMP OTO-BOYUT VE TRUNCATE KALDIRILDI (7. tur, M46).
+                //
+                // Bu ikili tam olarak dört tur önce yaşanan tuzağı taşıyordu:
+                // `Truncate` eşiği bir birim aşıldığında yazının TAMAMINI
+                // siliyor. Oto-boyut da onu ancak kısmen kurtarıyordu —
+                // taşma denetimi "Leaderboard" için kutu 203 birim, gerekli
+                // 262 birim ölçtü, yani yazı sığmadan çiziliyordu.
+                //
+                // Artık iş <see cref="GameKit.UI.UiTextFit"/>'te: yalnız
+                // GENİŞLİĞE bakıyor, sığmayan puntoyu küçültüyor ve hiçbir
+                // koşulda satırı silmiyor. `CreateLabel` onu her etikete
+                // takıyor, bu yüzden burada yazılacak tek satır bile yok.
                 var caption = UiKit.CreateTitle("Label", button.transform, label, 40,
                     UiKit.Ink, new Color(0.114f, 0.075f, 0.404f));
-                caption.enableAutoSizing = true;
-                caption.fontSizeMax = 40;
-                // Alt sınır 24'ten 20'ye: "Leaderboard" ve "Collection" en dar
-                // ekranda bile sığsın. Sığmazsa kırpma yazının TAMAMINI siler
-                // (bkz. Show içindeki not).
-                caption.fontSizeMin = 20;
-                caption.overflowMode = TextOverflowModes.Truncate;
 
                 string captured = key;
                 button.onClick.AddListener(() => Show(captured));
@@ -393,6 +418,31 @@ namespace BlockOut.Runtime.UI
 
             SlideSwap(previous, key);
 
+            ApplyTabVisuals(key);
+
+            if (key == "journey" && _screens.TryGetValue(key, out var journeyPage))
+                journeyPage.GetComponent<JourneyScreen>()?.Refresh();
+            if (key == "profile" && _screens.TryGetValue(key, out var profilePage))
+                profilePage.GetComponent<ProfileScreen>()?.Refresh();
+            if (key == "collection" && _screens.TryGetValue(key, out var collectionPage))
+                collectionPage.GetComponent<CollectionScreen>()?.Refresh();
+            if (key == "settings" && _screens.TryGetValue(key, out var settingsPage))
+                settingsPage.GetComponent<SettingsScreen>()?.Refresh();
+        }
+
+        /// <summary>
+        /// Seçili sekmenin görünümü: kart, ikon konumu, yazı.
+        ///
+        /// <see cref="Show"/>'dan ayrıldı (7. tur) — sebebi doğrulama.
+        /// Sekme çubuğu YALNIZ oynatma kipinde kuruluyordu
+        /// (<see cref="Start"/>), yani seçili kartın köşelerine bakmak için
+        /// her seferinde oyunu başlatmak gerekiyordu. Bu yüzden P56'daki
+        /// köşe bozulması altı tur boyunca ölçülmedi.
+        /// <see cref="CreateTabBarPreview"/> artık aynı çubuğu düzenleyici
+        /// kipinde kuruyor ve bu metodu çağırıyor.
+        /// </summary>
+        void ApplyTabVisuals(string key)
+        {
             foreach (var (tabButton, card, icon, caption, tabKey) in _tabButtons)
             {
                 bool selected = tabKey == key;
@@ -472,16 +522,27 @@ namespace BlockOut.Runtime.UI
                 if (selected && caption != null)
                     UiKit.Place(caption, 0.03f, 0.155f, 0.97f, 0.425f);
             }
-
-            if (key == "journey" && _screens.TryGetValue(key, out var journey))
-                journey.GetComponent<JourneyScreen>()?.Refresh();
-            if (key == "profile" && _screens.TryGetValue(key, out var profile))
-                profile.GetComponent<ProfileScreen>()?.Refresh();
-            if (key == "collection" && _screens.TryGetValue(key, out var collection))
-                collection.GetComponent<CollectionScreen>()?.Refresh();
-            if (key == "settings" && _screens.TryGetValue(key, out var settings))
-                settings.GetComponent<SettingsScreen>()?.Refresh();
         }
+
+#if UNITY_EDITOR
+        /// <summary>
+        /// Sekme çubuğunu OTURUM OLMADAN kurar — yalnız düzenleyici doğrulaması.
+        /// Kanvası ÇAĞIRAN vermeli (bkz. <c>GameplayScreen.CreateResultPreview</c>:
+        /// <c>UiKit.CreateCanvas</c> düzenleyici kipinde `DontDestroyOnLoad`
+        /// yüzünden patlıyor).
+        /// </summary>
+        public static MenuShell CreateTabBarPreview(Transform canvasTransform,
+                                                    string selected = "home")
+        {
+            var host = UiKit.CreateRect("TabBarPreview", canvasTransform);
+            UiKit.Place(host, 0f, 0f, 1f, 1f);
+
+            var shell = host.gameObject.AddComponent<MenuShell>();
+            shell.BuildTabBar(host);
+            shell.ApplyTabVisuals(selected);
+            return shell;
+        }
+#endif
 
         /// <summary>
         /// Sekme geçişi: yeni ekran yandan girer, eski ekran karşı yönden çıkar.

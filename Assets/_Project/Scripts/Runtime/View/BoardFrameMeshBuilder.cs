@@ -48,18 +48,45 @@ namespace BlockOut.Runtime.View
             int boardW, int boardH,
             float thickness, float height, float cornerRadius, float bevel)
         {
+            // `cornerRadius` DIŞ YARIÇAPTIR (7. tur, T66).
+            //
+            // Kullanıcı: "Köşelere konulan kapılar, köşenin radius'undan
+            // dolayı sığmıyor. 2 grid'lik alan var ama radiuslu köşeler
+            // nedeniyle tam oturmuyor."
+            //
+            // BULUNAN HATA: Bu yol dış halkayı `cornerRadius + thickness` ile
+            // üretiyordu, yani ayardaki 0,32 ekranda 0,84 hücrelik bir yay
+            // demekti. Aynı dosyadaki DİKDÖRTGEN yol ise (aşağıdaki aşırı
+            // yükleme) aynı sayıyı DIŞ yarıçap kabul ediyor ve içeriyi ondan
+            // türetiyor. İki yol aynı ayarı iki farklı şey sanıyordu; hangisi
+            // çalışırsa köşe o kadar yuvarlak oluyordu.
+            //
+            // ÖLÇÜM (referans, `…Levels 1-20 Walkthrough.mp4` 02:53 karesi,
+            // hücre 72,5 piksel): çerçevenin dış köşe yayı ~14 piksel = **0,19
+            // hücre**. Bizimki 0,84 hücreydi — 4,4 KATI. Köşeye dayanan 2
+            // hücrelik bir kapı, duvarın çoktan kıvrılıp gitmiş olduğu bir
+            // yere düz bir plaka olarak oturuyordu; kullanıcının gördüğü
+            // "sığmıyor" tam olarak bu.
+            //
+            // DERS (aynı ayarı iki yerde iki farklı anlamda kullanma): İki
+            // yol da "doğru" görünüyordu ve ikisi de kendi içinde tutarlıydı;
+            // hata ancak ikisi yan yana konunca ortaya çıktı. Bir ayarın
+            // anlamı, onu okuyan her yerde AYNI olmalı.
             cornerRadius = Mathf.Max(0.001f, cornerRadius);
             bevel = Mathf.Clamp(bevel, 0f, Mathf.Min(thickness * 0.45f, height * 0.5f));
 
+            float outerRadius = cornerRadius;
+            float innerRadius = Mathf.Max(0.02f, outerRadius - thickness * 0.7f);
+
             var outer = BrickSilhouette.Build(
-                playableCells, boardW, boardH, -thickness, cornerRadius + thickness);
+                playableCells, boardW, boardH, -thickness, outerRadius);
             var outerTop = BrickSilhouette.Build(
                 playableCells, boardW, boardH, -thickness + bevel,
-                Mathf.Max(0.01f, cornerRadius + thickness - bevel));
+                Mathf.Max(0.01f, outerRadius - bevel));
             var innerTop = BrickSilhouette.Build(
-                playableCells, boardW, boardH, -bevel, cornerRadius + bevel);
+                playableCells, boardW, boardH, -bevel, innerRadius + bevel);
             var inner = BrickSilhouette.Build(
-                playableCells, boardW, boardH, 0f, cornerRadius);
+                playableCells, boardW, boardH, 0f, innerRadius);
 
             if (outer == null || outerTop == null || innerTop == null || inner == null ||
                 outer.Count != inner.Count || outer.Count != outerTop.Count ||

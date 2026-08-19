@@ -197,6 +197,18 @@ namespace GameKit.UI
         /// Bu yüzden elle verilen değer artık bir NİYET BEYANI: hesabı kapatıp
         /// değeri yazıyor. "Kim kazanır" sorusu çağrı yerinde görünür oluyor.
         /// </summary>
+        /// <summary>
+        /// İSTENEN KÖŞE YARIÇAPI (kanvas birimi) → 9-dilim çarpanı.
+        ///
+        /// <see cref="SetSliceScale"/>'e verilen sayı bugüne kadar hep
+        /// tersinden yazıldı: 0.45 yazan biri aslında 44,4 birimlik bir köşe
+        /// istiyordu ama bunu yorumda söylemek zorundaydı. Yarıçapı doğrudan
+        /// yazabilmek, iki yüzeyin köşesini eş merkezli tutmayı da mümkün
+        /// kılıyor (bkz. MenuShell'deki seçili sekme kartı, 7. tur P56).
+        /// </summary>
+        public static float SliceScaleFor(float radiusUnits) =>
+            UiCornerFit.SpriteArcPixels / Mathf.Max(1f, radiusUnits);
+
         public static void SetSliceScale(Image image, float multiplier)
         {
             if (image == null) return;
@@ -555,6 +567,27 @@ namespace GameKit.UI
             label.textWrappingMode = TextWrappingModes.NoWrap;
             label.overflowMode = TextOverflowModes.Overflow;
             label.raycastTarget = false;   // yazı dokunmayı yutmasın
+
+            // TAŞMA KORUMASI HER ETİKETTE (7. tur, M46). Yukarıdaki iki satır
+            // bilinçli: sarma kapalı, taşma serbest — böylece bir etiket asla
+            // kırpılıp KAYBOLMUYOR (4. turdaki sekme adı dersi). Bedeli, uzun
+            // metnin kutusunun dışına çıkması. <see cref="UiTextFit"/> o
+            // bedeli kaldırıyor: sığmayan yazının puntosunu küçültüyor.
+            // Bilerek taşan tek tük etiket için <see cref="NoFit"/> var.
+            label.gameObject.AddComponent<UiTextFit>();
+            return label;
+        }
+
+        /// <summary>
+        /// Bu etiketin taşmasına İZİN VER — <see cref="UiTextFit"/>'i kapatır.
+        ///
+        /// Kutusundan bilerek taşan tasarımlar için: halkanın üstüne binen
+        /// "ADS" yazısı gibi. Kural değil istisna; kullanıldığı her yerde
+        /// gerekçesi yorumda yazmalı.
+        /// </summary>
+        public static TextMeshProUGUI NoFit(TextMeshProUGUI label)
+        {
+            label.GetComponent<UiTextFit>()?.Release();
             return label;
         }
 

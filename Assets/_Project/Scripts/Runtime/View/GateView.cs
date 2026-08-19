@@ -90,11 +90,33 @@ namespace BlockOut.Runtime.View
                 : VisualSettings.Current.gateBarDepth;
 
         /// <summary>
-        /// Kapının oyun alanına doğru taşma payı — referansta hücrenin %9'u
-        /// (7 piksel / 79 piksel hücre). Bu pay kapının iç kenarını çerçevenin
-        /// iç pahının ötesine taşıyor; altında duvar parçası kalmıyor.
+        /// Kapının oyun alanına doğru taşma payı.
+        ///
+        /// 0.09 → 0.235 (7. tur, T65). Kullanıcı: "Üste konulan kapıların
+        /// altında dış duvarın bir kısmı görünüyor. Kapı çok azıcık aşağı
+        /// çekilerek alt duvar payı tamamen gizlenecek."
+        ///
+        /// SEBEP — PARALAKS, yerleşim değil. Kamera tepeye yakın ama TAM
+        /// tepede değil (80° eğim, yani dikeyden 10°). Yerden `h` kadar
+        /// yüksekteki bir yüzey ekranda `h·tan(10°) = 0,176h` kadar KUZEYE
+        /// (yukarı) kaymış görünür. Çerçevemiz 0,80 hücre yüksekliğinde:
+        ///   çerçevenin üst yüzü   → 0,141 hücre yukarı kayıyor
+        ///   kapı (0,82 yükseklik) → 0,145 hücre yukarı kayıyor
+        /// Kapı düz bir PLAKA (6. turda prizma olmaktan çıktı), yani yan yüzü
+        /// yok; altındaki pah bandı 0,141 hücrelik bir şerit olarak açıkta
+        /// kalıyor. ÖLÇÜLDÜ: kendi yakalamamızda 11 piksel, hücre 122 piksel
+        /// → 0,09 hücre.
+        ///
+        /// DERS (üç boyutlu bir sahnede "üst üste" ekranda üst üste demek
+        /// değildir): Kapının iç kenarı dünya koordinatında duvarın iç
+        /// kenarının ÖTESİNDEYDİ; kâğıt üzerinde örtüyordu. Örtmediği yer
+        /// ekranın kendisi. Bu tür bir kusuru sayı hesabıyla değil, ancak
+        /// KAREYİ ÖLÇEREK bulabilirsin.
+        ///
+        /// Yeni değer: 0,235 − 0,145 (kapının kayması) = 0,09 hücre görünür
+        /// taşma; referansta ölçülen değerin (%9) aynısı.
         /// </summary>
-        const float InwardOverhang = 0.09f;
+        const float InwardOverhang = 0.235f;
 
         /// <summary>
         /// Barın merkezi, tahta kenarından DIŞA doğru bu kadar uzakta:

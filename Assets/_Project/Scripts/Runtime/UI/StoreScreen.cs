@@ -84,7 +84,17 @@ namespace BlockOut.Runtime.UI
         const float PackBandH = 165f;
         const float PackGap   = 64f;
         const float TileCreamH = 320f;
-        const float TileBaseH = 132f;
+        // KIRMIZI TABAN 132 → 176 (7. tur, N53). Kullanıcı: "en alttaki
+        // kırmızı kısım çok küçük kalmış, alan bir tık aşağıya genişletilecek
+        // (fiyat butonları çok büyük görünmesin)."
+        //
+        // ÖLÇÜLDÜ (kendi yakalamamız, 1080×1920): kremin dibi 592, kutunun
+        // dibi 710 → taban 118 piksel; yeşil düğme 605-695 arası, yani 90
+        // piksel. Kırmızıdan geriye düğmenin çevresinde 8-13 piksellik bir
+        // çerçeve kalıyordu ve göz onu "taban" değil "kenarlık" okuyordu.
+        // Taban 176'ya çıkarken düğme 90 birimde bırakıldı: aynı düğme, artık
+        // altında ve üstünde nefes payı olan bir tabanın üstünde duruyor.
+        const float TileBaseH = 176f;
         const float TileGap   = 50f;
         const float RestoreH  = 110f;
         const float SectionEnd = 46f;
@@ -321,20 +331,20 @@ namespace BlockOut.Runtime.UI
             // içeriğin kaydığı ilk satır ekranın %13,5'i, tentenin dibiyle
             // aynı yer). Levha yalnız festonun çentiklerini ARKADAN kapatmak
             // için var; tentenin altına taşmasının hiçbir gerekçesi yok.
-            const float ShadeDrop = 0f;
-            var shade = Row("AwningShade", root, 0f, AwningH + ShadeDrop);
-            var shadeImage = shade.gameObject.AddComponent<Image>();
-            shadeImage.color = new Color(0.024f, 0.137f, 0.529f);   // #062387
-            shadeImage.raycastTarget = false;
-
-            // Levhanın altına yumuşak bir düşüş: sert kesim "iki katman"
-            // demiyordu, yalnız "iki renk" diyordu.
-            var drop = Row("AwningDrop", root, AwningH + ShadeDrop, 34f);
-            var dropImage = drop.gameObject.AddComponent<Image>();
-            dropImage.sprite = MenuSprites.FadeDown;
-            dropImage.type = Image.Type.Sliced;
-            dropImage.color = new Color(0f, 0f, 0f, 0.42f);
-            dropImage.raycastTarget = false;
+            //
+            // LEVHA ARTIK İÇERİĞİN PARÇASI (7. tur, N47). Kullanıcı: "o mavi
+            // alan ve gölgesi sadece başlangıçta en üstte olmalı, scroll
+            // sonrası tamamen kaybolmalı (sticky olmayacak)."
+            //
+            // DERS (yanlış KATMANDA duran bir süs, kendini hareketle ele
+            // verir): Levha altı turdur `root` altındaydı, yani kaydırma
+            // alanının DIŞINDA. Kaydırmayan bir tuvalde bunun görünür bir
+            // sonucu yok; parmak listeyi yukarı ittiği anda levha kartların
+            // üstünde asılı kalıyor ve "bizimle geliyor" gibi okunuyor.
+            // Bir katmanın sabit mi akan mı olduğunu, DURDUĞU yere değil,
+            // ekran hareket ederken ne yaptığına bakarak seçmek gerekiyor.
+            // Kurulumu <see cref="BuildAwningShade"/> yapıyor — çağrıldığı
+            // yer `BuildContent`'in SONU (kardeş sırası = çizim sırası).
 
             var bar = Row("Awning", root, 0f, AwningH);
 
@@ -461,7 +471,39 @@ namespace BlockOut.Runtime.UI
             Background(content, sectionTop, y - sectionTop, BgCoins, "BgCoins",
                        padBottom: OverscrollPad);
 
+            // EN SON: tentenin arkasındaki levha ve gölgesi. Kardeş sırası
+            // çizim sırası olduğu için burada kurulunca bütün kartların
+            // ÜSTÜNDE kalıyor — eskiden `root` altında olduğu için de öyleydi,
+            // tek fark artık içerikle birlikte kayıp gitmesi.
+            BuildAwningShade(content);
+
             return y;
+        }
+
+        /// <summary>
+        /// Tentenin arkasındaki koyu lacivert levha ve altındaki yumuşak
+        /// gölge — İÇERİĞİN parçası, yani kaydırınca yukarı çıkıp kaybolur.
+        ///
+        /// Levha yalnız festonun çentiklerini arkadan kapatmak için var:
+        /// yüksekliği tam <see cref="AwningH"/>, altına taşan tek şey 34
+        /// birimlik düşüş. Kaydırma başladığı anda ikisi de tentenin ardına
+        /// giriyor ve içerik doğrudan festona değiyor (referansta da öyle).
+        /// </summary>
+        static void BuildAwningShade(Transform content)
+        {
+            var shade = Row("AwningShade", content, 0f, AwningH);
+            var shadeImage = shade.gameObject.AddComponent<Image>();
+            shadeImage.color = new Color(0.024f, 0.137f, 0.529f);   // #062387
+            shadeImage.raycastTarget = false;
+
+            // Levhanın altına yumuşak bir düşüş: sert kesim "iki katman"
+            // demiyordu, yalnız "iki renk" diyordu.
+            var drop = Row("AwningDrop", content, AwningH, 34f);
+            var dropImage = drop.gameObject.AddComponent<Image>();
+            dropImage.sprite = MenuSprites.FadeDown;
+            dropImage.type = Image.Type.Sliced;
+            dropImage.color = new Color(0f, 0f, 0f, 0.42f);
+            dropImage.raycastTarget = false;
         }
 
         /// <summary>
@@ -535,26 +577,41 @@ namespace BlockOut.Runtime.UI
 
             var rimTone = rimColor ?? PillRim;
 
-            // Kurdelenin dili: kapsülün SAĞ ucundan dışarı taşar. Kapsülden
-            // ÖNCE kuruluyor ki kapsül onun sol kenarını örtsün ve dil
-            // "arkadan çıkıyor" görünsün.
-            var tail = UiKit.CreateRect("Tail", row);
-            tail.anchorMin = new Vector2(0.93f, 0.16f);
-            tail.anchorMax = new Vector2(1.045f, 0.84f);
-            tail.offsetMin = Vector2.zero;
-            tail.offsetMax = Vector2.zero;
-            var tailImage = tail.gameObject.AddComponent<Image>();
-            tailImage.color = rimTone;
-            tailImage.raycastTarget = false;
+            // KURDELENİN DİLİ — İKİ UÇTA, İÇİ DOLU, ALTIN (7. tur, N50/N51).
+            //
+            // Kullanıcı: "Sağdaki şerit: içi dolu, bir tık daha ince ve sarı
+            // olacak. Aynı şerit solda da olacak (simetrik)." ve Paketler
+            // için: "şerit tek yerde var, çift olacak. Rengi mor yapılmış,
+            // dış renkle (sarı) düzeltilecek."
+            //
+            // Eski dil iki katmanlıydı: dışta kapsülün kontur rengi, içinde
+            // BÖLÜM RENGİNİN koyusu. Yani her bölümde başka renkteydi —
+            // Paketler'de mor, Teklifler'de kızıl. Referansta dil bir kumaş
+            // parçası değil, kurdelenin kendisi: tek renk, kapsülün altın
+            // konturuyla aynı. Renk bölüme göre değişmemeli, çünkü anlattığı
+            // şey bölüm değil "bu bir kurdele".
+            //
+            // DERS (simetri, bir yanı kopyalamakla kurulmaz): Sağdaki dil
+            // 0.93→1.045 aralığındaydı; solda aynı görüntüyü almak için
+            // aralığı AYNALAMAK gerekiyor (1-x), yoksa dil ekranın içine
+            // doğru büyür. `for` içindeki `mirror` çarpanı bunu yapıyor.
+            const float TailIn = 0.930f, TailOut = 1.045f;
+            for (int side = 0; side < 2; side++)
+            {
+                bool right = side == 0;
+                float x0 = right ? TailIn  : 1f - TailOut;
+                float x1 = right ? TailOut : 1f - TailIn;
 
-            var tailFace = UiKit.CreateRect("TailFace", tail);
-            tailFace.anchorMin = new Vector2(0f, 0.12f);
-            tailFace.anchorMax = new Vector2(0.86f, 0.88f);
-            tailFace.offsetMin = Vector2.zero;
-            tailFace.offsetMax = Vector2.zero;
-            var tailFaceImage = tailFace.gameObject.AddComponent<Image>();
-            tailFaceImage.color = new Color(face.r * 0.72f, face.g * 0.72f, face.b * 0.72f);
-            tailFaceImage.raycastTarget = false;
+                var tail = UiKit.CreateRect(right ? "TailRight" : "TailLeft", row);
+                // İNCE: eski 0.16-0.84 (yüksekliğin %68'i) yerine %52.
+                tail.anchorMin = new Vector2(x0, 0.24f);
+                tail.anchorMax = new Vector2(x1, 0.76f);
+                tail.offsetMin = Vector2.zero;
+                tail.offsetMax = Vector2.zero;
+                var tailImage = tail.gameObject.AddComponent<Image>();
+                tailImage.color = PillRimGold;
+                tailImage.raycastTarget = false;
+            }
 
             var rim = Capsule("Rim", row, rimTone);
             UiKit.Place(rim, 0f, 0f, 1f, 1f);
@@ -672,20 +729,50 @@ namespace BlockOut.Runtime.UI
             flag.color = BadgeRed;
             flag.raycastTarget = false;
 
+            // YAZI FLAMANIN ORTASINDA (7. tur, N48). Kullanıcı: "bayraktaki
+            // text bayrağa ortalanmalı (şu an üstte kalmış)."
+            //
+            // ÖLÇÜM: `MenuSprites.Pennant` 160×200 ve alt kenarında 46
+            // piksellik bir V çentiği var — yani flamanın DOLU gövdesi
+            // 46..200, normalde 0.23..1.00 ve ortası 0.615. Yazı bloğu
+            // (0.28..0.92) ise 0.60'ta duruyordu; üstelik arkadaki kontur
+            // katmanı flamayı aşağı doğru 0.045 daha uzatıyor, bu yüzden göz
+            // ortayı daha da aşağıda arıyor. Blok 0.06 aşağı çekildi.
+            //
+            // DERS (çentikli bir biçimin ortası, kutusunun ortası değildir):
+            // Flamayı bir dikdörtgen sanıp kutuya göre ortalamak, V'nin
+            // yediği alanı da hesaba katmak demek — yazı hep yukarıda kalır.
             var percent = UiKit.CreateTitle("Percent", badge.transform, offer.Discount + "%", 44,
                 new Color(1f, 1f, 1f), new Color(0.42f, 0.03f, 0.03f));
-            UiKit.Place(percent, 0.02f, 0.52f, 0.98f, 0.92f);
+            UiKit.Place(percent, 0.02f, 0.46f, 0.98f, 0.86f);
 
             var word = UiKit.CreateTitle("Word", badge.transform, "OFF", 22,
                 new Color(1f, 0.94f, 0.80f), new Color(0.42f, 0.03f, 0.03f));
-            UiKit.Place(word, 0.02f, 0.28f, 0.98f, 0.52f);
+            UiKit.Place(word, 0.02f, 0.22f, 0.98f, 0.46f);
+
+            // BANDIN GÖRÜNEN YÜKSEKLİĞİ, BANDIN YÜKSEKLİĞİ DEĞİL (7. tur, N49).
+            //
+            // Kullanıcı: "'Starter Pack' yazısı biraz daha solda ve ortalanmış
+            // olmalı. Fiyat butonu ortalanmalı (şu an çok üste yapışmış)."
+            //
+            // SEBEP: `art` paneli bandın üstüne 0.04 kart yüksekliği kadar
+            // BİNİYOR (yuvarlak köşeler arada dikiş bırakmasın diye). 0.04 ×
+            // 506 = 20 birim, bandın 140 biriminin %14'ü. Ad ve düğme bandın
+            // TAMAMINA göre ortalandığı için ikisi de o payın yarısı kadar
+            // yukarıda duruyordu — göze "üste yapışmış" diye geliyor.
+            //
+            // DERS (bir kutunun ortası, GÖRÜNEN kutunun ortasıdır): Üstünü
+            // başka bir katman örtüyorsa ortalama hesabı örtülen payı
+            // düşmeli. Aksi hâlde düzen "doğru" ama görüntü yanlış olur.
+            const float ArtOverlap = 0.04f;                       // kart oranı
+            float visible = 1f - ArtOverlap * height / OfferBandH; // band oranı
 
             var name = UiKit.CreateTitle("Name", band.transform, offer.Name, 58,
                 new Color(1f, 0.99f, 0.96f), new Color(0.45f, 0.13f, 0.02f));
-            UiKit.Place(name, 0.05f, 0.06f, 0.62f, 0.94f);
+            UiKit.Place(name, 0.032f, 0.06f * visible, 0.600f, 0.94f * visible);
 
             var buy = PriceButton("Buy", band.transform, offer.Price, 44);
-            UiKit.Place(buy, 0.64f, 0.14f, 0.96f, 0.86f);
+            UiKit.Place(buy, 0.64f, 0.14f * visible, 0.96f, 0.86f * visible);
 
             var captured = offer;
             buy.onClick.AddListener(() => Purchase("offer_" + captured.Coins, captured.Coins,
@@ -715,8 +802,23 @@ namespace BlockOut.Runtime.UI
                     : new Color(0.62f, 0.35f, 0.16f);
                 dots[i] = image;
 
-                float cx = 0.5f + (i - (count - 1) * 0.5f) * 0.035f;
-                UiKit.Place(dot, cx - 0.011f, 0.30f, cx + 0.011f, 0.70f);
+                // BİR TIK BÜYÜK VE TAM ORTADA (7. tur, N52). Kullanıcı:
+                // "kampanya değiştirme 3 nokta ikonu boyutu bir tık
+                // büyütülecek ve biraz daha ortalanacak."
+                //
+                // Yarıçap 0.011 → 0.015 (çap 23,8 → 32,4 birim), aralık da
+                // orantılı açıldı (0.035 → 0.044) — noktalar büyüyünce eski
+                // aralıkta birbirine değiyordu.
+                //
+                // DİKEY: satır DotsH = 62 birim; 0.30-0.70 aralığı 24,8
+                // birim veriyordu, yani nokta YATAYDA 23,8 DİKEYDE 24,8 —
+                // `CreateIcon` en-boy koruduğu için daire yatay ölçüye göre
+                // çiziliyor ve kutunun içinde 1 birim yukarıda kalıyordu.
+                // Çapı kutuya eşitlemek onu gerçekten ortalıyor.
+                const float radius = 0.015f;
+                float half = radius * UiKit.ReferenceResolution.x / DotsH;
+                float cx = 0.5f + (i - (count - 1) * 0.5f) * 0.044f;
+                UiKit.Place(dot, cx - radius, 0.5f - half, cx + radius, 0.5f + half);
             }
             return dots;
         }
@@ -869,6 +971,15 @@ namespace BlockOut.Runtime.UI
             float height = TileCreamH + TileBaseH;
             var tile = Row("Tile_" + index, content, top, height, x0, x0 + span);
 
+            // ALT GÖLGE (7. tur, N53: "…ve gölge eklenecek"). Paket
+            // kartındaki `Drop` ile aynı numara: kutunun altına taşan koyu
+            // bir kopya. Kutu kızıl zeminin ÜSTÜNDE duruyor görünsün diye —
+            // gölgesiz hâlde ızgara, zemine çizilmiş altı kare gibiydi.
+            var drop = UiKit.CreateRoundedPanel("Drop", tile,
+                new Color(0f, 0f, 0f, 0.34f));
+            UiKit.Place(drop, 0.02f, -0.030f, 0.98f, 0.97f);
+            drop.raycastTarget = false;
+
             var basePlate = UiKit.CreateRoundedPanel("Base", tile, CoinBase);
             UiKit.Place(basePlate, 0f, 0f, 1f, 1f);
 
@@ -892,8 +1003,13 @@ namespace BlockOut.Runtime.UI
                 new Color(1f, 1f, 1f), TitleShade);
             UiKit.Place(amount, 0.02f, 0.06f, 0.98f, 0.32f);
 
+            // Düğme yükseklikte SABİT 90 birim: taban büyüdü diye düğme de
+            // büyüseydi kullanıcının şikâyeti ("fiyat butonları çok büyük
+            // görünmesin") aynen kalırdı. Taban içinde bir tık yukarı
+            // oturuyor — altındaki 26 birim, gölgesinin düştüğü pay.
+            const float BuyH = 90f, BuyBottom = 26f;
             var buy = PriceButton("Buy", tile, price, 36);
-            UiKit.Place(buy, 0.04f, 0.02f, 0.96f, TileBaseH / height * 0.86f);
+            UiKit.Place(buy, 0.085f, BuyBottom / height, 0.915f, (BuyBottom + BuyH) / height);
             buy.onClick.AddListener(() => Purchase("coins_" + coins, coins, 0, false, price));
             _purchaseButtons.Add(buy);
         }
