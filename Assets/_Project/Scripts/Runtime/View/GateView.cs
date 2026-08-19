@@ -44,8 +44,23 @@ namespace BlockOut.Runtime.View
             : MatchesFrame ? VisualSettings.Current.frameHeight * 1.14f
                            : VisualSettings.Current.gateBarHeight;
 
+        /// <summary>
+        /// Barın kenara dik derinliği — çerçeve bandından KIL PAYI dar.
+        ///
+        /// BULUNAN HATA: Derinlik bandın tam kalınlığıydı, yani barın iç yüzü
+        /// çerçevenin iç duvarıyla TAM ÇAKIŞIYORDU. İki yüzey aynı düzlemde
+        /// olunca derinlik tamponu hangisinin önde olduğuna karar veremiyor ve
+        /// kapının altında ince, titreyen renkli çizgiler beliriyordu
+        /// (z-fighting). Ekranda "kapının altından sızan çizgiler" gibi
+        /// görünüyordu.
+        ///
+        /// DERS (çakışan yüzey, kararsız yüzeydir): "Tam oturması" istenen iki
+        /// yüzey asla aynı düzleme konmaz; birine görünmeyecek kadar küçük bir
+        /// pay verilir. %6 pay 140 piksel/hücre ölçeğinde 4 piksel ediyor ve
+        /// kapı hâlâ bandı doldurmuş görünüyor.
+        /// </summary>
         static float BarDepth => VisualSettings.Current == null ? 0.55f
-            : MatchesFrame ? VisualSettings.Current.frameThickness * 1.0f
+            : MatchesFrame ? VisualSettings.Current.frameThickness * 0.94f
                            : VisualSettings.Current.gateBarDepth;
 
         /// <summary>
@@ -111,31 +126,27 @@ namespace BlockOut.Runtime.View
             go.AddComponent<MeshRenderer>();
             go.transform.position = center;
 
-            // KOYU KENAR — KAPININ SILUETI (4. tur, G26).
+            // KOYU KENAR KALDIRILDI — ÖLÇÜM ONU YALANLADI (4. tur, G26 revizyon).
             //
-            // Kullanıcı: "Kapı ve blok outline ları düzgün çalışmıyor, bazı
-            // köşeler görünmüyor."
+            // G26 için barın bir tık büyütülmüş KOYU kopyası eklenmişti; amaç
+            // kapı ile çerçeve arasındaki sınırı çizmekti. İki şeyi birden
+            // bozdu:
+            //   1) Aktif kapının çevresinde ekranda GRİ bir hale bıraktı.
+            //   2) Kapı sönüp saydamlaşırken o kopya kapanmıyordu, yani rengi
+            //      tükenen kapının yerinde GRİ bir dikdörtgen kalıyordu.
             //
-            // Kapı çerçeveyle aynı bandın içinde duruyor ve ikisi de doygun
-            // renkler; aralarında bir sınır olmadığı için kapının nerede
-            // bitip çerçevenin nerede başladığı — özellikle köşelerde —
-            // okunmuyordu. Barın bir tık büyütülmüş KOYU kopyası, altından
-            // ince bir hat olarak çıkıp o sınırı çiziyor.
+            // ÖLÇÜM (Levels 1-20, 00:12 karesi, kırmızı kapının sol kenarında
+            // yatay tarama): çerçeve #4238A3 → kenarında iki piksel açık mor
+            // (#5348B8, çerçevenin kendi ışığı) → **2 PİKSEL** koyu mor
+            // (#241C70) → kapının koyu kırmızısı → kapı. Yani referanstaki
+            // ayrım 2 piksel; benim kopyam her kenarda 0,045 hücre = ~6 piksel
+            // ve neredeyse siyahtı.
             //
-            // DERS (kontur bir çizgi değil, ALTTAKI katmandır): 3B bir sahnede
-            // "kenarlık çizmek" diye bir şey yok; kenar, arkadaki koyu yüzeyin
-            // kenardan taşan kısmıdır. Bloklarda temas gölgesi, burada bu kopya
-            // aynı işi yapıyor.
-            var rim = new GameObject("Rim");
-            rim.transform.SetParent(go.transform, worldPositionStays: false);
-            rim.transform.localPosition = new Vector3(0f, -0.012f, 0f);
-            rim.AddComponent<MeshFilter>().sharedMesh =
-                BuildBarMesh(alongX + 0.09f, alongZ + 0.09f, BarHeight * 0.96f);
-            var rimRenderer = rim.AddComponent<MeshRenderer>();
-            rimRenderer.sharedMaterial = ViewKit.Solid("GateRim", new Color(0.075f, 0.055f, 0.180f));
-            rimRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            rimRenderer.receiveShadows = false;
-
+            // DERS (bir sınırı GÖRÜNÜR kılmak ile KALIN yapmak aynı şey
+            // değil): Referansta o 2 pikseli üreten şey ayrı bir katman değil,
+            // kapının KENDİ yan yüzü — kapı çerçeveden %14 yüksek olduğu için
+            // kendi gölgesini düşürüyor. Yükseklik farkı zaten bizde de var;
+            // eklenen kopya gereksizdi ve zararlıydı.
             var view = go.AddComponent<GateView>();
             view._model = model;
             view._renderer = go.GetComponent<MeshRenderer>();
@@ -194,12 +205,26 @@ namespace BlockOut.Runtime.View
             float radius = cfg != null ? cfg.brickCornerRadius : 0.16f;
             float bevel = cfg != null ? cfg.brickChamfer : 0.06f;
 
-            // Kapının uçları BLOKTAN daha yuvarlak: uçlar çerçevenin köşe
-            // yayına dayandığında keskin kalan her köşe dışarı taşıyor
-            // (4. tur G20). Yarıçapı barın DAR kenarının yarısına kadar
-            // açmak, ucu yarım daireye çevirip taşmayı kapatıyor.
-            radius = Mathf.Max(radius, Mathf.Min(sizeX, sizeZ) * 0.44f);
-            radius = Mathf.Min(radius, Mathf.Min(sizeX, sizeZ) * 0.5f);
+            // KAPININ UCU HAP DEĞİL, NEREDEYSE DÜZ (4. tur G20 revizyon).
+            //
+            // Önce yarıçap barın dar kenarının yarısına açılmıştı; amaç köşe
+            // taşmasını yuvarlayarak kapatmaktı. Sonuç ekranda hap biçiminde
+            // bir kapsüldü ve referansla alakası yoktu.
+            //
+            // ÖLÇÜM (Levels 1-20, 00:12; kırmızı kapının sol ucunda satır satır
+            // tarama): kapının sol kenarı y=350'den y=401'e kadar SABİT x=338.
+            // Yani uç düz bir dikey çizgi; köşedeki kıvrım 4-5 piksel, hücre
+            // 80 piksel → yarıçap hücrenin ~%6'sı.
+            //
+            // Köşe taşması yuvarlaklıkla değil, asıl sebepleriyle çözüldü:
+            // çerçeve köşe yarıçapı 0,6 → 0,32 ve köşeye sıkışmış kapı
+            // (1. bölüm) bir birim içeri alındı.
+            //
+            // DERS (bir kusuru gizlemek, başka bir kusur üretebilir):
+            // "Taşmasın diye yuvarlayalım" kolay bir çözümdü ama silüeti
+            // referanstan uzaklaştırdı. Ölçmeden yapılan her düzeltme, bir
+            // sorunu başka bir sorunla takas etme riskidir.
+            radius = Mathf.Min(radius * 0.45f, Mathf.Min(sizeX, sizeZ) * 0.22f);
             bevel = Mathf.Clamp(bevel, 0f, height * 0.4f);
 
             var loop = RoundedRect(sizeX * 0.5f, sizeZ * 0.5f, radius);
@@ -594,10 +619,27 @@ namespace BlockOut.Runtime.View
         /// </summary>
         System.Collections.IEnumerator FadeToGhost(Material ghostMaterial)
         {
-            const float duration = 0.34f;
+            // ÖLÇÜM (Levels 1-20, 8 fps ile çıkarılan kareler): kapı 8. karede
+            // tam kırmızı (238,45,46), 9'da yarı yolda (150,48,95), 10'da
+            // neredeyse bitmiş (95,53,135), 11'de tam çerçeve rengi
+            // (66,55,158). Üç kare = 0,375 saniye.
+            const float duration = 0.375f;
 
+            // RENK DEĞİŞMİYOR, YALNIZ ALFA İNİYOR.
+            //
+            // ÖLÇÜM DOĞRULADI: referansta ara kare (150,48,95); kapının
+            // kırmızısı (238,45,46) ile çerçevenin moru (66,55,158) arasında
+            // %51'lik DÜZ bir karışım (hesap: R 150 → t=0.51, o t ile
+            // G=50 ölçülen 48, B=103 ölçülen 95). Yani referans kapıyı başka
+            // bir renge boyamıyor; sadece saydamlaştırıyor ve altındaki
+            // çerçeve kendiliğinden görünüyor.
+            //
+            // DERS (bir kaybolmayı iki değişkenle anlatmaya çalışma): Renk ve
+            // alfa birlikte yürüyünce ara karelerde kapı ne kendi rengi ne de
+            // çerçeve oluyor — "solmuş" değil "kirlenmiş" görünüyordu.
+            // `ghostMaterial` artık yalnız çağrı uyumluluğu için duruyor.
             Color from = ReadColor(_renderer.sharedMaterial);
-            Color to = ghostMaterial != null ? ReadColor(ghostMaterial) : from;
+            Color to = from;
 
             // Kendi örneğimizde çalışıyoruz: paylaşılan materyali boyamak
             // aynı renkteki BÜTÜN kapıları söndürürdü.
@@ -610,8 +652,7 @@ namespace BlockOut.Runtime.View
             if (arrowRenderer != null)
             {
                 arrowFrom = ReadColor(arrowRenderer.sharedMaterial);
-                arrowTo = ViewKit.ArrowGhostMaterial != null
-                    ? ReadColor(ViewKit.ArrowGhostMaterial) : arrowFrom;
+                arrowTo = arrowFrom;
                 arrowFading = ViewKit.Translucent(arrowFrom);
                 arrowRenderer.sharedMaterial = arrowFading;
             }
@@ -636,16 +677,28 @@ namespace BlockOut.Runtime.View
 
             for (float t = 0f; t < duration; t += Time.deltaTime)
             {
-                float k = Mathf.SmoothStep(0f, 1f, t / duration);
+                // DOĞRUSAL, `SmoothStep` DEĞİL: ölçülen ara kare tam ortada
+                // %51'de. SmoothStep aynı anda %50 verirdi ama uçlarda
+                // yavaşlar; referansın üç karesi eşit aralıklı.
+                float k = Mathf.Clamp01(t / duration);
                 Paint(fading, Color.Lerp(from, to, k));
                 if (arrowFading != null)
                     Paint(arrowFading, Color.Lerp(arrowFrom, arrowTo, k));
                 yield return null;
             }
 
-            // Görünmez bir nesneyi çizmeye devam etmenin anlamı yok: renderer
-            // kapatılıyor, geçiş için üretilen materyaller yok ediliyor.
-            _renderer.enabled = false;
+            // KAPININ ALTINDAKİ HER ŞEY KAPANIYOR, YALNIZ BAR DEĞİL.
+            //
+            // Eskiden yalnız `_renderer` ve ok kapatılıyordu. Kapıya sonradan
+            // eklenen bir çocuk (bkz. kaldırılan koyu kenar) o listede
+            // olmadığı için sönmüyor ve ekranda gri bir dikdörtgen olarak
+            // kalıyordu.
+            //
+            // DERS (ada göre değil, AĞACA göre kapat): "Şu iki nesneyi
+            // gizle" diyen kod, üçüncü nesne eklendiği gün sessizce yanlış
+            // olur. `GetComponentsInChildren` o listeyi kendi tutuyor.
+            foreach (var renderer in GetComponentsInChildren<MeshRenderer>(true))
+                renderer.enabled = false;
             if (arrowRenderer != null) arrowRenderer.enabled = false;
 
             if (fading != null) Destroy(fading);

@@ -29,7 +29,21 @@ namespace BlockOut.Runtime.View
             if (bevel < 0f) bevel = cfg != null ? cfg.brickChamfer : 0.06f;
 
             radius = Mathf.Min(radius, Mathf.Min(sizeX, sizeZ) * 0.5f);
-            bevel = Mathf.Clamp(bevel, 0f, height * 0.45f);
+
+            // PAH, KÖŞE YARIÇAPINI AŞAMAZ.
+            //
+            // Üst kapak, çevre çizgisini dış normali boyunca `bevel` kadar
+            // içeri çekerek üretiliyor. Köşe yarıçapı pahtan küçükse o köşede
+            // yay kendi içine katlanıyor: çokgen kesişiyor ve kapakta küçük
+            // üçgen çentikler beliriyor. Kapının ucu neredeyse düz yapılınca
+            // (yarıçap 0,07, pah 0,13) tam bu oldu — köşelerde koyu çentikler
+            // çıktı.
+            //
+            // DERS (iki ölçü birbirini kısıtlıyorsa, kısıtı KODA yaz): "Pahı
+            // küçük tut" bir kural değil, bir hatırlatmadır; bir gün başka bir
+            // çağrı yerinde unutulur. Sınırı burada uygulamak, her çağrı için
+            // geçerli kılıyor.
+            bevel = Mathf.Clamp(bevel, 0f, Mathf.Min(height * 0.45f, radius * 0.85f));
 
             var loop = RoundedRect(sizeX * 0.5f, sizeZ * 0.5f, radius);
             int count = loop.Count;
