@@ -8,6 +8,102 @@ Bu dosya her oturum sonunda güncellenir. Aşağısı 2026-08-10 itibarıyla ge�
 
 ---
 
+## 2026-08-19 — 4. TUR KAPANDI (43/44)
+
+**Tek doğruluk kaynağı: `docs/APK-BULGULARI-3.md`.** Kullanıcının 44 maddesi
+oraya numaralı biçimde döküldü; her kapanan maddenin altında NE YAPILDI +
+NASIL DOĞRULANDI ve ölçümler var.
+
+**Durum: 43 kapalı / 1 kullanıcıda (A2 — metin ve panel boyutlarını kullanıcı
+kendisi düzenleyecek).**
+
+### Bu turun dört genel dersi
+
+1. **Ekrandaki gri, dosyadaki gri değildir.** Tahtanın ızgara çizgileri
+   görüntüleyicide açık gri görünüyordu ve bir saat "ızgara materyali bozuk"
+   diye arandı. Piksel piksel ölçüldüğünde o bölgede 90'ın üstünde tek bir
+   nötr piksel bile yoktu. **Karanlık bölgeleri gözle yargılama, say.**
+2. **Kırpma "biraz eksik"i "hiç yok"a çevirir.** Alt sekme çubuğundaki seçili
+   sekmenin adı hiç görünmüyordu: kutu 32,83 birim, yazının en küçük satır
+   yüksekliği 33,6 ve `overflowMode = Truncate` satırı TAMAMEN atıyordu
+   (`text.bounds` extents = 0,0,0). Renk, alfa, sıra, materyal hepsi doğruydu.
+3. **Bir süsün hatası ana akışı kilitlememeli.** Kutlama coroutine'inde bir
+   NullReference çıkınca `done` geri çağrısı hiç çalışmadı ve PERFECT kartı
+   ASLA açılmadı — oyuncu bölümü bitiriyor, ekranda siyah perde kalıyordu.
+4. **"Dışarısı" nerede başlıyor?** Üreteç makinesi tahtanın kenarından
+   hesaplanıp "dışarı" konuyordu; arada 0,52 hücrelik çerçeve var ve makine
+   onun içine girip kapının arkasında kalıyordu.
+
+### En büyük iş: blok silüetleri (H27/H28/H29)
+
+`brickInset: 0` ve keskin köşeli, hücre hücre örülen gövde yüzünden yan yana
+duran aynı renkten iki blok TEK KÜTLE görünüyordu. Yeni `BrickSilhouette`
+polyomino'nun çevre çizgisini kenar takibiyle çıkarıyor, gönye ile kaydırıyor,
+her 90° köşeyi (dışbükey ve içbükey) yay ile yuvarlıyor ve üst yüzü kulak
+kırpma ile üçgenliyor. Tutma konturu artık ölçek değil SABİT kalınlık.
+
+Yeni ortak araç: **`PrismMeshBuilder`** (yuvarlak köşeli, pahlı alçak prizma).
+Kapı barı, üreteç parçaları ve perde aynı biçimi paylaşıyor.
+
+### Haptik — cihazda doğrulanmadı
+
+Kök sebep bulundu: **Android manifestinde `VIBRATE` izni yoktu.** Oyun
+`android.os.Vibrator`ü JNI ile çağırdığı için Unity izni kendiliğinden
+eklemiyor; izin olmayınca `SecurityException` try/catch içinde yutuluyor ve
+tek bir titreşim bile çalışmıyor. `AndroidManifestPatcher` üretilen manifeste
+izni ekliyor.
+
+> **SONRAKİ OTURUMDA İLK BAKILACAK YER:** Kullanıcının yeni APK'sinde titreşim
+> hâlâ yoksa, derlemenin ürettiği `unityLibrary/src/main/AndroidManifest.xml`
+> dosyasında `<uses-permission android:name="android.permission.VIBRATE"/>`
+> satırının olup olmadığına bak.
+
+### Doğrulama yöntemi — iki yeni tuzak
+
+1. **`UiCaptureTool.Capture` 3B TAHTA İÇİN KULLANILMAZ.** O araç ORTOGRAFİK
+   bir kamera kuruyor ve sahnedeki her şeyi onunla çiziyor; tahta yandan
+   bakılmış ince bir şerit olarak çıkıyor. Tahta kareleri için `Camera.main`
+   kendi `RenderTexture`ına render edilmeli (bkz. bu oturumun komutları).
+2. **`EditorApplication.Step()` çağrıldığı komutun İÇİNDE etki etmez** (bu
+   ders 3. turda da yazılmıştı, yine unutuldu). Adımlayan komut ile gözleyen
+   komut AYRI olmalı. Ayrıca adımlarken `Time.unscaledDeltaTime` çok küçük
+   kalıyor: `Show = 2.2f` gibi biriken süreler stepli modda neredeyse hiç
+   ilerlemiyor, bu yüzden kutlama "bitmiyor" gibi görünüyor — gerçek oyunda
+   sorun yok.
+
+Ayrıca: **statik alanlar RunCommand'ın derlemesinde bayat kalabiliyor.**
+`MenuShell.Instance` ve `AppRoot.Current` play modunda `null` dönüyordu; aynı
+nesneler `Object.FindFirstObjectByType<T>()` ile bulunuyor. Doğrulamada statik
+kapı değil, sahneden arama kullan.
+
+### Yeni dosyalar
+
+| dosya | işi |
+|---|---|
+| `Runtime/View/BrickSilhouette.cs` | polyomino çevre çizgisi + yuvarlatma + kulak kırpma |
+| `Runtime/View/PrismMeshBuilder.cs` | yuvarlak köşeli alçak prizma (kapı, makine, perde) |
+| `Editor/ProjectSetup/AndroidManifestPatcher.cs` | manifeste VIBRATE izni |
+| `Editor/ProjectSetup/AppIconTool.cs` | ikonu projeye alıp Android yuvalarına bağlar |
+| `tools/make_icon.py`, `tools/make_icon_layers.py` | ikon ve uyarlanabilir katmanları |
+
+### Açık kalanlar
+
+1. **A2** — metin/panel boyutları, kullanıcı yapacak.
+2. **Haptik cihazda doğrulanmadı** (yukarı bak).
+3. **27 bölümde süre yetmiyor** — 3. turdan devrediyor, tasarım kararı.
+   Tam tablo: `APK-BULGULARI-2.md` → "3. TUR" → bölüm D.
+4. **`DeviceErrorOverlay.Enabled = true`** (`Runtime/Flow/DeviceErrorOverlay.cs`
+   satır 33) — yayına çıkarken `false`.
+5. **Ses**: her şey `SfxSynth` ile sentezleniyor, müzik yok.
+
+### Uyarılar (değişmedi)
+
+- **Level editörüne DOKUNMA** (`Scripts/Editor/LevelEditor/`) ve
+  `Runtime/Debug/`, `GameKit/Runtime/DevTools/` — kullanıcının paralel işi.
+- **`git add -A` KULLANMA.** Yalnız kendi dosyalarını tek tek stage'le.
+
+---
+
 ## 2026-08-18 — GELİŞTİRİCİ KONSOLU YENİDEN YAZILDI + KİTE TAŞINDI
 
 Eski gizli "dev menu" (4 sekme, tek ızgarada 50 bölüm, arama yok) yerini
