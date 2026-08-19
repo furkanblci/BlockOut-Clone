@@ -812,6 +812,25 @@ namespace BlockOut.Runtime.UI
         }
 
         // REFERANS ÖLÇÜMÜ — bkz. BuildPowerUpBar.
+        /// <summary>Zorluğa göre sonuç kartının rengi (bkz. RefreshResult).</summary>
+        static Color CardTint(Core.LevelDifficulty difficulty)
+        {
+            switch (difficulty)
+            {
+                case Core.LevelDifficulty.SuperHard: return CardCrimson;
+                case Core.LevelDifficulty.Hard:      return CardWine;
+                default:                             return CardPurple;
+            }
+        }
+
+        /// <summary>Başlık konturu kartın KOYU tonu olmalı; sabit mor yanlış kalıyordu.</summary>
+        static Color OutlineFor(Color card) =>
+            new Color(card.r * 0.42f, card.g * 0.36f, card.b * 0.46f, 1f);
+
+        // ÖLÇÜM (41-50 yürüyüşü, 12:24 — "Super Hard" PERFECT kartı): #D8331F.
+        static readonly Color CardCrimson = new Color(0.847f, 0.200f, 0.122f);
+        static readonly Color CardWine    = new Color(0.729f, 0.239f, 0.475f);
+
         static readonly Color PowerEdge = new Color(0.000f, 0.290f, 0.035f);  // #004A09
         static readonly Color PowerBody = new Color(0.004f, 0.671f, 0.000f);  // #01AB00
         static readonly Color PowerWell = new Color(0.275f, 0.941f, 0.216f);  // #46F037
@@ -1240,6 +1259,35 @@ namespace BlockOut.Runtime.UI
             }
         }
 
+        /// <summary>
+        /// Ödülün arkasındaki ışın çelengi: merkezden dışa açılan ince kamalar.
+        ///
+        /// Kamalar tam daireye eşit aralıkla yayılıyor ve her biri kendi
+        /// ucundan (pivot alt uçta) döndürülüyor; böylece merkezde birleşip
+        /// dışa doğru açılıyorlar. Tek renk ve düşük alfa: amaç ışık hissi,
+        /// desen değil.
+        /// </summary>
+        static void BuildSunburst(RectTransform parent)
+        {
+            const int rays = 16;
+            var holder = UiKit.CreateRect("Sunburst", parent);
+            UiKit.Place(holder, -0.22f, -0.18f, 1.22f, 1.18f);
+
+            for (int i = 0; i < rays; i++)
+            {
+                var ray = UiKit.CreateRect($"Ray_{i}", holder);
+                ray.anchorMin = ray.anchorMax = new Vector2(0.5f, 0.5f);
+                ray.pivot = new Vector2(0.5f, 0f);
+                ray.sizeDelta = new Vector2(i % 2 == 0 ? 26f : 15f, 300f);
+                ray.anchoredPosition = Vector2.zero;
+                ray.localRotation = Quaternion.Euler(0f, 0f, i * (360f / rays));
+
+                var image = ray.gameObject.AddComponent<Image>();
+                image.color = new Color(1f, 0.94f, 0.62f, i % 2 == 0 ? 0.20f : 0.13f);
+                image.raycastTarget = false;
+            }
+        }
+
         void BuildResultPanel(Transform root)
         {
             _resultPanel = UiKit.CreateRect("Result", root);
@@ -1292,6 +1340,21 @@ namespace BlockOut.Runtime.UI
             // tek bir Image'a iner — düzen değişmez.
             _rewardArt = UiKit.CreateRect("RewardArt", _resultCard.transform);
             UiKit.Place(_rewardArt, 0.24f, 0.400f, 0.76f, 0.830f);
+
+            // IŞIN ÇELENGİ — jeton yığınının ARKASINDA (4. tur, J39).
+            //
+            // Kullanıcı: "Ödül gösteren panel birebir orijinaliyle aynı olacak."
+            //
+            // REFERANS (`Levels 1-20` 00:35 ve 41-50 yürüyüşü 12:24): jetonların
+            // arkasından merkeze doğru toplanan açık ışınlar çıkıyor. Bizde
+            // yığın kartın üstünde tek başına duruyordu ve "yapıştırılmış bir
+            // resim" gibi okunuyordu.
+            //
+            // DERS (ödülü ödül yapan şey ÇEVRESİDİR): Aynı jeton görseli,
+            // arkasında ışın olduğunda "kazandığın şey", olmadığında "bir
+            // resim". Işınlar tek tek döndürülmüş ince dikdörtgenler; ayrı
+            // bir görsel gerekmiyor.
+            BuildSunburst(_rewardArt);
             BuildCoinPile(_rewardArt);
 
             // Ödül sayısı koyu kapsülün içinde — açık kart üstünde altın rakam
@@ -1905,6 +1968,28 @@ namespace BlockOut.Runtime.UI
             // boyamak bizim eklememizdi; referans kaybı RENKLE değil BİÇİMLE
             // anlatıyor (kırık kalp + kaçırılan ödülün üstündeki çarpı).
             _resultTitle.text = won ? "PERFECT!" : "FAILED";
+
+            // KART RENGİ ZORLUKTAN GELİYOR (4. tur, J41).
+            //
+            // Kullanıcı: "Level 20 perfect ekranı — kazandıktan sonra gelen
+            // para ödül ekranı / perfect ekranı birebir aynı olacak."
+            //
+            // REFERANS: 4. bölümün PERFECT kartı MOR (`Levels 1-20`, 00:35),
+            // 49. bölümünki KIRMIZI ve başlığın altında "Super Hard" yazıyor
+            // (41-50 yürüyüşü, 12:24). Yani kart bölümün zorluğunu de
+            // taşıyor; tek bir mor kart, zor bölümü bitirmenin ayrı bir şey
+            // olduğunu söylemiyordu.
+            //
+            // DERS (aynı olay, farklı AĞIRLIK): Elli bölümün hepsi aynı kartla
+            // biterse ellinci kutlama birinciyle aynı hissettirir. Referans
+            // yalnız rengi değiştirerek "bu zordu" diyor — yeni bir ekran,
+            // yeni bir animasyon gerekmiyor.
+            var difficultyTint = won
+                ? CardTint(_session != null ? _session.Difficulty : Core.LevelDifficulty.Normal)
+                : CardPurple;
+            if (_resultCard != null) _resultCard.color = difficultyTint;
+            if (_resultTitle != null)
+                UiKit.SetOutline(_resultTitle, OutlineFor(difficultyTint));
             _resultTitle.color = TitleGold;
 
             // Bölüm numarası İKİ DURUMDA DA var — referansta kaybederken

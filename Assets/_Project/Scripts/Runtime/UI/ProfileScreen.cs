@@ -105,16 +105,25 @@ namespace BlockOut.Runtime.UI
                 GameKit.UI.UiSprites.Circle, MenuPage.Green);
             UiKit.Place(pencilFace, 0f, 0f, 1f, 1f);
             UiKit.MakeClickable(pencil.gameObject, pencilFace, screen.OpenNamePanel);
-            // Kalem bir YAZI DEĞİL: "✎" Baloo 2'de yok, TMP boş kutu çizer
-            // (bu projede beşinci tekrar). Eğik beyaz bir kapsül, o boyutta
-            // kalem olarak okunuyor ve her cihazda aynı çıkıyor.
-            // İNCE bir çizgi olmalı, kapsül değil: 0.26-0.74 × 0.42-0.58
-            // kutusu 110 birimlik rozette 53×17 veriyordu ve ekranda kalem
-            // değil BEYAZ BİR OVAL olarak okunuyordu. Kalemi kalem yapan şey
-            // uzunluk/kalınlık oranı; 62×11 o oranı veriyor.
-            var pencilMark = MenuPage.Capsule("Mark", pencil, MenuPage.Ink);
-            UiKit.Place(pencilMark, 0.20f, 0.455f, 0.80f, 0.545f);
-            pencilMark.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -45f);
+            // KALEM ARTIK GERÇEK BİR KALEM ŞEKLİ (4. tur, C10).
+            //
+            // Kullanıcı: "Player çerçevesinin sağ alt köşesindeki düzenleme
+            // (edit) ikonu kötü — yeni görsel üretilecek."
+            //
+            // Burada eskiden 45 derece döndürülmüş beyaz bir KAPSÜL vardı.
+            // Kapsülün iki ucu da yuvarlak olduğu için ekranda "beyaz bir
+            // oval" okunuyordu. Yeni şekil `GameKit.UI.UiSprites.Pencil`:
+            // düz kesimli gövde, arkada silgi bandı, önde GERÇEK bir sivri uç.
+            //
+            // DERS (bir simgeyi tanınır kılan şey oranı değil AYIRT EDİCİ
+            // ayrıntısıdır): Uzunluk/kalınlık oranını doğru tutmak yetmedi;
+            // sivri uç olmadan o şekil bir kalem değil, bir çubuk. Simgeyi
+            // taşıyan bilgi çoğu zaman en küçük parçasında saklı.
+            var pencilMark = UiKit.CreateIcon("Mark", pencil,
+                GameKit.UI.UiSprites.Pencil, MenuPage.Ink);
+            UiKit.Place(pencilMark, 0.14f, 0.14f, 0.86f, 0.86f);
+            pencilMark.preserveAspect = true;
+            pencilMark.raycastTarget = false;
 
             // Ucu: kalemin sivri tarafı. Küçük koyu bir üçgen yerine kısa bir
             // koyu çizgi — o boyutta ikisi aynı şeyi anlatıyor.

@@ -69,7 +69,23 @@ namespace BlockOut.Runtime.UI
         static readonly Color ActionGreen = new Color(0.176f, 0.800f, 0.047f);
         static readonly Color RangeTag    = new Color(0.137f, 0.165f, 0.369f);
         static readonly Color RangeTagRim = new Color(0.451f, 0.400f, 0.769f);
-        static readonly Color Caption     = new Color(0.729f, 0.741f, 0.949f);
+        /// <summary>
+        /// Kilometre taşı kapsülündeki "Level" yazısı — KOYU MOR (4. tur, B9).
+        ///
+        /// Kullanıcı: "Mor dikdörtgen içindeki yazılar koyu mor olacak
+        /// (şu an açık mor)."
+        ///
+        /// ÖLÇÜM (`journey.jpeg`, 946×2048; "Seviye" harflerinin gövde
+        /// pikselleri): #1E1065 (30, 16, 101). Kapsül yüzeyi #5846E8.
+        /// Yani yazı zeminden KOYU; bizdeki #BABDF2 ondan AÇIKTI ve kapsülün
+        /// üstünde eriyip gidiyordu.
+        ///
+        /// DERS (kontrastın YÖNÜ de bilgidir): "Level" bir etiket, altındaki
+        /// sayı ise değer. Referans etiketi zeminden koyu, değeri beyaz
+        /// yapıyor — göz önce beyaz olana gidiyor ve hiyerarşi tek renk
+        /// kararıyla kuruluyor. İkisini de açık yapmak o hiyerarşiyi siliyor.
+        /// </summary>
+        static readonly Color Caption     = new Color(0.118f, 0.063f, 0.396f);
         static readonly Color Outline     = new Color(0.086f, 0.075f, 0.290f);
         static readonly Color RegionTitleEdge = new Color(0.298f, 0.216f, 0.741f);
         static readonly Color Locked      = new Color(0.35f, 0.35f, 0.45f);
@@ -576,7 +592,18 @@ namespace BlockOut.Runtime.UI
 
             // Tamamlanmış bölgede yazı yerine tik duruyor (referans: "Görev
             // Hazırlığı" karesi).
-            view.Tick = UiKit.CreateIcon("Tick", view.Action.transform, UiSkin.Get(Art.Check));
+            // TİK KOYU YEŞİL — YEŞİLİN ÜSTÜNDE YEŞİL GÖRÜNMEZ (4. tur, B7).
+            //
+            // `check_green` görseli parlak yeşil bir tik; aynı parlaklıktaki
+            // bir düğmenin üstüne konunca eriyip kayboluyordu. Referansta tik
+            // düğmeye OYULMUŞ gibi koyu yeşil — kabartma değil, çukur.
+            //
+            // DERS (aynı ailenin iki tonu kontrast ÜRETMEZ): Bir simgeyi
+            // zeminiyle aynı renk ailesinden seçmek "uyumlu" görünür ama
+            // okunmaz. Ya ton farkı büyük olacak ya da simge başka bir renk
+            // olacak; referans birinciyi seçmiş.
+            view.Tick = UiKit.CreateIcon("Tick", view.Action.transform,
+                UiSkin.Get(Art.Check), new Color(0.078f, 0.365f, 0.043f));
             UiKit.Place(view.Tick, 0.34f, 0.10f, 0.66f, 0.90f);
 
             // DERS (görünen her düğme BİR ŞEY YAPMALI): Bu düğme uzun süre
@@ -616,17 +643,27 @@ namespace BlockOut.Runtime.UI
         }
 
         /// <summary>Oyuncunun bulunduğu seviyeyi borunun üstünde gösteren pembe rozet.</summary>
+        /// <summary>
+        /// SEVİYE ROZETİ KALDIRILDI (4. tur, B8).
+        ///
+        /// Kullanıcı: "Yeşil dikdörtgen içindeki '7' sayısı orijinalde yok —
+        /// kaldırılacak."
+        ///
+        /// Referans Yolculuk ekranında (`journey.jpeg` ve 41-50 yürüyüşünün
+        /// harita kareleri) borunun üstünde oyuncunun seviyesini yazan bir
+        /// rozet YOK. İlerlemeyi zaten borunun kendisi anlatıyor: oyuncunun
+        /// ulaştığı yere kadar ışıklı, ötesi sönük.
+        ///
+        /// DERS (aynı bilgiyi iki kez göstermek, ikisini de zayıflatır):
+        /// Rozet borunun anlattığı şeyi sayıya çeviriyordu. İki gösterge
+        /// birbirini doğrulamıyor, birbiriyle yarışıyordu; üstelik rozet
+        /// borunun ışıklı kısmının üstüne oturduğu için tam da okunması
+        /// gereken sınırı örtüyordu.
+        /// </summary>
         void BuildMarker()
         {
-            _marker = UiKit.CreateRect("Marker", _content);
-            Anchor(_marker, 46f, 0f, 130f, 70f);
-
-            var pill = MenuCapsule("Face", _marker, new Color(0.847f, 0.200f, 0.620f));
-            UiKit.Place(pill, 0f, 0f, 1f, 1f);
-
-            _markerLabel = UiKit.CreateTitle("Label", pill.transform, "1", 34,
-                UiKit.Ink, new Color(0.35f, 0.04f, 0.22f));
-            UiKit.Place(_markerLabel, 0.06f, 0.06f, 0.94f, 0.94f);
+            _marker = null;
+            _markerLabel = null;
         }
 
         // "ÜST"/"ALT" ATLAMA DÜĞMELERİ KALDIRILDI (2026-08-17).
@@ -767,6 +804,13 @@ namespace BlockOut.Runtime.UI
                 view.ActionRoot.gameObject.SetActive(open);
 
                 view.LockLabel.text = "Level " + region.from;
+
+                // TAMAMLANMIŞ BÖLGEDE YEŞİL TİK, AÇIKTA "Play" (4. tur B7/B8).
+                //
+                // Düğmede ARTIK HİÇBİR DURUMDA SAYI YOK: yalnız tik ya da
+                // "Play". Referansta (`journey.jpeg`, tamamlanmış bölge)
+                // yeşil düğmenin içinde OYULMUŞ gibi duran koyu yeşil bir tik
+                // var, başka hiçbir şey yok.
                 view.Tick.enabled = done;
                 view.ActionLabel.text = done ? "" : "Play";
             }

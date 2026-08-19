@@ -26,6 +26,7 @@ namespace GameKit.UI
         static Sprite _musicNote;
         static Sprite _haptics;
         static Sprite _bell;
+        static Sprite _pencil;
 
         const int Size = 64;
         const float Radius = 18f;      // piksel; 9-dilim payı bunun biraz üstü
@@ -140,6 +141,23 @@ namespace GameKit.UI
         public static Sprite Bell => _bell != null ? _bell
             : (_bell = BuildIcon("UiBell", BellDistance));
 
+        /// <summary>
+        /// Kalem — profildeki "adı düzenle" rozeti (4. tur, C10).
+        ///
+        /// Kullanıcı: "Player çerçevesinin sağ alt köşesindeki düzenleme (edit)
+        /// ikonu kötü — yeni görsel üretilecek."
+        ///
+        /// DERS (eğik bir kapsül KALEM DEĞİLDİR): Rozetin içinde 45 derece
+        /// döndürülmüş beyaz bir kapsül vardı. Kapsülün iki ucu da yuvarlak
+        /// olduğu için ekranda "beyaz bir oval" okunuyordu; kalemi kalem yapan
+        /// şey UÇTAKİ SİVRİLİK ve öbür uçtaki düz kesim. Şekil o iki bilgiyi
+        /// taşımadığı sürece boyutu ya da açısı ne olursa olsun kalem
+        /// görünmüyor. Burada gövde düz kesimli bir kutu, uç ise gerçek bir
+        /// üçgen.
+        /// </summary>
+        public static Sprite Pencil => _pencil != null ? _pencil
+            : (_pencil = BuildIcon("UiPencil", PencilDistance));
+
         /// <summary>Verilen mesafe fonksiyonundan alfa maskesi üretir.</summary>
         static Sprite BuildIcon(string name, System.Func<Vector2, float> distance)
         {
@@ -227,6 +245,42 @@ namespace GameKit.UI
 
             return Mathf.Min(Mathf.Min(phone, Mathf.Min(right1, right2)),
                              Mathf.Min(left1, left2));
+        }
+
+        /// <summary>
+        /// Kalem: köşegen boyunca düz kesimli gövde + sivri uç + silgi bandı.
+        ///
+        /// Hesap kalemin KENDİ ekseninde yapılıyor (u = eksen boyunca,
+        /// v = enine). Böylece eğik bir şekli eğik formüllerle değil, düz
+        /// formüllerle tarif edebiliyoruz; açıyı değiştirmek tek bir yön
+        /// vektörünü değiştirmek oluyor.
+        /// </summary>
+        static float PencilDistance(Vector2 p)
+        {
+            // 45 derece: uç sağ üstte, silgi sol altta.
+            var axis = new Vector2(0.7071f, 0.7071f);
+            var side = new Vector2(-0.7071f, 0.7071f);
+            float u = p.x * axis.x + p.y * axis.y;
+            float v = p.x * side.x + p.y * side.y;
+            var local = new Vector2(u, v);
+
+            // Gövde: uç tarafındaki kenarı KESKİN kalsın diye yarıçap küçük.
+            float body = RoundedBoxDistance(local, new Vector2(-0.07f, 0f),
+                new Vector2(0.22f, 0.085f), 0.02f);
+
+            // Silgi: gövdenin arka ucuna oturan, biraz dar bant.
+            float eraser = RoundedBoxDistance(local, new Vector2(-0.335f, 0f),
+                new Vector2(0.055f, 0.072f), 0.03f);
+
+            // Uç: üç yarı düzlemin kesişimi (kesişim = mesafelerin EN BÜYÜĞÜ).
+            // Taban (0.15, ±0.085), tepe (0.36, 0).
+            float tip = Mathf.Max(
+                -(u - 0.15f),
+                Mathf.Max(
+                    Dot(local, new Vector2(0.15f, 0.085f), new Vector2(0.391f, 0.920f)),
+                    Dot(local, new Vector2(0.15f, -0.085f), new Vector2(0.391f, -0.920f))));
+
+            return Mathf.Min(Mathf.Min(body, eraser), tip);
         }
 
         // ---------------------------------------------------------------- mesafe araçları

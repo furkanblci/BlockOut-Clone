@@ -653,6 +653,7 @@ namespace BlockOut.Runtime.View
             _curtainStreak = _curtainSparkle = null;
             _badgeRim = _badgeFace = null;
             _generatorBody = null;
+            _solids.Clear();
             _arrow = null;
             _arrowFace.Clear();
             _arrowGroove.Clear();
@@ -829,6 +830,35 @@ namespace BlockOut.Runtime.View
         static Material _generatorBody;
 
         /// <summary>Blok üretecinin mor makine gövdesi.</summary>
+        static readonly Dictionary<string, Material> _solids =
+            new Dictionary<string, Material>();
+
+        /// <summary>
+        /// Ada göre önbelleklenen düz renkli tuğla materyali.
+        ///
+        /// DERS (paylaşılan materyal = tek çizim çağrısı): Makine altı ayrı
+        /// parçadan oluşuyor ve bir bölümde birkaç makine olabiliyor. Her
+        /// parçaya kendi materyalini üretmek onlarca ayrı çizim çağrısı
+        /// demekti; ada göre paylaşınca aynı renkteki bütün parçalar tek
+        /// grupta çiziliyor.
+        ///
+        /// Tuğla shader'ı bilinçli: makine de bloklarla aynı ışığı almalı,
+        /// yoksa tahtanın kenarında başka bir dünyadan gelmiş gibi durur.
+        /// </summary>
+        public static Material Solid(string name, Color color)
+        {
+            if (_solids.TryGetValue(name, out var cached) && cached != null) return cached;
+
+            var shader = Shader.Find("BlockOut/Brick")
+                         ?? Shader.Find("Universal Render Pipeline/Lit")
+                         ?? Shader.Find("Universal Render Pipeline/Unlit");
+            var mat = new Material(shader) { name = name };
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
+            mat.color = color;
+            _solids[name] = mat;
+            return mat;
+        }
+
         public static Material GeneratorBody
         {
             get

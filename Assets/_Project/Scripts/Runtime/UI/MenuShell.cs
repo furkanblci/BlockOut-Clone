@@ -420,12 +420,33 @@ namespace BlockOut.Runtime.UI
                 // referanstaki simge 114. Genişliği artırmak hiçbir şeyi
                 // değiştirmiyor — sınırlayan kenar YÜKSEKLİK. Bir ikonu
                 // büyütmek istiyorsan dar olan kenarını büyüteceksin.
+                // SEÇİLİ İKON KARTIN ORTASINA OTURUYOR (4. tur, A6).
+                //
+                // Kullanıcı: "İkonlar butonların en üstünde kalıyor. Seçili
+                // butonun orta pivotunda, dikey ortalanmış olmalı."
+                //
+                // ÖLÇÜM (`ana ekran.jpeg`, 946×2048; düğme yüksekliği ekranın
+                // %9.5'i = 194,6 piksel, yani düğme yerel 1 birimi 194,6px):
+                //   kart üstü      y=1783 → yerel 1.362
+                //   ev ikonu       y=1816-1966, merkez 1891 → yerel 0.807
+                //   "Ana Ekran"    y=1976-2006, merkez 1991 → yerel 0.293
+                // Yani ikon kartın ÜST kenarına yapışmıyor; üstünde de altında
+                // da pay var ve yazı onun altında duruyor.
+                //
+                // Eski değer 0.70-1.40 idi: ikonun tepesi kartın tam üst
+                // kenarındaydı ve simge kartın dışına taşmış gibi duruyordu.
+                //
+                // DERS (bir şeyi "yukarı almak" ile "ortalamak" farklı işler):
+                // Kart düğmeden yukarı taştığı için ikonu da yukarı itmek
+                // doğru göründü; oysa ikon KARTIN kutusunda ortalanmalıydı,
+                // düğmenin kutusunda değil. Referans ölçüldüğünde ikonun
+                // merkezi kart yüksekliğinin ortasına denk geliyor.
                 if (icon != null)
-                    UiKit.Place(icon, selected ? 0.05f : 0.20f, selected ? 0.70f : 0.30f,
-                                      selected ? 0.95f : 0.80f, selected ? 1.40f : 0.93f);
+                    UiKit.Place(icon, selected ? 0.06f : 0.18f, selected ? 0.42f : 0.40f,
+                                      selected ? 0.94f : 0.82f, selected ? 1.19f : 0.88f);
 
                 if (caption != null) caption.gameObject.SetActive(selected);
-                if (selected && caption != null) UiKit.Place(caption, 0.03f, 0.19f, 0.97f, 0.45f);
+                if (selected && caption != null) UiKit.Place(caption, 0.03f, 0.20f, 0.97f, 0.38f);
             }
 
             if (key == "journey" && _screens.TryGetValue(key, out var journey))
@@ -501,6 +522,51 @@ namespace BlockOut.Runtime.UI
         /// onlar sekme çubuğunun parçası değil, üstüne açılan sayfalar.
         /// Oradan yana kaydırmak hangi sekmeye gideceği belirsiz bir hareket.
         /// </summary>
+        /// <summary>
+        /// Hedefe ARADAKİ SEKMELERE UĞRAYARAK gider (4. tur, A3).
+        ///
+        /// Kullanıcı: "Para ikonuna tıklayınca kayarak direkt mağazaya gidiyor.
+        /// Orijinalde 2 ekran değişimi var (önce sıralama, sonra mağaza)."
+        ///
+        /// DERS (kestirme, haritayı siler): Ana ekrandan mağazaya doğrudan
+        /// kaymak teknik olarak daha "verimli" — bir geçiş yerine bir geçiş.
+        /// Ama sekme çubuğu bir HARİTA ve kaydırma o haritanın komşuluk
+        /// bilgisini öğretiyor: mağaza, sıralamanın solunda. Tek hamlede
+        /// atlayınca oyuncu iki ekranın yan yana olduğunu hiç öğrenmiyor ve
+        /// geri dönmek için sekmeyi aramak zorunda kalıyor. Referans bu yüzden
+        /// aradaki ekranı da gösteriyor.
+        ///
+        /// Ara duraklarda ekran gerçekten kuruluyor ve kayıyor; sahte bir
+        /// "araya bir kare koy" numarası değil.
+        /// </summary>
+        public void ShowStepped(string key)
+        {
+            int target = TabOrder(key);
+            int current = TabOrder(_active);
+            if (target >= Tabs.Length || current >= Tabs.Length ||
+                Mathf.Abs(target - current) <= 1)
+            {
+                Show(key);
+                return;
+            }
+
+            GameKit.FX.Juice.Replace(this, StepThrough(current, target));
+        }
+
+        System.Collections.IEnumerator StepThrough(int from, int to)
+        {
+            int step = to > from ? 1 : -1;
+            for (int i = from + step; ; i += step)
+            {
+                Show(Tabs[i].key);
+                if (i == to) yield break;
+
+                // Ara durak TAM oturmadan bir sonrakine geçiliyor: iki geçiş
+                // birbirine akıyor, iki ayrı hareket gibi durmuyor.
+                yield return new WaitForSecondsRealtime(SlideSeconds * 0.72f);
+            }
+        }
+
         public void StepTab(int direction)
         {
             if (System.Array.IndexOf(FullScreenPages, _active) >= 0) return;

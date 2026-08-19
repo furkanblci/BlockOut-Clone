@@ -273,6 +273,43 @@ namespace BlockOut.Runtime.UI
             bleedImage.color = new Color(0.004f, 0.435f, 0.765f);
             bleedImage.raycastTarget = false;
 
+            // TENTENIN ALTINDAKI KOYU BANT (4. tur, E15/E16).
+            //
+            // Kullanıcı: "Üstteki brandanın bitiş kısmında orijinalde
+            // çizgi/gölge var, 3D görünüm veriyor — bizde yok" ve
+            // "Brandanın hemen altındaki mavi alan... geçiş orijinaline
+            // benzetilecek."
+            //
+            // ÖLÇÜM (`market.jpeg`, 946×2048, iki dikey tarama):
+            //   feston ORTASINDA  y 250-316  #062387
+            //   festonlar ARASI   y 290-316  #062387
+            //   y 390+            kahverengi duvar #5F1B0C
+            // Yani tentenin arkasında koyu lacivert bir levha var: feston
+            // çentiklerinin içinden o görünüyor ve en derin çentikten ~40
+            // piksel daha aşağı uzanıyor. Kahverengi duvar ancak ondan sonra
+            // başlıyor.
+            //
+            // DERS (gölge, iki yüzey ARASINDAKI boşluğu anlatır): Bizde
+            // tentenin festonu doğrudan kahverengi duvara değiyordu; iki
+            // yüzey aynı düzlemdeymiş gibi okunuyor ve tente "duvara
+            // çizilmiş" görünüyordu. Araya koyu bir levha koymak tenteyi
+            // duvardan AYIRIYOR — 3B hissi mesafeden geliyor, gölgenin
+            // kendisinden değil.
+            const float ShadeDrop = 46f;
+            var shade = Row("AwningShade", root, 0f, AwningH + ShadeDrop);
+            var shadeImage = shade.gameObject.AddComponent<Image>();
+            shadeImage.color = new Color(0.024f, 0.137f, 0.529f);   // #062387
+            shadeImage.raycastTarget = false;
+
+            // Levhanın altına yumuşak bir düşüş: sert kesim "iki katman"
+            // demiyordu, yalnız "iki renk" diyordu.
+            var drop = Row("AwningDrop", root, AwningH + ShadeDrop, 34f);
+            var dropImage = drop.gameObject.AddComponent<Image>();
+            dropImage.sprite = MenuSprites.FadeDown;
+            dropImage.type = Image.Type.Sliced;
+            dropImage.color = new Color(0f, 0f, 0f, 0.42f);
+            dropImage.raycastTarget = false;
+
             var bar = Row("Awning", root, 0f, AwningH);
 
             var cloth = bar.gameObject.AddComponent<Image>();
@@ -522,12 +559,34 @@ namespace BlockOut.Runtime.UI
             RewardIcons(art.transform, showNoAds: false, offer.Hours, offer.Helpers);
 
             // İndirim flaması — sol üst köşeden aşağı sarkar.
+            //
+            // DIŞ ÇİZGİ EKLENDİ (4. tur, E14): Kullanıcı "%90 OFF indirim
+            // şeriti için de outline lı yeni görsel" dedi. Referansta
+            // (`market.jpeg`) mağazadaki her rozet/plaka kalın bir dış
+            // çizgiyle çevrili — "Blok Bileti" ve "499,99 TL" plakalarının
+            // ikisinde de altın kontur var. Bizim flamamız düz kırmızıydı ve
+            // altındaki sarı kartın üstünde sınırsız kalıyordu.
+            //
+            // DERS (kontur ayrı bir GÖRSEL gerektirmez): Aynı flama, biraz
+            // büyük ve koyu renkte, arkaya konuyor. Yeni bir sprite üretmek
+            // yerine katman eklemek her boyutta doğru kalınlığı da beraberinde
+            // getiriyor.
             var badge = UiKit.CreateRect("Badge", art.transform);
-            var flag = badge.gameObject.AddComponent<Image>();
+            UiKit.Place(badge, 0.025f, 0.52f, 0.175f, 1.10f);
+
+            var flagRim = UiKit.CreateRect("Rim", badge);
+            UiKit.Place(flagRim, -0.10f, -0.045f, 1.10f, 1.03f);
+            var rimImage = flagRim.gameObject.AddComponent<Image>();
+            rimImage.sprite = MenuSprites.Pennant;
+            rimImage.color = new Color(0.290f, 0.020f, 0.055f);
+            rimImage.raycastTarget = false;
+
+            var flagFace = UiKit.CreateRect("Face", badge);
+            UiKit.Place(flagFace, 0f, 0f, 1f, 1f);
+            var flag = flagFace.gameObject.AddComponent<Image>();
             flag.sprite = MenuSprites.Pennant;
             flag.color = BadgeRed;
             flag.raycastTarget = false;
-            UiKit.Place(badge, 0.025f, 0.52f, 0.175f, 1.10f);
 
             var percent = UiKit.CreateTitle("Percent", badge.transform, offer.Discount + "%", 44,
                 new Color(1f, 1f, 1f), new Color(0.42f, 0.03f, 0.03f));
@@ -645,18 +704,45 @@ namespace BlockOut.Runtime.UI
             // görünüyordu.
             const float inset = 88f;
 
+            // ÜÇ KATMANLI ŞERİT (4. tur, E13).
+            //
+            // Kullanıcı: "Best Value / Popular şerit bannerları kötü — yeni
+            // görsel üretilecek, referanstaki gibi dış çizgileri (outline)
+            // olacak."
+            //
+            // Şerit düz pembe TEK bir dikdörtgendi; kartın renkli sanatının
+            // üstünde sınırı olmadığı için "yapıştırılmış kağıt" gibi
+            // duruyordu. Referanstaki bütün plakalarda kalın bir dış çizgi ve
+            // içeride bir tık açık bir yüzey var — hacmi o iki çizgi veriyor.
+            //
+            // DERS (kontur ayrı bir GÖRSEL gerektirmez): Aynı dikdörtgeni
+            // biraz büyük ve koyu renkte arkaya koymak konturun ta kendisi.
             var strip = UiKit.CreateRect("Ribbon", clip);
             strip.anchorMin = strip.anchorMax = new Vector2(0f, 1f);
             strip.pivot = new Vector2(0.5f, 0.5f);
-            strip.sizeDelta = new Vector2(2f * inset * 1.414f, 46f);
+            strip.sizeDelta = new Vector2(2f * inset * 1.414f, 54f);
             strip.anchoredPosition = new Vector2(inset, -inset);
             strip.localRotation = Quaternion.Euler(0f, 0f, 45f);
 
-            var image = strip.gameObject.AddComponent<Image>();
-            image.color = RibbonPink;
-            image.raycastTarget = false;
+            var rim = strip.gameObject.AddComponent<Image>();
+            rim.color = new Color(0.318f, 0.043f, 0.129f);      // dış çizgi
+            rim.raycastTarget = false;
 
-            var label = UiKit.CreateTitle("Label", strip, text, 24,
+            var face = UiKit.CreateRect("Face", strip);
+            UiKit.Place(face, 0f, 0f, 1f, 1f, padding: 5f);
+            var faceImage = face.gameObject.AddComponent<Image>();
+            faceImage.color = RibbonPink;
+            faceImage.raycastTarget = false;
+
+            // Üst kenarda ince bir ışık: şeridin kumaş gibi büküldüğünü
+            // söyleyen tek ayrıntı.
+            var sheen = UiKit.CreateRect("Sheen", face);
+            UiKit.Place(sheen, 0.02f, 0.58f, 0.98f, 0.94f);
+            var sheenImage = sheen.gameObject.AddComponent<Image>();
+            sheenImage.color = new Color(1f, 1f, 1f, 0.16f);
+            sheenImage.raycastTarget = false;
+
+            var label = UiKit.CreateTitle("Label", face, text, 24,
                 new Color(1f, 1f, 1f), new Color(0.45f, 0.06f, 0.18f));
             UiKit.Place(label, 0f, 0f, 1f, 1f);
         }

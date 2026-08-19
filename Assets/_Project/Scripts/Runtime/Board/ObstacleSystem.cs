@@ -118,6 +118,44 @@ namespace BlockOut.Runtime.Board
                         changed = true;
             }
             while (changed && ++guard < 64);
+
+            RefreshGeneratorLamps();
+        }
+
+        /// <summary>
+        /// Her makinenin KIRMIZI/YEŞİL lambasını tazeler (4. tur, L43).
+        ///
+        /// Kullanıcı makinede "kırmızı/yeşil yanma göstergesi" istedi;
+        /// referansta makinenin başında küçük bir ışık var.
+        ///
+        /// DERS (durumu hesaplayan taraf, göstermesi gereken taraftır):
+        /// Görsel katman "sıradaki blok sığıyor mu" sorusunu cevaplayamaz —
+        /// o bilgi tahtanın doluluğunda. Bu yüzden lambayı kuran değil,
+        /// itmeyi DENEYEN sistem yakıyor. Aynı `IsAreaFree` çağrısı hem itme
+        /// kararını hem lambayı besliyor; iki ayrı hesap yapılsaydı biri
+        /// güncellenip diğeri unutulurdu.
+        /// </summary>
+        void RefreshGeneratorLamps()
+        {
+            if (_views == null) return;
+
+            foreach (var obstacle in _level.Obstacles)
+            {
+                if (!(obstacle is GeneratorModel generator)) continue;
+                if (!_views.Generators.TryGetValue(generator, out var view) || view == null)
+                    continue;
+
+                bool ready = false;
+                if (!generator.IsEmpty)
+                {
+                    var block = generator.Queue[0];
+                    var saved = block.Position;
+                    block.Position = EntryPosition(generator, block);
+                    ready = IsAreaFree(block);
+                    block.Position = saved;
+                }
+                view.SetReady(ready);
+            }
         }
 
         bool TrySpawn(GeneratorModel generator)
@@ -137,7 +175,14 @@ namespace BlockOut.Runtime.Board
                     _views.BlockRoot, block, _space,
                     BoardBuilder.GetBlockMaterial(_palette, block.CurrentColor));
                 if (_views.Generators.TryGetValue(generator, out var view))
+                {
                     view.UpdateQueue();
+                    // Pencere sıradaki bloğun rengini gösteriyor; kuyruk
+                    // ilerleyince o renk de değişiyor.
+                    if (!generator.IsEmpty)
+                        view.SetNextMaterial(BoardBuilder.GetBlockMaterial(
+                            _palette, generator.Queue[0].CurrentColor));
+                }
             }
 
             _events.RaiseBlockSpawned(block);

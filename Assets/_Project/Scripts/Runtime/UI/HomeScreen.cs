@@ -51,6 +51,7 @@ namespace BlockOut.Runtime.UI
 
         /// <summary>Can göstergesinin nabzı için (37. madde).</summary>
         RectTransform _heartRect;
+        RectTransform _livesTrackRect;
         PrimeTween.Tween _heartPulse;
 
         /// <summary>Sayaçların dokunma yüzeyleri — teşhis ve testte aranıyor.</summary>
@@ -233,7 +234,7 @@ namespace BlockOut.Runtime.UI
             //
             // Çubuk şeridin ARKASINDA duruyor ve simge/yazı onun üstünde;
             // ikisi de raycast almadığı için dokunuş çubuğa düşüyor.
-            UiKit.MakeClickable(coinTrack, () => MenuShell.Instance?.Show("store"));
+            UiKit.MakeClickable(coinTrack, () => MenuShell.Instance?.ShowStepped("store"));
             UiKit.MakeClickable(livesTrack, ShowLivesPopup);
 
             // Simge ve yazı çubuğun DIŞINDA kalan kısımlarda da çalışsın diye
@@ -241,11 +242,12 @@ namespace BlockOut.Runtime.UI
             // taşıyor, kalp de öyle).
             _coinHitAreas = new[] { coinTrack };
             _livesHitAreas = new[] { livesTrack };
+            _livesTrackRect = livesTrack.rectTransform;
 
             // --- jeton ---
             var coinIcon = UiKit.CreateIcon("Icon_Coin", root, UiSkin.Get(Art.Coin));
             UiKit.Place(coinIcon, 0.220f, bottom - 0.004f, 0.308f, top + 0.004f);
-            UiKit.MakeClickable(coinIcon, () => MenuShell.Instance?.Show("store"));
+            UiKit.MakeClickable(coinIcon, () => MenuShell.Instance?.ShowStepped("store"));
 
             _coinLabel = UiKit.CreateTitle("Value_Coin", root, "", 40, CoinInk,
                 new Color(0.10f, 0.07f, 0.24f));
@@ -253,7 +255,7 @@ namespace BlockOut.Runtime.UI
 
             var coinPlus = UiKit.CreateIconButton("Plus_Coin", root, UiSkin.Get(Art.Plus));
             UiKit.Place(coinPlus, 0.457f, bottom + 0.002f, 0.511f, top - 0.002f);
-            coinPlus.onClick.AddListener(() => MenuShell.Instance?.Show("store"));
+            coinPlus.onClick.AddListener(() => MenuShell.Instance?.ShowStepped("store"));
 
             // --- can ---
             var heart = UiKit.CreateIcon("Icon_Heart", root, UiSkin.Get(Art.Heart));
@@ -283,7 +285,7 @@ namespace BlockOut.Runtime.UI
 
             var lifePlus = UiKit.CreateIconButton("Plus_Heart", root, UiSkin.Get(Art.Plus));
             UiKit.Place(lifePlus, 0.772f, bottom + 0.002f, 0.827f, top - 0.002f);
-            lifePlus.onClick.AddListener(() => MenuShell.Instance?.Show("store"));
+            lifePlus.onClick.AddListener(() => MenuShell.Instance?.ShowStepped("store"));
 
             // Sınırsız can hakkı sürerken sayının yerini ∞ GÖRSELİ alır.
             //
@@ -564,7 +566,7 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(_livesPopupTimer, 0.06f, 0.28f, 0.94f, 0.46f);
 
             var shop = MenuPage.PillButton("Shop", card.transform, "Get More",
-                MenuPage.Green, 38, () => { HideLivesPopup(); MenuShell.Instance?.Show("store"); });
+                MenuPage.Green, 38, () => { HideLivesPopup(); MenuShell.Instance?.ShowStepped("store"); });
             UiKit.Place(shop, 0.20f, 0.06f, 0.80f, 0.26f);
 
             var close = UiKit.CreateIconButton("Close", card.transform,
@@ -579,14 +581,64 @@ namespace BlockOut.Runtime.UI
             _livesPopup.gameObject.SetActive(false);
         }
 
+        /// <summary>
+        /// Can sayacına dokunuş.
+        ///
+        /// CAN DOLUYKEN PANEL AÇILMIYOR (4. tur, A5).
+        ///
+        /// Kullanıcı: "Can doluyken tıklayınca panel açılıyor; orijinalde yok.
+        /// Can kısmı arka plan paneliyle birlikte küçük popup gibi davranmalı,
+        /// tıklandıkça hafif büyüyüp küçülen animasyon oynatmalı."
+        ///
+        /// DERS (bir panel, SÖYLEYECEK ŞEYİ olduğunda açılır): Panel "kaç can
+        /// var, bir sonraki ne zaman dolacak, nasıl can alınır" diyor. Canlar
+        /// zaten doluyken bu üç sorunun da cevabı yok — panel açılıyor,
+        /// "Lives are full!" yazıyor ve kapatılmayı bekliyor. Yani oyuncuya
+        /// bildiği bir şeyi söylemek için bir dokunuş daha yaptırıyor.
+        /// Referans doluyken hiç açmıyor; yalnız sayaç kısa bir nefes alıyor,
+        /// bu da "dokunuşunu aldım ama yapacak bir şey yok" demenin en kısa
+        /// yolu.
+        /// </summary>
         void ShowLivesPopup()
         {
             if (_livesPopup == null) return;
+
+            bool full = MetaServices.Ready && MetaServices.Lives.IsFull
+                        && !MetaServices.Progress.HasInfiniteLives;
+            if (full)
+            {
+                PulseLives();
+                return;
+            }
+
             RefreshLivesPopup();
             _livesPopup.gameObject.SetActive(true);
             GameKit.FX.Juice.Replace(_livesPopup,
                 GameKit.FX.Juice.CardEntrance(_livesPopup.GetChild(1)));
             Services.AudioService.PanelOpen();
+        }
+
+        /// <summary>
+        /// Can sayacının kendisi ve arka plan plakası birlikte kısa bir
+        /// büyü-küçül yapıyor.
+        ///
+        /// İkisi ayrı ayrı tween'leniyor çünkü hiyerarşide kardeşler: kalp
+        /// simgesi ve zaman yazısı plakanın ÜSTÜNDE değil YANINDA duruyor
+        /// (plaka raycast almıyor, dokunuşu o topluyor). Tek bir taşıyıcıya
+        /// almak düzeni yeniden yazmak demekti; iki tween aynı süre ve aynı
+        /// eğriyle çalıştığı için ekranda tek bir hareket olarak okunuyor.
+        /// </summary>
+        void PulseLives()
+        {
+            Services.AudioService.Click();
+            GameKit.Services.Haptics.Tap(GameKit.Services.HapticStrength.Light);
+
+            if (_livesTrackRect != null)
+                GameKit.FX.Juice.Replace(_livesTrackRect,
+                    GameKit.FX.Juice.PunchScale(_livesTrackRect, 0.10f, 0.28f));
+
+            if (_heartRect != null)
+                GameKit.FX.Juice.PunchScale(_heartRect, 0.14f, 0.28f);
         }
 
         void HideLivesPopup()

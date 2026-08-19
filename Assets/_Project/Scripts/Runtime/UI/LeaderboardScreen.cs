@@ -160,6 +160,28 @@ namespace BlockOut.Runtime.UI
             var root = MenuPage.Screen(parent, "LeaderboardScreen");
             var screen = root.gameObject.AddComponent<LeaderboardScreen>();
 
+            // SAHNE EN ÖNCE KURULUYOR (4. tur, D11/D12).
+            //
+            // Kullanıcı: "Weekly / World / Country sekmelerinin bulunduğu alan
+            // düz arka plan rengi kalmış — arka plan görseli oraya da
+            // uzatılacak." ve "Oyuncu sıralamaları listesi arka plan görselinin
+            // altında kalıyor, görünmüyor — katman sırası düzeltilecek."
+            //
+            // ÖLÇÜM (`sıralama.jpeg`, 946×2048, sol kenardan dikey tarama):
+            //   y 280-430  #205DF3 → #276FF9   (sekmelerin ARKASI)
+            //   y 440+     yeşil (#7CA519 vb.) (çim)
+            // Yani sekmelerin arkasındaki mavi ayrı bir şerit değil, sahne
+            // görselinin GÖKYÜZÜ; sahne başlığın hemen altından başlıyor ve
+            // sekmeler onun üstünde duruyor. Bizde sahne 556'da başlıyor,
+            // üstündeki alana ise elle düz mavi bir bant boyanıyordu.
+            //
+            // DERS (katman sırası bir KARAR, bir kaza değil): Sahne artık
+            // ekranın İLK çocuğu; sekmeler, kürsüler, satırlar ve sabit "You"
+            // satırı ondan sonra geliyor, yani hepsi kendiliğinden üstünde
+            // çiziliyor. Eskiden sahne kürsü bandının içinde doğuyordu ve
+            // "önce kim kurulduysa o altta" kuralı, listenin bir kısmının
+            // görselin altında kalmasına yol açıyordu.
+            screen.BuildScene(root);
             screen.BuildTabs(root);
             screen.BuildPodium(root);
             screen.BuildRows(root);
@@ -181,32 +203,8 @@ namespace BlockOut.Runtime.UI
 
         void BuildTabs(Transform root)
         {
-            // SEKMELERİN ARKASI MAVİ, KOYU LACİVERT DEĞİL.
-            //
-            // DERS (bir ekranın zemini TEK renk olmak zorunda değil): Menü
-            // kabuğu bütün sayfalara aynı koyu gövdeyi (#17194E) veriyor ve
-            // bu Koleksiyon'da doğru. Ama Liderlik'te referans zemini İKİYE
-            // bölüyor: başlığın altındaki sekme bandı parlak mavi (#205DF3
-            // üstte, #246CF4 altta — ölçüldü), liste alanı ise koyu lacivert
-            // (#1B215B). Tek renk verince sekmelerin durduğu şerit ekranda
-            // siyah bir delik gibi kalıyordu — bu ancak TAM EKRAN yakalamada
-            // görülüyor, çünkü `CaptureOf<LeaderboardScreen>` yalnız o
-            // kanvası çiziyor ve altındaki zemini göstermiyor.
-            var band = MenuPage.Row("TabBand", root, MenuPage.HeaderH, 316f);
-            var bandFill = band.gameObject.AddComponent<Image>();
-            bandFill.color = new Color(0.133f, 0.384f, 0.957f);
-            bandFill.raycastTarget = false;
-
-            // Alta doğru hafifçe açılıyor (referansta 0.16'da #205DF3,
-            // 0.20'de #246CF4).
-            var bandFade = UiKit.CreateRect("Shade", band);
-            var bandFadeImage = bandFade.gameObject.AddComponent<Image>();
-            bandFadeImage.sprite = MenuSprites.FadeDown;
-            bandFadeImage.type = Image.Type.Sliced;
-            bandFadeImage.color = new Color(0.141f, 0.424f, 0.969f, 0.85f);
-            bandFadeImage.raycastTarget = false;
-            UiKit.Place(bandFade, 0f, 0f, 1f, 1f);
-
+            // DÜZ MAVİ BANT KALDIRILDI: artık sahnenin gökyüzü orada
+            // (bkz. Build → BuildScene, 4. tur D11).
             // ÖLÇÜ REFERANSTAN (`sıralama.jpeg`): yuva X 0.107-0.803, yani
             // ekranın SOLUNA yaslı ve sağda "i" bilgi düğmesine yer bırakıyor.
             // Bizimki 0.075-0.925 ile neredeyse tam genişlikti; üç sekme
@@ -329,37 +327,47 @@ namespace BlockOut.Runtime.UI
         /// geliyor ama gerçek bir podyumda birinci ORTADA ve yüksekte durur;
         /// göz sıralamayı okumadan önce yükseklikten anlar.
         /// </summary>
+        /// <summary>
+        /// Gökyüzü + park sahnesi: BAŞLIĞIN hemen altından kürsü bandının
+        /// altına kadar tek parça (4. tur, D11).
+        ///
+        /// Maske sahneyi saran çocuğa konuyor, bandın kendisine değil:
+        /// `CreateCover` görseli oranını koruyarak ebeveyni ÖRTECEK kadar
+        /// büyütür (fazlası taşar, bu onun tanımı) ve maskesiz bir bant
+        /// sekmelerin üstüne taşardı.
+        /// </summary>
+        void BuildScene(Transform root)
+        {
+            const float top = MenuPage.HeaderH;
+            const float bottom = 556f + 486f;
+
+            var band = MenuPage.Row("Scene", root, top, bottom - top);
+            var sky = band.gameObject.AddComponent<Image>();
+            // Gökyüzü ölçüldü: sekme bandının hizasında #205DF3.
+            sky.color = new Color(0.125f, 0.365f, 0.953f);
+            sky.raycastTarget = false;
+
+            var scene = UiSkin.Get(Art.BoardScene);
+            if (scene == null) return;
+
+            var clip = UiKit.CreateRect("SceneClip", band);
+            UiKit.Place(clip, 0f, 0f, 1f, 1f);
+            clip.gameObject.AddComponent<RectMask2D>();
+
+            var cover = UiKit.CreateCover("Scene", clip, scene,
+                new Color(0.125f, 0.365f, 0.953f));
+            cover.raycastTarget = false;
+        }
+
         void BuildPodium(Transform root)
         {
             var band = MenuPage.Row("Podium", root, 556f, 486f);
-            var sky = band.gameObject.AddComponent<Image>();
-            sky.color = new Color(0.227f, 0.627f, 0.910f);
 
-            // GERÇEK PARK SAHNESİ (14. madde). Görsel geldiyse aşağıdaki
-            // prosedürel çim/çalı/ağaç üçlüsünün tamamı atlanıyor — hepsi
-            // o görselin yokluğunda ayakta duran vekillerdi.
-            var scene = UiSkin.Get(Art.BoardScene);
-            if (scene != null)
+            // Gökyüzü ve park sahnesi artık BU BANDIN İÇİNDE DEĞİL:
+            // `BuildScene` onları başlığın hemen altından başlatıp bu bandın
+            // altına kadar tek parça çiziyor (4. tur, D11).
+            if (UiSkin.Get(Art.BoardScene) != null)
             {
-                // SAHNE KENDİ MASKESİNİN İÇİNDE.
-                //
-                // DERS (`CreateCover` ebeveyni TAŞAR): Kapla-kipi (EnvelopeParent)
-                // görseli oranını koruyarak ebeveyni ÖRTECEK kadar büyütür —
-                // yani fazlası dışarı taşar, bu onun tanımı. Bandın maskesi
-                // olmadığı için sahne yukarı taşıp üstteki Haftalık/Dünya/Ülke
-                // sekmelerinin alt yarısını kapattı.
-                //
-                // Maske BANDA değil, yalnız sahneyi saran bir çocuğa konuyor:
-                // banda konsa birinci kaidedeki avatar da kırpılırdı, çünkü o
-                // bilinçli olarak bandın tepesinden biraz taşıyor.
-                var clip = UiKit.CreateRect("SceneClip", band);
-                UiKit.Place(clip, 0f, 0f, 1f, 1f);
-                clip.gameObject.AddComponent<RectMask2D>();
-
-                var cover = UiKit.CreateCover("Scene", clip, scene,
-                    new Color(0.227f, 0.627f, 0.910f));
-                cover.raycastTarget = false;
-
                 BuildPodiumColumns(band);
                 return;
             }

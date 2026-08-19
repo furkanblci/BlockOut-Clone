@@ -60,6 +60,9 @@ namespace BlockOut.Editor.ProjectSetup
                 Mathf.Max(1, PlayerSettings.Android.bundleVersionCode + 1);
 
             GameKit.Editor.MobileQualityTool.Apply();
+            // İkon da ayarların parçası: elle bağlanan bir ikon, ayarları
+            // sıfırlayan ilk kişide kaybolur (4. tur, A1).
+            AppIconTool.Apply();
             ProjectSetupTool.EnsureBuildScenes();
             AssetDatabase.SaveAssets();
 
