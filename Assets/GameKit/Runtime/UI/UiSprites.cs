@@ -27,6 +27,7 @@ namespace GameKit.UI
         static Sprite _haptics;
         static Sprite _bell;
         static Sprite _pencil;
+        static Sprite _triangle;
 
         const int Size = 64;
         const float Radius = 18f;      // piksel; 9-dilim payı bunun biraz üstü
@@ -158,6 +159,18 @@ namespace GameKit.UI
         public static Sprite Pencil => _pencil != null ? _pencil
             : (_pencil = BuildIcon("UiPencil", PencilDistance));
 
+        /// <summary>
+        /// Yuvarlak köşeli, YUKARI bakan üçgen — ok başı ve kapı işareti.
+        ///
+        /// DERS (üçgen sprite ı olmayan projede üçgen çizmek): Bu projede
+        /// üçgen gereken her yerde 45 derece döndürülmüş bir kare kullanıldı.
+        /// Döndürülmüş kare bir üçgen DEĞİL — üç kenarı da eşit görünmüyor ve
+        /// ok başı olarak konduğunda gövdeyle hizası tutmuyor. Gerçek bir
+        /// üçgen maskesi bir kez üretilince her yerde doğru oturuyor.
+        /// </summary>
+        public static Sprite Triangle => _triangle != null ? _triangle
+            : (_triangle = BuildIcon("UiTriangle", TriangleDistance));
+
         /// <summary>Verilen mesafe fonksiyonundan alfa maskesi üretir.</summary>
         static Sprite BuildIcon(string name, System.Func<Vector2, float> distance)
         {
@@ -248,6 +261,21 @@ namespace GameKit.UI
         }
 
         /// <summary>
+        /// Yukarı bakan ikizkenar üçgen: üç yarı düzlemin kesişimi.
+        /// Kesişim = mesafelerin EN BÜYÜĞÜ.
+        /// </summary>
+        static float TriangleDistance(Vector2 p)
+        {
+            // Tepe (0, 0.42), taban köşeleri (±0.40, -0.36).
+            // Kenar normalleri: sağ (0.700, 0.714), sol (-0.700, 0.714).
+            return Mathf.Max(
+                -(p.y + 0.36f),
+                Mathf.Max(
+                    Dot(p, new Vector2(0f, 0.42f), new Vector2(0.700f, 0.714f)),
+                    Dot(p, new Vector2(0f, 0.42f), new Vector2(-0.700f, 0.714f))));
+        }
+
+        /// <summary>
         /// Kalem: köşegen boyunca düz kesimli gövde + sivri uç + silgi bandı.
         ///
         /// Hesap kalemin KENDİ ekseninde yapılıyor (u = eksen boyunca,
@@ -265,12 +293,18 @@ namespace GameKit.UI
             var local = new Vector2(u, v);
 
             // Gövde: uç tarafındaki kenarı KESKİN kalsın diye yarıçap küçük.
-            float body = RoundedBoxDistance(local, new Vector2(-0.07f, 0f),
-                new Vector2(0.22f, 0.085f), 0.02f);
-
-            // Silgi: gövdenin arka ucuna oturan, biraz dar bant.
-            float eraser = RoundedBoxDistance(local, new Vector2(-0.335f, 0f),
-                new Vector2(0.055f, 0.072f), 0.03f);
+            //
+            // SILGI BANDI KALDIRILDI: ayrı bir kutu olarak eklenince gövdeyle
+            // arasında saç teli kadar bir boşluk kalıyor ve o boşluk ekranda
+            // "kopmuş bir parça" gibi görünüyordu. 40 piksellik bir rozette
+            // üç parçalık bir şekil zaten okunmuyor; kalemi kalem yapan iki
+            // bilgi (düz kesilmiş arka uç + sivri ön uç) tek gövdede duruyor.
+            //
+            // DERS (küçük bir simgede AYRINTI GÜRÜLTÜDÜR): Silgi gerçek bir
+            // kalemde vardır ama 40 pikselde onu çizmek, şekli anlaşılır
+            // kılmak yerine kirletiyor.
+            float body = RoundedBoxDistance(local, new Vector2(-0.09f, 0f),
+                new Vector2(0.26f, 0.088f), 0.025f);
 
             // Uç: üç yarı düzlemin kesişimi (kesişim = mesafelerin EN BÜYÜĞÜ).
             // Taban (0.15, ±0.085), tepe (0.36, 0).
@@ -280,7 +314,7 @@ namespace GameKit.UI
                     Dot(local, new Vector2(0.15f, 0.085f), new Vector2(0.391f, 0.920f)),
                     Dot(local, new Vector2(0.15f, -0.085f), new Vector2(0.391f, -0.920f))));
 
-            return Mathf.Min(Mathf.Min(body, eraser), tip);
+            return Mathf.Min(body, tip);
         }
 
         // ---------------------------------------------------------------- mesafe araçları

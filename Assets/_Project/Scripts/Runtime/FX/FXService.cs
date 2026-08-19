@@ -101,7 +101,7 @@ namespace BlockOut.Runtime.FX
         {
             Vector3 at = _space.RectCenterToWorld(
                 block.Position, block.W, block.H, BrickHeightHalf);
-            Burst(at, new Color(0.72f, 0.92f, 1f), 20);
+            IceBurst(at, block.Cells.Count);
             GameKit.FX.CameraShake.Add(0.30f);      // buz kırılması sert bir an
         }
 
@@ -111,8 +111,63 @@ namespace BlockOut.Runtime.FX
             Vector3 at = gate.EdgeHorizontal
                 ? _space.CornerToWorld(spanCenter, gate.EdgeCoord, 0.2f)
                 : _space.CornerToWorld(gate.EdgeCoord, spanCenter, 0.2f);
-            Burst(at, new Color(0.72f, 0.92f, 1f), 18);
-            GameKit.FX.CameraShake.Add(0.30f);
+            IceBurst(at, Mathf.Max(1, gate.Length));
+            GameKit.FX.CameraShake.Add(0.34f);
+        }
+
+        /// <summary>
+        /// Buz parçalanması — İKİ KATMANLI (4. tur, G25/I36).
+        ///
+        /// Kullanıcı: "Buzlu kapı parçalanma efekti — aktif kapıdan blok
+        /// sokunca oluşan parçalanma efekti (Level 6'da örneği var) birebir
+        /// yapılacak." ve Level 20 için "Buz parçalanma animasyonu da aynı
+        /// şekilde."
+        ///
+        /// Tek renkli 18 parçacık "bir şey mavi mavi dağıldı" diyordu.
+        /// Referansta kırılma iki farklı şey aynı anda gösteriyor:
+        ///   1) BEYAZ, hızlı ve KISA ÖMÜRLÜ bir toz bulutu — kırılmanın ANI,
+        ///   2) CAMGÖBEĞİ, iri ve yavaş düşen parçalar — kırılan MADDE.
+        ///
+        /// DERS (bir olayı iki ÖLÇEKTE anlatmak): Aynı sayıda parçacığı tek
+        /// boyutta saçmak "duman" üretir. Küçük ve kısa ömürlü beyaz katman
+        /// gözü olayın merkezine çekiyor, iri ve uzun ömürlü camgöbeği katman
+        /// ise neyin kırıldığını söylüyor. İki emisyon, tek sistem — maliyet
+        /// aynı.
+        ///
+        /// DERS (`EmitParams`ta HIZ yoktur): İlk yazımda iki katmana ayrı
+        /// `startSpeed` verilecekti; o alan `EmitParams` içinde yok (yalnız
+        /// `velocity` var ve o TEK bir vektör, yani bütün parçacıklar aynı
+        /// yöne giderdi). Hız sistemin kendi 2,2-4,2 aralığından ve küresel
+        /// şeklinden geliyor; ayrım boyut ve ömürle kuruluyor.
+        ///
+        /// Parça sayısı kırılan şeyin BÜYÜKLÜĞÜNE bağlı: 1 hücrelik bir buz
+        /// ile 6 hücrelik bir kalıp aynı miktarda cam üretemez.
+        /// </summary>
+        void IceBurst(Vector3 position, int cells)
+        {
+            int shards = 18 + cells * 6;
+
+            // 1) Beyaz toz: hızlı, küçük, kısa ömürlü.
+            var flash = new ParticleSystem.EmitParams
+            {
+                position = position,
+                applyShapeToPosition = true,
+                startColor = new Color(1f, 1f, 1f, 1f),
+                startLifetime = 0.30f,
+                startSize = 0.16f
+            };
+            _crumbs.Emit(flash, shards);
+
+            // 2) Camgöbeği kristaller: iri, yavaş, düşerek sönen.
+            var glass = new ParticleSystem.EmitParams
+            {
+                position = position,
+                applyShapeToPosition = true,
+                startColor = new Color(0.62f, 0.90f, 1f, 1f),
+                startLifetime = 0.85f,
+                startSize = 0.36f
+            };
+            _crumbs.Emit(glass, shards);
         }
 
         void OnCurtainOpened(CurtainModel curtain)

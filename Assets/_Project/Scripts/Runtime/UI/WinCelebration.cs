@@ -265,6 +265,16 @@ namespace BlockOut.Runtime.UI
             // önce harfler siyahın üstünde tek tek diziliyor, logo
             // tamamlandığında ekran patlıyor. Aynı öğeler, farklı sıra,
             // bambaşka bir his.
+            // DERS (yedek yol da BİR YOLDUR — çökmemeli): Buradaki üçüncü dal
+            // "görsel hiç yoksa yazıyla göster" diyordu ve `_logoTop`u null
+            // KONTROL ETMEDEN kullanıyordu. Bir kez o dala düşünce
+            // NullReferenceException coroutine'i öldürdü; `done` hiç
+            // çağrılmadı ve PERFECT kartı ASLA AÇILMADI. Yani küçük bir
+            // yedek yol hatası, oyunun bitiş akışını tamamen durdurdu.
+            //
+            // Kutlama bir SÜS; hiçbir koşulda oyunun akışını kesmemeli.
+            // Bu yüzden her dal null'a dayanıklı ve hiçbiri "hiç bitmeme"
+            // ihtimali taşımıyor.
             if (_letters.Count > 0)
             {
                 yield return RevealLetters();
@@ -275,8 +285,9 @@ namespace BlockOut.Runtime.UI
             }
             else
             {
-                GameKit.FX.Juice.Run(DropIn(_logoTop.rectTransform, 0f));
-                GameKit.FX.Juice.Run(DropIn(_logoBottom.rectTransform, 0.10f));
+                if (_logoTop != null) GameKit.FX.Juice.Run(DropIn(_logoTop.rectTransform, 0f));
+                if (_logoBottom != null)
+                    GameKit.FX.Juice.Run(DropIn(_logoBottom.rectTransform, 0.10f));
             }
 
             // Tamamlanan logoya tek bir vuruş: "işte bu" anı.

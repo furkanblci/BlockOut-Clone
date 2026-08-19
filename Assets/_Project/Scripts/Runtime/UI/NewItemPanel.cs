@@ -164,8 +164,22 @@ namespace BlockOut.Runtime.UI
             glow.raycastTarget = false;
             UiKit.Place(glow, 0.06f, 0.360f, 0.94f, 0.690f);
 
+            // GÖRSEL ALANI BÜYÜTÜLDÜ (4. tur, L44).
+            //
+            // Kullanıcı: "'New Feature' açılma ekranı çok detaysız,
+            // orijinaliyle aynı değil. Açılan modeller detaylı gösterilecek."
+            //
+            // Alan ekranın %24 × %12'siydi: o kutuya sığan her şey birkaç
+            // renkli dikdörtgenden ibaret kalmak zorundaydı. Referansta
+            // tanıtılan nesne ekranın ortasında ve İRİ; oyuncu onu tahtada
+            // göreceği hâliyle tanıyor.
+            //
+            // DERS (ayrıntı yer ister): "Daha detaylı çiz" demek çoğu zaman
+            // önce "daha büyük çiz" demektir. Küçük bir kutuda eklenen her
+            // ayrıntı gürültüye dönüşür; büyütmeden yapılan her ekleme
+            // durumu kötüleştirirdi.
             var art = UiKit.CreateRect("Art", root);
-            UiKit.Place(art, 0.385f, 0.461f, 0.622f, 0.582f);
+            UiKit.Place(art, 0.255f, 0.398f, 0.745f, 0.648f);
             BuildArt(art, item);
 
             var sparkles = BuildSparkles(root);
@@ -216,50 +230,241 @@ namespace BlockOut.Runtime.UI
         {
             switch (item)
             {
-                case Item.IceBlock:
-                case Item.IceGate:
-                    // Referanstaki buz: açık mavi gövde, ÜST YARIDA geniş bir
-                    // camsı şerit ve etrafında daha açık ince bir kenar.
-                    // Küçük bir açık kare "buz" değil "içinde nokta olan kutu"
-                    // okunuyordu — parlaklık geniş ve kenara yakın olmalı.
-                    var rim = UiKit.CreateSlicedPanel("Rim", holder,
-                        UiSprites.RoundedPanel, IceLight);
-                    UiKit.Place(rim, 0f, 0f, 1f, 1f);
+                case Item.IceBlock:  BuildIce(holder, "3", IceBlue, IceLight); break;
+                case Item.IceGate:   BuildIceGate(holder); break;
+                case Item.Curtain:   BuildCurtain(holder); break;
+                case Item.Layered:   BuildLayered(holder); break;
+                case Item.ColorQueue: BuildColorGate(holder); break;
+                case Item.Directional: BuildDirectional(holder); break;
+                default:             BuildMachine(holder); break;
+            }
+        }
 
-                    var ice = UiKit.CreateSlicedPanel("Ice", holder,
-                        UiSprites.RoundedPanel, IceBlue);
-                    UiKit.Place(ice, 0.055f, 0.055f, 0.945f, 0.945f);
+        /// <summary>Kabartmalı tuğla: koyu kenar + gövde + üst ışık + saplamalar.</summary>
+        static RectTransform Brick(Transform parent, string name, Color body,
+            float x0, float y0, float x1, float y1, int studCols = 2, int studRows = 2)
+        {
+            var root = UiKit.CreateRect(name, parent);
+            UiKit.Place(root, x0, y0, x1, y1);
 
-                    var shine = UiKit.CreateSlicedPanel("Shine", holder,
-                        UiSprites.RoundedPanel,
-                        new Color(IceLight.r, IceLight.g, IceLight.b, 0.55f));
-                    UiKit.Place(shine, 0.14f, 0.52f, 0.86f, 0.88f);
-                    break;
+            var edge = UiKit.CreateSlicedPanel("Edge", root,
+                UiSprites.RoundedPanel, Dim(body, 0.48f));
+            UiKit.Place(edge, 0f, 0f, 1f, 1f);
+            edge.raycastTarget = false;
 
-                case Item.Curtain:
-                    var curtain = UiKit.CreateIcon("Curtain", holder, UiSprites.RoundedPanel,
-                        new Color(0.180f, 0.145f, 0.420f));
-                    UiKit.Place(curtain, 0f, 0f, 1f, 1f);
-                    var count = UiKit.CreateTitle("Count", holder, "3", 52, Ink, TitleShadow);
-                    UiKit.Place(count, 0f, 0f, 1f, 1f);
-                    break;
+            var face = UiKit.CreateSlicedPanel("Face", root, UiSprites.RoundedPanel, body);
+            UiKit.Place(face, 0.04f, 0.14f, 0.96f, 0.96f);
+            face.raycastTarget = false;
 
-                case Item.Layered:
-                    // İki katman: alttaki geniş, üstteki dar ve kaymış —
-                    // "birinin altında bir tane daha var" siluetı.
-                    var under = UiKit.CreateIcon("Under", holder, UiSprites.RoundedPanel,
-                        new Color(0.180f, 0.800f, 0.290f));
-                    UiKit.Place(under, 0.10f, 0f, 1f, 0.82f);
-                    var over = UiKit.CreateIcon("Over", holder, UiSprites.RoundedPanel,
-                        new Color(0.950f, 0.290f, 0.310f));
-                    UiKit.Place(over, 0f, 0.18f, 0.90f, 1f);
-                    break;
+            // Saplamalar: tahtadaki tuğlanın imzası. Onlarsız her şey
+            // "renkli kutu" olarak okunuyor.
+            for (int i = 0; i < studCols; i++)
+                for (int j = 0; j < studRows; j++)
+                {
+                    float u = (i + 0.5f) / studCols, v = (j + 0.5f) / studRows;
+                    float r = 0.5f / Mathf.Max(studCols, studRows) * 0.62f;
 
-                default:
-                    var plain = UiKit.CreateIcon("Item", holder, UiSprites.RoundedPanel,
-                        new Color(0.980f, 0.760f, 0.180f));
-                    UiKit.Place(plain, 0f, 0f, 1f, 1f);
-                    break;
+                    var stud = UiKit.CreateIcon($"Stud_{i}_{j}", face.transform,
+                        UiSprites.Circle, Lift(body, 0.22f));
+                    UiKit.Place(stud, u - r, v - r * 1.15f, u + r, v + r * 0.85f);
+                    stud.raycastTarget = false;
+                }
+            return root;
+        }
+
+        static Color Dim(Color c, float k) => new Color(c.r * k, c.g * k, c.b * k, c.a);
+
+        static Color Lift(Color c, float k) => Color.Lerp(c, Color.white, k);
+
+        /// <summary>Buz kalıbı: camgöbeği gövde, kırağı paneli ve sayaç.</summary>
+        static void BuildIce(RectTransform holder, string count, Color body, Color light)
+        {
+            var rim = UiKit.CreateSlicedPanel("Rim", holder, UiSprites.RoundedPanel,
+                Dim(body, 0.55f));
+            UiKit.Place(rim, 0.28f, 0.06f, 0.72f, 0.94f);
+
+            var ice = UiKit.CreateSlicedPanel("Ice", rim.transform, UiSprites.RoundedPanel, body);
+            UiKit.Place(ice, 0f, 0f, 1f, 1f, padding: 8f);
+
+            var frost = UiKit.CreateSlicedPanel("Frost", ice.transform,
+                UiSprites.RoundedPanel, new Color(light.r, light.g, light.b, 0.75f));
+            UiKit.Place(frost, 0.16f, 0.16f, 0.84f, 0.84f);
+
+            var label = UiKit.CreateTitle("Count", ice.transform, count, 60,
+                new Color(1f, 1f, 1f), Dim(body, 0.42f));
+            UiKit.Place(label, 0f, 0.02f, 1f, 0.98f);
+        }
+
+        /// <summary>Buzlu kapı: SOLUK buz barı + sayaç (blok buzundan ayrı ton).</summary>
+        static void BuildIceGate(RectTransform holder)
+        {
+            var frame = UiKit.CreateSlicedPanel("Frame", holder, UiSprites.RoundedPanel,
+                new Color(0.259f, 0.224f, 0.643f));
+            UiKit.Place(frame, 0.06f, 0.30f, 0.94f, 0.70f);
+
+            var bar = UiKit.CreateSlicedPanel("Bar", holder, UiSprites.RoundedPanel,
+                new Color(0.700f, 0.900f, 0.980f));
+            UiKit.Place(bar, 0.28f, 0.34f, 0.72f, 0.78f);
+
+            var label = UiKit.CreateTitle("Count", bar.transform, "5", 54,
+                new Color(0.10f, 0.30f, 0.45f), new Color(1f, 1f, 1f));
+            UiKit.Place(label, 0f, 0.02f, 1f, 0.98f);
+        }
+
+        /// <summary>Renk kuyruğu: iki renkli kapı barı + krem ok.</summary>
+        static void BuildColorGate(RectTransform holder)
+        {
+            var frame = UiKit.CreateSlicedPanel("Frame", holder, UiSprites.RoundedPanel,
+                new Color(0.259f, 0.224f, 0.643f));
+            UiKit.Place(frame, 0.06f, 0.30f, 0.94f, 0.70f);
+
+            var first = UiKit.CreateSlicedPanel("A", holder, UiSprites.RoundedPanel,
+                new Color(0.900f, 0.150f, 0.200f));
+            UiKit.Place(first, 0.20f, 0.34f, 0.50f, 0.78f);
+
+            var second = UiKit.CreateSlicedPanel("B", holder, UiSprites.RoundedPanel,
+                new Color(0.150f, 0.450f, 0.950f));
+            UiKit.Place(second, 0.52f, 0.34f, 0.82f, 0.78f);
+
+            var mark = UiKit.CreateIcon("Arrow", first.transform, UiSprites.Triangle,
+                new Color(1f, 0.98f, 0.92f));
+            UiKit.Place(mark, 0.30f, 0.18f, 0.70f, 0.82f);
+        }
+
+        /// <summary>Perde: altın çerçeve + lavanta panel + tırtıllar + rozet.</summary>
+        static void BuildCurtain(RectTransform holder)
+        {
+            var frame = UiKit.CreateSlicedPanel("Frame", holder, UiSprites.RoundedPanel,
+                new Color(0.937f, 0.647f, 0.106f));
+            UiKit.Place(frame, 0.16f, 0.06f, 0.84f, 0.94f);
+
+            var panel = UiKit.CreateSlicedPanel("Panel", frame.transform,
+                UiSprites.RoundedPanel, new Color(0.278f, 0.220f, 0.706f));
+            UiKit.Place(panel, 0f, 0f, 1f, 1f, padding: 10f);
+
+            // Yüzeydeki yatay tırtıllar: perdeyi "levha" değil "malzeme" yapan
+            // şey (tahtadaki perdeyle aynı desen).
+            for (int i = 1; i <= 5; i++)
+            {
+                float y = i / 6f;
+                var slat = UiKit.CreatePanel($"Slat_{i}", panel.transform,
+                    new Color(0f, 0f, 0f, 0.16f));
+                UiKit.Place(slat, 0.06f, y - 0.012f, 0.94f, y + 0.012f);
+                slat.raycastTarget = false;
+            }
+
+            var badgeRim = UiKit.CreateIcon("BadgeRim", panel.transform, UiSprites.Circle,
+                new Color(0.937f, 0.647f, 0.106f));
+            UiKit.Place(badgeRim, 0.26f, 0.34f, 0.74f, 0.66f);
+
+            var badge = UiKit.CreateIcon("Badge", badgeRim.transform, UiSprites.Circle,
+                new Color(0.192f, 0.129f, 0.400f));
+            UiKit.Place(badge, 0.10f, 0.10f, 0.90f, 0.90f);
+
+            var count = UiKit.CreateTitle("Count", badge.transform, "3", 48, Ink, TitleShadow);
+            UiKit.Place(count, 0f, 0f, 1f, 1f);
+        }
+
+        /// <summary>Katmanlı blok: dış tuğla + içine gömülü ikinci renk.</summary>
+        static void BuildLayered(RectTransform holder)
+        {
+            var outer = Brick(holder, "Outer", new Color(1f, 0.750f, 0.100f),
+                0.20f, 0.10f, 0.80f, 0.90f, 2, 2);
+
+            var rim = UiKit.CreateSlicedPanel("InnerRim", outer, UiSprites.RoundedPanel,
+                new Color(1f, 0.880f, 0.520f));
+            UiKit.Place(rim, 0.20f, 0.24f, 0.80f, 0.76f);
+
+            var inner = UiKit.CreateSlicedPanel("Inner", rim.transform,
+                UiSprites.RoundedPanel, new Color(0.200f, 0.750f, 0.250f));
+            UiKit.Place(inner, 0f, 0f, 1f, 1f, padding: 7f);
+        }
+
+        /// <summary>Yönlü blok: saplamasız karo + kendi renginde çift yönlü ok.</summary>
+        static void BuildDirectional(RectTransform holder)
+        {
+            var body = new Color(0.150f, 0.450f, 0.950f);
+
+            var edge = UiKit.CreateSlicedPanel("Edge", holder, UiSprites.RoundedPanel,
+                Dim(body, 0.48f));
+            UiKit.Place(edge, 0.20f, 0.10f, 0.80f, 0.90f);
+
+            var face = UiKit.CreateSlicedPanel("Face", edge.transform,
+                UiSprites.RoundedPanel, body);
+            UiKit.Place(face, 0f, 0f, 1f, 1f, padding: 9f);
+
+            // Oyunda ok bloğun KENDİ renginin açığı, koyu bir oluk hattıyla.
+            var groove = UiKit.CreatePanel("Groove", face.transform, Dim(body, 0.50f));
+            UiKit.Place(groove, 0.10f, 0.40f, 0.90f, 0.60f);
+            var shaft = UiKit.CreatePanel("Shaft", face.transform, Lift(body, 0.40f));
+            UiKit.Place(shaft, 0.14f, 0.435f, 0.86f, 0.565f);
+
+            for (int i = 0; i < 2; i++)
+            {
+                bool left = i == 0;
+                var headEdge = UiKit.CreateIcon($"HeadEdge_{i}", face.transform,
+                    UiSprites.Triangle, Dim(body, 0.50f));
+                UiKit.Place(headEdge, left ? 0.05f : 0.72f, 0.26f,
+                                      left ? 0.33f : 1.00f, 0.74f);
+                headEdge.rectTransform.localRotation =
+                    Quaternion.Euler(0f, 0f, left ? 90f : -90f);
+
+                var head = UiKit.CreateIcon($"Head_{i}", face.transform,
+                    UiSprites.Triangle, Lift(body, 0.40f));
+                UiKit.Place(head, left ? 0.08f : 0.74f, 0.30f,
+                                  left ? 0.31f : 0.97f, 0.70f);
+                head.rectTransform.localRotation =
+                    Quaternion.Euler(0f, 0f, left ? 90f : -90f);
+            }
+        }
+
+        /// <summary>
+        /// Makine: gövde + sayaç başı + lamba + penceresinde sıradaki tuğla.
+        ///
+        /// Tahtadaki makinenin (bkz. <see cref="View.GeneratorView"/>) aynı
+        /// dört parçası. Oyuncu burada gördüğü şeyi tahtada birebir tanısın
+        /// diye parçalar aynı sırayla ve aynı renklerle diziliyor.
+        /// </summary>
+        static void BuildMachine(RectTransform holder)
+        {
+            var shellDark = new Color(0.435f, 0.129f, 0.514f);
+            var shell = new Color(0.706f, 0.235f, 0.780f);
+
+            var edge = UiKit.CreateSlicedPanel("Edge", holder, UiSprites.RoundedPanel, shellDark);
+            UiKit.Place(edge, 0.22f, 0.04f, 0.78f, 0.96f);
+
+            var face = UiKit.CreateSlicedPanel("Face", edge.transform,
+                UiSprites.RoundedPanel, shell);
+            UiKit.Place(face, 0f, 0f, 1f, 1f, padding: 10f);
+
+            // Sayaç başı: üstte koyu plaka + rakam.
+            var head = UiKit.CreateSlicedPanel("Head", face.transform,
+                UiSprites.RoundedPanel, new Color(0.243f, 0.145f, 0.353f));
+            UiKit.Place(head, 0.10f, 0.74f, 0.72f, 0.95f);
+
+            var count = UiKit.CreateTitle("Count", head.transform, "6", 44, Ink, TitleShadow);
+            UiKit.Place(count, 0f, 0f, 1f, 1f);
+
+            // Lamba: referansta başın yanında küçük bir ışık.
+            var lamp = UiKit.CreateIcon("Lamp", face.transform, UiSprites.Circle,
+                new Color(0.937f, 0.180f, 0.180f));
+            UiKit.Place(lamp, 0.76f, 0.78f, 0.94f, 0.92f);
+
+            // Pencere: koyu oyuk + içinde sıradaki bloğun tuğlası.
+            var well = UiKit.CreateSlicedPanel("Well", face.transform,
+                UiSprites.RoundedPanel, new Color(0.106f, 0.086f, 0.290f));
+            UiKit.Place(well, 0.10f, 0.16f, 0.90f, 0.68f);
+
+            Brick(well.transform, "Next", new Color(0.150f, 0.450f, 0.950f),
+                0.14f, 0.16f, 0.86f, 0.84f, 2, 2);
+
+            // Ayaklar: makineyi zemine oturtan iki kısa çıkıntı.
+            for (int i = 0; i < 2; i++)
+            {
+                var foot = UiKit.CreateSlicedPanel($"Foot_{i}", holder,
+                    UiSprites.RoundedPanel, shellDark);
+                float x0 = i == 0 ? 0.30f : 0.58f;
+                UiKit.Place(foot, x0, -0.03f, x0 + 0.12f, 0.07f);
             }
         }
 

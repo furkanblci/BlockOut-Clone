@@ -111,6 +111,31 @@ namespace BlockOut.Runtime.View
             go.AddComponent<MeshRenderer>();
             go.transform.position = center;
 
+            // KOYU KENAR — KAPININ SILUETI (4. tur, G26).
+            //
+            // Kullanıcı: "Kapı ve blok outline ları düzgün çalışmıyor, bazı
+            // köşeler görünmüyor."
+            //
+            // Kapı çerçeveyle aynı bandın içinde duruyor ve ikisi de doygun
+            // renkler; aralarında bir sınır olmadığı için kapının nerede
+            // bitip çerçevenin nerede başladığı — özellikle köşelerde —
+            // okunmuyordu. Barın bir tık büyütülmüş KOYU kopyası, altından
+            // ince bir hat olarak çıkıp o sınırı çiziyor.
+            //
+            // DERS (kontur bir çizgi değil, ALTTAKI katmandır): 3B bir sahnede
+            // "kenarlık çizmek" diye bir şey yok; kenar, arkadaki koyu yüzeyin
+            // kenardan taşan kısmıdır. Bloklarda temas gölgesi, burada bu kopya
+            // aynı işi yapıyor.
+            var rim = new GameObject("Rim");
+            rim.transform.SetParent(go.transform, worldPositionStays: false);
+            rim.transform.localPosition = new Vector3(0f, -0.012f, 0f);
+            rim.AddComponent<MeshFilter>().sharedMesh =
+                BuildBarMesh(alongX + 0.09f, alongZ + 0.09f, BarHeight * 0.96f);
+            var rimRenderer = rim.AddComponent<MeshRenderer>();
+            rimRenderer.sharedMaterial = ViewKit.Solid("GateRim", new Color(0.075f, 0.055f, 0.180f));
+            rimRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            rimRenderer.receiveShadows = false;
+
             var view = go.AddComponent<GateView>();
             view._model = model;
             view._renderer = go.GetComponent<MeshRenderer>();
@@ -518,6 +543,16 @@ namespace BlockOut.Runtime.View
             // Ok buz boyunca gizliydi; kapı artık kullanılabilir olduğuna göre
             // "buradan çıkabilirsin" işareti geri gelmeli.
             if (_arrow != null) _arrow.SetActive(true);
+
+            // Buz kırıldığı an kapı BİR KEZ parlıyor (4. tur, G25).
+            //
+            // DERS (durum değişimini kutlamak, onu görünür kılar): Kapının
+            // materyali tek karede buzdan renge geçiyordu; parçacıklar
+            // saçılırken kapının kendisi hiçbir şey yapmıyor ve "artık
+            // kullanılabilir" bilgisi kırılma gürültüsünde kayboluyordu.
+            // Aynı parlama emilmede de kullanılıyor; iki olayın aynı dili
+            // konuşması, oyuncuya "kapıda bir şey oldu" demenin tek yolu.
+            PlayAbsorbFlash();
         }
 
         /// <summary>Kuyruk ilerledi: yeni aktif rengin materyali (L21+ olasılığı).</summary>

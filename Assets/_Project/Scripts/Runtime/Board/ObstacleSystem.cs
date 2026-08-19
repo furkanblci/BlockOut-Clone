@@ -231,13 +231,37 @@ namespace BlockOut.Runtime.Board
             // Gizli içerik tahtaya doğar — artık normal (gerekirse buzlu) bloklar.
             // BlockRoot yoksa görselsiz (headless) koşuyoruz: level doğrulama aracı
             // ve testler modeli sahne kurmadan sürer. Model/view ayrımının karşılığı.
+            // BLOKLAR SIRAYLA DÜŞEREK GELİYOR (4. tur, I36).
+            //
+            // Kullanıcı: "Perde kalkma animasyonu ve blokların geliş şekli
+            // birebir yapılacak."
+            //
+            // Bloklar eskiden aynı karede, tam boyda beliriyordu; perde
+            // kalkarken altından çıkanlar "hep oradaymış" gibi görünüyordu.
+            // Bölüm açılışındaki giriş animasyonu (`PlayIntro`) zaten tam bu
+            // işi yapıyor: yukarıdan düşüp yaylanarak oturuyor. Gecikme hücre
+            // konumundan türetiliyor, yani sol üstteki önce geliyor — açılışla
+            // aynı ritim.
+            //
+            // DERS (var olan bir hareketi ikinci kez yazma): Aynı "geliş"
+            // hissini burada sıfırdan kurmak, iki ayrı eğri ve iki ayrı süre
+            // demekti; biri değişince öbürü unutulurdu.
+            int index = 0;
             foreach (var block in curtain.Contents)
             {
                 _level.Blocks.Add(block);
                 if (_views.BlockRoot != null)
-                    _views.Blocks[block] = BlockView.Create(
+                {
+                    var blockView = BlockView.Create(
                         _views.BlockRoot, block, _space,
                         BoardBuilder.GetBlockMaterial(_palette, block.CurrentColor));
+                    _views.Blocks[block] = blockView;
+
+                    // Perde 0,42 saniyede kalkıyor; bloklar onun ardından
+                    // geliyor ki ikisi üst üste binmesin.
+                    blockView.PlayIntro(0.30f + index * 0.07f, 0.22f);
+                    index++;
+                }
             }
             curtain.Contents.Clear();
 

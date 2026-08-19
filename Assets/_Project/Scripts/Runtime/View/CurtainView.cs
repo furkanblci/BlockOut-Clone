@@ -24,10 +24,29 @@ namespace BlockOut.Runtime.View
             Vector3 center = space.RectCenterToWorld(
                 new Vector2(model.X, model.Y), model.W, model.H, PanelHeight * 0.5f);
 
-            var frame = ViewKit.CreateShape(PrimitiveType.Cube, "Shape");
-            frame.name = "Frame";
+            // PERDE ARTIK YUVARLAK KÖŞELİ (4. tur, I36).
+            //
+            // Kullanıcı: "Perde detay görseli birebir orijinaliyle aynı olacak."
+            //
+            // REFERANS (41-50 yürüyüşü, 49. bölüm — üç perde bir arada):
+            // panel yuvarlak köşeli, çevresinde KALIN altın bir çerçeve, yüzeyde
+            // ince yatay tırtıllar ve ortada altın çerçeveli bir sayaç rozeti.
+            // Bizim panelimiz keskin köşeli iki küptü; tahtanın geri kalanı
+            // (bloklar, kapılar, çerçeve) yuvarlakken perde tek keskin nesneydi
+            // ve "arayüzden kalma bir kutu" gibi duruyordu.
+            //
+            // DERS (bir sahnede TEK keskin nesne, en çok göze batan nesnedir):
+            // Yuvarlaklık burada süs değil, aidiyet. `PrismMeshBuilder` kapı
+            // barı ve makine ile aynı yarıçapı verdiği için perde de aynı
+            // malzemeden dökülmüş görünüyor.
+            var frame = new GameObject("Frame");
             frame.transform.SetParent(root.transform, false);
-            frame.GetComponent<MeshRenderer>().sharedMaterial = ViewKit.CurtainFrame;
+            frame.AddComponent<MeshFilter>().sharedMesh = PrismMeshBuilder.Build(
+                model.W, model.H, PanelHeight, 0.34f, 0.05f, "CurtainFrame");
+            var frameRenderer = frame.AddComponent<MeshRenderer>();
+            frameRenderer.sharedMaterial = ViewKit.CurtainFrame;
+            frameRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            frameRenderer.receiveShadows = false;
             // ÇERÇEVE DIŞA TAŞMAZ, PANEL İÇERİ ÇEKİLİR.
             //
             // Kalınlık ölçüldü: referansta (22. bölümün büyük perdesi) altın
@@ -43,18 +62,22 @@ namespace BlockOut.Runtime.View
             // görünmez. Doğrusu çerçeveyi bölgenin tam boyutunda tutup PANELİ
             // içeri çekmek: kenar her zaman kendi alanının içinde kalıyor.
             const float Border = 0.17f;              // hücre payı, her kenarda
-            frame.transform.position = center;
-            frame.transform.localScale = new Vector3(model.W, PanelHeight, model.H);
+            // Prizma mesh'i TABANINDAN başlıyor; merkez hesabı yarım yükseklik
+            // içerdiği için taban konumu geri alınıyor.
+            frame.transform.position = center - Vector3.up * (PanelHeight * 0.5f);
 
-            var panel = ViewKit.CreateShape(PrimitiveType.Cube, "Shape");
-            panel.name = "Panel";
+            var panel = new GameObject("Panel");
             panel.transform.SetParent(root.transform, false);
-            panel.GetComponent<MeshRenderer>().sharedMaterial = ViewKit.CurtainPanel;
+            panel.AddComponent<MeshFilter>().sharedMesh = PrismMeshBuilder.Build(
+                model.W - Border * 2f, model.H - Border * 2f, PanelHeight, 0.26f, 0.05f,
+                "CurtainPanel");
+            var panelRenderer = panel.AddComponent<MeshRenderer>();
+            panelRenderer.sharedMaterial = ViewKit.CurtainPanel;
+            panelRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            panelRenderer.receiveShadows = false;
             // Panel çerçeveden bir tık YÜKSEK: aynı hizada olsalar iki yüzey
             // aynı derinlikte çakışır ve kenar yer yer kayboldu-göründü olur.
-            panel.transform.position = center + Vector3.up * 0.02f;
-            panel.transform.localScale = new Vector3(
-                model.W - Border * 2f, PanelHeight, model.H - Border * 2f);
+            panel.transform.position = center - Vector3.up * (PanelHeight * 0.5f - 0.02f);
 
             // SÜSLER PANELİN GERÇEK TEPESİNDEN ÖLÇÜLÜR.
             //
@@ -65,7 +88,7 @@ namespace BlockOut.Runtime.View
             // görünmedi. Sayaçlarda da, iç katmanda da aynı şey olmuştu.
             // Bir yüzeyin üstüne konan her şey, o yüzeyin ÖLÇÜLEN tepesine
             // bağlanmalı; hesapla varsayılan tepe, ilk taşımada yalan olur.
-            float panelTop = panel.GetComponent<MeshRenderer>().bounds.max.y;
+            float panelTop = panelRenderer.bounds.max.y;
             AddSlats(root.transform, center, panelTop, model, Border);
             AddSparkles(root.transform, center, panelTop, model, Border);
 
@@ -202,6 +225,86 @@ namespace BlockOut.Runtime.View
                 _counter.text = _model.Count.ToString();
         }
 
-        public void Open() => Destroy(gameObject);
+        /// <summary>
+        /// PERDE KALKMA ANIMASYONU (4. tur, I36).
+        ///
+        /// Kullanıcı: "Perde kalkma animasyonu ve blokların geliş şekli birebir
+        /// yapılacak."
+        ///
+        /// Eskiden `Destroy(gameObject)` idi: perde bir karede yok oluyor ve
+        /// altındaki bloklar aynı karede beliriyordu. Ekranda görülen tek şey
+        /// "renkler değişti" oluyordu; hangi perdenin açıldığı, altından ne
+        /// çıktığı okunmuyordu.
+        ///
+        /// Referansta perde YUKARI KALKIYOR ve saydamlaşıyor — bir kapak gibi.
+        /// Burada üç şey birlikte yürüyor: yükselme, büyüme ve sönme. Üçünün
+        /// aynı eğriyi paylaşması hareketi tek bir olay gibi okutuyor.
+        ///
+        /// DERS (yok etmeden ÖNCE anlat): Bir nesneyi silmek bedava; ama
+        /// oyuncunun o silmeyi FARK ETMESİ için nesnenin gidişini görmesi
+        /// gerekir. Yarım saniye, bir bulmacada altın değerinde bir yarım
+        /// saniyedir.
+        /// </summary>
+        public void Open()
+        {
+            if (!Application.isPlaying) { DestroyImmediate(gameObject); return; }
+            StartCoroutine(OpenRoutine());
+        }
+
+        System.Collections.IEnumerator OpenRoutine()
+        {
+            // Sayaç ve rozet perdeyle birlikte gitmeli; rozet ayrı bir kökün
+            // çocuğu olduğu için elle kapatılıyor.
+            if (_counter != null) _counter.gameObject.SetActive(false);
+
+            var renderers = GetComponentsInChildren<MeshRenderer>();
+            var materials = new System.Collections.Generic.List<Material>(renderers.Length);
+            foreach (var renderer in renderers)
+            {
+                // Kendi kopyası: paylaşılan materyali söndürmek AYNI renkteki
+                // bütün perdeleri söndürürdü.
+                var fading = ViewKit.Translucent(ReadColor(renderer.sharedMaterial));
+                renderer.sharedMaterial = fading;
+                materials.Add(fading);
+            }
+
+            Vector3 home = transform.position;
+            const float duration = 0.42f;
+
+            for (float t = 0f; t < duration; t += Time.deltaTime)
+            {
+                float k = Mathf.Clamp01(t / duration);
+                float eased = k * k;                       // hızlanarak kalkar
+
+                transform.position = home + Vector3.up * (eased * 1.6f);
+                transform.localScale = Vector3.one * (1f + eased * 0.14f);
+
+                for (int i = 0; i < materials.Count; i++)
+                {
+                    var color = ReadColor(materials[i]);
+                    color.a = 1f - eased;
+                    Paint(materials[i], color);
+                }
+                yield return null;
+            }
+
+            foreach (var material in materials) if (material != null) Destroy(material);
+            Destroy(gameObject);
+        }
+
+        static Color ReadColor(Material material)
+        {
+            if (material == null) return Color.white;
+            if (material.HasProperty("_BaseColor")) return material.GetColor("_BaseColor");
+            if (material.HasProperty("_Color")) return material.color;
+            return Color.white;
+        }
+
+        static void Paint(Material material, Color color)
+        {
+            if (material == null) return;
+            if (material.HasProperty("_Color")) material.color = color;
+            if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
+        }
     }
 }

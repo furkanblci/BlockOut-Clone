@@ -46,8 +46,8 @@ namespace BlockOut.Runtime.FX
         /// <paramref name="anchor"/> ekranın merkezine göre oran (-0.5..0.5).
         /// </summary>
         public static void Explode(RectTransform root, Vector2 anchor, Color color,
-                                   int sparks = 30, float minSpeed = 1400f,
-                                   float maxSpeed = 2500f)
+                                   int sparks = 30, float minSpeed = 900f,
+                                   float maxSpeed = 1700f)
         {
             for (int i = 0; i < sparks; i++)
             {
@@ -62,7 +62,21 @@ namespace BlockOut.Runtime.FX
                 // sahnede duruyor, doğru ölçekte ve alfada — ama ekrana hiçbir
                 // şey çizilmiyor. Bu yüzden "60 kıvılcım var" diyen sayaçla
                 // bomboş bir ekran yan yana durabiliyordu.
-                var spark = UiKit.CreatePanel("Spark", root, color);
+                // HER KIVILCIM KENDİ RENGİNİ ALIYOR (4. tur, J38).
+                //
+                // Patlama tek renkti ve ışınlar eşit uzunlukta olduğu için
+                // ekranda "havai fişek" değil PUSULA GÜLÜ çıkıyordu — sarı,
+                // düz, uzun çizgilerden oluşan bir yıldız. Referansta bir
+                // patlamanın içinde birden çok renk var ve ışınlar farklı
+                // boylarda.
+                //
+                // Verilen renk yine baskın: kıvılcımların üçte biri onu
+                // kullanıyor, kalanı paletten. Böylece patlamanın bir kimliği
+                // oluyor ama tekdüze olmuyor.
+                var tint = Random.value < 0.34f
+                    ? color
+                    : Palette[Random.Range(0, Palette.Length)];
+                var spark = UiKit.CreatePanel("Spark", root, tint);
                 spark.raycastTarget = false;
 
                 var rect = spark.rectTransform;
@@ -119,7 +133,19 @@ namespace BlockOut.Runtime.FX
                 // uzayan taraf dışarısı; ışın merkezden başlayıp başın olduğu
                 // yere kadar çiziliyor.
                 float k = t / life;
-                float reach = position.magnitude;
+
+                // İZİN BOYU SINIRLI (4. tur, J38).
+                //
+                // Uzunluk doğrudan kat edilen yola bağlıydı ve hiçbir tavanı
+                // yoktu: 2500 birim/sn ile fırlayan bir kıvılcım ekranın
+                // yarısını geçen düz bir çizgiye dönüşüyordu. Referansta
+                // ışınlar KISA ve kalın; patlamayı patlama yapan şey ışının
+                // uzunluğu değil, sayısı ve dağılımı.
+                //
+                // DERS (orantı, TAVANSIZ bırakılırsa ölçeği yutar): "Uzunluk
+                // yolla orantılı olsun" doğru bir fikirdi; eksik olan, o
+                // orantının nerede duracağıydı.
+                float reach = Mathf.Min(position.magnitude, baseWidth * 7f);
                 piece.localRotation = Quaternion.Euler(
                     0f, 0f, Mathf.Atan2(position.y, position.x) * Mathf.Rad2Deg);
                 piece.localScale = new Vector3(

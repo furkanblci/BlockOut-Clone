@@ -111,6 +111,7 @@ namespace BlockOut.Runtime.UI
         UnityEngine.UI.Image _promptIcon, _promptBurst;
         TMPro.TextMeshProUGUI _promptTitle, _promptText;
         Image _resultCard, _pauseCard;
+        TextMeshProUGUI _resultDifficulty;
         TextMeshProUGUI _perfectBadge;
         TextMeshProUGUI _resultTitle, _resultReward;
         RectTransform _rewardArt;
@@ -1330,10 +1331,25 @@ namespace BlockOut.Runtime.UI
             crossMark.raycastTarget = false;
             UiKit.Place(crossMark, 0.24f, 0.24f, 0.76f, 0.76f);
 
+            // ZORLUK ETİKETİ KARTIN İÇİNDE, BÖLÜM ADININ ÜSTÜNDE (4. tur, J41).
+            //
+            // REFERANS (41-50 yürüyüşü, 12:24): 49. bölümün PERFECT kartında
+            // "Level 49" yazısının hemen üstünde koyu kırmızı "Super Hard"
+            // duruyor. Bizde zorluk yalnız OYUN SIRASINDA, sayacın altında
+            // görünüyordu; kart açılınca kayboluyor ve "hangi bölümü
+            // bitirdim" bilgisinin yarısı gidiyordu.
+            //
+            // DERS (bilgi, SONUÇ ekranında da anlamlıdır): Oyun içindeki
+            // uyarı "dikkat, bu zor" der; sonuç ekranındaki aynı yazı
+            // "zoru bitirdin" der. Aynı üç kelime, iki farklı cümle.
+            _resultDifficulty = UiKit.CreateTitle("Difficulty", _resultCard.transform, "", 34,
+                Ink, TitleOutline);
+            UiKit.Place(_resultDifficulty, 0.08f, 0.900f, 0.92f, 0.968f);
+
             // Bölüm adı kartın içinde, beyaz balon yazı.
             _perfectBadge = UiKit.CreateTitle("LevelName", _resultCard.transform, "", 58,
                 Ink, TitleOutline);
-            UiKit.Place(_perfectBadge, 0.08f, 0.815f, 0.92f, 0.955f);
+            UiKit.Place(_perfectBadge, 0.08f, 0.775f, 0.92f, 0.905f);
 
             // Jeton yığını: tek bir "coin_pile" görselimiz yok, bu yüzden
             // icon_coin'lerden kuruyoruz. Gerçek yığın görseli gelince burası
@@ -1889,6 +1905,25 @@ namespace BlockOut.Runtime.UI
             // logo hiç yaratılmıyor.
             if (_celebration == null) _celebration = WinCelebration.Create(transform);
             _celebration.Play(RefreshResult);
+
+            // GÜVENLİK AĞI: kutlama ne olursa olsun kartı açtırmalı.
+            //
+            // DERS (bir süsün hatası, akışı kilitlememeli): Kutlama
+            // coroutine'inde bir istisna çıktığında `done` geri çağrısı hiç
+            // çağrılmıyor ve PERFECT kartı hiç açılmıyordu — yani oyuncu
+            // bölümü bitiriyor, ekranda siyah bir perde ve logo kalıyor,
+            // devam edecek düğme hiç gelmiyordu. Bir yan etki (görsel şölen)
+            // ana akışın (bölüm bitişi) tek dayanağı olmamalı.
+            //
+            // Kart zaten açıksa `RefreshResult` bir şey değiştirmiyor;
+            // bu yüzden ağ, doğru çalışan durumda da zararsız.
+            yield return new WaitForSecondsRealtime(4.2f);
+            if (_shownState == GameState.Won && _resultPanel != null &&
+                !_resultPanel.gameObject.activeSelf)
+            {
+                Debug.LogWarning("[Sonuç] Kutlama kartı açmadı; güvenlik ağı devrede.");
+                RefreshResult();
+            }
         }
 
         /// <summary>Jetonla devam alındı: süre eklenip tahtaya dönülüyor.</summary>
@@ -1990,6 +2025,14 @@ namespace BlockOut.Runtime.UI
             if (_resultCard != null) _resultCard.color = difficultyTint;
             if (_resultTitle != null)
                 UiKit.SetOutline(_resultTitle, OutlineFor(difficultyTint));
+
+            if (_resultDifficulty != null)
+            {
+                string label = won && _session != null
+                    ? Core.LevelDifficultyRule.Label(_session.Difficulty) : "";
+                _resultDifficulty.text = label;
+                _resultDifficulty.gameObject.SetActive(!string.IsNullOrEmpty(label));
+            }
             _resultTitle.color = TitleGold;
 
             // Bölüm numarası İKİ DURUMDA DA var — referansta kaybederken

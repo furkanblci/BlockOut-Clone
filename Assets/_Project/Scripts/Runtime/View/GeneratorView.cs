@@ -35,8 +35,16 @@ namespace BlockOut.Runtime.View
     /// </summary>
     public sealed class GeneratorView : MonoBehaviour
     {
-        /// <summary>Kenardan dışa taşma (hücre).</summary>
-        const float Depth = 0.92f;
+        /// <summary>
+        /// Kenardan dışa taşma (hücre).
+        ///
+        /// 0,92'den 0,80'e çekildi: çerçevenin kalınlığıyla birlikte makinenin
+        /// dış kenarı tahtadan 1,50 hücre uzağa düşüyordu ve 8 hücre geniş bir
+        /// tahtada ekranın soluna değiyordu. Kamera kadrajı tahtayı hesaba
+        /// katıyor, makineyi değil — kenara yapışan bir nesne dar bir ekranda
+        /// kırpılır.
+        /// </summary>
+        const float Depth = 0.80f;
 
         /// <summary>Kenar boyunca uzunluk (hücre).</summary>
         const float Along = 1.85f;
@@ -45,7 +53,7 @@ namespace BlockOut.Runtime.View
 
         static readonly Color Shell     = new Color(0.706f, 0.235f, 0.780f);
         static readonly Color ShellDark = new Color(0.435f, 0.129f, 0.514f);
-        static readonly Color WellInk   = new Color(0.106f, 0.086f, 0.290f);
+        static readonly Color WellInk   = new Color(0.055f, 0.043f, 0.180f);
         static readonly Color LampOn    = new Color(0.278f, 0.937f, 0.310f);
         static readonly Color LampOff   = new Color(0.937f, 0.180f, 0.180f);
 
@@ -104,7 +112,7 @@ namespace BlockOut.Runtime.View
                 -(Along * 0.5f - windowSpan * 0.5f - 0.08f));
 
             // Sıradaki bloğun KENDİ ŞEKLİ, kendi renginde.
-            view.BuildPreview(well.transform, nextMaterial, wellSize);
+            view.BuildPreview(well.transform, nextMaterial, wellSize, BodyHeight + 0.05f);
 
             // --- 2. sayaç başı (dış uçta) ---------------------------------
             var head = Piece(pieces, "Head",
@@ -162,7 +170,8 @@ namespace BlockOut.Runtime.View
         /// tamamen şekle bağlı. Aynı mesh'i (saplamasız silüet) küçültüp
         /// pencereye koymak o bilgiyi bedavaya veriyor.
         /// </summary>
-        void BuildPreview(Transform well, Material nextMaterial, Vector2 wellSize)
+        void BuildPreview(Transform well, Material nextMaterial, Vector2 wellSize,
+            float wellHeight)
         {
             if (_model.IsEmpty) return;
             var block = _model.Queue[0];
@@ -180,8 +189,17 @@ namespace BlockOut.Runtime.View
             // Silüet blok boyutunda; pencereye SIĞACAK kadar küçültülüyor.
             float fit = Mathf.Min(wellSize.x / Mathf.Max(1, block.W),
                                   wellSize.y / Mathf.Max(1, block.H)) * 0.74f;
-            go.transform.localScale = new Vector3(fit, 0.32f, fit);
-            go.transform.localPosition = new Vector3(0f, 0.06f, 0f);
+            go.transform.localScale = new Vector3(fit, 0.30f, fit);
+
+            // KUYUNUN TEPESİNE, İÇİNE DEĞİL.
+            //
+            // Önizleme y = 0.06'ya konmuştu; kuyunun kendisi 0'dan başlayıp
+            // 0,57'ye çıkan bir prizma olduğu için tuğla onun İÇİNDE kalıyor
+            // ve hiç görünmüyordu. Aynı hata bu projede sayaçlarda, iç
+            // katmanda ve perdenin süslerinde de yapılmıştı: bir yüzeyin
+            // üstüne konan şey, o yüzeyin ÖLÇÜLEN tepesine bağlanmalı.
+            float wellTop = wellHeight + 0.015f;
+            go.transform.localPosition = new Vector3(0f, wellTop, 0f);
         }
 
         /// <summary>Tahtadan dışa bakan yön.</summary>
@@ -206,8 +224,21 @@ namespace BlockOut.Runtime.View
 
         Vector3 WorldCenter(BoardSpace space)
         {
-            // Makine kenarın DIŞINDA durur; girişin tam karşısına hizalanır.
-            float half = Depth * 0.5f + 0.14f;
+            // MAKİNE ÇERÇEVENİN TAMAMEN DIŞINDA DURUR.
+            //
+            // BULUNAN HATA: Kaydırma tahtanın kenarından hesaplanıyordu
+            // (Depth/2 + 0.14 = 0,60) ama çerçeve bandı 0,52 hücre kalın.
+            // Makine 0,14 ile 1,06 arasına yayılıyor, yani bandın İÇİNE
+            // giriyor ve aynı satırdaki kapı barının ARKASINDA kalıyordu —
+            // ekranda makinenin yarısı görünmüyordu.
+            //
+            // DERS ("dışarısı" nereden başlıyor?): Tahtanın kenarı ile
+            // görünen kenar aynı yer değil; arada çerçevenin kalınlığı var.
+            // Bir nesneyi "dışarı koymak" isteyen kod, o kalınlığı da
+            // hesaba katmak zorunda.
+            var cfg = VisualSettings.Current;
+            float frame = cfg != null ? cfg.frameThickness : 0.52f;
+            float half = frame + Depth * 0.5f + 0.06f;
             switch (_model.Side)
             {
                 case Side.West:

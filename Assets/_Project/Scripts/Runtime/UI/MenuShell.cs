@@ -302,7 +302,10 @@ namespace BlockOut.Runtime.UI
                     UiKit.Ink, new Color(0.114f, 0.075f, 0.404f));
                 caption.enableAutoSizing = true;
                 caption.fontSizeMax = 40;
-                caption.fontSizeMin = 24;
+                // Alt sınır 24'ten 20'ye: "Leaderboard" ve "Collection" en dar
+                // ekranda bile sığsın. Sığmazsa kırpma yazının TAMAMINI siler
+                // (bkz. Show içindeki not).
+                caption.fontSizeMin = 20;
                 caption.overflowMode = TextOverflowModes.Truncate;
 
                 string captured = key;
@@ -446,7 +449,28 @@ namespace BlockOut.Runtime.UI
                                       selected ? 0.94f : 0.82f, selected ? 1.19f : 0.88f);
 
                 if (caption != null) caption.gameObject.SetActive(selected);
-                if (selected && caption != null) UiKit.Place(caption, 0.03f, 0.20f, 0.97f, 0.38f);
+
+                // YAZI KUTUSU SATIR YÜKSEKLİĞİNDEN KISA OLAMAZ.
+                //
+                // BULUNAN HATA: Seçili sekmenin adı ("Home", "Leaderboard"…)
+                // ekranda HİÇ görünmüyordu. Kutu 0.20-0.38 idi, yani düğme
+                // yüksekliğinin %18'i = 32,83 birim. Baloo 2'nin 24 puntodaki
+                // satır yüksekliği ~33,6 birim; `overflowMode = Truncate` ile
+                // birleşince TMP satırı sığdıramayıp TAMAMEN atıyordu.
+                // Ölçüm: `text.bounds` extents = (0, 0, 0) — yani hiç geometri
+                // üretilmemiş. Renk, alfa, kardeş sırası, materyal hepsi
+                // doğruydu.
+                //
+                // DERS (kırpma, "biraz eksik"i "hiç yok"a çevirir): Kesme
+                // kipi taşmayı önlemek için konur ama eşiği bir birim
+                // aşıldığında sonuç yarım yazı değil, SIFIR yazıdır. Bir
+                // kutuyu yazının en küçük satır yüksekliğine göre ölçmek
+                // zorunludur; "yaklaşık yeter" burada hiç yetmiyor.
+                //
+                // Kutu 0.155-0.425 (%27 = 49 birim) yapıldı; merkezi 0.29,
+                // yani referansta ölçülen 0.293 ile aynı yerde kalıyor.
+                if (selected && caption != null)
+                    UiKit.Place(caption, 0.03f, 0.155f, 0.97f, 0.425f);
             }
 
             if (key == "journey" && _screens.TryGetValue(key, out var journey))
