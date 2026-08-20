@@ -8,6 +8,55 @@ Bu dosya her oturum sonunda güncellenir. Aşağısı 2026-08-10 itibarıyla ge�
 
 ---
 
+## 2026-08-20 — 7. TURUN EKİ KAPANDI (7/7)
+
+Kullanıcının aynı gün gelen ikinci listesi. Ayrıntılar
+`docs/APK-BULGULARI-5.md` içindeki **"7. TUR — EK"** bölümünde.
+
+1. **KRİTİK: alt kapılar blokların üstünü örtüyordu.** T65'in yan etkisi —
+   `InwardOverhang` dört kenara birden uygulanmıştı, oysa paralaks üst ve alt
+   kenarda TERS yönde çalışıyor. Pay artık kenara göre: üst 0,235, alt −0,055,
+   yanlar 0,09.
+2. **Kapı ağzı ışığı eklendi.** 6. turun ölçümü doğruydu ama yanlış yere
+   bakmıştı: ışık kapıda değil, kapı ile bloğun TEMAS ÇİZGİSİNDE.
+3. **PERFECT paneli** — `panel_card` sprite'ının içindeki ikinci çerçeve
+   gitti (kart prosedürel), hale sıcak altın oldu, parıltılar eklendi.
+4. **Buz çatlaması her hücrede** — tek merkez yerine hücre hücre; kırıntı
+   sayısı 3×2 blokta 11 → 42.
+5. **"CAN YOK" bugu** — durumu boyayan kodun geri dönüşü yoktu; reklamdan
+   sonra düğme yalan söylüyordu. Yazı ayrıca Türkçeydi.
+6. **Roket ve UFO** artık gerçekten roket ve UFO (eskiden beyaz bir küp ve
+   bir ışık sütunu).
+7. **Ses listesi** zaten hazırdı: `docs/audio-brief.md`.
+
+### İKİ YENİ ARAÇ TUZAĞI — ikisi de zaman yaktı
+
+**1. Yakalama aracı MAGENTA çiziyordu.** Unity düzenleyicide derlenmemiş bir
+shader varyantı magenta "bekliyor" rengiyle çiziliyor ve `Camera.Render()`
+onu beklemiyor. Ölçüldü: aynı sahne üç kez yakalandı, üçünde de tam 18 476
+magenta piksel — yani geçici değil takılı kalmış bir durum, ve olmayan bir
+"ızgara bugu" olarak teşhis edildi. `ShaderUtil.allowAsyncCompilation = false`
+AYRI bir çağrıda yapılmalı; aynı çağrının içinde kapatmak işe yaramıyor.
+`BoardCaptureTool` artık `[InitializeOnLoad]` ile her domain reload sonrası
+kapatıyor.
+
+**2. `Unity_RunCommand` "başarılı" dese de proje derlenmemiş olabilir.**
+Komut yalnız KENDİ parçacığını derliyor. `GameplayScreen` iki satırlık bir
+isim alanı hatasıyla derlenmedi ve üç yakalama boyunca hiçbir değişiklik
+görünmedi; komutlar hep "Command executed successfully" dedi.
+**Kural: her düzenlemeden sonra `Unity_GetConsoleLogs`.** Pratik hile:
+doğrulama komutunda YENİ eklenen sembole dokun (`MenuSprites.Sparkle != null`
+gibi) — derleme bayatsa komut sessizce geçmek yerine patlar.
+
+### APK'DE GÖRÜLMESİ GEREKENLER (bu ekten)
+
+- Kapı ağzı ışığının ZAMANLAMASI (şeridin kendisi karede doğrulandı).
+- Buz çatlamasının şiddeti (sayılar doğrulandı, hareket değil).
+- Roket uçuşu ve UFO inişi (sprite'lar karede doğrulandı, hareket değil).
+- "CAN YOK" düzeltmesi: reklam izlenip düğmenin geri döndüğü görülmeli.
+
+---
+
 ## 2026-08-19 — 7. TUR KAPANDI (26/26)
 
 **Tek doğruluk kaynağı: `docs/APK-BULGULARI-5.md`.** Kullanıcının 26 maddesi
