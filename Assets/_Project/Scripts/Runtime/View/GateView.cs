@@ -247,66 +247,42 @@ namespace BlockOut.Runtime.View
             // dönük ve örtülmesi gerekiyor), diğer üç kenarda GEREKSİZ:
             // o yüzler kameradan kaçık ya da profilden, örtülecek bir şey
             // yok. Geriye yalnız bloğun kendi kenar payı kalıyor.
-            // YAN KAPILARDA PAY = ÇERÇEVENİN PAHI (10. tur).
+            // PAY DÖRT KENARDA DA ÇERÇEVENİN PAHI (10. tur, son).
             //
-            // Kullanıcı: "yan kapılar hâlâ yan duvara sıfır hizalı değil."
+            // Kullanıcı iki şey söyledi ve ikisi aynı yere çıktı:
+            //   • "alttaki kapının arkasında çok ufak bir boşluk var"
+            //   • "üst kapının alt tarafı bloğun üstünde kalmış, bunu
+            //      istemiyoruz"
             //
-            // ÖLÇÜM (dünya koordinatı, level_003): kapı x 2,468…3,02,
-            // çerçevenin dış kenarı 3,02 — DIŞ hiza zaten tam. Sızan mor
-            // İÇ tarafta: `BoardFrameMeshBuilder` üst halkayı pah kadar
-            // kaydırdığı için çerçevenin ÜST YÜZÜ 2,5 − 0,09 = **2,41**'de
-            // başlıyor, kapı ise 2,468'de. Aradaki 0,058 hücre (≈4,5 piksel)
-            // çerçevenin açıkta kalan üst yüzü.
+            // `BoardFrameMeshBuilder` üst halkayı pah kadar kaydırıyor, yani
+            // çerçevenin ÜST YÜZÜ oyun alanına 0,09 hücre giriyor. Kapının iç
+            // kenarı tam oraya oturmalı: daha az olursa çerçevenin üst yüzü
+            // açıkta kalıyor (alttaki boşluk), daha çok olursa kapı blokların
+            // üstüne taşıyor (üstteki sorun).
             //
-            // Doğru pay bu yüzden bloğun kenar payı değil ÇERÇEVENİN PAHI:
-            // kapının iç kenarı, çerçevenin üst yüzünün başladığı yere
-            // oturuyor.
+            // KUZEYDEKİ FAZLADAN PAY KALDIRILDI. Bir tur önce oraya duvarın
+            // iç yüzünü örtsün diye `frameHeight × skew` eklenmişti ve duvar
+            // gerçekten kapanmıştı — ama o iç yüz, ekranda üst sıradaki
+            // bloğun çıtçıtlarının düştüğü bölgenin TA KENDİSİ. Aynı pikselleri
+            // hem duvarla hem blokla paylaşmak mümkün değil; biri örtülünce
+            // öteki örtülüyor.
             //
-            // Güney kenarda pay BlockInset kalıyor — orası ölçümle
-            // doğrulanmıştı (kapı 904…948, çerçeve bandı 905…949) ve pahı
-            // eklemek onu tekrar oyun alanına taşırırdı.
+            // Yükseklikle ayırmak da mümkün değil: çerçeve 0,80, bloğun
+            // gövdesi de 0,80. Aralarında kapıyı sokacak bir kat yok.
             //
-            // DERS (payın kaynağını sor): 0,032 de 0,09 da "küçük bir sayı"
-            // ama biri bloğun, öteki çerçevenin özelliği. Hangi iki yüzeyi
-            // buluşturduğunu bilmeden seçilen pay, bir kenarda tutup
-            // ötekinde tutmuyor.
-            if (model.Side == Side.North)
-                return visible + BlockInset + InnerFaceCover(model);
-            if (model.Side == Side.East || model.Side == Side.West)
-                return VisualSettings.Current != null
-                    ? VisualSettings.Current.frameBevel : visible;
-            return BlockInset;
+            // Referans da bu tarafı seçmiş: `f0001` karesinde üst kapının
+            // altında duvar bandı GÖRÜNÜYOR (21 piksel). Yani duvarın bir
+            // kısmının görünmesi kusur değil, tasarımın kendisi.
+            //
+            // DERS (iki istek aynı pikseli paylaşıyorsa biri seçilmek
+            // zorunda): "Duvarı kapla" ile "bloğun üstüne binme" bağımsız
+            // iki ayar gibi duruyordu; ekranda aynı şeridi işaret ettikleri
+            // anlaşılınca seçim kaçınılmaz oldu. Böyle bir çakışmayı erken
+            // görmek, iki turluk gidip gelmeyi baştan keserdi.
+            return VisualSettings.Current != null
+                ? VisualSettings.Current.frameBevel : visible;
         }
 
-        /// <summary>
-        /// KUZEY KENARDA DUVARIN İÇ YÜZÜ DE ÖRTÜLMELİ (10. tur).
-        ///
-        /// Kullanıcı: "yukarıdaki kapıda hala altındaki duvarı kaplamamış."
-        ///
-        /// PİKSEL KANITI (kendi yakalamamız, hücre 77px): üst kapının alt
-        /// kenarı y=369, oyun alanı y=380 — arada **11 piksel** duvar
-        /// görünüyor. Alt kapıda aynı ölçüm **0 piksel** veriyor. 11/77 =
-        /// 0,143 hücre ve bu tam olarak `frameHeight × skew` (0,8 × 0,1763 =
-        /// 0,141).
-        ///
-        /// Sebebi geometrik: kamera güneyden bakıyor.
-        ///   • KUZEY duvarın iç yüzü GÜNEYE bakıyor → kameraya dönük,
-        ///     görünüyor → kapı onu örtmeli.
-        ///   • GÜNEY duvarın iç yüzü KUZEYE bakıyor → kameradan kaçık,
-        ///     hiç görünmüyor → örtülecek bir şey yok.
-        ///   • DOĞU/BATI duvarların iç yüzü kameraya profilden → görünmüyor.
-        ///
-        /// DERS (kenara göre değişen düzeltmeyi ÖLÇÜM haklı çıkarmalı):
-        /// Bu dosyanın notu böyle paylardan haklı olarak şüpheleniyor —
-        /// önceki turlarda aynı fiziksel olayı iki farklı işaretle taklit
-        /// etmeye çalışan paylar konmuştu. Buradaki fark uydurma değil:
-        /// üst kenarda 11 piksel duvar görünüyor, alt kenarda sıfır. Ayrımın
-        /// ölçülebilir bir karşılığı varsa, koda da girmeli.
-        /// </summary>
-        static float InnerFaceCover(GateModel model) =>
-            model.Side == Side.North && VisualSettings.Current != null
-                ? VisualSettings.Current.frameHeight * CameraSkew
-                : 0f;
 
         /// <summary>
         /// Kameranın dikeyden sapması: `tan(90° − 80°)`. Yerden `h` yükseklikteki
