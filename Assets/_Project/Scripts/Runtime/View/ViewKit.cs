@@ -643,10 +643,35 @@ namespace BlockOut.Runtime.View
             return _floor;
         }
 
+        /// <summary>
+        /// Zemin dokusu ÜST ÜSTE İKİ HÜCRE taşıyor: altta A tonu, üstte B.
+        /// Hangi hücrenin hangisini kullanacağını mesh'in UV'si seçiyor
+        /// (bkz. <c>BoardBuilder.BuildFloorMesh</c>).
+        /// </summary>
+        public const int FloorTileSize = 128;
+
         static Texture2D BuildFloorTexture(BlockOut.Runtime.Config.BlockVisualConfigSO cfg)
         {
-            const int size = 128;
+            // ZEMİN İKİ TONLU (10. tur).
+            //
+            // Kullanıcı: "orjinal oyunda zemin 2 renk tonunda gibi, birbirine
+            // çok benzer koyu morlar."
+            //
+            // ÖLÇÜM (referans karesi, 35 hücrenin hepsi tek tek örneklendi):
+            // kusursuz bir DAMA deseni, tam iki renk —
+            //   A (37,33,96)  ve  B (29,28,83)
+            // Bizim yapılandırmamızda `floorColorA` ve `floorColorB` zaten
+            // bu iki renge çok yakın duruyordu; doku ise yalnız A'yı
+            // kullanıyordu, yani ikinci renk yıllardır tanımlıydı ama hiç
+            // çizilmiyordu.
+            //
+            // DERS (kullanılmayan bir ayar, yok olan bir ayardan kötüdür):
+            // `floorColorB` ayar panelinde duruyor, kaydediliyor, elle
+            // değiştirilebiliyordu — ve hiçbir etkisi yoktu. Bir alanın
+            // varlığı onun okunduğunun kanıtı değil.
+            const int size = FloorTileSize;
             Color cell = cfg != null ? cfg.floorColorA : new Color(0.17f, 0.15f, 0.31f);
+            Color cellB = cfg != null ? cfg.floorColorB : new Color(0.19f, 0.17f, 0.35f);
             // Çizgi/nokta renkleri hücre renginden TÜRETİLİR: zemin rengini
             // değiştirdiğinde kontrast kendiliğinden korunur.
             float lineDarken = cfg != null ? cfg.floorLineDarken : 0.6f;
@@ -656,7 +681,8 @@ namespace BlockOut.Runtime.View
             float lineWidth = cfg != null ? cfg.floorLineWidth : 0.045f;
             float dotSize = cfg != null ? cfg.floorDotSize : 0.09f;
 
-            _floorTexture = new Texture2D(size, size, TextureFormat.RGBA32, true)
+            // İki hücre alt alta: 0..size-1 = A tonu, size..2*size-1 = B tonu.
+            _floorTexture = new Texture2D(size, size * 2, TextureFormat.RGBA32, true)
             {
                 hideFlags = HideFlags.HideAndDontSave,
                 wrapMode = TextureWrapMode.Repeat,
@@ -664,13 +690,25 @@ namespace BlockOut.Runtime.View
                 anisoLevel = 4
             };
 
-            var pixels = new Color32[size * size];
-            for (int y = 0; y < size; y++)
+            var pixels = new Color32[size * size * 2];
+            for (int y = 0; y < size * 2; y++)
             {
+                // Üst yarı ikinci tonu taşıyor; çizgi ve nokta renkleri
+                // yine o tondan türetiliyor ki kontrast iki karede de aynı
+                // kalsın.
+                bool second = y >= size;
+                Color baseCell = second ? cellB : cell;
+                Color lineC = second
+                    ? new Color(cellB.r * lineDarken, cellB.g * lineDarken, cellB.b * lineDarken, 1f)
+                    : line;
+                Color dotC = second
+                    ? new Color(cellB.r * dotDarken, cellB.g * dotDarken, cellB.b * dotDarken, 1f)
+                    : dot;
+
                 for (int x = 0; x < size; x++)
                 {
                     float u = (x + 0.5f) / size;
-                    float v = (y + 0.5f) / size;
+                    float v = ((second ? y - size : y) + 0.5f) / size;
 
                     // Kenara olan mesafe: hücre sınırında çizgi.
                     float edge = Mathf.Min(Mathf.Min(u, 1f - u), Mathf.Min(v, 1f - v));
@@ -680,16 +718,16 @@ namespace BlockOut.Runtime.View
                     // karanlık renklerde yetersiz kalıyordu).
                     float centerLift = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(edge / 0.35f));
                     Color cellShade = Color.Lerp(
-                        new Color(cell.r * 0.86f, cell.g * 0.86f, cell.b * 0.86f, 1f),
-                        new Color(cell.r * 1.10f, cell.g * 1.10f, cell.b * 1.10f, 1f),
+                        new Color(baseCell.r * 0.86f, baseCell.g * 0.86f, baseCell.b * 0.86f, 1f),
+                        new Color(baseCell.r * 1.10f, baseCell.g * 1.10f, baseCell.b * 1.10f, 1f),
                         centerLift);
 
-                    Color color = edge < lineWidth ? line : cellShade;
+                    Color color = edge < lineWidth ? lineC : cellShade;
 
                     // Köşelerdeki nokta (döşenince kesişimlerde birleşir).
                     float dx = Mathf.Min(u, 1f - u);
                     float dy = Mathf.Min(v, 1f - v);
-                    if (Mathf.Sqrt(dx * dx + dy * dy) < dotSize) color = dot;
+                    if (Mathf.Sqrt(dx * dx + dy * dy) < dotSize) color = dotC;
 
                     pixels[y * size + x] = color;
                 }

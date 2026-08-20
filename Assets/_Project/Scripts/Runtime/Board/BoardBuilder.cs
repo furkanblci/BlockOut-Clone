@@ -528,8 +528,20 @@ namespace BlockOut.Runtime.Board
                     verts.Add(space.CornerToWorld(x + 1, y + 1));
                     verts.Add(space.CornerToWorld(x, y + 1));
 
-                    uvs.Add(new Vector2(0f, 1f)); uvs.Add(new Vector2(1f, 1f));
-                    uvs.Add(new Vector2(1f, 0f)); uvs.Add(new Vector2(0f, 0f));
+                    // DAMA DESENİ UV İLE SEÇİLİYOR (10. tur).
+                    //
+                    // Zemin dokusu üst üste iki hücre taşıyor: alt yarı A
+                    // tonu, üst yarı B (bkz. ViewKit.BuildFloorTexture).
+                    // Hücrenin paritesi hangi yarıyı okuyacağını belirliyor.
+                    //
+                    // Neden ikinci bir materyal ya da köşe rengi değil:
+                    // ikisi de ya fazladan çizim çağrısı ya da köşe rengini
+                    // okuyan özel bir shader isterdi. Doku iki katına çıkıp
+                    // UV'nin kaydırılması ikisini de gerektirmiyor.
+                    float v0 = ((x + y) & 1) == 0 ? 0f : 0.5f;
+                    float v1 = v0 + 0.5f;
+                    uvs.Add(new Vector2(0f, v1)); uvs.Add(new Vector2(1f, v1));
+                    uvs.Add(new Vector2(1f, v0)); uvs.Add(new Vector2(0f, v0));
                     for (int n = 0; n < 4; n++) normals.Add(Vector3.up);
 
                     // HATA (level editörünün 3D önizlemesi ortaya çıkardı):

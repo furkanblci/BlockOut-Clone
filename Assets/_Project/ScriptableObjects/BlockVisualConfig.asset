@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: BlockOut.Runtime::BlockOut.Runtime.Config.BlockVisualConfigSO
   brickHeight: 0.8
   brickInset: 0.032
+  brickChamfer: 0.13
   brickCornerRadius: 0.16
   outlineWidth: 0.038
-  brickChamfer: 0.13
   studsPerCell: 2
   studRadius: 0.18
   studHeight: 0.25
   studBevel: 0.06
   studSegments: 20
-  toneBodyBottom: 0.30
+  toneBodyBottom: 0.3
   toneBodySide: 0.62
   toneFaceTop: 0.8
   toneStudFoot: 0.7
@@ -33,23 +33,33 @@ MonoBehaviour:
   gloss: 64
   rim: 0
   saturation: 2
+  dragLift: 0.02
+  dragScale: 1.05
   contactShadow: 1
   shadowOpacity: 0.5
-  shadowScale: 1.0
+  shadowScale: 1
   shadowOffset: {x: 0.05, y: -0.06}
-  floorColorA: {r: 0.11764707, g: 0.11764707, b: 0.32941177, a: 1}
-  floorColorB: {r: 0.14901961, g: 0.13333334, b: 0.3803922, a: 1}
+  floorColorA: {r: 0.13191488, g: 0.11764707, b: 0.34225534, a: 1}
+  floorColorB: {r: 0.10338521, g: 0.09983923, b: 0.29590997, a: 1}
   wallColor: {r: 0.15294118, g: 0.12941177, b: 0.41960788, a: 1}
+  floorLineDarken: 1
+  floorDotDarken: 0.731
+  floorLineWidth: 0
+  floorDotSize: 0.066
+  backgroundInner: {r: 0.16, g: 0.12, b: 0.32, a: 1}
+  backgroundOuter: {r: 0.08, g: 0.06, b: 0.18, a: 1}
   frameColor: {r: 0.25882354, g: 0.22352943, b: 0.6431373, a: 1}
-  frameCornerRadius: 0.32
-  frameBevel: 0.09
   frameThickness: 0.52
   frameHeight: 0.8
+  frameCornerRadius: 0.32
+  frameBevel: 0.09
+  wallMatchesFrame: 1
   wallHeight: 0.5
   wallThickness: 0.05
+  gateMatchesWall: 1
   gateBarHeight: 0.8
-  gateBarDepth: 0.524
-  gateOutwardOffset: 0.252
+  gateBarDepth: 0.504
+  gateOutwardOffset: 0.154
   arrowSize: 0.218
-  arrowRise: 0.10
+  arrowRise: 0.162
   arrowCornerRadius: 0.5
