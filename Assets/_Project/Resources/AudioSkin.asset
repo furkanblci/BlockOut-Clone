@@ -12,4 +12,68 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 81590930f2ea31143bcb75166b974444, type: 3}
   m_Name: AudioSkin
   m_EditorClassIdentifier: BlockOut.Runtime::BlockOut.Runtime.Services.AudioSkin
-  entries: []
+  entries:
+  - name: absorb
+    clip: {fileID: 8300000, guid: aaa65e4bc3c9f7448ae6e1b7204ec9ef, type: 3}
+  - name: block_spawn
+    clip: {fileID: 8300000, guid: 266c77edd84612949b5938b9669e8b24, type: 3}
+  - name: click
+    clip: {fileID: 8300000, guid: afefa5e9dfd08ab4f8cf597f60539a60, type: 3}
+  - name: coin
+    clip: {fileID: 8300000, guid: da80e8c6b48879a469e2c178cb18c75c, type: 3}
+  - name: combo_1
+    clip: {fileID: 8300000, guid: 84a20021459a7b243bf5bf46072f1166, type: 3}
+  - name: combo_2
+    clip: {fileID: 8300000, guid: c8f4e12eecd4fa949869fc0cbf89e4f7, type: 3}
+  - name: combo_3
+    clip: {fileID: 8300000, guid: e2ebf4c99826f654e9887933583d4fba, type: 3}
+  - name: combo_4
+    clip: {fileID: 8300000, guid: a2653be8c7bc5074080df92591c43ced, type: 3}
+  - name: combo_5
+    clip: {fileID: 8300000, guid: 5f2c3cf69274a7043ae7aeee16a118e9, type: 3}
+  - name: curtain_open
+    clip: {fileID: 8300000, guid: 04402cbaf0ed5c546a6a9ddb955a4a70, type: 3}
+  - name: curtain_tick
+    clip: {fileID: 8300000, guid: ee8f2be474329994c9466c09d9501d02, type: 3}
+  - name: drop
+    clip: {fileID: 8300000, guid: 70c575dbc79e4ce43a3e72c247b81871, type: 3}
+  - name: gameplay
+    clip: {fileID: 8300000, guid: 9c4d78e7df9b0764b87b95f3baae6810, type: 3}
+  - name: gate_advance
+    clip: {fileID: 8300000, guid: 4cca057e071f2f84a8d5717d56a2d8e8, type: 3}
+  - name: gate_done
+    clip: {fileID: 8300000, guid: 87db13c276b757b45a584bd8509e0f13, type: 3}
+  - name: ice_crack
+    clip: {fileID: 8300000, guid: da9fe9cddbc3b4541be7a00869b76138, type: 3}
+  - name: ice_tick
+    clip: {fileID: 8300000, guid: ee680099be375ec4d9d60368acc20160, type: 3}
+  - name: lose
+    clip: {fileID: 8300000, guid: 0321eb0c3134a5d4594acfc84ffbefcb, type: 3}
+  - name: panel_close
+    clip: {fileID: 8300000, guid: 3a3a3b7d5c5c4d54d9c0b9713fec61e7, type: 3}
+  - name: panel_open
+    clip: {fileID: 8300000, guid: cb6e6e38e4b5a504d938f77ee0ca97c2, type: 3}
+  - name: peel
+    clip: {fileID: 8300000, guid: 6e666d6e6763de44fb32ada3c3edaab0, type: 3}
+  - name: pick_up
+    clip: {fileID: 8300000, guid: 107d0cec4719421428013d9927d9df75, type: 3}
+  - name: power_clock
+    clip: {fileID: 8300000, guid: 605708be215d4a9469622b99ea55b9a9, type: 3}
+  - name: power_rocket
+    clip: {fileID: 8300000, guid: cca5ef173e6d0c14d992e3626a45f379, type: 3}
+  - name: power_ufo
+    clip: {fileID: 8300000, guid: 61b151aef0554034fab5ce97374c0988, type: 3}
+  - name: purchase
+    clip: {fileID: 8300000, guid: efac34d3806368146b0e92f115d33126, type: 3}
+  - name: refuse
+    clip: {fileID: 8300000, guid: 79983591864c28f49b5ce9ad71df95c5, type: 3}
+  - name: reward_claim
+    clip: {fileID: 8300000, guid: 18f0a5f9d592f234cb5d9a249e5bd2c9, type: 3}
+  - name: star
+    clip: {fileID: 8300000, guid: 75ed91cadd5cbd54897a3aaad193661b, type: 3}
+  - name: timer_warning
+    clip: {fileID: 8300000, guid: 7d2c9216c3636cb4282dc6d95681274f, type: 3}
+  - name: unlock
+    clip: {fileID: 8300000, guid: 5f5e8edf00235ae4f918008f67f63d94, type: 3}
+  - name: win
+    clip: {fileID: 8300000, guid: 4e7e349faa19b054fbe09d5929b06ff1, type: 3}

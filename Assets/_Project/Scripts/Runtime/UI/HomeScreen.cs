@@ -219,8 +219,32 @@ namespace BlockOut.Runtime.UI
                 return panel;
             }
 
-            var coinTrack = ResourceBar("Track_Coin", 0.296f, 0.511f);
-            var livesTrack = ResourceBar("Track_Lives", 0.616f, 0.825f);
+            // ÇUBUK İKONUN ALTINDAN BAŞLAR, YANINDAN DEĞİL.
+            //
+            // Kullanıcı: "o transparan arka planının başlangıç noktasını
+            // biraz daha kalbe yaklaştır, sola doğru; kalbin üstünde gibi
+            // olsun. Aynı şekilde coin için de — kalp ile koyu arka plan
+            // arasında boşluk olmasın."
+            //
+            // BULUNAN SEBEP — SİLUET İLE KUTU AYNI ŞEY DEĞİL. Çubuklar
+            // ikonların KUTUSUNUN içinden başlıyordu (kalp 0.529-0.628,
+            // çubuk 0.616) — kâğıt üzerinde 13 birimlik bir binişme var.
+            // Ama kalp dikdörtgen değil: en geniş yeri ÜST kısmı, ortada ise
+            // iki yana doğru daralıyor. Çubuk dikeyde ortada durduğu için
+            // tam da kalbin daraldığı hizaya denk geliyor ve orada siluet
+            // 0.616'ya çoktan varmamış oluyor — arada zemin görünüyor.
+            //
+            // DERS (bir ikonun kutusu, kaplayacağı alanı söylemez):
+            // `preserveAspect` görseli kutuya sığdırır ama şeklin NEREDE
+            // olduğu şeklin kendisine bağlıdır. İki öğeyi birleştirirken
+            // kutuların değil, o hizadaki SİLUETLERİN değmesi gerekiyor.
+            // Güvenli kural: çubuk ikonun ORTASINDAN başlasın — siluet o
+            // noktada her zaman dolu.
+            //
+            // Kalbin ortası (0.529+0.628)/2 = 0.579, jetonunki 0.264.
+            // Çubuklar ikonlardan ÖNCE kuruluyor, yani ikon üstünü örtüyor.
+            var coinTrack = ResourceBar("Track_Coin", 0.262f, 0.511f);
+            var livesTrack = ResourceBar("Track_Lives", 0.574f, 0.825f);
 
             // TÜM SAYAÇ DOKUNULABİLİR, yalnız artı değil.
             //

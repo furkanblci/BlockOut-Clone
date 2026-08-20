@@ -22,12 +22,31 @@ namespace BlockOut.Runtime.Flow
         public static void GoHome()
         {
             if (AppRoot.Current == null) { Missing(); return; }
+            Services.AudioService.PlayMusic(Services.Sfx.MusicMenu);
             AppRoot.Current.ShowMenu();
         }
 
         public static void PlayLevel(int levelIndex)
         {
             if (AppRoot.Current == null) { Missing(); return; }
+            // MÜZİĞİ KİMSE BAŞLATMIYORDU.
+            //
+            // BULUNAN HATA (ses dosyaları geldiğinde ortaya çıktı):
+            // `AudioService.PlayMusic` yazılmış, ayarlara bağlanmış ve
+            // duraklat panelindeki "Musics" anahtarına takılmıştı — ama
+            // projede onu ÇAĞIRAN tek bir satır yoktu. Dosya konsa bile
+            // müzik hiç çalmayacaktı; anahtar da hiçbir şeyi açıp
+            // kapatmayacaktı.
+            //
+            // DERS (bir sistemin "hazır" olması, BAĞLI olması demek değil):
+            // Oynatıcı, ayar, kütüphane ve içe aktarıcı hepsi doğruydu;
+            // eksik olan tek şey zincirin ilk halkasıydı. Sessizliğin sebebi
+            // "dosya yok" sanıldığı için de aranmamıştı.
+            //
+            // Menü ve oynanış aynı parçayı paylaşıyorsa `PlayMusicInternal`
+            // erken çıkıyor — yani geçişte müzik baştan başlamıyor, akmaya
+            // devam ediyor.
+            Services.AudioService.PlayMusic(Services.Sfx.MusicGameplay);
             LastPlayedLevelIndex = Mathf.Max(0, levelIndex);
             AppRoot.Current.PlayLevel(LastPlayedLevelIndex);
         }

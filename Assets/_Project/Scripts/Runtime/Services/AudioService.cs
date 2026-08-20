@@ -149,26 +149,57 @@ namespace BlockOut.Runtime.Services
         {
             if (events == null) return;
 
-            events.BlockAbsorbed    += (b, g) => _player.Play(Clip(Sfx.Absorb), 0.55f);
-            events.LayerPeeled      += (b, g) => _player.Play(Clip(Sfx.Peel), 0.45f);
-            events.IceShattered     += b => _player.Play(Clip(Sfx.IceCrack), 0.5f);
-            events.GateIceShattered += g => _player.Play(Clip(Sfx.IceCrack), 0.5f);
-            events.CurtainOpened    += c => _player.Play(Clip(Sfx.CurtainOpen), 0.6f);
+            events.BlockAbsorbed    += (b, g) => _player.Play(Clip(Sfx.Absorb), 0.45f);
+            events.LayerPeeled      += (b, g) => _player.Play(Clip(Sfx.Peel), 0.38f);
+            events.IceShattered     += b => _player.Play(Clip(Sfx.IceCrack), 0.55f);
+            events.GateIceShattered += g => _player.Play(Clip(Sfx.IceCrack), 0.55f);
+            events.CurtainOpened    += c => _player.Play(Clip(Sfx.CurtainOpen), 0.55f);
             events.BoardCleared     += () => _player.Play(Clip(Sfx.Win), 0.7f);
 
             // Buraya kadarı zaten vardı. Aşağısı SESSİZDİ — olay yayınlanıyordu
             // ama kimse dinlemiyordu. Referans oyunda hepsinin sesi var; sayaç
             // tıklamaları özellikle önemli, çünkü oyuncu "ilerliyor muyum"
             // sorusunu onlarla cevaplıyor.
-            events.IceDecremented     += b => _player.Play(Clip(Sfx.IceTick), 0.40f);
-            events.GateIceDecremented += g => _player.Play(Clip(Sfx.IceTick), 0.40f);
-            events.CurtainDecremented += c => _player.Play(Clip(Sfx.CurtainTick), 0.40f);
-            events.GateAdvanced       += g => _player.Play(Clip(Sfx.GateAdvance), 0.45f);
-            events.GateGhosted        += g => _player.Play(Clip(Sfx.GateDone), 0.50f);
-            events.BlockSpawned       += b => _player.Play(Clip(Sfx.BlockSpawn), 0.45f);
+            // BU DÖRT OLAY TEK HAMLEDE BİRDEN ÇOK KEZ YAYINLANIYOR.
+            //
+            // Her emilimde tahtadaki BÜTÜN buzlu blokların sayacı bir azalıyor
+            // — beş buzlu blok varsa `IceDecremented` aynı karede beş kez
+            // yayınlanıyor. Beş özdeş klip aynı anda çalınca genlik beş katına
+            // çıkıyor: hem kırpma hem "çatırtı bombası". Aynı şey perde
+            // sayaçları ve aynı anda ghost olan kapılar için de geçerli.
+            //
+            // DERS (olay sayısı = ses sayısı DEĞİLDİR): Sentezlenmiş cılız
+            // bliplerle bu fark edilmiyordu; gerçek, tepe seviyeli kliplerle
+            // ilk denemede duyulur hâle geliyor. Bir olaya ses bağlarken
+            // "kaç kere yayınlanıyor" sorusu, "hangi ses" sorusu kadar önemli.
+            events.IceDecremented     += b => PlayOnce(Sfx.IceTick, 0.30f);
+            events.GateIceDecremented += g => PlayOnce(Sfx.IceTick, 0.30f);
+            events.CurtainDecremented += c => PlayOnce(Sfx.CurtainTick, 0.30f);
+            events.GateAdvanced       += g => PlayOnce(Sfx.GateAdvance, 0.35f);
+            events.GateGhosted        += g => PlayOnce(Sfx.GateDone, 0.45f);
+            events.BlockSpawned       += b => PlayOnce(Sfx.BlockSpawn, 0.35f);
         }
 
-        public void PlayLose() => _player.Play(Clip(Sfx.Lose), 0.6f);
+        /// <summary>Aynı sesin üst üste yığılmasını engelleyen son çalma anları.</summary>
+        readonly Dictionary<string, float> _lastPlayed = new Dictionary<string, float>();
+
+        /// <summary>
+        /// Aynı anahtarı 60 ms içinde bir kereden fazla çalmaz.
+        ///
+        /// 60 ms neden: 60 fps'te dört kare. Aynı hamlenin ürettiği olaylar
+        /// hep aynı karede geliyor, yani hepsi tek sese iniyor; oyuncunun
+        /// ARDIŞIK iki hamlesi ise en hızlı hâlinde bile 150 ms'den seyrek,
+        /// yani hiçbir gerçek hamle sessiz kalmıyor.
+        /// </summary>
+        void PlayOnce(string key, float volume)
+        {
+            float now = Time.unscaledTime;
+            if (_lastPlayed.TryGetValue(key, out float last) && now - last < 0.06f) return;
+            _lastPlayed[key] = now;
+            _player.Play(Clip(key), volume);
+        }
+
+        public void PlayLose() => _player.Play(Clip(Sfx.Lose), 0.55f);
 
         // ---------------------------------------------------------------- statik erişim
 
@@ -177,21 +208,21 @@ namespace BlockOut.Runtime.Services
         static void PlayStatic(string key, float volume)
             => _instance?._player.Play(_instance.Clip(key), volume);
 
-        public static void Click()       => PlayStatic(Sfx.Click, 0.35f);
-        public static void Coin()        => PlayStatic(Sfx.Coin, 0.55f);
-        public static void Refuse()      => PlayStatic(Sfx.Refuse, 0.45f);
-        public static void Star()        => PlayStatic(Sfx.Star, 0.60f);
+        public static void Click()       => PlayStatic(Sfx.Click, 0.26f);
+        public static void Coin()        => PlayStatic(Sfx.Coin, 0.50f);
+        public static void Refuse()      => PlayStatic(Sfx.Refuse, 0.38f);
+        public static void Star()        => PlayStatic(Sfx.Star, 0.45f);
         public static void PickUp()      => PlayStatic(Sfx.PickUp, 0.30f);
-        public static void Drop()        => PlayStatic(Sfx.Drop, 0.40f);
-        public static void PanelOpen()   => PlayStatic(Sfx.PanelOpen, 0.40f);
-        public static void PanelClose()  => PlayStatic(Sfx.PanelClose, 0.35f);
+        public static void Drop()        => PlayStatic(Sfx.Drop, 0.34f);
+        public static void PanelOpen()   => PlayStatic(Sfx.PanelOpen, 0.34f);
+        public static void PanelClose()  => PlayStatic(Sfx.PanelClose, 0.30f);
         public static void Purchase()    => PlayStatic(Sfx.Purchase, 0.65f);
         public static void RewardClaim() => PlayStatic(Sfx.RewardClaim, 0.60f);
         public static void Unlock()      => PlayStatic(Sfx.Unlock, 0.65f);
-        public static void TimerWarning()=> PlayStatic(Sfx.TimerWarning, 0.35f);
+        public static void TimerWarning()=> PlayStatic(Sfx.TimerWarning, 0.28f);
 
         /// <summary>Zincir uzadıkça tizleşen kutlama.</summary>
-        public static void Combo(int chain) => PlayStatic(Sfx.Combo(chain), 0.55f);
+        public static void Combo(int chain) => PlayStatic(Sfx.Combo(chain), 0.50f);
 
         public static void PowerUp(PowerUpKind kind)
         {
@@ -220,6 +251,16 @@ namespace BlockOut.Runtime.Services
         void PlayMusicInternal(string key)
         {
             var clip = AudioSkin.Get(key);
+
+            // MENÜ PARÇASI YOKSA OYNANIŞ PARÇASINA DÜŞ.
+            //
+            // Elimizde tek bir arka plan parçası var. Aynı dosyayı iki ayrı
+            // anahtarla iki kez koymak, derlemeye bir megabaytı boşuna
+            // eklerdi. Menü ile oynanış arasında geçerken parça DEĞİŞMEDİĞİ
+            // için aşağıdaki "zaten çalıyor" kontrolü devreye giriyor ve
+            // müzik kesintisiz akıyor — istenen davranış da bu.
+            if (clip == null && key != Sfx.MusicGameplay)
+                clip = AudioSkin.Get(Sfx.MusicGameplay);
 
             // Müzik SENTEZLENMİYOR: kötü bir döngü, sessizlikten daha rahatsız
             // edici. Dosya yoksa müzik yok.
