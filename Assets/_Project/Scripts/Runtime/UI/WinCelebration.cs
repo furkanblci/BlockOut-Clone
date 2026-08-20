@@ -28,8 +28,21 @@ namespace BlockOut.Runtime.UI
     /// </summary>
     public sealed class WinCelebration : MonoBehaviour
     {
-        const float FadeIn = 0.22f;
-        const float Show = 2.20f;
+        // ÖLÇÜM (Levels 1-20, 59,47 fps): tahta kararması 10 kare = 0,17 sn.
+        const float FadeIn = 0.17f;
+
+        // Logonun kurulması artık 1,24 saniye sürüyor (harf harf). Referansın
+        // toplam kutlaması 3,53 saniye; buradaki 1,6 ile toplam 3,3 ediyor —
+        // yani hâlâ referanstan kısa, üstelik dokunuşla kesiliyor.
+        // SÜRE REFERANSIN DİZİLİMİNE GÖRE.
+        //
+        // Son patlama ilk harften 2,741 saniye sonra; efektler `ShowStarts`
+        // (0,94) anında başladığına göre çizelgenin tamamı 1,80 saniye
+        // sürüyor. Buna patlamanın açılması için 0,4 eklenince 2,2 çıkıyor.
+        // Referansın toplam kutlaması 3,53 sn, bizimki 0,17 + 0,94 + 2,2 +
+        // 0,3 = 3,61 — yani artık neredeyse aynı. (Daha önce 1,6 idi ve
+        // son üç patlama hiç görünmeden ekran kararıyordu.)
+        const float Show = 2.50f;
         const float FadeOut = 0.30f;
 
         Canvas _canvas;
@@ -38,6 +51,8 @@ namespace BlockOut.Runtime.UI
         Image _curtain;
         TextMeshProUGUI _logoTop, _logoBottom;
         Image _logoImage;
+        CanvasGroup _logoGroup;
+        FX.CelebrationStage _stage;
         Coroutine _running;
         bool _skip;
 
@@ -92,32 +107,34 @@ namespace BlockOut.Runtime.UI
             _logo = UiKit.CreateRect("Logo", _root);
             UiKit.Place(_logo, 0.1525f, 0.366f, 0.8475f, 0.626f);   // %69,5 genişlik
 
-            // LOGO TEK PARÇA GELİYOR (6. tur).
+            // HARF HARF GELİŞ GERİ GELDİ — ÇÜNKÜ ARTIK VARLIK VAR (8. tur).
             //
-            // Kullanıcı: "BLOCKOUT yazısının gelişi çok kötü. Kelime kelime
-            // ayırıp animasyonunu yapabiliyorsan orijinaldeki gibi yap, veya
-            // direkt düz bir şekilde gelsin — o açılma muhabbeti olmasın,
-            // çünkü çok kötü gözüküyor."
+            // 5. ve 6. turda bu iki kez denendi, iki kez de "yapboz" göründü
+            // ve terk edildi. Sebebi doğru teşhis edilmişti: logo TEK bir PNG
+            // ve harfler ORTAK bir mor konturla birbirine bağlı. Bir dilimi
+            // küçültünce ekranda görünen şey harf değil, KÜÇÜLTÜLMÜŞ BİR
+            // DİKDÖRTGEN oluyordu — iki yanında dümdüz kesik kenarlar.
             //
-            // HARF HARF GELİŞ TERK EDİLDİ. Logo TEK bir PNG; harflere UV
-            // dikdörtgenleriyle bölünüyordu. Bir dilim küçültülünce ekranda
-            // görünen şey harf değil, KÜÇÜLTÜLMÜŞ BİR DİKDÖRTGEN oluyor:
-            // içinde harfin bir parçası, mor zeminin bir parçası ve iki
-            // yanında dümdüz kesik kenarlar. 5. turda kesik kenarı alfa ile
-            // gizlemeye çalıştım; kullanıcı yine "yapboz" dedi ve haklıydı —
-            // kesik kenar hâlâ oradaydı, yalnız daha soluk.
+            // O turlarda "harf başına ayrı görsel elimizde yok" denip
+            // vazgeçilmişti. Yanlış olan bu son adımdı: görsel elimizde
+            // YOKTU ama ÜRETİLEBİLİRDİ. `tools/slice_logo.py` harfleri
+            // renklerinden buluyor, kalan her pikseli en yakın harfe
+            // veriyor ve her parçaya kendi mor konturunu geri büyütüyor.
+            // Altı PNG çıkıyor; hepsi açıkken sonuç piksel piksel logonun
+            // kendisi (betik bunu sayarak doğruluyor).
             //
-            // DERS (ikinci kez aynı duvara çarpınca duvarı kabul et):
-            // Referanstaki animasyonun ön koşulu HARF BAŞINA AYRI GÖRSEL.
-            // O varlık elimizde yok; "elimizdekiyle yaklaşık yapayım"
-            // denemesi iki kez daha kötü bir sonuç verdi. Bu durumda doğru
-            // hamle, kötü bir taklit yerine SADE ama temiz bir çözüm: logo
-            // tek parça, hafif bir yaylanmayla oturuyor.
-            //
-            // Harf başına PNG'ler geldiği gün `BuildLetters` hazır duruyor —
-            // silinmedi, yalnız çağrılmıyor.
+            // DERS (eksik olan animasyon değil VARLIK ise, varlığı üret):
+            // Üç tur boyunca eğri, süre ve alfa ile oynandı; sorun hiçbirinde
+            // değildi. "Bu varlıkla yapılamaz" doğru bir teşhis, ama tek
+            // başına bir karar değil — sıradaki soru "o varlığı biz
+            // üretebilir miyiz?" olmalıydı.
             var art = UiSkin.Get(Art.GameLogo);
-            if (art != null)
+            if (BuildLetters())
+            {
+                _logoGroup = _logo.gameObject.AddComponent<CanvasGroup>();
+                _logoGroup.blocksRaycasts = false;
+            }
+            else if (art != null)
             {
                 _logoImage = UiKit.CreateIcon("Mark", _logo, art);
                 UiKit.Place(_logoImage, 0f, 0f, 1f, 1f);
@@ -136,181 +153,291 @@ namespace BlockOut.Runtime.UI
                 UiKit.Place(_logoBottom, 0f, 0f, 1f, 0.50f);
             }
 
+            // PARÇACIK SAHNESİ EN SON: kardeş sırası çizim sırası, yani
+            // konfeti ve fişekler LOGONUN ÖNÜNDEN geçiyor. Referansta da
+            // konfeti harflerin üstünden akıyor.
+            _stage = FX.CelebrationStage.Create(_root);
+            _stage.SetActive(false);
+
             _root.gameObject.SetActive(false);
         }
 
         readonly System.Collections.Generic.List<RectTransform> _letters =
             new System.Collections.Generic.List<RectTransform>();
 
-        /// <summary>
-        /// Logoyu HARF HARF gelebilecek dilimlere böler (4. tur, J37).
-        ///
-        /// Kullanıcı: "'BLOCKOUT' yazısı animasyonu — harf harf geliyor,
-        /// animasyonu incelenip birebir aynısı yapılacak."
-        ///
-        /// REFERANS ÇÖZÜMLENDİ (`Levels 1-20` yürüyüşü 28-34. saniyeler,
-        /// 15 fps'te 90 kare): ekran siyaha döndükten sonra logo TEK PARÇA
-        /// gelmiyor. Önce küçücük bir "B" beliriyor, sonra "BL", "BLO",
-        /// "BLOCK"… her harf soldan sağa ekleniyor ve grup büyüdükçe ölçek de
-        /// büyüyor. "BLOCK" tamamlanınca ikinci satır "OUT!" aynı biçimde
-        /// diziliyor. Ancak logo tamamlandıktan SONRA konfeti ve fişek
-        /// başlıyor — bizde ikisi aynı anda patlıyordu.
-        ///
-        /// DERS (bir görseli parçalamadan da harflere ayırabilirsin):
-        /// Logo tek bir PNG ve harfler ortak bir mor konturla birbirine
-        /// bağlı; makasla kesmek konturu bozardı. `RawImage.uvRect` görselin
-        /// bir DİLİMİNİ gösteriyor, dilimin arayüz dikdörtgeni de aynı orana
-        /// yerleştiriliyor: dilimlerin hepsi görününce sonuç piksel piksel
-        /// bütün logonun aynısı. Yani "kesme" işi çalışma anında, kayıpsız.
-        ///
-        /// ÖLÇÜM (`art_raw/logo_game.png`, 662×399; harf pikselleri mor
-        /// konturdan doygunlukla ayrıldı): iki satırın arası y=205'te
-        /// (profil orada 456'dan 39'a düşüyor). "BLOCK" x 14-645,
-        /// "OUT!" x 41-572.
-        /// </summary>
-        void BuildLetters(Sprite art)
+        /// <summary>Harflerin mor zeminleri — hepsi harflerin ALTINDA çizilir.</summary>
+        readonly System.Collections.Generic.List<RectTransform> _backs =
+            new System.Collections.Generic.List<RectTransform>();
+
+        /// <summary>Bir harf parçasının logo görseli içindeki yeri (0-1).</summary>
+        readonly struct LetterRect
         {
-            var texture = art.texture;
-            var region = art.textureRect;
-            float tw = texture.width, th = texture.height;
-
-            // Sprite atlasa girerse textureRect kayar; UV'yi ondan üretmek
-            // her iki durumda da doğru kalıyor.
-            float baseU = region.x / tw, baseV = region.y / th;
-            float spanU = region.width / tw, spanV = region.height / th;
-
-            // Satır ayrımı: görselin ALTTAN oranı. y=205/399 üstten,
-            // yani alttan 1 - 0.514 = 0.486.
-            const float LineSplit = 0.486f;
-
-            // Harf sınırları (görselin genişliğine oran). Eşit bölmek yerine
-            // ölçülen harf kutularına göre: "O" tuğla harfi geniş, "!" dar.
-            float[] blockCuts = { 0f, 0.185f, 0.320f, 0.520f, 0.700f, 1f };
-            float[] outCuts = { 0f, 0.235f, 0.435f, 0.640f, 1f };
-
-            AddRow(blockCuts, LineSplit, 1f);
-            AddRow(outCuts, 0f, LineSplit);
-
-            void AddRow(float[] cuts, float v0, float v1)
-            {
-                for (int i = 0; i + 1 < cuts.Length; i++)
-                {
-                    float u0 = cuts[i], u1 = cuts[i + 1];
-
-                    var slice = UiKit.CreateRect($"Letter_{_letters.Count}", _logo);
-                    slice.anchorMin = new Vector2(u0, v0);
-                    slice.anchorMax = new Vector2(u1, v1);
-                    slice.offsetMin = Vector2.zero;
-                    slice.offsetMax = Vector2.zero;
-
-                    var raw = slice.gameObject.AddComponent<RawImage>();
-                    raw.texture = texture;
-                    raw.raycastTarget = false;
-                    raw.uvRect = new Rect(
-                        baseU + u0 * spanU, baseV + v0 * spanV,
-                        (u1 - u0) * spanU, (v1 - v0) * spanV);
-
-                    // Sırası gelene kadar hem ölçeği hem alfası sıfır: alfa
-                    // olmasa dilim bir kare tam boyda parlardı.
-                    slice.localScale = Vector3.zero;
-                    raw.color = new Color(1f, 1f, 1f, 0f);
-                    _letters.Add(slice);
-                }
-            }
+            public readonly string Name;
+            public readonly float X0, Y0, X1, Y1;
+            public LetterRect(string name, float x0, float y0, float x1, float y1)
+            { Name = name; X0 = x0; Y0 = y0; X1 = x1; Y1 = y1; }
         }
 
         /// <summary>
-        /// Dilimleri soldan sağa, önce üst satır olmak üzere sırayla getirir.
+        /// Harf parçalarının yerleri — `tools/slice_logo.py` BASIYOR, elle
+        /// yazılmıyor. Kaynak görsel 662x399; sayılar oranlanmış hâlleri.
+        /// Görselin y ekseni üstten, arayüzünki alttan olduğu için betik
+        /// çeviriyi de kendi yapıyor.
+        /// </summary>
+        static readonly LetterRect[] LetterRects =
+        {
+            new LetterRect("logo_b",   0.0015f, 0.3784f, 0.2870f, 0.8697f),
+            new LetterRect("logo_l",   0.1571f, 0.4461f, 0.3837f, 0.8997f),
+            new LetterRect("logo_o",   0.2704f, 0.4486f, 0.6511f, 0.9975f),
+            new LetterRect("logo_c",   0.5317f, 0.4486f, 0.8353f, 0.9123f),
+            new LetterRect("logo_k",   0.7069f, 0.3960f, 0.9985f, 0.8872f),
+            new LetterRect("logo_out", 0.0619f, 0.0000f, 0.9502f, 0.5764f),
+        };
+
+        /// <summary>Kaynak logonun en-boy oranı (662/399).</summary>
+        const float LogoAspect = 662f / 399f;
+
+        /// <summary>
+        /// Logoyu HARF BAŞINA İKİ görselden kurar: önce bütün mor zeminler,
+        /// sonra bütün harfler. Parçalardan biri bile eksikse hiçbirini
+        /// kurmaz ve <c>false</c> döner — yarım bir logo, tek parça olandan
+        /// kötüdür.
         ///
-        /// Grup ölçeği de büyüyor: referansta logo küçük bir "B" olarak
-        /// başlayıp harfler eklendikçe irileşiyor. Yalnız dilimleri açmak
-        /// "harfler belirdi" der; ölçeğin büyümesi "logo KURULUYOR" der.
+        /// NEDEN İKİ KATMAN (kullanıcı: "çok kesik kesik, fazla alınmış
+        /// yerler, bazı yerler eksik alınmış"):
+        ///
+        /// İlk sürüm logoyu bir BÖLÜNTÜYE çeviriyordu — her piksel tek bir
+        /// harfe gidiyordu. Birleşik görüntü kusursuzdu ama harfler tek
+        /// başına bozuktu: bir harfin mor zemini komşusunun piksellerini
+        /// İÇEREMEZ, çünkü onlar komşuya ait. Sonuç, her zeminde komşusu
+        /// şeklinde bir ısırık ve mesafeye göre çizilmiş tırtıklı sınırlar.
+        ///
+        /// Referanstaki harflerin her birinin KENDİ kapalı zemini var ve
+        /// üst üste biniyorlar. Zeminler ayrı bir katmana alınınca ikisi
+        /// birden mümkün oluyor: zeminler serbestçe örtüşüyor (hepsi aynı
+        /// moru taşıdığı için fark etmiyor), harfler en üstte sırayla
+        /// çiziliyor ve birleşim aslından ayırt edilemiyor.
+        ///
+        /// DERS (bölüntü mü, katman mı?): "Parçalar birleşince aslını
+        /// versin" şartı tek başına yetmiyor. Parçanın TEK BAŞINA da doğru
+        /// görünmesi gerekiyorsa bölüntü yanlış araç; üst üste binmeye izin
+        /// vermek iki şartı aynı anda sağlıyor.
+        /// </summary>
+        bool BuildLetters()
+        {
+            var backArt = new Sprite[LetterRects.Length];
+            var letterArt = new Sprite[LetterRects.Length];
+            for (int i = 0; i < LetterRects.Length; i++)
+            {
+                backArt[i] = UiSkin.Get(LetterRects[i].Name + "_back");
+                letterArt[i] = UiSkin.Get(LetterRects[i].Name);
+                if (backArt[i] == null || letterArt[i] == null) return false;
+            }
+
+            // ÇERÇEVE, `preserveAspect`in YERİNİ TUTUYOR.
+            //
+            // Tek parça logo `preserveAspect = true` ile çiziliyordu: görsel
+            // dikdörtgene sığdırılıyor, artan yer boşluk kalıyordu. Harfleri
+            // doğrudan `_logo` içine oranlarıyla koysaydım hepsi dikdörtgene
+            // GERİLİRDİ ve logo yassılaşırdı.
+            //
+            // `AspectRatioFitter.FitInParent` tam olarak `preserveAspect`in
+            // hesabını yapıyor: bu çerçeve, `_logo` içinde 662/399 oranını
+            // koruyan en büyük dikdörtgen.
+            var frame = UiKit.CreateRect("Frame", _logo);
+            UiKit.Place(frame, 0f, 0f, 1f, 1f);
+            var fitter = frame.gameObject.AddComponent<AspectRatioFitter>();
+            fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+            fitter.aspectRatio = LogoAspect;
+
+            // İKİ KAP: kardeş sırası çizim sırası olduğu için bütün zeminler
+            // bütün harflerin ALTINDA kalıyor.
+            var backLayer = UiKit.CreateRect("Backs", frame);
+            UiKit.Place(backLayer, 0f, 0f, 1f, 1f);
+            var letterLayer = UiKit.CreateRect("Letters", frame);
+            UiKit.Place(letterLayer, 0f, 0f, 1f, 1f);
+
+            for (int i = 0; i < LetterRects.Length; i++)
+            {
+                var slot = LetterRects[i];
+
+                // Zemin ve harf AYNI dikdörtgeni paylaşıyor. Şart: ikisi
+                // farklı kaplarda olduğu için tek bir dönüşümle
+                // ölçeklenemiyorlar; aynı kutuya ve aynı pivota oturunca
+                // aynı çarpan ikisini de birebir aynı hareket ettiriyor.
+                var back = Piece(backLayer, "Back_" + slot.Name, backArt[i], slot);
+                var letter = Piece(letterLayer, "Letter_" + slot.Name, letterArt[i], slot);
+
+                _backs.Add(back);
+                _letters.Add(letter);
+            }
+            return true;
+
+            RectTransform Piece(RectTransform parent, string name, Sprite art, LetterRect slot)
+            {
+                var image = UiKit.CreateIcon(name, parent, art);
+                image.raycastTarget = false;
+                var rect = image.rectTransform;
+                UiKit.Place(rect, slot.X0, slot.Y0, slot.X1, slot.Y1);
+
+                // "OUT!" KENDİ ALT KENARINDAN BÜYÜYOR, ötekiler ortasından.
+                //
+                // ÖLÇÜM (Levels 1-20, iki ayrı kutlama, 59,47 fps): "OUT!"
+                // büyürken en yoğun altın satırı 696 → 590 → 648 pikselde
+                // geziniyor, yani şişerken YUKARI çıkıp geri iniyor. Ortadan
+                // ölçeklenen bir şey bunu yapmaz; dönme noktası kelimenin
+                // altında.
+                rect.pivot = slot.Name == "logo_out"
+                    ? new Vector2(0.5f, 0.20f)
+                    : new Vector2(0.5f, 0.5f);
+
+                rect.localScale = Vector3.zero;
+                return rect;
+            }
+        }
+
+        // ÖLÇÜM (`…Levels 1-20 Walkthrough.mp4`, 59,47 fps, İKİ ayrı kutlama
+        // — 05:16 ve 04:01 — bağımsız ölçülüp aynı çıktı):
+        //
+        //   harf       başlangıç   tepe ölçek   oturma
+        //   B          0,000 sn
+        //   L          0,105 sn    ~1,40        ~0,38 sn sonra
+        //   O (tuğla)  0,210 sn
+        //   C          0,315 sn
+        //   K          0,420 sn
+        //   OUT!       0,525 sn    1,65         0,72 sn sonra
+        //   konfeti    0,940 sn
+        //
+        // Harfler doygunluklarıyla sayıldı (B kırmızı, C yeşil, K camgöbeği);
+        // aralık her seferinde 6-7 kare, yani 0,10-0,12 saniye çıktı.
+        const float LetterStep = 0.105f;
+        const float LetterPop = 0.38f;
+        const float LetterOvershoot = 1.40f;
+
+        /// <summary>
+        /// "OUT!" tepe ölçeği. Referansta kelime son boyunun 1,42 katına
+        /// kadar şişip geri iniyor — o sırada "BLOCK" satırını tamamen
+        /// örtüyor. İki ayrı kutlamada aynı çıktı. Logonun kalan beş harfi
+        /// bu sırada KIPIRDAMIYOR: kırmızı B'nin piksel sayısı 8,2 binde
+        /// sabit kalıyor. Yani büyüyen şey logo değil, yalnız alt satır.
+        ///
+        /// DERS (ölçtüğün şey, ölçmek istediğin şey mi?): Önce 1,65 yazdım.
+        /// O sayı "altın piksel sayısı en yüksek olan SATIRIN genişliği"nden
+        /// geliyordu; kelime büyüdükçe o satır harfin başka bir yerine denk
+        /// düştüğü için oran şişiyordu. Kelimenin gerçek KUTUSU ölçülünce
+        /// 537/379 = 1,42 çıkıyor. Fark masum değildi: 1,65 ile bizim
+        /// "OUT!" ekran genişliğinin %103'üne çıkıp iki yandan kesilecekti.
+        /// </summary>
+        const float OutOvershoot = 1.42f;
+        const float OutPop = 0.72f;
+
+        /// <summary>Konfeti ve fişeklerin başladığı an (ilk harften itibaren).</summary>
+        const float ShowStarts = 0.94f;
+
+        /// <summary>
+        /// Harfleri soldan sağa, ölçülen aralıklarla getirir.
+        ///
+        /// DERS (grup ölçeği DEĞİL, harf ölçeği): Eski sürüm harfleri
+        /// açarken bütün logoyu da 0,42'den 1,12'ye büyütüyordu — "logo
+        /// kuruluyor" hissi versin diye. Referansta böyle bir şey yok:
+        /// logonun çerçevesi hiç oynamıyor, her harf KENDİ yerinde
+        /// sıfırdan şişip oturuyor. Grup ölçeği eklendiğinde daha önce
+        /// yerleşmiş harfler de kaydığı için göz "yapboz" görüyordu.
         /// </summary>
         IEnumerator RevealLetters()
         {
-            // ÖLÇÜM (Levels 1-20, 01:31 kutlaması, 15 fps'te çıkarılan kareler):
-            // harfler ~0,07 saniye arayla soldan sağa ekleniyor; "BLOCK"
-            // tamamlanır tamamlanmaz "OUT!" geliyor. Logo bu sırada büyümeye
-            // devam ediyor, sonra son boyuna oturuyor.
-            const float step = 0.07f;
-
-            _logo.localScale = Vector3.one * 0.42f;
-            float total = _letters.Count * step;
-
             for (int i = 0; i < _letters.Count; i++)
             {
-                GameKit.FX.Juice.Run(PopLetter(_letters[i]));
+                bool last = i == _letters.Count - 1;
+                GameKit.FX.Juice.Run(PopLetter(_backs[i], _letters[i],
+                    last ? OutPop : LetterPop,
+                    last ? OutOvershoot : LetterOvershoot));
 
-                for (float t = 0f; t < step && !_skip; t += Time.unscaledDeltaTime)
-                {
-                    float progress = Mathf.Clamp01((i * step + t) / total);
-                    // Referansta logo son boyunu AŞIP geri oturuyor; tek yönlü
-                    // büyüme "bitti" demiyor, geri yaylanma diyor.
-                    _logo.localScale = Vector3.one *
-                        Mathf.Lerp(0.42f, 1.12f, progress);
+                if (last) break;
+                for (float t = 0f; t < LetterStep && !_skip; t += Time.unscaledDeltaTime)
                     yield return null;
-                }
                 if (_skip) break;
             }
 
-            foreach (var letter in _letters)
+            if (_skip)
             {
-                if (letter == null) continue;
-                letter.localScale = Vector3.one;
-                var image = letter.GetComponent<RawImage>();
-                if (image != null) image.color = Color.white;
+                foreach (var letter in _letters)
+                    if (letter != null) letter.localScale = Vector3.one;
+                foreach (var back in _backs)
+                    if (back != null) back.localScale = Vector3.one;
+                yield break;
             }
 
-            // Aşırı boydan son boya oturma.
-            for (float t = 0f; t < 0.16f && !_skip; t += Time.unscaledDeltaTime)
-            {
-                float k = Mathf.Clamp01(t / 0.16f);
-                _logo.localScale = Vector3.one * Mathf.Lerp(1.12f, 1f, k * k);
+            // Konfeti "OUT!" tepe noktasını geçtikten sonra başlıyor; burada
+            // beklenen süre son harfin başlangıcından konfetiye kadar olan
+            // fark. Kalan oturma hareketi konfetinin altında sürüyor —
+            // referansta da öyle.
+            float wait = ShowStarts - LetterStep * (_letters.Count - 1);
+            for (float t = 0f; t < wait && !_skip; t += Time.unscaledDeltaTime)
                 yield return null;
-            }
-            _logo.localScale = Vector3.one;
         }
 
         /// <summary>
-        /// Tek bir harf dilimini getirir.
+        /// Tek bir harfi getirir: sıfırdan tepe ölçeğe, oradan son boyuna.
         ///
-        /// YAPBOZ GÖRÜNÜMÜ DÜZELTİLDİ (5. tur, kullanıcı: "bölüm geçince
-        /// çıkan BLOCKOUT yazısı yapboz gibi parça parça geliyor, kastettiğim
-        /// bu değildi").
+        /// ÖLÇÜM (tuğla "O" harfinin yüksekliği, 59,47 fps): 45 → 156 → 113
+        /// piksel. Yani harf son boyunu %38-40 AŞIYOR ve geri iniyor;
+        /// büyüme yolun ilk yarısında, geri oturma ikinci yarısında.
         ///
-        /// SEBEP: Logo TEK bir görsel ve harflere UV dikdörtgenleriyle
-        /// bölünüyor. Dilim sıfırdan büyütülünce ekranda görünen şey harf
-        /// değil, KÜÇÜLTÜLMÜŞ BİR DİKDÖRTGEN: içinde harfin bir parçası,
-        /// mor zeminin bir parçası ve iki yanında dümdüz kesik kenarlar.
-        /// Göz bunu "yapboz parçası" olarak okuyor.
-        ///
-        /// Referansta (01:31 kutlaması) her harfin KENDİ mor zemini var, yani
-        /// harf küçülünce zemini de onunla küçülüyor; kesik kenar hiç yok.
-        /// Tek parça bir görselle bunu birebir yapmak mümkün değil.
-        ///
-        /// DERS (varlığın yapısı, animasyonun sınırını çizer): Animasyonu
-        /// düzeltmeye çalışmak yanlış uçtan tutmaktı; sorun eğride değil,
-        /// tek parça görselde. Yapılabilecek en iyi şey kesik kenarı GÖRÜNMEZ
-        /// kılmak: dilim sıfırdan değil %86'dan başlıyor (kenar boşluğu bir
-        /// karede bile fark edilmiyor) ve asıl geliş ALFA ile oluyor.
+        /// DERS (aşma tek yönlü bir "back" eğrisi DEĞİL): `EaseOutBack` sona
+        /// doğru bir tık aşıp döner — aşma oranı %10 civarında kalır ve göz
+        /// bunu "yaylandı" diye okur. Referanstaki hareket bambaşka: harf
+        /// önce belirgin biçimde BÜYÜK geliyor, sonra küçülüyor. İkisi aynı
+        /// kelimeyle ("overshoot") anılsa da farklı şeyler.
         /// </summary>
-        static IEnumerator PopLetter(RectTransform letter)
+        static IEnumerator PopLetter(RectTransform back, RectTransform letter,
+                                     float duration, float peak)
         {
-            const float duration = 0.13f;
-            var image = letter != null ? letter.GetComponent<RawImage>() : null;
-            if (image != null) image.color = new Color(1f, 1f, 1f, 0f);
+            if (letter == null) yield break;
 
+            float rise = duration * 0.5f;
             for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
             {
                 if (letter == null) yield break;
-                float k = Mathf.Clamp01(t / duration);
-                letter.localScale = Vector3.one *
-                    Mathf.Lerp(0.86f, 1f, GameKit.FX.Juice.EaseOutBack(k, 2.2f));
-                if (image != null) image.color = new Color(1f, 1f, 1f, k);
+
+                float scale;
+                if (t < rise)
+                {
+                    float k = t / rise;
+                    scale = Mathf.Lerp(0f, peak, 1f - (1f - k) * (1f - k));   // hızlı çıkış
+                }
+                else
+                {
+                    float k = Mathf.Clamp01((t - rise) / (duration - rise));
+                    scale = Mathf.Lerp(peak, 1f, k * k * (3f - 2f * k));      // yumuşak iniş
+                }
+                // Zemin ve harf AYNI çarpanla: aynı kutuyu ve aynı pivotu
+                // paylaştıkları için birlikte hareket ediyorlar.
+                letter.localScale = Vector3.one * scale;
+                if (back != null) back.localScale = Vector3.one * scale;
                 yield return null;
             }
             if (letter != null) letter.localScale = Vector3.one;
-            if (image != null) image.color = Color.white;
+            if (back != null) back.localScale = Vector3.one;
+        }
+
+        /// <summary>
+        /// SAHNE, KUTLAMAYLA BİRLİKTE ÖLMELİ.
+        ///
+        /// <see cref="FX.CelebrationStage"/> bir KÖK nesne — çocuk olamıyor,
+        /// çünkü dünyada oyundan uzakta durması gerekiyor. Bu yüzden kutlama
+        /// yok edildiğinde otomatik olarak yok olmuyordu: geriye her karede
+        /// boş bir dokuya çizen bir kamera kalıyor, üstelik yüzeyi (kutlama
+        /// kanvasının çocuğu) ölmüş olduğu için ona dokunan her satır
+        /// `MissingReferenceException` atıyordu.
+        ///
+        /// DERS (bağı olmayanın ömrünü sen taşırsın): Unity'de ömür,
+        /// hiyerarşiyle geliyor. Bir nesneyi bilerek hiyerarşinin dışına
+        /// koyduysan, onu kapatma sorumluluğunu da almışsındır.
+        /// </summary>
+        void OnDestroy()
+        {
+            if (_stage != null) Destroy(_stage.gameObject);
         }
 
         /// <summary>Kutlamayı oynatır; bittiğinde <paramref name="done"/> çağrılır.</summary>
@@ -325,6 +452,26 @@ namespace BlockOut.Runtime.UI
             _skip = false;
             _root.gameObject.SetActive(true);
             SetAlpha(0f);
+
+            // İKİNCİ BÖLÜMDE LOGO HAZIR GELİYORDU (kullanıcı bildirdi).
+            //
+            // `WinCelebration` bir kez kuruluyor ve her bölümde YENİDEN
+            // KULLANILIYOR. Bir önceki kutlama bittiğinde harflerin ölçeği
+            // 1'de kalıyor; ikinci kutlamada `RevealLetters` sıfırlamayı
+            // harfin KENDİ rutinine bırakıyordu ve o rutin ilk karesini
+            // ancak sırası gelince çalıştırıyor. Yani ilk yarım saniye
+            // boyunca bütün harfler tam boyda ekranda duruyor, sonra tek tek
+            // "yeniden" beliriyorlardı — animasyon ilk bölümde doğru,
+            // sonrakilerde bozuk görünüyordu.
+            //
+            // DERS (bu turda ikinci kez): Gecikmeli bir animasyonun
+            // BAŞLANGIÇ DURUMU gecikemez. Aynı hata PERFECT kartında da
+            // vardı (bkz. GameplayScreen.CelebrateRoutine) — ortak sebep,
+            // "sıfırla" işini animasyonun kendisine bırakmak.
+            foreach (var letter in _letters)
+                if (letter != null) letter.localScale = Vector3.zero;
+            foreach (var back in _backs)
+                if (back != null) back.localScale = Vector3.zero;
 
             yield return GameKit.FX.Juice.Tween(FadeIn, SetAlpha);
 
@@ -365,43 +512,50 @@ namespace BlockOut.Runtime.UI
                     GameKit.FX.Juice.Run(DropIn(_logoBottom.rectTransform, 0.10f));
             }
 
-            // Tamamlanan logoya tek bir vuruş: "işte bu" anı.
-            GameKit.FX.Juice.Run(Punch(_logo));
-
-            // ROKETLER: referansta konfetiden ÖNCE ekranın altından yukarı
-            // beyaz izler fırlıyor, patlamalar onların ucunda oluyor.
-            // SAYILDI (referans kutlaması, 15 fps kareler): ekranda aynı anda
-            // ÜÇ beyaz iz birden yükseliyor ve seri boyunca kesilmiyor.
-            // Altı roket 0,22 aralıkla, ömrü 0,42 olan bir izle en fazla iki
-            // tanesini aynı karede gösteriyordu.
-            GameKit.FX.Juice.Run(FX.CelebrationFX.Rockets(_root, count: 11, interval: 0.13f));
-
-            // Fişek ARKADA, konfeti ÖNDE: ikisi de aynı kökte yaşıyor ama
-            // fişekler önce yaratıldığı için çizim sırasında altta kalıyor.
-            // Patlama aralığı kıvılcım ömründen (0,95 sn) KISA: bir patlama
-            // sönmeden diğeri başlasın ki ekran hiç boş kalmasın. Referansta
-            // her karede en az iki patlama birden var.
-            // Referansta her patlama bizimkinden çok daha KALABALIK ve
-            // patlamalar üst üste biniyor; 30 ışınlı seyrek bir çelenk
-            // "havai fişek" değil "pusula gülü" gibi okunuyordu.
-            // Serbest patlamalar AZALTILDI: referansta her patlamanın altında
-            // bir roket izi var, gökte kendiliğinden beliren patlama yok.
-            // Bunlar yalnız aradaki boşlukları doldurmak için.
-            GameKit.FX.Juice.Run(FX.CelebrationFX.Show(
-                _root, bursts: 4, interval: 0.34f, sparks: 48));
-
-            // KONFETİ SAYISI SAYILDI, tahmin edilmedi.
+            // LOGO VURUŞU KALDIRILDI (harf harf geliş varken).
             //
-            // Referans karelerinde logo bölgesi dışlanıp bağlı bileşenler
-            // sayıldı: aynı anda ORTALAMA 276 parça var (161-432 arası).
-            // Parça alanı medyanı 17 piksel², yani kenarı ~4,1 piksel —
-            // 384 genişlikteki karede ekranın %1,07'si.
+            // Referansta logo tamamlandıktan sonra bütünüyle bir daha
+            // oynamıyor; "işte bu" anını zaten "OUT!"un 1,65 katına şişip
+            // geri oturması veriyor. Üstüne bir de tüm logoyu vurmak, o
+            // hareketin hemen ardına ikinci ve daha zayıf bir hareket
+            // koyuyordu — vurgu ikiye bölününce ikisi de vurgu olmuyor.
             //
-            // İlk denemede 70, sonra 190 yazmıştım; ikisi de "kutlama" değil
-            // "birkaç kağıt düştü" gibi okunuyordu. Bir yoğunluğu gözle
-            // ayarlamak yerine saymak, üç denemeyi tek ölçüme indiriyor.
-            GameKit.FX.Juice.Run(FX.CelebrationFX.Rain(
-                _root, count: 300, duration: Show * 0.55f));
+            // Yedek yollarda (tek parça görsel ya da yazı) hâlâ gerekli:
+            // orada logoyu canlandıran başka bir şey yok.
+            if (_letters.Count == 0) GameKit.FX.Juice.Run(Punch(_logo));
+
+            // ------------------------------------------------ efektler
+            //
+            // KENDİ ÇİZDİĞİMİZ KONFETİ VE FİŞEKLER YERİNİ EPIC TOON FX'E
+            // BIRAKTI (9. tur).
+            //
+            // Eskisi arayüz dikdörtgenlerinden kuruluyordu: her konfeti
+            // parçası bir `Image`, her kıvılcım bir başka `Image`. Ölçülerek
+            // ayarlanmıştı (300 parça, ölçülen renk paleti) ama ARAYÜZ
+            // dikdörtgeni bir parçacık değil — dönemiyor, çarpışmıyor,
+            // yerçekimi eğrisi yok, dokusu yok. Ekranda "kâğıt parçaları
+            // düşüyor" değil "renkli dikdörtgenler kayıyor" gibi okunuyordu.
+            //
+            // Paket bunları hazır ve çok daha zengin veriyor. Kurulum
+            // maliyeti tek bir yerde toplandı: parçacıklar üst katman
+            // kanvasın üstüne çizilemediği için ayrı bir kameraya ve dokuya
+            // ihtiyaç var (bkz. CelebrationStage).
+            //
+            // YEDEK YOL DURUYOR: paket projeden çıkarılırsa `FxSkin` boş
+            // döner ve aşağıdaki eski çizim devreye girer. Kutlama bir süs;
+            // bir varlığın yokluğu oyunun akışını durdurmamalı.
+            if (PlayPackageEffects())
+            {
+                // paket efektleri oynuyor
+            }
+            else
+            {
+                GameKit.FX.Juice.Run(FX.CelebrationFX.Rockets(_root, count: 11, interval: 0.13f));
+                GameKit.FX.Juice.Run(FX.CelebrationFX.Show(
+                    _root, bursts: 4, interval: 0.34f, sparks: 48));
+                GameKit.FX.Juice.Run(FX.CelebrationFX.Rain(
+                    _root, count: 300, duration: Show * 0.55f));
+            }
 
             Services.AudioService.Star();
 
@@ -410,9 +564,199 @@ namespace BlockOut.Runtime.UI
 
             yield return GameKit.FX.Juice.Tween(FadeOut, t => SetAlpha(1f - t));
 
+            // Sahne kapanıyor: açık kalan bir kamera, kutlama olmadığı
+            // anlarda da her karede boş bir dokuya çizerdi.
+            if (_stage != null) { _stage.Clear(); _stage.SetActive(false); }
+
             _root.gameObject.SetActive(false);
             _running = null;
             done?.Invoke();
+        }
+
+        /// <summary>
+        /// Paket efektlerini sahneye dizer. Paket yoksa <c>false</c> döner ve
+        /// çağıran eski çizime düşer.
+        ///
+        /// DİZİLİM referanstan (Levels 1-20, kutlama kareleri):
+        ///   • Konfeti ekranın ÜSTÜNDEN yağıyor ve bütün genişliği kaplıyor.
+        ///   • İki alt köşeden yukarı doğru birer patlama atılıyor.
+        ///   • Fişekler ekranın üst yarısına, aralıklarla ve farklı
+        ///     renklerde. Referansta aynı anda en az iki patlama var, bu
+        ///     yüzden aralık patlamanın ömründen kısa.
+        /// </summary>
+        bool PlayPackageEffects()
+        {
+            if (_stage == null) return false;
+            if (FX.FxSkin.Get(FX.Fx.ConfettiUp) == null &&
+                FX.FxSkin.Get(FX.Fx.Fireworks[0]) == null) return false;
+
+            _stage.SetActive(true);
+            GameKit.FX.Juice.Run(ReferenceSequence());
+            return true;
+        }
+
+        // ================= REFERANS DİZİLİMİ =================
+        //
+        // Kullanıcı: "konfetilerin havai fişeklerin patladığı yeri iyi
+        // dikkatlice incele, sıralama birebir aynı olmalı, konumları filan
+        // tamamen aynı olmalı."
+        //
+        // ÖLÇÜM (`…Levels 1-20 Walkthrough.mp4`, 59,47 fps ham kareler;
+        // sıfır anı ilk harfin belirdiği kare). Yöntem: her karede beyaz
+        // kıvılcım maskesi bağlı bileşenlere ayrıldı, 2500 pikselden büyük
+        // YENİ bir bileşen "patlama" sayıldı ve ağırlık merkezi ekran
+        // oranına çevrildi. Konfeti içinse renkli piksellerin dikey dağılımı
+        // izlendi.
+        //
+        // İLK BULGU — KONFETİ YUKARIDAN DEĞİL AŞAĞIDAN GELİYOR.
+        // t=0,99'da renkli piksellerin %99,8'i ekranın ALT yarısında; en üst
+        // konfeti 0,358'de. 0,27 saniye içinde tepe 0,100'e çıkıyor. Yani
+        // tek bir YUKARI FIRLATMA, sonra yağmur. Bizde yağmur yukarıdan
+        // dökülüyordu — dizilim ters başlıyordu.
+        //
+        // DERS (bir efektin YÖNÜ, yoğunluğundan daha çok şey anlatır):
+        // Yukarıdan dökülen konfeti "kutlama sürüyor" der; aşağıdan fırlayan
+        // konfeti "AZ ÖNCE bir şey oldu" der. İkisi de aynı kâğıt parçaları.
+        const float ConfettiAt = 0.98f;
+
+        /// <summary>
+        /// Konfeti topları ekranın alt kenarında, genişliğe yayılı.
+        /// Referansta konfeti ilk karede bütün genişliği kaplıyor; tek bir
+        /// koni bunu veremiyor (koni açısı 12°).
+        /// </summary>
+        static readonly float[] ConfettiCannons =
+            { 0.06f, 0.22f, 0.36f, 0.50f, 0.64f, 0.78f, 0.94f };
+
+        /// <summary>
+        /// Ölçülen patlamalar: (an, x, y). x soldan, y alttan — ekran oranı.
+        ///
+        /// Sıra ve konum BİREBİR referanstan; ara süreler 0,118 ile 0,252
+        /// arasında değişiyor ve düzenli değil, o yüzden sabit bir aralık
+        /// yerine tablo tutuluyor.
+        /// </summary>
+        static readonly Vector3[] ReferenceBursts =
+        {
+            new Vector3(1.614f, 0.806f, 0.679f),
+            new Vector3(1.799f, 0.152f, 0.677f),
+            new Vector3(2.001f, 0.479f, 0.804f),
+            new Vector3(2.119f, 0.686f, 0.805f),
+            new Vector3(2.371f, 0.699f, 0.352f),
+            new Vector3(2.489f, 0.692f, 0.753f),
+            new Vector3(2.623f, 0.339f, 0.635f),
+            new Vector3(2.741f, 0.866f, 0.693f),
+        };
+
+        /// <summary>
+        /// Roket izinin patlamadan ne kadar önce çıktığı. ÖLÇÜM: ilk iz
+        /// t=1,278'de görünüyor, ona ait patlama t=1,614'te — 0,336 saniye.
+        /// </summary>
+        const float RocketRise = 0.33f;
+
+        // ÖLÇÜM (renkli piksellerin ekrana oranı, logo hariç):
+        //   referans  tepe %4,98   (t=2,4 civarı)
+        //   bizim ilk hâl  tepe %1,06
+        // Yani beş kat daha az konfeti vardı. Yedi topa çıkarıldı ve her
+        // topun parça sayısı üçe katlandı (7×3 ≈ 4,2 kat).
+        // ÖLÇÜM (referans, konfetinin en üst noktası): fırlatmadan 0,28
+        // saniye sonra tepe y=0,10'a, yani ekranın ÜSTÜNE ulaşıyor.
+        //
+        // İlk denemede ölçek 1,15'ti ve parçalar ekranın alt üçte birinden
+        // yukarı çıkamıyordu: yoğunluk (%4,79) referansla eşitti ama hepsi
+        // dipte bir duvar hâlinde toplanıyordu. `localScale` parçacık
+        // sisteminde HIZI da çarptığı için ölçeği büyütmek menzili
+        // uzatıyor; sayı da o oranda düşürülüyor ki toplam yoğunluk
+        // bozulmasın.
+        //
+        // DERS (aynı sayı, farklı dağılım): "Ekranın %5'i konfeti" ölçütü
+        // tek başına yetmiyor — o %5'in NEREDE olduğu da ölçülmeli.
+        const float ConfettiScale = 2.2f;
+        const float ConfettiCount = 0.75f;
+
+        /// <summary>İki top arasındaki süre — dalga hâlinde açılsın diye.</summary>
+        const float ConfettiStep = 0.085f;
+
+        /// <summary>Konfeti topunun ağzındaki duman ve parıltı; referansta yok.</summary>
+        static readonly string[] ConfettiMute = { "Clouds", "Glow" };
+
+        // ÖLÇÜM (patlamanın kapladığı alanın ekrana oranı):
+        //   referans %1,58   bizim %0,40  → alan 3,9 kat, yani ÇAP 2 kat.
+        // Yan yana konunca fark açıktı: referansın patlaması ekran
+        // genişliğinin beşte birini kaplıyor, bizimki onda birini.
+        const float BurstScale = 2.0f;
+
+        /// <summary>Patlamanın rengi — referanstan örneklendi (229,219,234).</summary>
+        static readonly Color BurstTint = new Color(0.898f, 0.859f, 0.918f);
+
+        /// <summary>
+        /// Bütün kutlama efektleri TEK bir zaman çizelgesinden sürülüyor.
+        ///
+        /// Ayrı ayrı rutinler (biri konfeti, biri roket, biri fişek) yazmak
+        /// daha derli toplu görünüyordu ama sıralamayı okunamaz yapıyordu:
+        /// hangi olayın hangisinden önce geldiğini görmek için üç ayrı
+        /// gecikme zincirini kafada toplamak gerekiyordu. Tek çizelgede
+        /// tablo neyse ekranda o oluyor.
+        /// </summary>
+        IEnumerator ReferenceSequence()
+        {
+            // Çizelge ilk harfe göre yazılı; bu rutin harfler dizildikten
+            // SONRA başlıyor, yani saat zaten `ShowStarts` kadar ilerlemiş.
+            float clock = ShowStarts;
+            int next = 0;
+
+            var confetti = FX.FxSkin.Get(FX.Fx.ConfettiUp);
+            int confettiSent = 0;
+
+            float last = ReferenceBursts[ReferenceBursts.Length - 1].x;
+            while (clock < last + 0.05f && !_skip)
+            {
+                // Toplar SIRAYLA ateşleniyor, hepsi birden değil.
+                //
+                // ÖLÇÜM (referansın konfeti oranı): t=1,72'de %1,5 → t=2,05'te
+                // %3,3 → t=2,56'da %6,6. Yani ekran yavaş yavaş doluyor.
+                // Hepsini tek karede atınca bizde t=1,15'te zaten %8,8 vardı
+                // ve 1,79'da %12,7'ye çıkıyordu: aynı toplam kâğıt, ama bir
+                // anda gelip bir anda bitiyordu — patlayan bir kese gibi.
+                // Sıraya sokmak hem tepe yoğunluğu düşürüyor hem de referansın
+                // "dolmakta olan ekran" hissini veriyor.
+                if (confettiSent < ConfettiCannons.Length &&
+                    clock >= ConfettiAt + confettiSent * ConfettiStep)
+                {
+                    if (confetti != null)
+                        _stage.Spawn(confetti,
+                                     new Vector2(ConfettiCannons[confettiSent], -0.02f),
+                                     ConfettiScale, ConfettiCount, null, ConfettiMute);
+                    if (confettiSent == 0) Services.AudioService.Star();
+                    confettiSent++;
+                }
+
+                // Roket izi: patlamadan `RocketRise` önce, patlama noktasına
+                // doğru yükseliyor.
+                while (next < ReferenceBursts.Length &&
+                       clock >= ReferenceBursts[next].x - RocketRise)
+                {
+                    var beat = ReferenceBursts[next];
+                    FX.CelebrationFX.RocketTo(_root, beat.y, beat.z, RocketRise);
+                    GameKit.FX.Juice.Run(BurstAt(beat, next));
+                    next++;
+                }
+
+                clock += Time.unscaledDeltaTime;
+                yield return null;
+            }
+        }
+
+        /// <summary>Roketin ucunda, ölçülen anda ve ölçülen noktada patlama.</summary>
+        IEnumerator BurstAt(Vector3 beat, int index)
+        {
+            for (float t = 0f; t < RocketRise && !_skip; t += Time.unscaledDeltaTime)
+                yield return null;
+            if (_skip || _stage == null) yield break;
+
+            // Hep AYNI prefab, hep AYNI renk: referansta patlamalar
+            // birbirinin aynısı ve beyaz. Renk çeşitliliği konfetide.
+            var prefab = FX.FxSkin.Get(FX.Fx.Fireworks[0]);
+            if (prefab != null)
+                _stage.Spawn(prefab, new Vector2(beat.y, beat.z), BurstScale, 1f, BurstTint);
         }
 
         /// <summary>
@@ -426,9 +770,23 @@ namespace BlockOut.Runtime.UI
         /// </summary>
         void SetAlpha(float alpha)
         {
-            var color = _curtain.color;
-            color.a = alpha;
-            _curtain.color = color;
+            // HER PARÇA AYRI AYRI KONTROL EDİLİYOR.
+            //
+            // Kutlama bir SÜS ve ömrü kendi sahibinden bağımsız: hareketler
+            // ortak bir çalıştırıcıda yaşıyor, dolayısıyla ekran kapanıp
+            // nesneler yok edildikten sonra da bir-iki kare çalışmaya devam
+            // edebiliyorlar. O anda `_curtain.color` okumak
+            // `MissingReferenceException` atıyor ve rutin ölüyor — daha önce
+            // bu tam olarak PERFECT kartının hiç açılmamasına yol açmıştı.
+            //
+            // Unity'de yok edilmiş bir nesne `== null` döndürdüğü için
+            // kontrol basit; pahalı olan, yazılmadığında.
+            if (_curtain != null)
+            {
+                var color = _curtain.color;
+                color.a = alpha;
+                _curtain.color = color;
+            }
 
             if (_logoImage != null)
             {
@@ -436,6 +794,25 @@ namespace BlockOut.Runtime.UI
                 ic.a = alpha;
                 _logoImage.color = ic;
             }
+            // PARÇACIK YÜZEYİ DE SÖNÜYOR.
+            //
+            // Yüzey bir `RawImage`; perde ve logo söndüğünde o olduğu gibi
+            // kalıyordu ve kutlamanın son yarım saniyesinde konfeti ANA
+            // EKRANIN üstünde asılı görünüyordu. Kıvılcımlar kendi ömürlerini
+            // kendileri söndürüyor ama YÜZEY onların kabı — kap sönmezse
+            // içindekiler de sönmüş sayılmaz.
+            if (_stage != null && _stage.Surface != null)
+            {
+                var sc = _stage.Surface.color;
+                sc.a = alpha;
+                _stage.Surface.color = sc;
+            }
+
+            // Harf harf kurulan logoda tek tek altı görselin rengini yazmak
+            // yerine ortak bir grup: sönüş sırasında harfler arasında alfa
+            // farkı oluşmuyor ve üst üste binen mor konturlar birbirinin
+            // içinden görünmüyor.
+            if (_logoGroup != null) _logoGroup.alpha = alpha;
             SetTextAlpha(_logoTop, alpha);
             SetTextAlpha(_logoBottom, alpha);
         }

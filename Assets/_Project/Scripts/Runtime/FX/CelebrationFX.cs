@@ -256,6 +256,56 @@ namespace BlockOut.Runtime.FX
             }
         }
 
+        /// <summary>
+        /// Ekranın altından BELİRLİ bir noktaya yükselen tek bir iz.
+        ///
+        /// Eski <see cref="Rockets"/> izleri rastgele şeritlere atıyor ve
+        /// tepesinde kendi çizdiği patlamayı açıyordu. Referansın patlama
+        /// noktaları kare kare ölçülünce iki şey gerekti: izin NEREYE
+        /// gideceğini çağıran belirlesin, ve tepeye varınca patlamayı O
+        /// açmasın — patlama artık paketin fişeği (bkz.
+        /// WinCelebration.ReferenceSequence).
+        ///
+        /// DERS (bir efekt kendi sonucunu tetiklemesin): İz ile patlamayı
+        /// aynı rutine bağlamak, ikisinin zamanlamasını da birbirine
+        /// bağlıyor. Ayrılınca patlamanın anı ölçümden, izin süresi ise
+        /// hareketin kendisinden geliyor.
+        /// </summary>
+        public static void RocketTo(RectTransform root, float x01, float y01, float rise)
+        {
+            if (root == null) return;
+            GameKit.FX.Juice.Run(TrailFly(root, x01, y01, rise));
+        }
+
+        static IEnumerator TrailFly(RectTransform root, float x01, float y01, float rise)
+        {
+            var trail = UiKit.CreatePanel("Rocket", root, new Color(1f, 1f, 1f, 0.9f));
+            trail.raycastTarget = false;
+
+            var rect = trail.rectTransform;
+            rect.anchorMin = rect.anchorMax = new Vector2(x01, 0f);
+            rect.pivot = new Vector2(0.5f, 0f);
+            rect.anchoredPosition = Vector2.zero;
+            rect.sizeDelta = new Vector2(5f, 10f);
+
+            var parent = root.rect;
+            float endY = y01 * parent.height;
+
+            for (float t = 0f; t < rise; t += Time.unscaledDeltaTime)
+            {
+                if (rect == null) yield break;
+                float k = Mathf.Clamp01(t / rise);
+                // Yavaşlayarak: roket tepeye yaklaşırken hız kesiyor.
+                rect.anchoredPosition = new Vector2(0f, endY * k * (2f - k));
+                rect.sizeDelta = new Vector2(5f, Mathf.Lerp(220f, 40f, k));
+                var c = trail.color;
+                c.a = 0.9f * (1f - k * 0.6f);
+                trail.color = c;
+                yield return null;
+            }
+            if (trail != null) Object.Destroy(trail.gameObject);
+        }
+
         static IEnumerator RocketFly(RectTransform root, float lane, float apex, Color color)
         {
             var trail = UiKit.CreatePanel("Rocket", root, new Color(1f, 1f, 1f, 0.9f));

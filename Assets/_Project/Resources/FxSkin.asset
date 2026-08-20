@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cac9ee4d5f473574790d012ad55657c8, type: 3}
+  m_Name: FxSkin
+  m_EditorClassIdentifier: BlockOut.Runtime::BlockOut.Runtime.FX.FxSkin
+  entries:
+  - name: ConfettiBlastRainbow
+    prefab: {fileID: 129898, guid: 36bdc02b23d9ca94d93bd715c0cca5c0, type: 3}
+  - name: ConfettiShowerRainbow
+    prefab: {fileID: 155770, guid: 039f0809d882b7f44ac9a410a3f7fa26, type: 3}
+  - name: ConfettiDirectionalRainbow
+    prefab: {fileID: 165102, guid: 4de72d65c2293424cbe6461a89fe2997, type: 3}
+  - name: FireworkYellow
+    prefab: {fileID: 114476, guid: 225085907981d1a4f9901b6ced5b2657, type: 3}
+  - name: FireworkBlue
+    prefab: {fileID: 1858798456717250, guid: e6b0c8eedb7b4b148b2d830fdcf06603, type: 3}
+  - name: FireworkPurple
+    prefab: {fileID: 144688, guid: 61a38e1f514545f47916177ba28811ee, type: 3}
+  - name: FireworkGreen
+    prefab: {fileID: 114134, guid: 5552d0e6b5e91684c9b9b938763192bf, type: 3}
+  - name: FireworkRed
+    prefab: {fileID: 164546, guid: e6e6f5beacfc73b41883f0becc4e2a67, type: 3}
+  - name: SparkleExplosionYellow
+    prefab: {fileID: 1438902432858508, guid: 70d6dfe08ec8a1447b4822e95e56918e, type: 3}
+  - name: FrostExplosion
+    prefab: {fileID: 153912, guid: 932046b7eaf3b554f8d74c81e2f00558, type: 3}
+  - name: GoldCoinBlast
+    prefab: {fileID: 143964, guid: 09d9de58ef3bf5444ac94afa0e6013cb, type: 3}
+  - name: ExplosionNovaSmallFire
+    prefab: {fileID: 103350, guid: 5ea442f5d97b58843a80992f3d61e220, type: 3}

@@ -8,6 +8,599 @@ Bu dosya her oturum sonunda güncellenir. Aşağısı 2026-08-10 itibarıyla ge�
 
 ---
 
+## 2026-08-20 (7) — KUTLAMA DİZİLİMİ REFERANSTAN BİREBİR ÇIKARILDI
+
+İstek: *"o konfetilerin havai fişeklerin patladığı yeri iyi dikkatlice
+incele referanstakine bak sıralama birebir aynı olmalı konumları filan
+tamamen aynı olmalı"*.
+
+### Nasıl ölçüldü
+
+`ffmpeg -vsync 0` ile kutlama sahnesi ham karelere ayrıldı (59,47 fps,
+592×1280). Sıfır anı ilk harfin belirdiği kare. Her karede:
+
+* **Patlamalar**: beyaz kıvılcım maskesi bağlı bileşenlere ayrıldı,
+  2500 pikselden büyük *yeni* bir bileşen bir patlama sayıldı, ağırlık
+  merkezi ekran oranına çevrildi.
+* **Konfeti**: doygun ve parlak piksellerin dikey dağılımı (tepe, orta,
+  dip ve toplam oran) izlendi; logo bandı (0,30–0,55) dışlandı.
+
+### Çıkan çizelge — `WinCelebration.ReferenceBursts`
+
+Sekiz patlama, (an, x, y):
+
+| # | an (sn) | x | y |
+|---|---------|-----|-----|
+| 1 | 1,614 | 0,806 | 0,679 |
+| 2 | 1,799 | 0,152 | 0,677 |
+| 3 | 2,001 | 0,479 | 0,804 |
+| 4 | 2,119 | 0,686 | 0,805 |
+| 5 | 2,371 | 0,699 | 0,352 |
+| 6 | 2,489 | 0,692 | 0,753 |
+| 7 | 2,623 | 0,339 | 0,635 |
+| 8 | 2,741 | 0,866 | 0,693 |
+
+Ara süreler 0,118 ile 0,252 arasında ve düzenli **değil** — bu yüzden
+sabit bir aralık yerine tablo tutuluyor. Roket izi patlamadan 0,33 sn
+önce çıkıyor (`RocketRise`).
+
+### Beş bulgu, beşi de ölçümle yakalandı
+
+1. **Konfeti yukarıdan değil AŞAĞIDAN geliyor.** t=0,98'de renkli
+   piksellerin %99,8'i alt yarıda; 0,27 sn sonra tepe ekranın üstünde.
+   Bizde yağmur yukarıdan dökülüyordu, yani dizilim ters başlıyordu.
+2. **Kümeli fişek prefab'ı kullanılamaz.** `FireworkYellowCluster`
+   yukarı dört alt-roket atıp onları kendi hesapladığı yerlerde
+   patlatıyor; ölçülen noktalara koyamıyoruz. Küme olmayan sürüm
+   doğduğu yerde anında patlıyor — `FxSkinTool` ona çevrildi.
+3. **Patlamalar RENKLİ DEĞİL.** Ölçüm: ortalama (229,219,234),
+   doygunluk 0,13–0,28 — neredeyse beyaz, hafif leylak. Beş rengi
+   sırayla atmak ekranda "renkli lekeler" veriyordu. `BurstTint` ile
+   tek prefab, tek renk. Renk konfetide kalıyor.
+4. **Aynı yoğunluk, yanlış dağılım.** Ölçek 1,15'te toplam oran
+   referansla eşitti (%4,8'e %5,0) ama hepsi dipte bir duvar hâlinde
+   duruyordu; parçalar yukarı çıkamıyordu. `localScale` parçacıkta
+   HIZI da çarptığı için ölçek 2,2'ye çıkarıldı, sayı o oranda
+   düşürüldü.
+5. **Toplar sırayla ateşlenmeli.** Referansta oran %1,5 → %3,3 → %6,6
+   diye tırmanıyor; hepsini tek karede atınca bizde t=1,15'te zaten
+   %8,8 vardı. `ConfettiStep = 0,085` ile yedi top dalga hâlinde.
+
+Ek olarak paketin konfeti topundaki `Clouds` (12 beyaz duman yumağı) ve
+`Glow` (namlu parıltısı) alt sistemleri susturuldu — referansta ağızda
+ne duman var ne parıltı, bizde alt kenarda yumaklar birikiyordu.
+Prefab'a dokunulmuyor, kopyada söndürülüyor (`CelebrationStage.Spawn`
+`mute` parametresi).
+
+### Son ölçüm (bizim / referans, konfeti oranı)
+
+| an | biz | referans |
+|----|-----|----------|
+| 1,46 | %3,6 | %2,8 |
+| 1,72 | %4,9 | %1,5 |
+| 2,05 | %4,0 | %3,3 |
+| 2,56 | %5,8 | %6,6 |
+| 3,00 | %8,1 | %5,8 |
+
+Patlama konumları: bizim 0,805/0,690 · 0,150/0,686 · 0,479/0,805 ·
+0,692/0,751 — referans 0,806/0,679 · 0,152/0,677 · 0,479/0,804 ·
+0,692/0,753.
+
+### DERSLER
+
+* **Bir efektin YÖNÜ, yoğunluğundan çok şey anlatır.** Yukarıdan
+  dökülen konfeti "kutlama sürüyor" der; aşağıdan fırlayan konfeti
+  "AZ ÖNCE bir şey oldu" der. İkisi de aynı kâğıt parçaları.
+* **Bir efektin RENGİ de ölçülebilir bir şeydir.** "Havai fişek
+  renklidir" sezgisi doğru görünüyor ama bu oyunun referansı öyle
+  yapmamış.
+* **"Ekranın %5'i konfeti" tek başına yetmez.** O %5'in NEREDE olduğu
+  ve ZAMAN İÇİNDE nasıl değiştiği de ölçülmeli.
+* **Bir paketi kullanmak onu sahiplenmek değildir.** Seçilen
+  prefab'lar `Resources/FxSkin.asset` üzerinden referansla tutuluyor,
+  kopyalanmıyor; istemediğimiz alt sistemler kopyada söndürülüyor.
+
+### DİKKAT — Epic Toon FX git'te DEĞİL
+
+`Assets/Epic Toon FX/` 571 MB ve depoya alınmadı (LFS yok). Temiz bir
+klonda kutlama, `FxSkin` boş döndüğü için kendi çizdiğimiz eski
+efektlere düşer — çöker değil, sadece daha sade olur. Paketi Asset
+Store'dan yeniden içeri alıp `Tools/Block Out/Efekt Kütüphanesini
+Yenile` çalıştırmak yeterli.
+
+---
+
+## 2026-08-20 (6) — EPIC TOON FX: KUTLAMA PARÇACIKLARA GEÇTİ
+
+Kullanıcı pakete Epic Toon FX ekledi; en önemli istek "BLOCK OUT geldikten
+sonra konfetilerin patlaması, havai fişek — o sekans".
+
+### Paket durumu (ölçüldü, tahmin değil)
+
+- 372 materyalin **301'i zaten URP shader'ı** kullanıyor, **bozuk shader 0**.
+  Yani paket URP'ye hazır geldi; `Upgrade/` klasöründeki yükseltme paketi
+  bu projede gerekmedi.
+- **105 materyalin 64'ünde "Soft Particles" AÇIK.** Bizim URP asset'inde
+  (`Mobile_RPAsset`) derinlik dokusu KAPALI — o materyaller ekranda HİÇ
+  görünmüyor. Paketin kendi belgesi bunu "invisible particles in URP"
+  başlığıyla anlatıyor. Anahtar kurulumda (`FxSkinTool`) bir kez kapatılıyor.
+
+*DERS: Bir varlığı içeri almak, onu çalışır hâle getirmez.*
+
+### Parçacıklar üst katman kanvasın üstüne çizilemiyor
+
+Kutlama kanvası `ScreenSpaceOverlay` ve Unity'de üst katman kanvaslar HER
+kameradan sonra çizilir. Sahneye konan bir konfeti, kutlamanın siyah
+perdesinin ARKASINDA kalıp tamamen kayboluyor.
+
+Elenen üç yol: kanvası `ScreenSpaceCamera` yapmak (HUD üste çıkıyor),
+kutlama sırasında öteki kanvasları gizlemek (akışa dokunuyor), perdeyi
+saydamlaştırmak (perde zaten efekt okunsun diye var).
+
+**`CelebrationStage`**: efektler oyundan 5000 birim uzakta kendi
+kameralarıyla bir `RenderTexture`'a çiziliyor, kutlama kanvasındaki bir
+`RawImage` o dokuyu gösteriyor. Böylece parçacıklar arayüz sırasına girip
+logonun ÖNÜNDEN geçebiliyor — referansta da konfeti harflerin üstünden
+akıyor. Uzak köşe, ayrı bir katman açıp oyun kamerasının maskesini
+değiştirmekten ucuz: proje ayarlarına hiç dokunulmuyor.
+
+### Üç hata, üçü de ölçümle bulundu
+
+1. **`ParticleSystem.Simulate` alt yayıcıları çalıştırmıyor.** Düzenleme
+   kipinde çekilen ilk karelerde havai fişekler BOMBOŞ çıktı ve "efekt kötü"
+   diye elenecekti. Kötü olan çağrıydı: `Simulate` her çocuk için ayrı ayrı
+   çağrılırsa alt sistemlerin gecikmeleri sıfırlanıyor. Çok aşamalı efektler
+   ancak OYNATMA KİPİNDE değerlendirilebiliyor.
+2. **RenderTexture'ın derinlik tamponu ZORUNLU.** Dokuyu `depth: 0` ile
+   kurmak "bedava optimizasyon" gibi görünüyordu (parçacıklar derinlik testi
+   kullanmıyor) ama URP'nin Render Graph'ı reddediyor: karede 33 hata ve
+   ekranda oyunun kendi hata paneli. *Bir kaynağın "gereksiz" parçasını
+   kırpmadan önce onu kimin istediğine bak.*
+3. **Sahne nesnesi sızıyordu.** `CelebrationStage` kök bir nesne (dünyada
+   uzakta durması gerektiği için çocuk olamıyor), dolayısıyla kutlama yok
+   edilince otomatik ölmüyordu. `WinCelebration.OnDestroy` artık onu
+   kapatıyor. *Bir nesneyi bilerek hiyerarşinin dışına koyduysan, ömrünü de
+   sen taşırsın.*
+
+### Dizilim (oyun modunda kare kare doğrulandı)
+
+- Konfeti yağmuru **üç sütundan** (0,2 / 0,5 / 0,8). Tek kaynak ortada dar
+  bir şerit bırakıyordu; ölçeği büyütmek parçaları da büyütüyor, oysa
+  referansta konfeti İNCE. *Kaplama ile boyut aynı düğmede olmasın: çözüm
+  ölçek değil, daha çok kaynak.*
+- İki alt köşeden yukarı patlama.
+- Altı havai fişek, 0,42 saniye arayla, beş farklı renkte. Doğum noktaları
+  0,48–0,66 arasında: ilk denemede 0,70–0,90'daydılar ve patlamalar en üst
+  şeride sıkışıyordu, çünkü prefab kendi içinde bir de yukarı fırlatıyor.
+
+Eski elle çizilen konfeti/fişek/roket kodu SİLİNMEDİ: `FxSkin` boş dönerse
+(paket projeden çıkarılırsa) devreye giriyor.
+
+### Paketten alınmayanlar ve NEDEN
+
+- **Kapıdan blok geçme efekti**: bizimki referanstan sayılarak ayarlandı
+  (kapı ağzından çıkan 12-16 renkli kırıntı). Paketin `SparkleExplosion`u
+  beyaz-sarı kıvılcım — referansa BENZEMİYOR. Daha "zengin" olması onu daha
+  doğru yapmıyor.
+- Savaş efektlerinin tamamı (mermi, el bombası, lazer, kan): bulmaca
+  oyununda karşılığı yok.
+
+Aday olarak duruyor, henüz bağlanmadı: `FrostExplosion` (buz kırılması) ve
+`GoldCoinBlast` (PERFECT kartındaki jeton patlaması). İkisi de arayüz
+tarafında olduğu için `CelebrationStage` benzeri bir kap gerektiriyor.
+
+### Sesler — kısa liste
+
+79 sesin çoğu nişancı oyunu için. Bizim ses setimiz kullanıcının kendi
+seçtiği dosyalardan ayarlandı ve tutarlı; yalnız `audio_raw/README.md`de
+"bulunamadı, yerine şu kondu" diye işaretlenenler için pakette daha iyi
+karşılık var:
+
+| bizdeki | şu an | paketten aday |
+|---|---|---|
+| `gate_advance` | sparkle (ikame) | `etfx_explosion_sparkle2` |
+| `ice_crack` / `ice_tick` | 6,2 sn'lik dosyadan kesim | `etfx_explosion_frost` / `snow` |
+| `power_rocket` | rocket.mp3 | `etfx_shoot_rocket` + `etfx_explosion_rocket` |
+| `power_ufo` | ufo.mp3 | `etfx_shoot_energy02` |
+| `block_spawn` | bubble pop | `etfx_spawn` |
+
+Ses öznel ve kullanıcının kulağıyla ayarlanmıştı; bu yüzden DEĞİŞTİRİLMEDİ,
+onay bekliyor.
+
+---
+
+## 2026-08-20 (5) — KAPI YÜKSEKLİĞİ, LOGO ZEMİNLERİ, TENTE GÖLGESİ
+
+### Kapı bloğun üstünde kalıyordu — sebep PAY değil YÜKSEKLİK
+
+Kullanıcı: "üst kısımdaki kapı kırmızı bloğun üstünde kalmış, böyle şeyler
+hiçbir levelde olmamalı."
+
+Gerçek mesh sınırları ölçüldü (14. bölüm):
+
+    kapı plakası   y 0,820 … 0,824      (frameHeight + 0,02)
+    blok gövdesi   y 0     … 0,800
+    blok çıtçıtı           … 1,050
+
+Plaka, bloğun GÖVDESİ ile ÇITÇITLARININ ARASINDA kalıyordu. Komşu bloğun
+çıtçıtları plakanın üstüne taşıyor ve kapının iç kenarını örtüyordu; ekranda
+kapı kısalmış, blok da doğrudan kapıya girmiş gibi görünüyordu.
+
+Bu, 4., 6. ve 7. turda pay değerinin neden hep bir kenarı düzeltip
+ötekini bozduğunu da açıklıyor: **farklı yükseklikteki iki yüzey
+paralakstan farklı etkilenir**, yani aralarındaki mesafe kenara göre
+değişir. Plaka blokların tepesine çıkarılınca ikisi aynı kadar kayıyor ve
+pay dört kenarda da aynı olabiliyor:
+
+    BarHeight       = brickHeight + studHeight + 0,02
+    InwardOverhang  = 0,09 + brickInset          (kenar ayrımı YOK)
+
+Ölçüldü: kapının ekrandaki iç kenarı bloğun üst kenarını 0,086 hücre
+örtüyor (hedef 0,09) ve kapı artık bloğun ÜSTÜNDE çiziliyor.
+
+**DERS:** Bir kusuru dört kez düzeltiyorsan, düzelttiğin şey kusur
+değildir. Kenara göre değişen bir düzeltmeye ihtiyaç duyman, ölçtüğün
+büyüklüğün yanlış olduğunun işaretidir.
+
+### BoardCaptureTool görsel ayarları uygulamıyordu
+
+Aynı komut iki kez çalıştırılınca farklı sayı veriyordu: blok tepesi bir
+seferinde 1,05, öbür seferinde 0,515. Sebep, `VisualSettings.Current`in
+statik olması — araç onu kurmuyordu, geçmiş bir işlemden dolu kalmışsa
+doğru, domain reload'dan sonra boşsa yedek değerler kullanılıyordu.
+Araç artık `BlockVisualConfig`i kendisi uyguluyor.
+
+*Statik durum, doğrulama aracının en büyük tuzağı: araç ölçtüğü sistemi
+kendi kurmuyorsa, ölçtüğünün oyundaki hâli olduğunu garanti edemez.*
+
+### Logo zeminleri siluetten taşıyor
+
+Kullanıcı: "üst kısım hâlâ kesiliyor… daha ince işçilik istiyorum."
+
+Zeminler özgün siluete TAM kırpılıyordu. Logonun kenarına değen harflerde
+(özellikle tuğla "O"nun üstünde) mor kalmıyor, harf tek başına gelince düz
+kesilmiş görünüyordu. Referanstaki harflerin dört yanında da mor var —
+onlar siluete kırpılmamış, üst üste binerek siluete dönüşüyorlar.
+
+Üç değişiklik:
+1. `SILHOUETTE_BLEED = 10` — zemin siluetten 10 piksel taşıyor.
+2. Tuval önce PED'leniyor: logo kaynak görselin kenarlarına değdiği için
+   taşma tuvalin dışına düşüyor ve tam düzeltmek istediğimiz yerde
+   yeniden kesiliyordu. Dikdörtgenler en sonda özgün tuvale çevriliyor,
+   yani oyunda logonun yeri ve boyu değişmiyor.
+3. Zemin maskesine 16 piksellik KAPAMA: bulanık+eşik iç bükey yerlerde
+   çentik bırakıyordu (tuğlanın üstünde siyah bir ısırık).
+
+Ayrıca harf katmanında çekirdeğine DEĞMEYEN parçalar komşuya devrediliyor
+("L"nin ayak köşesi öklit uzaklığına göre tuğlaya düşüyordu). Devretmek
+şart, atmak değil — sahipsiz piksel zemin tarafından sentetik morla
+doldurulur ve logo bozulur.
+
+Birleştirme farkı hâlâ **tam opak piksellerde 0**; siluetin dışına
+kasıtlı olarak ~12 bin piksel mor ekleniyor (gözle fark edilmiyor).
+
+### Tentenin gölgesi kaldırıldı
+
+34 birimlik koyu düşüş, levhanın alt kenarını yumuşatmak için konmuştu.
+Ama levha zaten tentenin ARKASINDA; görünen tek yeri festonun çentikleri.
+Gölge ise tentenin altından taşıp turuncu "Special Offers" kurdelesinin
+üstüne düşüyordu — yumuşattığı kenar görünmüyor, kendisi görünüyordu.
+
+*Bir öğe neyi çözdüğünü gösterebilmeli: yumuşattığı kesimin görünmediği
+bir yerde duran katman, yalnız kendi varlığını gösterir.*
+
+---
+
+## 2026-08-20 (4) — LOGO DİLİMLEME YÖNTEMİ DEĞİŞTİ, TENTE GÖLGESİ GİTTİ
+
+Kullanıcı kutlamayı kare kare inceleyip iki şey söyledi: "block out
+kısmında üst kısım hâlâ kesiliyor… çok kesik kesik, fazla alınmış yerler,
+bazı yerler eksik alınmış" ve mağazadaki tentenin gölgesi.
+
+### Bölüntü YANLIŞ ARAÇMIŞ
+
+Dilimleyici logoyu bir BÖLÜNTÜYE çeviriyordu: her piksel tek bir harfe.
+Birleşik görüntü kusursuzdu (0 piksel fark) ama harfler tek başına
+bozuktu ve sebebi yapısaldı:
+
+- Bir harfin mor zemini komşusunun piksellerini İÇEREMEZ (onlar komşuya
+  ait) → her zeminde komşusu şeklinde bir ısırık.
+- Komşular arası sınır mesafeye göre çizildiği için TIRTIKLI.
+
+Referanstaki harflerin her birinin KENDİ kapalı zemini var ve üst üste
+biniyorlar. Yani onlar bir bölüntü değil, ÜST ÜSTE BİNEN KATMANLAR.
+
+Yeni yöntem: harf başına İKİ görsel. `logo_b_back` (çekirdekten 34 piksel
+şişirilip yumuşatılmış kapalı mor blob) ve `logo_b` (harfin kendisi +
+kendi gölgesi). Oyunda önce BÜTÜN zeminler, sonra BÜTÜN harfler çiziliyor
+(`Frame/Backs` ve `Frame/Letters`). Zemin ile harf AYNI dikdörtgeni ve
+pivotu paylaşıyor, böylece tek çarpanla birlikte ölçekleniyorlar.
+
+Birleştirme farkı yine **tam opak piksellerde 0**.
+
+Yol boyunca üç ara adım:
+- Halo yalnız "mor" piksellerden kurulunca deliklendi — harflerin koyu
+  gölgeleri mor testine girmiyor.
+- Boşluklar "en yakın mor pikselin rengi" ile doldurulunca IŞIN IŞIN
+  çıktı. Normalleştirilmiş bulanıklık (ağırlıklı ortalama) sürekli bir
+  alan veriyor. *Boşluk doldurmak bir enterpolasyon işidir.*
+- Yumuşatma (bulanık + eşik) dışbükey yerlerde daraltıyor ve silüetin
+  uçlarında 80 piksel açıkta kalıyordu; ikinci bir onarım geçişi eklendi.
+
+Ayrıca "L" ile tuğla "O" arasındaki sınır dikeyden EĞİK'e çevrildi
+(x = 255 − 0,144·y): tuğla döndürülmüş olduğu için dikey kesim onun sol
+alt köşesini L'ye veriyordu.
+
+### Tentenin gölgesi kaldırıldı
+
+34 birimlik koyu düşüş, levhanın alt kenarını yumuşatmak için konmuştu.
+Ama levha zaten tentenin ARKASINDA; görünen tek yeri festonun çentikleri.
+Gölge ise tentenin altından taşıp turuncu "Special Offers" kurdelesinin
+üstüne düşüyordu — yani yumuşattığı kenar görünmüyor, kendisi görünüyordu.
+
+*DERS: bir öğe neyi çözdüğünü gösterebilmeli. "Sert kesimi yumuşatsın"
+diye eklenen bir katman, yumuşattığı kesimin görünmediği bir yerde
+duruyorsa yalnız kendi varlığını gösteriyordur.*
+
+---
+
+## 2026-08-20 (3) — LOGO TEMİZLİĞİ, TEKRAR HATASI, SEKME KÖŞESİ, MAĞAZA TAŞMASI
+
+Kullanıcının bir turda verdiği dokuz maddeydi. Üçü kritikti (logo), altısı
+menü/araç tarafı.
+
+### Logo: üç ayrı kusur, üçü de dilimleyicide çözüldü
+
+1. **Kenardaki beyazlıklar.** Ham `logo_game.png`in alt kenarının iki
+   yanında kesimden kalan soluk pembe tüyler vardı (ölçüldü: 437 piksel,
+   en büyük leke 174). `cutout.dewisp` yazıldı: donuk-açık VE nesnenin
+   gövdesinin İÇİNDE OLMAYAN pikselleri siliyor. İkinci şart olmasa beyaz
+   ikonlar ve gümüş kupa da silinirdi — aynı rengin kusur mu tasarım mı
+   olduğunu belirleyen şey, nesnenin içinde mi dışında mı durduğu.
+
+   Not: `logo_game` normal görsel boru hattına GİRMİYOR (zaten alfalı
+   geldiği için `cutout.process` onu atlıyor), o yüzden temizlik
+   `slice_logo.py` içinde yapılıyor ve temizlenmiş tam logo da Assets'e
+   yazılıyor.
+
+2. **"OUT!" üstten çok fazla mor getiriyordu.** İki satır arasındaki mor,
+   saf mesafeye göre bölüşülüyordu ve "OUT!"un harfleri iri olduğu için
+   epey yukarısı ona düşüyordu; parça 1,42 kata şişince o kütle "BLOCK"
+   satırını tamamen yutuyordu. Bölüştürmeye TEK YÖNLÜ kısıt kondu: satır
+   çizgisinin üstünde "OUT!" aday değil, altında üst satırın harfleri hâlâ
+   aday. (İki yönlü kısıtta "B" tek başına gelirken altından düz kesilmiş
+   görünüyordu.)
+
+3. **"K" harfinin mavisi mor sanılıyordu.** Halkanın mor testi
+   `mavi > kırmızı·1,15 && mavi > yeşil·1,40` idi; camgöbeği K (60,170,240)
+   ikinci şartı 238'e karşı 240 ile kıl payı geçiyordu. `kırmızı > yeşil`
+   eklendi. Menekşe ile camgöbeğini ayıran şey mavi değil, İKİNCİ kanal.
+
+Birleştirme doğrulaması hâlâ **tam opak piksellerde 0 fark**.
+
+### İkinci bölümde animasyon oynamıyordu
+
+Kullanıcı: "bir kere yaptıktan sonra bir sonraki bölüme geçince logo direkt
+hazır geliyor."
+
+`WinCelebration` bir kez kurulup her bölümde yeniden kullanılıyor. Önceki
+kutlama bittiğinde harflerin ölçeği 1'de kalıyordu; `RevealLetters`
+sıfırlamayı harfin kendi rutinine bırakıyor ve o rutin ilk karesini ancak
+sırası gelince çalıştırıyor. Sonuç: ilk yarım saniye bütün harfler tam boyda
+duruyor, sonra tek tek "yeniden" beliriyorlardı.
+
+**Bu turun ikinci aynı hatası** — PERFECT kartında da başlık ve düğme
+gecikmeden önce tam boyda görünüyordu. Ortak kural: *gecikmeli bir
+animasyonun BAŞLANGIÇ DURUMU gecikemez.*
+
+### Seçili sekmenin köşesi — altı turdur yanlış katman düzeltiliyormuş
+
+Kullanıcı altı turdur "seçili butonun köşeleri bozuk" diyor. 7. turda kartın
+dış ve iç yüzeyinin yarıçapları eş merkezli hâle getirilmişti; o düzeltme
+doğruydu ama **kusur orada değildi**. Ekrandan ölçünce görüldü:
+
+    Face  : yuvarlak (ppuM 0,53 → köşe ~75 birim)
+    Sheen : `FadeDown`, KENARLIKSIZ bir gradyan
+
+Kenarlığı olmayan bir sprite `Sliced` çizilince dokuz dilim diye bir şey
+kalmıyor — düpedüz gerilmiş bir dikdörtgen oluyor. Yani yuvarlak kartın
+üstünde KARE köşeli bir ışık duruyor ve köşede kartın dışına taşıyordu.
+
+Çözüm ışığı küçültmek değil, kartın şekline KIRPMAK: yüz artık bir `Mask`.
+Ayrıca karta gölge eklendi (karttan 7 birim geniş, 6 birim aşağıda — aynı
+boyda olsaydı tamamen kartın arkasında kalırdı) ve sekme ayırıcıları
+beyaz-üstüne-alfadan koyu mora çevrildi.
+
+**DERS:** Bir kusuru altı tur boyunca kovalıyorsan, düzelttiğin şeyin
+GERÇEKTEN o kusur olduğunu ekrandan doğrulamak gerekiyor.
+
+### Mağaza: taşma sınırlandı, "gölge bugu" çözüldü
+
+Tentenin arkasındaki koyu lacivert levha ve altındaki 34 birimlik gölge
+`content` altındaydı, yani içerikle birlikte KAYIYORDU. Aşağı esnetildiğinde
+levha tentenin altından çıkıp koca bir mavi bant, gölge de ayrı bir şerit
+hâline geliyordu. İkisi de `root`a taşındı ve tenteden ÖNCE kuruluyor: artık
+kıpırdamıyorlar.
+
+Taşmanın kendisi için `UiScrollOvershoot` yazıldı (GameKit). Unity'nin esnek
+kipinde taşma mesafesi AYARLANAMAZ — `elasticity` yalnız geri dönüş süresini
+verir, açılma miktarını motorun içine gömülü sabit bir katsayı belirler.
+Bileşen `LateUpdate`te içerik konumunu kırpıyor (ScrollRect konumu kendi
+`LateUpdate`inde yazdığı için `Update` işe yaramazdı). Sınır 160 birim.
+
+Buna bağlı olarak bölüm zeminlerinin taşma payı 700'den 260'a indi. O 700,
+taşmanın ne kadar olacağı bilinmediği için seçilmişti; taşma sınırlanınca
+gerek kalmadı. *Bilinmeyeni bol payla kapatmak, bilinmezliği korur.*
+
+### DEV konsolu
+
+Liste telefonda kaydırılamıyordu: IMGUI'nin `ScrollView`i içerikten
+sürüklenemez ve Unity'nin varsayılan çubuğu 15 piksel — bu ölçü çözünürlükle
+BÜYÜMÜYOR. İki şey yapıldı: konsol kendi `GUISkin`ini kurup çubuğu ve
+tutamağı 26 birime çıkardı (çubuk parametreden, TUTAMAK ise her zaman
+`GUI.skin.verticalScrollbarThumb`tan geldiği için ikisi ayrı ayrı
+ayarlanmalı), ve içerik parmakla sürüklenebilir hâle geldi. Sürükleme
+kaydırma sayıldığı anda bırakma olayı yutuluyor — yoksa kaydırmaya çalışan
+parmak, kaldırdığı satırın düğmesine basmış oluyordu.
+
+Panel ölçüleri de %5 büyütüldü.
+
+### Ayar anahtarları — SORUN YOK (ölçüldü)
+
+"Çalışmıyor" duyumu doğrulanamadı. Oyun modunda dördü de tek tek test
+edildi; her biri kendi anahtarını yazıyor, çapraz etki yok:
+
+    Sounds  OFF→false ON→true
+    Music   OFF→false ON→true
+    Haptics OFF→false ON→true
+    Notif   OFF→false ON→true
+
+Işın testi de düğmelerin en üstteki hedef olduğunu gösteriyor. Tek gözlem:
+sayfa geçiş animasyonu sürerken (`Show` çağrıldığı KARE) ışınlar hedefi
+bulamıyor — geçiş bitince normale dönüyor. Kullanıcı geçişin ortasında
+dokunduysa gördüğü şey bu olabilir.
+
+### Sanat dosyalarında "piksel bozulması" taraması
+
+Bütün `Art/UI` sprite'ları tarandı. Kopuk leke yalnız iki dosyada var
+(`badge_reward`, `icon_hand`) ve ikisi de tasarımın parçası görünüyor.
+"Donuk-açık artık" ölçütü ise gümüş kupayı, beyaz ikonları ve fotoğraf
+avatarlarını da yakaladığı için tek başına kullanılamaz. Yani dosyalarda
+yaygın bir bozulma YOK; kullanıcının duyduğu şey ekrandaki çizim kusurları
+(sekme köşesi, mağaza gölgesi) olmalı — ikisi de bu turda kapandı.
+
+---
+
+## 2026-08-20 (2) — KAZANMA DİZİLİMİ: LOGO HARF HARF, PERFECT KARTI YENİDEN
+
+Kullanıcı: *"leveli kazanınca block out yazısının gelişinde ve oradaki
+efektlerin çıkışında problem var… ve sonrasındaki perfect yazısı gold
+gelişi o panel… bu 2 şeyi çok iyi hale getirmeliyiz, bunlar sürekli
+gördüğümüz şeyler ve çok benzer kalitede olmak zorunda."*
+
+Referans videodan **59,47 fps'lik ham kareler** çıkarıldı (`ffmpeg -vsync 0`,
+592×1280). Videodaki on kutlamanın ikisi bağımsız ölçüldü ve aynı sayıları
+verdi.
+
+### 1. Logo artık HARF HARF geliyor — çünkü varlık üretildi
+
+Bu, 4., 5. ve 6. turda üç kez denenip üç kez terk edilmişti. Teşhis her
+seferinde doğruydu: logo TEK bir PNG, harfler ORTAK bir mor konturla bağlı;
+bir dilimi küçültünce ekranda harf değil KÜÇÜLTÜLMÜŞ BİR DİKDÖRTGEN
+görünüyordu. Yanlış olan son adımdı — "harf başına görsel yok" denip
+durulmuştu, oysa görsel ÜRETİLEBİLİRDİ.
+
+**`tools/slice_logo.py` (yeni)** logoyu altı parçaya bölüyor:
+
+1. Harfler renklerinden bulunuyor (çekirdek).
+2. Kalan her opak piksel EN YAKIN çekirdeğe veriliyor (Voronoi) — mor kontur
+   ve gölgeler kendiliğinden sahiplerine dağılıyor.
+3. Her parçaya kendi mor konturu geri büyütülüyor.
+4. Parçalar 2 piksel bindiriliyor.
+
+Betik sonucu SAYARAK doğruluyor: **tam opak piksellerde birleştirme farkı 0.**
+Yani altı parça üst üste konunca sonuç aslının aynısı.
+
+Üç tuzak yol boyunca çıktı ve üçü de betiğin içinde yazılı:
+- "yalnız en büyük bağlı parça" → ünlem işareti elenip "K"ya düştü.
+- halka rengini "harf olmayan en yakın piksel"den almak → tuğla "O"nun
+  halkası kendi koyu gölgesini komşusunun üstüne bastı; ekranda tuğlanın
+  solundan üçgen bir dilim kesilmiş gibi duruyordu.
+- parçaları tam bitişik koymak → ondalıklı piksel konumunda aradan siyah
+  sızdı (tek sütun 35 birim koyu).
+
+**Ölçülen zamanlama** (`WinCelebration`):
+
+| an | olay |
+|---|---|
+| 0,000 | B belirir; her harf 0 → 1,40 kat → 1 (0,38 sn) |
+| 0,105 | L (aralık her harfte aynı) |
+| 0,210 | tuğla O |
+| 0,315 | C |
+| 0,420 | K |
+| 0,525 | "OUT!" — 0 → **1,42 kat** → 1 (0,72 sn) |
+| 0,940 | konfeti + fişek başlar |
+
+"OUT!" tepe noktasında "BLOCK" satırını tamamen örtüyor; referansta da öyle.
+Kalan beş harf o sırada kıpırdamıyor (kırmızı B'nin piksel sayısı sabit).
+
+**Yakalanan hata:** tepe oranı önce 1,65 ölçülmüştü. O sayı "altın piksel
+sayısı en yüksek SATIRIN genişliği"nden geliyordu ve kelime büyüdükçe o satır
+harfin başka yerine denk düştüğü için şişiyordu. Kutu ölçülünce 1,42. Fark
+masum değildi: 1,65 ile bizim "OUT!" ekranın %103'üne çıkıp kesilecekti.
+
+Logo bittikten sonraki tüm-logo vuruşu KALDIRILDI — vurgu ikiye bölünüyordu.
+
+### 2. PERFECT kartı
+
+**Kart ölçeklenerek gelmiyor, ANINDA orada.** Referansta 313. karede yok,
+314'te tam boyunda. Canlanan şey içindekiler:
+
+| an | olay |
+|---|---|
+| 0,000 | ödül yığını **2,00 kattan** küçülür (0,135 sn) |
+| 0,151 | "PERFECT!" kartın üst kenarının altındaki bir noktadan yukarı açılır (0,25 sn) |
+| 0,252 | "Continue" 0 → 1,09 → 1 (0,27 sn) |
+| 0,639 | ödül sayısı plakası 0 → 1,24 → 1 (0,15 sn) |
+
+Başlığın dönme noktası da ÖLÇÜLDÜ: üst ve alt kenarın ayrı eğrileri
+çözülünce y = 314 çıkıyor, yani başlığın altı. Ortadan ölçeklenen bir başlık
+"belirdi" der; buradaki hareket "kart onu yukarı itti" der.
+
+### Kartta düzeltilen dört şey
+
+1. **Koyu kenar ekranda hiç görünmüyormuş.** 7. turda ölçülüp yazılan
+   18 piksellik kenar, `RefreshResult` içindeki
+   `_resultCard.color = difficultyTint` tarafından her açılışta eziliyordu ve
+   normal bölümlerde o renk tam olarak kartın yüzüyle aynıydı. Artık zorluk
+   rengi YÜZE gidiyor, kenar bantları ondan TÜRETİLİYOR (`TintCard`).
+2. **Kenar tek bant değil dört.** Ölçülen kesit: dış kenar → koyu oluk →
+   iç kenar → parlak iç çizgi → yüz.
+3. **"Level N" plakası kaldırıldı — referansta yok.** 7. turdaki ölçüm tek
+   bir yatay kesite bakmış, harflerin konturunun birleştiği satırı plaka
+   sanmıştı. Yoğun tarama boşlukları gösteriyor.
+4. **Yeşil düğme hap değil, yuvarlak köşeli dikdörtgen** — prosedürel
+   kuruldu (kenar + yüz + dip + parlaklık).
+
+### "PERFECT!" dizgisi
+
+Aynı genişliğe ölçeklenip yan yana konunca referansın harfleri belirgin daha
+uzun ve kalın çıkıyordu: **referansın yazı tipi Baloo2'den DAR.** Aynı
+yüksekliğe getirince kelime taşıyor. Çözüm: harf aralığı kısıldı (−16),
+gövde SDF ile şişirildi (`_FaceDilate` 0,12) ve kalan fark yatay ölçekle
+kapatıldı (0,70). Sonuç: genişlik %56,6 (hedef %56,2), yükseklik %7,97
+(hedef %8,05), tam ortalı.
+
+Altın artık DÜZ DEĞİL: tepede (254,211,7), dipte (250,152,0). `color` ile
+`colorGradient` TMP'de ÇARPILDIĞI için taban renk beyaza çekildi — altın
+kalsaydı geçişin açık ucu da turuncuya dönerdi.
+
+### Yıldızlar
+
+Referansta yığının çevresinde aynı anda ortalama 31 minik yıldız var ve
+sayı 4 ile 32 arasında geziniyor — yani sönüp yanıyorlar. Bizde dört tane
+büyük ve HAREKETSİZ yıldız vardı. `SparkleField` (yeni) 40 ölçülmüş konumu
+altın orandan türeyen evrelerle yakıp söndürüyor; ışın çelengi de geri geldi
+(`UiSprites.Burst` — kodda anlatılıyordu ama ekranda yoktu).
+
+Kart konfetisi KALDIRILDI: referansın kartında yok, bir önceki adımda zaten
+konfeti var. Gürültüden sonra sakin kart ödülü öne çıkarıyor.
+
+### Bordo Grand Games açılış ekranı kaldırıldı
+
+Kullanıcının isteği. `BuildStudio` silinmedi, yalnız kurulmuyor ve
+`Sequence` `_studio` null olduğunda dalı atlıyor — böylece o ekranın
+1,7 saniyesi de akıştan düşüyor (yalnız alfayı sıfırlamak, görünmez bir
+gecikme bırakırdı).
+
+### DOĞRULANMAYAN TEK ŞEY
+
+Zamanlamalar düzenleme modunda ÇALIŞMAZ (tween yok). Ölçümler referanstan,
+yerleşim ve ara kareler Unity'de yakalandı; ama akan hareketi APK'de ya da
+oynatma modunda GÖRMEK gerekiyor.
+
+---
+
 ## 2026-08-20 — SESLER BAĞLANDI
 
 Kullanıcı ham ses dosyalarını yükledi. **31 anahtarın tamamı dolu, müzik
