@@ -606,11 +606,36 @@ namespace BlockOut.Runtime.View
         /// </summary>
         public static Material FloorMaterial(BlockOut.Runtime.Config.BlockVisualConfigSO cfg)
         {
-            if (_floor != null) return _floor;
+            // ÖNBELLEK İKİ NESNE TUTUYOR VE İKİSİ AYRI ÖLEBİLİYOR.
+            //
+            // BULUNAN HATA (10. tur): Zemin bembeyaz çıkıyordu — ızgara
+            // çizgileri yerli yerinde ama hücreler beyaz. Ölçüm (oynatma
+            // modunda materyalin kendisine sorularak): materyal YAŞIYOR,
+            // shader doğru, `_BaseColor` beyaz, ama **`mainTexture` NULL**.
+            //
+            // Zeminin rengi `_BaseColor`'dan değil DOKUDAN geliyor; doku
+            // düşünce Unlit shader beyaz basıyor. Doku
+            // `HideFlags.HideAndDontSave` taşımasına rağmen düzenleyici
+            // kip geçişlerinde yok olabiliyor, materyal ise ayakta kalıyor.
+            // Kapı `_floor != null` diyordu, yani "önbellek geçerli" —
+            // oysa geçerli olması için İKİSİNİN de yaşaması gerekiyor.
+            //
+            // Kolayca gözden kaçmasının sebebi: bu bozukluk yalnız tahta
+            // düzenleyicide bir kez kurulduktan SONRA oynatmaya geçilince
+            // ortaya çıkıyor. Temiz bir açılışta hiç görünmüyor.
+            //
+            // DERS (önbellek anahtarı, önbelleğin TAMAMINI temsil etmeli):
+            // İki parçadan oluşan bir şeyi tek parçasına bakarak geçerli
+            // saymak, parçalardan biri ayrı bir ömre sahipse er geç yanlış
+            // cevap verir. Kontrol, kullanılacak olan HER alanı kapsamalı.
+            if (_floor != null && _floor.mainTexture != null) return _floor;
 
             _floor = new Material(Shader.Find("Universal Render Pipeline/Unlit"))
             {
                 name = "Floor",
+                // Materyal de dokuyla aynı ömre sahip olsun: ikisi birlikte
+                // yaşayıp birlikte ölürse yukarıdaki uyumsuzluk hiç doğmaz.
+                hideFlags = HideFlags.HideAndDontSave,
                 mainTexture = BuildFloorTexture(cfg)
             };
             _floor.SetColor("_BaseColor", Color.white);
@@ -765,9 +790,16 @@ namespace BlockOut.Runtime.View
         {
             get
             {
-                if (_shadow == null)
+                // Zemindekiyle aynı tuzak: rengi dokudan gelen bir materyal,
+                // dokusu düştüğünde sessizce beyaz olur. Kontrol ikisini de
+                // kapsıyor (bkz. FloorMaterial).
+                if (_shadow == null || _shadow.mainTexture == null)
                 {
-                    _shadow = new Material(Shader.Find("Sprites/Default")) { name = "BlobShadow" };
+                    _shadow = new Material(Shader.Find("Sprites/Default"))
+                    {
+                        name = "BlobShadow",
+                        hideFlags = HideFlags.HideAndDontSave
+                    };
                     _shadow.mainTexture = ShadowTexture;
                 }
                 return _shadow;
