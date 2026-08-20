@@ -56,7 +56,7 @@ namespace BlockOut.Runtime.View
         /// tek başına taşıyor.
         /// </summary>
         static float BarHeight => VisualSettings.Current == null ? 0.34f
-            : MatchesFrame ? BlockTop * DragScale + PlateLift
+            : MatchesFrame ? BlockTop + PlateLift
                            : VisualSettings.Current.gateBarHeight;
 
         /// <summary>
@@ -69,19 +69,18 @@ namespace BlockOut.Runtime.View
         /// <summary>
         /// Kapı plakasının blokların tepesinden ne kadar yükseği.
         ///
-        /// SÜRÜKLENEN BLOK DA HESABA KATILMALI (10. tur). Kullanıcı: "basılı
-        /// tuttuğumuzda blok kapının içine giriyor."
+        /// DURGUN blokların üstünde, TUTULAN bloğun altında.
         ///
-        /// SEBEP: Blok tutulunca <c>dragScale</c> (1,05) ile büyüyor. Tepesi
-        /// 1,05 × 1,05 = **1,1025**'e çıkıyor, kapı ise 1,07'de duruyordu —
-        /// yani tutulan blok kapının ÜSTÜNE çıkıyor ve onu örtüyordu.
-        /// Durgun blokta (1,05) sorun görünmüyordu, o yüzden sekiz turdur
-        /// fark edilmemişti.
+        /// Bir tur önce kapı tutulan bloğun da üstüne çıkarılmıştı; kullanıcı
+        /// tam tersini istedi: "blok önde gözükmeli basılı tuttuğumuzda."
+        /// Doğrusu da bu — tutulan blok oyuncunun elinde, tahtadan KALKMIŞ
+        /// durumda; onu bir kapının arkasına gömmek "kaldırdım" hissini
+        /// bozuyor.
         ///
-        /// DERS (bir nesnenin yüksekliği tek bir sayı değildir): Blok
-        /// "1,05 boyunda" diye biliniyordu ama oyunun bir hâlinde 1,1025
-        /// boyunda. Üstünde durması gereken bir şeyi hizalarken nesnenin
-        /// EN YÜKSEK hâlini almak gerekiyor, tipik hâlini değil.
+        /// Sıralama artık üç katlı ve her katın bir anlamı var:
+        ///   durgun blok (1,05) < kapı (1,07) < tutulan blok (1,15)
+        /// Yani blok tahtadayken kapının ALTINA giriyor (referanstaki gibi),
+        /// elde ise her şeyin ÜSTÜNDE.
         /// </summary>
         const float PlateLift = 0.02f;
 
@@ -234,7 +233,23 @@ namespace BlockOut.Runtime.View
             //
             // (0,02 birimlik yükseklik farkının payı 0,0035 hücre; ölçüm
             // hassasiyetinin altında, o yüzden hesaba katılmıyor.)
-            return visible + BlockInset + InnerFaceCover(model);
+            // PAY YALNIZ KUZEY KENARDA (10. tur).
+            //
+            // Kullanıcı: "alttaki kapı bir tık daha önde duruyor, duvarın
+            // başlangıcına doğru geri gitmeli, aynı hizada başlayıp aynı
+            // hizada bitmeli."
+            //
+            // ÖLÇÜM: alt kapı 897..948, çerçeve bandı 905..949 — kapı bandın
+            // 8 piksel ÜSTÜNDEN başlıyordu. 0,122 hücre × 77 = 9,4 piksel,
+            // yani payın kendisi.
+            //
+            // O pay kuzey kenarda GEREKLİ (orada duvarın iç yüzü kameraya
+            // dönük ve örtülmesi gerekiyor), diğer üç kenarda GEREKSİZ:
+            // o yüzler kameradan kaçık ya da profilden, örtülecek bir şey
+            // yok. Geriye yalnız bloğun kendi kenar payı kalıyor.
+            return model.Side == Side.North
+                ? visible + BlockInset + InnerFaceCover(model)
+                : BlockInset;
         }
 
         /// <summary>
