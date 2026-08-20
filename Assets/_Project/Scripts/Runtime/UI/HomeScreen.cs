@@ -277,7 +277,11 @@ namespace BlockOut.Runtime.UI
                 new Color(0.10f, 0.07f, 0.24f));
             UiKit.Place(_coinLabel, 0.330f, bottom + 0.003f, 0.445f, top - 0.003f);
 
-            var coinPlus = UiKit.CreateIconButton("Plus_Coin", root, UiSkin.Get(Art.Plus));
+            // ARTI ARTIK GÖRSEL DEĞİL (10. tur): `icon_plus.png` komple
+            // YUVARLAK yeşil bir düğme görseliydi, referansta ise yuvarlak
+            // KARE. Gövde reçeteden, artı da prosedürel çiziliyor.
+            var coinPlus = MenuPage.IconButton("Plus_Coin", root,
+                GameKit.UI.UiSprites.Plus, MenuPage.Green, iconInset: 0.14f);
             UiKit.Place(coinPlus, 0.457f, bottom + 0.002f, 0.511f, top - 0.002f);
             coinPlus.onClick.AddListener(() => MenuShell.Instance?.ShowStepped("store"));
 
@@ -307,7 +311,8 @@ namespace BlockOut.Runtime.UI
             _livesTimer = UiKit.CreateLabel("Status_Heart", root, "", 39, CoinInk);
             UiKit.Place(_livesTimer, 0.640f, bottom + 0.003f, 0.762f, top - 0.003f);
 
-            var lifePlus = UiKit.CreateIconButton("Plus_Heart", root, UiSkin.Get(Art.Plus));
+            var lifePlus = MenuPage.IconButton("Plus_Heart", root,
+                GameKit.UI.UiSprites.Plus, MenuPage.Green, iconInset: 0.14f);
             UiKit.Place(lifePlus, 0.772f, bottom + 0.002f, 0.827f, top - 0.002f);
             lifePlus.onClick.AddListener(() => MenuShell.Instance?.ShowStepped("store"));
 
@@ -383,26 +388,12 @@ namespace BlockOut.Runtime.UI
         static Button SquareButton(Transform root, string name, string icon,
             float x0, float x1, float y0, float y1)
         {
-            var squareSprite = UiSkin.Get(Art.ButtonSquare);
-
-            Button button;
-            Transform host;
-            if (squareSprite != null)
-            {
-                button = UiKit.CreateIconButton(name, root, squareSprite);
-                host = button.transform;
-            }
-            else
-            {
-                button = UiKit.CreateSpriteButton(name, root, UiSkin.Get(Art.PanelDark),
-                    null, 0, CoinInk);
-                if (button.targetGraphic is Image face) face.color = Periwinkle;
-                host = button.transform;
-            }
+            // Oyunun standart düğme profili, kare hâli (10. tur). Burası
+            // `btn_square.png` görselini kullanıyordu; referansta bu düğmenin
+            // de üstte parlak pahı, degradeli yüzü ve dipte koyu eteği var.
+            var button = MenuPage.IconButton(name, root, UiSkin.Get(icon), Periwinkle,
+                                             iconInset: 0.06f);
             UiKit.Place(button, x0, y0, x1, y1);
-
-            var glyph = UiKit.CreateIcon("Icon", host, UiSkin.Get(icon));
-            UiKit.Place(glyph, 0.18f, 0.18f, 0.82f, 0.82f);
             return button;
         }
 

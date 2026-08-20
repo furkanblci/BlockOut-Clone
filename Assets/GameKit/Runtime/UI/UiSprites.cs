@@ -21,6 +21,7 @@ namespace GameKit.UI
         static Sprite _roundedOutline;
         static Sprite _circle;
         static Sprite _cross;
+        static Sprite _plus;
         static Sprite _burst;
         static Sprite _speaker;
         static Sprite _musicNote;
@@ -124,6 +125,50 @@ namespace GameKit.UI
                 _circle = Sprite.Create(tex, new Rect(0, 0, Size, Size),
                     new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
                 return _circle;
+            }
+        }
+
+        /// <summary>
+        /// Kalın artı — "daha fazla al" düğmesinin içi.
+        ///
+        /// <see cref="Cross"/> ile aynı gerekçe (simge yazı değildir) ama ayrı
+        /// bir çizim: artı, çarpının 45° döndürülmüş hâli DEĞİL. Döndürünce
+        /// kolların uçları eğik kalıyor ve piksel ızgarasına oturmuyor;
+        /// eksenlere paralel çizmek her boyutta keskin duruyor.
+        /// </summary>
+        public static Sprite Plus
+        {
+            get
+            {
+                if (_plus != null) return _plus;
+
+                var tex = NewTexture("UiPlus");
+                var pixels = new Color32[Size * Size];
+
+                float half = Size * 0.5f;
+                float arm = Size * 0.30f;     // merkezden kol ucuna
+                float thick = Size * 0.115f;  // yarı kalınlık
+
+                for (int y = 0; y < Size; y++)
+                    for (int x = 0; x < Size; x++)
+                    {
+                        var p = new Vector2(x + 0.5f - half, y + 0.5f - half);
+
+                        // İki dikdörtgenin BİRLEŞİMİ = mesafelerin en KÜÇÜĞÜ.
+                        float dx = Mathf.Max(Mathf.Abs(p.x) - arm, Mathf.Abs(p.y) - thick);
+                        float dy = Mathf.Max(Mathf.Abs(p.x) - thick, Mathf.Abs(p.y) - arm);
+                        float d = Mathf.Min(dx, dy);
+
+                        float alpha = 1f - Step(-1.5f, 1.5f, d);
+                        pixels[y * Size + x] = new Color(1f, 1f, 1f, alpha);
+                    }
+
+                tex.SetPixels32(pixels);
+                tex.Apply(false, true);
+
+                _plus = Sprite.Create(tex, new Rect(0, 0, Size, Size),
+                    new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
+                return _plus;
             }
         }
 

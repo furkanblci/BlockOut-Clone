@@ -842,23 +842,32 @@ namespace BlockOut.Runtime.UI
         static Button SquareButton(Transform root, string name,
             float x0, float x1, float y0, float y1)
         {
-            var button = UiKit.CreateSpriteButton(name, root, null, null, 0, Ink);
-            UiKit.Place(button, x0, y0, x1, y1);
+            // OYUNUN STANDART DÜĞME PROFİLİ, KARE HÂLİ (10. tur).
+            //
+            // Burası iki katmandı (koyu kenar + gövde) ve degradesi yoktu;
+            // menülerin düğmeleri reçeteye geçince bu ikisi ekranın en üstünde
+            // düz birer dikdörtgen gibi kaldı.
+            //
+            // ÖLÇÜM (`hud_ref_top.png`, geri/duraklat düğmeleri): kutu
+            // 138×136, köşe yarıçapı **42** yani kısa kenarın %30,9'u —
+            // kapsül düğmenin %35,4'ünden biraz daha az yuvarlak. Dikey
+            // tarama (x=110) profilin AYNI olduğunu gösterdi: üstte parlak
+            // pah (114,94,255), kaymak (144,126,255), yüz (95,72,255) →
+            // (74,54,255) yani ×0,78 — kapsül düğmedeki FaceBottom ile aynı
+            // sayı. Dipte koyu etek (46,33,147).
+            var body = MenuPage.PillBody(name, root, HudButtonFace,
+                                         out _, out _, MenuPage.SquareCornerShare);
+            UiKit.Place(body, x0, y0, x1, y1);
 
-            if (button.targetGraphic is Image face) face.color = HudButtonEdge;
-
-            // Gövde ALT KENARDAN daha çok pay bırakıyor: koyu kenar aşağıda
-            // kalınlaşınca düğme "basılabilir bir kapak" gibi okunuyor.
-            var body = UiKit.CreateRoundedPanel("Body", button.transform, HudButtonFace);
-            body.raycastTarget = false;
-            UiKit.Place(body, 0.055f, 0.14f, 0.945f, 0.945f);
-
+            var button = body.gameObject.AddComponent<Button>();
+            button.transition = Selectable.Transition.None;
+            body.gameObject.AddComponent<GameKit.UI.UiButtonFeel>();
             return button;
         }
 
         /// REFERANS ÖLÇÜMÜ (00:12 karesi) — bkz. <see cref="SquareButton"/>.
-        static readonly Color HudButtonEdge = new Color(0.165f, 0.114f, 0.549f);  // #2A1D8C
         static readonly Color HudButtonFace = new Color(0.365f, 0.275f, 0.988f);  // #5D46FC
+
 
         /// <summary>
         /// Alt yardımcı çubuğu: çalar saat / roket / UFO.

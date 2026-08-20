@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -259,8 +259,14 @@ namespace BlockOut.Runtime.UI
                 // Referansta kartın altı ekrandan taşıyor, yani kart çubuğun
                 // İÇİNDEN çıkıyor gibi okunuyor. Görünmeyen 20 birim, kartın
                 // neye ait olduğunu anlatan şey.
+                //
+                // GENİŞLİK (10. tur): ölçüldü, kart referansta ekranın
+                // %27,3'ü (258/946), bizde %25,6 (277/1080) idi. Yayılım
+                // 1,22 slottan 1,30'a çıktı. Yüksekliği ise ölçüm doğruladı:
+                // referansta kartın üstü ekranın altından %13,5'te, bizde de
+                // öyle — 1,42 çarpanı yerinde.
                 var card = UiKit.CreateRect("Card", button.transform);
-                UiKit.Place(card, -0.11f, -0.10f, 1.11f, 1.42f);
+                UiKit.Place(card, -0.15f, -0.10f, 1.15f, 1.42f);
 
                 // KÖŞELER EŞ MERKEZLİ OLMALI (7. tur, P56). Kullanıcı:
                 // "Seçili butonun dış köşelerinde piksel bozulmaları var."
@@ -282,6 +288,29 @@ namespace BlockOut.Runtime.UI
                 // yarıçaplar zaten kutu boyuyla birlikte değişiyor.)
                 const float cardBand = 20f;                 // koyu bandın kalınlığı
                 const float cardRadius = 44.4f;             // dış köşe yarıçapı
+                // GÖLGE: kartın ARKASINDA, birkaç birim aşağıda.
+                //
+                // Kullanıcı: "güzel gölge de verelim, orijinal referanstaki
+                // gibi benzesin." Referansta seçili kart çubuğun üstünde
+                // DURUYOR gibi; bunu yapan şey altındaki koyu iz. Gölgesiz
+                // kart, çubuğa boyanmış bir leke gibi okunuyor.
+                //
+                // Ayrı bir bulanık görsel gerekmiyor: aynı yuvarlak panel,
+                // koyu ve yarı saydam, 10 birim aşağı kaydırılmış. Kartın
+                // kendisi onun üstüne oturduğu için yalnız alt kenarda ve
+                // yanlarda görünüyor.
+                var cardShadow = UiKit.CreateRoundedPanel("Shadow", card,
+                    new Color(0.055f, 0.031f, 0.192f, 0.55f));
+                UiKit.SetSliceScale(cardShadow, UiKit.SliceScaleFor(cardRadius));
+                cardShadow.raycastTarget = false;
+                // Gölge karttan 7 birim DAHA GENİŞ ve 6 birim aşağıda.
+                // Aynı boyda olsaydı kartın tamamen ARKASINDA kalırdı ve
+                // yalnız ekranın dışına taşan alt kenarında görünürdü —
+                // yani hiç görünmezdi. Gölgeyi gölge yapan şey, kaynağının
+                // dışına taşan kısmı.
+                UiKit.Place(cardShadow, 0f, 0f, 1f, 1f, padding: -7f);
+                cardShadow.rectTransform.anchoredPosition += new Vector2(0f, -6f);
+
                 var cardRim = UiKit.CreateRoundedPanel("Rim", card,
                     new Color(0.161f, 0.106f, 0.549f));
                 UiKit.SetSliceScale(cardRim, UiKit.SliceScaleFor(cardRadius));
@@ -296,16 +325,46 @@ namespace BlockOut.Runtime.UI
                 // (946 genişlikte), yani bizim tuvalde ~20 birim.
                 UiKit.Place(cardFace, 0f, 0f, 1f, 1f, padding: cardBand);
 
+                // BOZUK KÖŞENİN GERÇEK SEBEBİ BU KATMANDI (8. tur).
+                //
+                // Kullanıcı, altı turdur: "seçili butonun köşeleri bozuk."
+                // 7. turda kartın DIŞ ve İÇ yüzeyinin yarıçapları eş merkezli
+                // hâle getirildi — o düzeltme doğruydu ama sorun orada
+                // değildi. Ekrandan ölçünce görüldü ki köşeyi kesen şey
+                // üstteki ışık katmanı:
+                //
+                //   Face  : yuvarlak, ppuM 0,53 → köşe ~75 birim
+                //   Sheen : `FadeDown`, KENARLIKSIZ bir gradyan
+                //
+                // Kenarlığı olmayan bir sprite `Sliced` çizilince dokuz dilim
+                // diye bir şey kalmıyor; düpedüz gerilmiş bir dikdörtgen
+                // oluyor. Yani yuvarlak kartın üstüne KARE köşeli bir ışık
+                // konuyor ve köşelerde kartın dışına taşıyordu.
+                //
+                // Çözüm ışığı küçültmek değil, KARTIN ŞEKLİNE KIRPMAK: yüz
+                // bir `Mask` oluyor ve çocukları kendi alfasına göre kesiyor.
+                // Yuvarlak köşe artık ışığı da kesiyor, üstelik ileride yüze
+                // eklenecek her şey de kendiliğinden doğru kırpılacak.
+                //
+                // DERS (yanlış katmanı düzeltmek, doğru düzeltme değildir):
+                // Yarıçapları eşitlemek mantıklıydı, ölçüm de tutarlıydı —
+                // ama ekranda görünen kusur başka bir katmandan geliyordu.
+                // Bir kusuru altı tur boyunca kovalıyorsan, düzelttiğin şeyin
+                // GERÇEKTEN o kusur olduğunu ekrandan doğrulamak gerekiyor.
+                var faceMask = cardFace.gameObject.AddComponent<Mask>();
+                faceMask.showMaskGraphic = true;
+
                 // Üstte toplanan ışık — kartı düz bir dikdörtgen olmaktan
                 // çıkaran tek şey. `FadeDown` altta opak olduğu için ters
-                // çevriliyor.
+                // çevriliyor. Artık yüzün maskesi tarafından kırpılıyor,
+                // bu yüzden kartın kenarına kadar uzanabiliyor.
                 var cardSheen = UiKit.CreateRect("Sheen", cardFace.transform);
                 var cardSheenImage = cardSheen.gameObject.AddComponent<Image>();
                 cardSheenImage.sprite = MenuSprites.FadeDown;
                 cardSheenImage.type = Image.Type.Sliced;
                 cardSheenImage.color = new Color(0.573f, 0.553f, 1f, 0.85f);
                 cardSheenImage.raycastTarget = false;
-                UiKit.Place(cardSheen, 0.04f, 0.52f, 0.96f, 0.985f);
+                UiKit.Place(cardSheen, 0f, 0.50f, 1f, 1f);
                 cardSheen.localRotation = Quaternion.Euler(0f, 0f, 180f);
 
                 // Görünmez ama dokunulabilir yüzey: sekmenin tamamı tıklanabilsin.
@@ -372,7 +431,16 @@ namespace BlockOut.Runtime.UI
         static readonly Color BarColor = new Color(0.318f, 0.251f, 0.894f);
 
         /// <summary>Sekmeler arasındaki ince dikey ayraç — referansta var.</summary>
-        static readonly Color DividerColor = new Color(1f, 1f, 1f, 0.13f);
+        /// <summary>
+        /// Sekmeler arasındaki dikey çizgi.
+        ///
+        /// Kullanıcı: "o aralıklı çizgiler de daha koyu olsun, renk olarak
+        /// koyu mor olsun, bizde açık ya." Beyaz-üstüne-alfa olduğu için
+        /// çizgi çubuğun morunu AÇIYORDU; referansta çizgi zeminden koyu,
+        /// yani oyulmuş gibi duruyor. Renk kartın koyu bandından alındı
+        /// (#291B8C) ve alfası düşürüldü.
+        /// </summary>
+        static readonly Color DividerColor = new Color(0.161f, 0.106f, 0.549f, 0.75f);
 
         /// <summary>
         /// Sekmeyi değiştirir. ZATEN AÇIK olan sekmeye basmak hiçbir şey yapmaz.
@@ -494,9 +562,25 @@ namespace BlockOut.Runtime.UI
                 // doğru göründü; oysa ikon KARTIN kutusunda ortalanmalıydı,
                 // düğmenin kutusunda değil. Referans ölçüldüğünde ikonun
                 // merkezi kart yüksekliğinin ortasına denk geliyor.
+                // SEÇİLİ OLMAYAN İKONLAR BÜYÜDÜ (10. tur).
+                //
+                // ÖLÇÜM (`ana ekran.jpeg` ve bizim yakalamamız, ikon
+                // yüksekliği ÇUBUK yüksekliğine oranla):
+                //   referans mağaza 124/211 = %58,8 · küre 112/211 = %53,1
+                //   bizim ikisi de   87/199 = %43,7
+                // Yani ikonlarımız dörtte bir küçüktü ve çubuk boş
+                // görünüyordu. Seçili ikon ise ölçüldü ve ZATEN doğruydu
+                // (referans 0,417-1,199 · bizim 0,42-1,19 düğme biriminde),
+                // o yüzden ona dokunulmadı.
+                //
+                // DERS (bir ekranın "boş" görünmesi çoğu zaman boşluk değil,
+                // KÜÇÜKLÜK sorunudur): Buradaki ilk içgüdü çubuğu inceltmek
+                // olurdu; ölçüm ise çubuğun doğru, içindekilerin küçük
+                // olduğunu söyledi. İkisi aynı görüntüyü verir ama biri
+                // referanstan uzaklaştırırdı.
                 if (icon != null)
-                    UiKit.Place(icon, selected ? 0.06f : 0.18f, selected ? 0.42f : 0.40f,
-                                      selected ? 0.94f : 0.82f, selected ? 1.19f : 0.88f);
+                    UiKit.Place(icon, selected ? 0.06f : 0.12f, selected ? 0.42f : 0.25f,
+                                      selected ? 0.94f : 0.88f, selected ? 1.19f : 0.90f);
 
                 if (caption != null) caption.gameObject.SetActive(selected);
 

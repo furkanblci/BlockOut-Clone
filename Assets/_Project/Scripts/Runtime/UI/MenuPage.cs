@@ -369,9 +369,15 @@ namespace BlockOut.Runtime.UI
         /// profili tek yerde kalıyor ve "ana ekranın düğmesi menülerinkine
         /// benzemiyor" diye bir geri bildirim bir daha gelemiyor.
         /// </summary>
+        /// <param name="cornerShare">
+        /// Köşe yarıçapının kısa kenara oranı. Varsayılan kapsül düğmenin
+        /// ölçüsü (%35,4); HUD'un kare düğmeleri referansta biraz daha az
+        /// yuvarlak — ÖLÇÜM: 138×136 düğmede yarıçap 42, yani %30,9.
+        /// </param>
         public static RectTransform PillBody(string name, Transform parent, Color color,
                                              out GameKit.UI.UiRingLayout layout,
-                                             out PillTint tint)
+                                             out PillTint tint,
+                                             float cornerShare = ButtonCornerShare)
         {
             var root = UiKit.CreateRect(name, parent);
             layout = root.gameObject.AddComponent<GameKit.UI.UiRingLayout>();
@@ -380,21 +386,24 @@ namespace BlockOut.Runtime.UI
             // Dokunmayı da bu yakalıyor: en dıştaki katman, tıklanabilir
             // alanın gerçek sınırı.
             var outline = UiKit.CreateRoundedPanel("Outline", root,
-                Darken(color, OutlineTone), ButtonCornerShare, NoRadiusCap);
+                Darken(color, OutlineTone), cornerShare, NoRadiusCap);
             UiKit.Place(outline, 0f, 0f, 1f, 1f);
             outline.raycastTarget = true;
 
             // 2) KABUK — üstte ışık, dipte etek. Tek katman, tek geçiş.
-            var shell = Ring("Shell", root, layout, ShellInset, 0.346f);
+            var shell = Ring("Shell", root, layout, ShellInset,
+                             Concentric(cornerShare, ShellInset));
             var shellTint = Tint(shell, Brighten(color, ShellTop), Darken(color, ShellBottom));
 
             // 3) KAYMAK — yüzün üst kenarındaki açık çizgi.
-            var rim = Ring("Rim", root, layout, RimInset, 0.305f);
+            var rim = Ring("Rim", root, layout, RimInset,
+                           Concentric(cornerShare, RimInset));
             var rimTint = Tint(rim, Color.Lerp(color, Color.white, 0.5f),
                                Darken(color, RimBottom));
 
             // 4) YÜZ.
-            var face = Ring("Face", root, layout, FaceInset, 0.285f);
+            var face = Ring("Face", root, layout, FaceInset,
+                            Concentric(cornerShare, FaceInset));
             var faceTint = Tint(face, color, Darken(color, FaceBottom));
 
             tint = root.gameObject.AddComponent<PillTint>();
@@ -407,6 +416,63 @@ namespace BlockOut.Runtime.UI
         /// ölçülmüştü; düğmede oran %35'e çıkıyor ve tavan onu kırpıyordu.
         /// </summary>
         const float NoRadiusCap = 9999f;
+
+        /// <summary>
+        /// İÇ KATMANIN KÖŞE ORANI — eş merkezli köşe kuralı.
+        ///
+        /// İki yüzeyin köşesi eş merkezli olsun istiyorsan iç yarıçap, dış
+        /// yarıçaptan payı KADAR küçük olmalı. Ama <see cref="UiCornerFit"/>
+        /// oranı kutunun KENDİ kısa kenarına uyguluyor ve iç katmanın kısa
+        /// kenarı da iki pay kadar kısalmış oluyor; ikisini birden hesaba
+        /// katmak gerekiyor.
+        ///
+        /// Bu üç sayı eskiden elle yazılmıştı (0,346 · 0,305 · 0,285). Doğru
+        /// oldukları sürece sorun yoktu — ta ki HUD düğmeleri için farklı bir
+        /// dış oran (%31) gerekene kadar. Elle yazılmış bir sayı, türetilmesi
+        /// gereken bir şeyin yerine geçtiğinde ikinci kullanımda sessizce
+        /// yanlış olur.
+        /// </summary>
+        static float Concentric(float outerShare, float inset) =>
+            (outerShare - inset) / (1f - 2f * inset);
+
+        /// <summary>
+        /// KARE düğmelerin köşe oranı. ÖLÇÜM (`hud_ref_top.png`, geri ve
+        /// duraklat düğmeleri): 138×136 kutuda yarıçap 42 — kapsül düğmenin
+        /// %35,4'ünden biraz daha az yuvarlak. Üst bardaki "+" ve dişli
+        /// düğmeleri de aynı aileden.
+        /// </summary>
+        public const float SquareCornerShare = 0.309f;
+
+        /// <summary>
+        /// Yazı yerine SİMGE taşıyan kare düğme. Gövde kapsül düğmeyle aynı
+        /// reçeteden; tek fark köşe oranı ve içine yazı değil ikon girmesi.
+        ///
+        /// ÖLÇÜM (referans üst barı): yeşil "+" düğmesinin profili
+        /// düğmeninkiyle aynı — koyu kontur (11,70,14), parlak kaymak
+        /// (174,255,94), yüz (63,218,16) → dipte koyu etek (6,55,10). Dişli
+        /// düğmesi de öyle, yalnız rengi mor.
+        ///
+        /// DERS (simgeli düğme de bir düğmedir): Bu ikisi uzun süre "ikon"
+        /// sayılıp hazır PNG'lerle kuruldu — biri komple yuvarlak yeşil bir
+        /// düğme görseliydi, oysa referansta yuvarlak KARE. Bir kontrolün
+        /// içinde yazı yerine simge olması, onu düğme ailesinden çıkarmıyor.
+        /// </summary>
+        public static Button IconButton(string name, Transform parent, Sprite icon,
+                                        Color color, Color? iconTint = null,
+                                        float iconInset = 0.08f)
+        {
+            var body = PillBody(name, parent, color, out _, out _, SquareCornerShare);
+
+            var glyph = UiKit.CreateIcon("Icon", body.Find("Face"), icon,
+                                         iconTint ?? Color.white);
+            glyph.raycastTarget = false;
+            UiKit.Place(glyph, iconInset, iconInset, 1f - iconInset, 1f - iconInset);
+
+            var button = body.gameObject.AddComponent<Button>();
+            button.transition = Selectable.Transition.None;
+            body.gameObject.AddComponent<GameKit.UI.UiButtonFeel>();
+            return button;
+        }
 
         /// <summary>Dört kenardan eşit pay alan, beyaz (yani boyanmaya hazır) halka.</summary>
         static Image Ring(string name, RectTransform parent, GameKit.UI.UiRingLayout layout,

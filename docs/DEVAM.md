@@ -8,6 +8,88 @@ Bu dosya her oturum sonunda güncellenir. Aşağısı 2026-08-10 itibarıyla ge�
 
 ---
 
+## 2026-08-20 (11) — SON KALANLAR: HUD, ÜST BAR, SEKME ÇUBUĞU, İLERLEME ÇUBUĞU
+
+Kullanıcının listesi: Restore Purchases, Journey'nin oynat düğmeleri,
+oyun içi düğmeler, reklam ekranının çubuğu, alt menü — ve ayrıca üst
+bardaki yeşil "+" ile dişli.
+
+### Reçeteye geçenler
+
+| yer | önce | sonra |
+|-----|------|-------|
+| `StoreScreen` Restore Purchases | kendi 2 katmanı | reçete |
+| `JourneyScreen` Play (×5 bölge) | kendi 2 katmanı | reçete |
+| `GameplayScreen` HUD geri/duraklat | kendi 2 katmanı, degradesiz | reçete, kare |
+| Üst bar yeşil "+" (×2) | komple YUVARLAK PNG | reçete, kare |
+| Üst bar dişli | `btn_square.png` | reçete, kare |
+
+**Kare düğmelerin köşe oranı ölçüldü** (`hud_ref_top.png`): 138×136
+kutuda yarıçap **42**, yani %30,9 — kapsül düğmenin %35,4'ünden biraz
+daha az yuvarlak. Dikey tarama profilin AYNI olduğunu gösterdi: pah
+(114,94,255), kaymak (144,126,255), yüz (95,72,255) → (74,54,255) yani
+**×0,78 — kapsül düğmedeki `FaceBottom` ile birebir aynı sayı**.
+
+`icon_plus.png` komple yuvarlak yeşil bir düğme görseliydi, referansta
+ise yuvarlak KARE. Artı artık `UiSprites.Plus` ile prosedürel çiziliyor;
+çarpının 45° döndürülmüşü DEĞİL, ayrı bir çizim (döndürülen kolların
+uçları eğik kalıp ızgaraya oturmuyor).
+
+### İlerleme çubuğu
+
+Dolgu `Image.Type.Filled` ile kırpılıyordu. Kırpma görüntüyü DÜZ BİR
+ÇİZGİYLE kesiyor: yuvarlak uçlu dokunun sağ ucu her karede kare çıkıyor,
+üstelik dokunun sol köşesi çubuğun tamamına gerildiği için solda ikinci
+bir açık blok beliriyordu — kullanıcının gönderdiği görüntüde ikisi de
+görünüyor. Artık dolgu KIRPILMIYOR, GENİŞLİYOR.
+
+**DERS (dolgu kırpmak değil, büyütmektir):** Bir ilerleme çubuğunun
+dolgusu, uçları yuvarlak kalması gereken bir NESNEDİR.
+
+### Sekme çubuğu — ölçüm neyi düzeltmek gerektiğini söyledi
+
+İlk içgüdü "kart küçük, çubuk kalın" idi. Ölçüm başka şey dedi:
+
+| ölçü | referans | önce | sonra |
+|------|----------|------|-------|
+| ikon boyu / çubuk | 0,588 · 0,531 | **0,437** | 0,593 |
+| kart genişliği / ekran | 0,273 | 0,256 | 0,272 |
+| kartın çubuk üstünde kalan payı | 0,313 | 0,301 | değişmedi |
+| seçili ikon (düğme birimi) | 0,417–1,199 | 0,42–1,19 | değişmedi |
+
+Yani kart ve yükseklik ZATEN doğruydu (7. turun ölçümü yerindeydi);
+çubuk boş görünüyordu çünkü **ikonlar dörtte bir küçüktü**.
+
+**DERS (bir ekranın "boş" görünmesi çoğu zaman boşluk değil KÜÇÜKLÜK
+sorunudur):** Çubuğu inceltmek de aynı görüntüyü verirdi ama referanstan
+uzaklaştırırdı.
+
+### Eş merkezli köşe artık TÜRETİLİYOR
+
+İç katmanların köşe oranları elle yazılmıştı (0,346 · 0,305 · 0,285).
+Doğru oldukları sürece sorun yoktu — ta ki kare düğmeler için farklı bir
+dış oran (%30,9) gerekene kadar. `Concentric(dış, pay)` formülü elle
+yazılan üç sayıyı da yeniden üretiyor (0,344 · 0,296 · 0,285).
+
+**DERS:** Elle yazılmış bir sayı, türetilmesi gereken bir şeyin yerine
+geçtiğinde ikinci kullanımda sessizce yanlış olur.
+
+### Doğrulama
+
+Oynatma modunda: üst bar ("+" ve dişli), HUD (geri/duraklat), sekme
+çubuğu (ölçüldü: ikon 0,593 · kart 0,272), reklam çubuğu (yuvarlak uçlu,
+kırpılmamış). Journey düğmeleri yapı olarak ölçüldü: kutu 280×96,
+yarıçap/boy **0,354**, paylar 0,033 · 0,142 · 0,160 — hepsi birebir.
+
+### TUZAK TEKRARLADI
+
+Yenile → hemen oynatmaya geç → yakala dizisi yine BAYAT kare verdi:
+sekme ikonları ölçümde 87 piksel çıktı, oysa kod 118 diyordu. Sahnedeki
+`RectTransform`'u loglayınca 164×118,6 göründü. Ekran görüntüsü
+gecikebilir, SAYI gecikmez — şüphede kalınca kutuyu logla.
+
+---
+
 ## 2026-08-20 (10) — DÜĞME TURU KAPANDI: HEPSİ GÖZLE DOĞRULANDI
 
 8. ve 9. turda "gözle doğrulanmadı" diye bırakılan her ekran oynatma

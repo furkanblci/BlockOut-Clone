@@ -1059,22 +1059,10 @@ namespace BlockOut.Runtime.UI
         {
             var row = Row("Restore", content, top, RestoreH, 0.24f, 0.76f);
 
-            var shadow = Capsule("Shadow", row, Darken(RestoreBlue, 0.62f));
-            UiKit.Place(shadow, 0f, 0f, 1f, 1f);
-
-            var face = Capsule("Face", row, RestoreBlue);
-            UiKit.Place(face, 0.01f, 0.14f, 0.99f, 1f);
-
-            var label = UiKit.CreateLabel("Label", face.transform,
-                "Restore Purchases", 36, new Color(1f, 0.99f, 0.96f));
-            label.fontStyle = FontStyles.Bold;
-            UiKit.Place(label, 0.04f, 0.05f, 0.96f, 0.95f);
-
-            // `Capsule` yardımcısı süs amaçlı olduğu için raycast'i KAPALI
-            // üretiyor; bu düğme de onu hedef grafik olarak kullandığı için
-            // dokunuş hiç ulaşmıyordu. `MakeClickable` raycast'i açmayı
-            // unutulamaz hâle getiriyor (bkz. UiKit'teki ders).
-            UiKit.MakeClickable(row.gameObject, shadow, () =>
+            var button = MenuPage.PillButton("Button", row, "Restore Purchases",
+                                             RestoreBlue, 36, null);
+            UiKit.Place(button, 0f, 0f, 1f, 1f);
+            button.onClick.AddListener(() =>
             {
                 Toast("Checking purchases…");
                 PurchaseService.Instance.Restore(Toast);

@@ -50,6 +50,29 @@ namespace BlockOut.Runtime.Services
         Button _skip;
         Image _progressFill;
 
+        /// <summary>Yuvanın içi ve dolgunun tabanı.</summary>
+        static readonly Color TrackDark = new Color(0.129f, 0.110f, 0.325f);
+        static readonly Color FillGreen = new Color(0.220f, 0.843f, 0.078f);
+
+        /// <summary>
+        /// Dolgunun genişliğini yuvanın oranına göre kurar. Kırpma yok:
+        /// dolgu her zaman iki ucu yuvarlak bir nesne.
+        /// </summary>
+        void SetProgress(float amount)
+        {
+            if (_progressFill == null) return;
+            var fill = _progressFill.rectTransform;
+            if (fill.parent is not RectTransform track) return;
+
+            float inner = Mathf.Max(0f, track.rect.width - 8f);
+            float height = Mathf.Max(1f, track.rect.height - 8f);
+
+            // Uçları yuvarlak olduğu için dolgu YÜKSEKLİĞİNDEN kısa olamaz;
+            // sıfırda bile bir nokta kalır, bu da "başladı" demektir.
+            float width = Mathf.Lerp(height, inner, Mathf.Clamp01(amount));
+            fill.sizeDelta = new Vector2(width, fill.sizeDelta.y);
+        }
+
         readonly StringBuilder _scratch = new StringBuilder(24);
         Action<RewardedResult> _pending;
         bool _showing;
@@ -92,7 +115,7 @@ namespace BlockOut.Runtime.Services
                 elapsed += Time.unscaledDeltaTime;
                 int left = Mathf.CeilToInt(WatchSeconds - elapsed);
                 _countdown.text = _scratch.Clear().Append(left).Append(" sn").ToString();
-                _progressFill.fillAmount = Mathf.Clamp01(elapsed / WatchSeconds);
+                SetProgress(elapsed / WatchSeconds);
 
                 if (elapsed >= SkipAppearsAfter && !_skip.gameObject.activeSelf)
                     _skip.gameObject.SetActive(true);
@@ -155,18 +178,36 @@ namespace BlockOut.Runtime.Services
             UiKit.Place(body, 0.08f, 0.31f, 0.92f, 0.40f);
             body.textWrappingMode = TextWrappingModes.Normal;
 
-            // İlerleme çubuğu
-            var track = UiKit.CreateSlicedPanel("Track", _root,
-                UI.UiSkin.Get(UI.Art.PanelDark));
+            // İLERLEME ÇUBUĞU (10. tur).
+            //
+            // Eskiden dolgu `Image.Type.Filled` ile kırpılıyordu. Kırpma
+            // görüntüyü DÜZ BİR ÇİZGİYLE kesiyor: yuvarlak uçlu bir dokunun
+            // sağ ucu her karede kare çıkıyor, üstelik dokunun sol köşesi
+            // çubuğun tamamına gerildiği için solda ikinci bir açık blok
+            // beliriyordu. Kullanıcının gönderdiği görüntüde ikisi de var.
+            //
+            // DERS (dolgu KIRPMAK DEĞİL, BÜYÜTMEKTİR): Bir ilerleme çubuğunun
+            // dolgusu, uçları yuvarlak kalması gereken bir NESNEDİR. Onu
+            // maskeyle kesmek yerine genişliğini değiştirmek hem doğru
+            // görünüyor hem de tek satır.
+            var track = UiKit.CreateRoundedPanel("Track", _root, TrackDark, 0.5f);
             UiKit.Place(track, 0.12f, 0.22f, 0.88f, 0.26f);
 
-            _progressFill = UiKit.CreateSlicedPanel("Fill", track.transform,
-                UI.UiSkin.Get(UI.Art.PanelCard), new Color(0.30f, 0.88f, 0.36f));
-            UiKit.Place(_progressFill, 0.01f, 0.12f, 0.99f, 0.88f);
-            _progressFill.type = Image.Type.Filled;
-            _progressFill.fillMethod = Image.FillMethod.Horizontal;
-            _progressFill.fillOrigin = 0;
-            _progressFill.fillAmount = 0f;
+            _progressFill = UiKit.CreateRoundedPanel("Fill", track.transform,
+                                                     Color.white, 0.5f);
+            _progressFill.raycastTarget = false;
+            // Oyunun her yerindeki ışık profili: üstte parlak, dipte koyu.
+            _progressFill.gameObject.AddComponent<GameKit.UI.UiVerticalTint>()
+                .Set(UI.MenuPage.Brighten(FillGreen, 1.19f),
+                     UI.MenuPage.Darken(FillGreen, 0.78f));
+
+            var fill = _progressFill.rectTransform;
+            fill.anchorMin = new Vector2(0f, 0f);
+            fill.anchorMax = new Vector2(0f, 1f);
+            fill.pivot = new Vector2(0f, 0.5f);
+            fill.offsetMin = new Vector2(4f, 4f);
+            fill.offsetMax = new Vector2(4f, -4f);
+            SetProgress(0f);
 
             _countdown = UiKit.CreateTitle("Countdown", _root, "", 34,
                 UiKit.Ink, new Color(0.12f, 0.09f, 0.30f));

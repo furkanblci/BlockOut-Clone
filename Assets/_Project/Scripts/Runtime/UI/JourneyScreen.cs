@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using BlockOut.Runtime.Services;
 using TMPro;
 using UnityEngine;
@@ -580,15 +580,13 @@ namespace BlockOut.Runtime.UI
             var action = UiKit.CreateRect($"Action_{region.from}", _content);
             Anchor(action, 0f, y - DiscSize * 0.5f + 168f, 280f, 96f);
 
-            var shadow = MenuCapsule("Shadow", action, Darken(ActionGreen, 0.58f));
-            UiKit.Place(shadow, 0f, 0f, 1f, 1f);
-
-            view.Action = MenuCapsule("Face", action, ActionGreen);
-            UiKit.Place(view.Action, 0.02f, 0.16f, 0.98f, 1f);
-
-            view.ActionLabel = UiKit.CreateTitle("Label", view.Action.transform, "", 34,
-                UiKit.Ink, new Color(0.05f, 0.26f, 0.03f));
-            UiKit.Place(view.ActionLabel, 0.06f, 0.06f, 0.94f, 0.94f);
+            // Oyunun standart düğmesi (8-10. tur). Burası da kendi iki
+            // katmanını kuruyordu — koyu kopya + yüz — yani ekranda başka
+            // hiçbir yeşil düğmeye benzemiyordu.
+            var pill = MenuPage.PillButton("Button", action, "", ActionGreen, 34, null);
+            UiKit.Place(pill, 0f, 0f, 1f, 1f);
+            view.Action = pill.transform.Find("Face").GetComponent<Image>();
+            view.ActionLabel = pill.GetComponentInChildren<TMPro.TextMeshProUGUI>();
 
             // Tamamlanmış bölgede yazı yerine tik duruyor (referans: "Görev
             // Hazırlığı" karesi).
@@ -618,7 +616,7 @@ namespace BlockOut.Runtime.UI
             // düğme gerçekte HÂLÂ basılamıyordu. Doğrulama yöntemi hatayı
             // görmeyi imkânsız kılmıştı.
             int from = region.from, to = region.to;
-            UiKit.MakeClickable(action.gameObject, shadow, () => PlayRegion(from, to));
+            pill.onClick.AddListener(() => PlayRegion(from, to));
 
             view.ActionRoot = action;
             _regions.Add(view);
