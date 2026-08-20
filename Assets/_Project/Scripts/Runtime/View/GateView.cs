@@ -41,8 +41,25 @@ namespace BlockOut.Runtime.View
         /// tek başına taşıyor.
         /// </summary>
         static float BarHeight => VisualSettings.Current == null ? 0.34f
-            : MatchesFrame ? VisualSettings.Current.frameHeight + 0.02f
+            : MatchesFrame ? BlockTop + PlateLift
                            : VisualSettings.Current.gateBarHeight;
+
+        /// <summary>
+        /// Blokların EN TEPESİ: gövde + çıtçıt. Ölçüldü (14. bölüm, gerçek
+        /// mesh sınırları): 0,80 + 0,25 = 1,05.
+        /// </summary>
+        static float BlockTop => VisualSettings.Current == null ? 0.515f
+            : VisualSettings.Current.brickHeight + VisualSettings.Current.studHeight;
+
+        /// <summary>Kapı plakasının blokların tepesinden ne kadar yükseği.</summary>
+        const float PlateLift = 0.02f;
+
+        /// <summary>
+        /// Blok kenarının hücre sınırından içeri payı — kapının bloğu ne kadar
+        /// örttüğü buna göre hesaplanıyor.
+        /// </summary>
+        static float BlockInset => VisualSettings.Current == null ? 0.055f
+            : VisualSettings.Current.brickInset;
 
         /// <summary>
         /// Barın kenara dik derinliği — çerçeve bandından KIL PAYI dar.
@@ -113,9 +130,39 @@ namespace BlockOut.Runtime.View
         /// ekranın kendisi. Bu tür bir kusuru sayı hesabıyla değil, ancak
         /// KAREYİ ÖLÇEREK bulabilirsin.
         ///
-        /// PAY KENARA GÖRE DEĞİŞİR — 7. turun düzeltmesi (kullanıcı: "alttaki
-        /// kapıların üstüne blok gelince bloğun bir kısmı kapının üstünde
-        /// kalıyor, bu KRİTİK, önceden yoktu").
+        /// KÖK SEBEP 8. TURDA BULUNDU — PAY DEĞİL, YÜKSEKLİK.
+        ///
+        /// Kullanıcı: "üst kısımdaki kapı kırmızı bloğun üstünde kalmış,
+        /// böyle şeyler hiçbir levelde olmamalı."
+        ///
+        /// ÖLÇÜM (14. bölüm, gerçek mesh sınırları):
+        ///   kapı plakası   y 0,820 … 0,824   (frameHeight + 0,02)
+        ///   blok gövdesi   y 0 … 0,800
+        ///   blok çıtçıtları        … 1,050
+        ///
+        /// Yani plaka, bloğun GÖVDESİ ile ÇITÇITLARININ ARASINDA kalıyordu.
+        /// Komşu bloğun çıtçıtları plakanın üstüne taşıyor ve kapının iç
+        /// kenarını örtüyordu; ekranda kapı kısalmış, blok da doğrudan
+        /// kapıya girmiş gibi görünüyordu (araya çerçeve şeridi girmiyordu).
+        ///
+        /// Bu, alt/üst kapılarda ayrı ayrı denenen bütün pay değerlerinin
+        /// neden yalnız bir kenarı düzelttiğini de açıklıyor: sorun payda
+        /// değil, iki yüzeyin FARKLI YÜKSEKLİKTE olmasındaydı. Farklı
+        /// yükseklikteki iki yüzey paralakstan farklı etkileniyor, yani
+        /// aralarındaki mesafe kenara göre değişiyor.
+        ///
+        /// Plaka blokların tepesine çıkarılınca ikisi aynı kadar kayıyor,
+        /// pay dört kenarda da aynı olabiliyor ve kapı her zaman bloğun
+        /// ÜSTÜNDE çiziliyor — referanstaki gibi, blok kapının altına
+        /// giriyor.
+        ///
+        /// DERS (bir kusuru dört kez düzeltiyorsan, düzelttiğin şey kusur
+        /// değildir): Pay üç turda üç kez değiştirildi ve her seferinde
+        /// bir kenar düzelip öteki bozuldu. Kenara göre değişen bir
+        /// düzeltmeye ihtiyaç duyman, ölçtüğün büyüklüğün yanlış olduğunun
+        /// işareti.
+        ///
+        /// --- 7. turun (artık geçersiz) gerekçesi aşağıda ---
         ///
         /// BULUNAN HATA: Yukarıdaki hesap doğruydu ama YALNIZ ÜST kenar için.
         /// Paralaks her zaman KUZEYE (yukarı) kaydırıyor; "içeri" yönü ise
@@ -144,11 +191,15 @@ namespace BlockOut.Runtime.View
         {
             // Referansta kapı oyun alanına hücrenin %9'u kadar taşıyor.
             const float visible = 0.09f;
-            if (!model.EdgeHorizontal) return visible;
 
-            float skew = BarHeight * CameraSkew;
-            // OutwardSign −1 = ÜST kenar (dışarısı kuzey), +1 = ALT kenar.
-            return model.OutwardSign < 0f ? visible + skew : visible - skew;
+            // Pay artık kenara göre DEĞİŞMİYOR — çünkü plaka blokla aynı
+            // yükseklikte. İki yüzey aynı yükseklikteyse paralaks ikisini de
+            // aynı kadar kaydırıyor, yani aradaki mesafe ekranda da aynı
+            // kalıyor. Kalan tek düzeltme bloğun kendi kenar payı.
+            //
+            // (0,02 birimlik yükseklik farkının payı 0,0035 hücre; ölçüm
+            // hassasiyetinin altında, o yüzden hesaba katılmıyor.)
+            return visible + BlockInset;
         }
 
         /// <summary>
@@ -235,6 +286,53 @@ namespace BlockOut.Runtime.View
             go.AddComponent<MeshFilter>().sharedMesh =
                 BuildBarMesh(alongX, alongZ, BarHeight, outwardDir);
             go.AddComponent<MeshRenderer>();
+
+            // PARALAKS TELAFİSİ — TEK YERDE, TEK YÖNDE (9. tur).
+            //
+            // Kapı plakası blokların tepesinde, y = 1,07'de duruyor. Kamera
+            // dikeyden 10° eğik olduğu için yerden `h` yükseklikteki bir yüzey
+            // ekranda `h · tan(10°)` kadar KUZEYE kaymış görünür — bizim
+            // plakada 1,07 × 0,1763 = **0,189 hücre**.
+            //
+            // ÖLÇÜM (`level_003` gerçek mesh sınırları): kapının dünya
+            // koordinatındaki iç kenarı z=3,378, yani oyun alanının 0,122
+            // İÇİNDE. Ekranda ise 0,18 hücre DIŞINDA görünüyordu. Aradaki
+            // 0,3 hücrenin tamamı bu kayma.
+            //
+            // DERS (bir kusuru dört kez düzeltiyorsan, düzelttiğin şey kusur
+            // değildir — bu dosyanın kendi notu): Önceki üç tur bunu
+            // `InwardOverhang`'i kenara göre büyütüp küçülterek kapatmaya
+            // çalıştı ve her seferinde bir kenar düzelip öteki bozuldu.
+            // Sebebi şu: kayma DÜNYADA her kenarda aynı yöne (+z) oluyor,
+            // ama "içeri" yönü üst kenarda −z, alt kenarda +z. Payla telafi
+            // etmek, tek bir çevirmeyi iki ayrı işaretle taklit etmeye
+            // çalışmak demekti. Doğrusu kaymayı olduğu yerde, yani KONUMDA
+            // ve tek yönde geri almak.
+            //
+            // TELAFİ KAPININ TAM YÜKSEKLİĞİ DEĞİL, ÇERÇEVEYLE ARASINDAKİ FARK.
+            //
+            // İlk deneme `BarHeight × skew` (0,189) kullandı ve üst kapıyı
+            // düzeltirken alt kapıları çerçevenin dışına taşırdı — yani üç
+            // turdur yaşanan "birini düzelt, öbürünü boz" tam olarak
+            // tekrarlandı. Sebebi: ÇERÇEVE DE kayıyor. Kapı çerçeveye göre
+            // hizalanacaksa telafi edilmesi gereken şey mutlak kayma değil,
+            // İKİSİ ARASINDAKİ FARK:
+            //
+            //   (1,07 − 0,80) × 0,1763 = 0,048 hücre
+            //
+            // Bu değer iki kenarda da doğru sonuç veriyor, çünkü hem kapı hem
+            // çerçeve aynı yöne kayıyor ve geriye yalnız yükseklik farkı
+            // kalıyor. Hesap (üst kenar / alt kenar, görünen konumlar):
+            //   kapı dış kenarı  4,181 / −3,899   çerçeve dışı  4,161 / −3,879
+            //   kapı iç kenarı   3,519 / −3,237   çerçeve içi   3,641 / −3,359
+            // yani kapı iki kenarda da çerçeveden 0,02 taşıyor ve oyun
+            // alanına 0,122 hücre giriyor. Referansta ölçülen 0,27 × duvar =
+            // 0,14 hücre; aradaki fark ölçüm hassasiyetinin içinde.
+            //
+            // DERS (paralaksı telafi ederken NEYE göre hizaladığını sor):
+            // Kayma mutlak bir büyüklük değil; iki nesne aynı kadar kayıyorsa
+            // aralarındaki mesafe hiç değişmiyor. Telafi edilecek olan farktır.
+            center.z -= (BarHeight - VisualSettings.Current.frameHeight) * CameraSkew;
             go.transform.position = center;
 
             // KOYU KENAR KALDIRILDI — ÖLÇÜM ONU YALANLADI (4. tur, G26 revizyon).
