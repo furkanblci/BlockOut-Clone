@@ -8,6 +8,66 @@ Bu dosya her oturum sonunda güncellenir. Aşağısı 2026-08-10 itibarıyla ge�
 
 ---
 
+## 2026-08-20 — SESLER BAĞLANDI
+
+Kullanıcı ham ses dosyalarını yükledi. **31 anahtarın tamamı dolu, müzik
+çalıyor.** Ayrıntı: `audio_raw/README.md` (eşleme tablosu) ve
+`tools/import_audio.py` (kesim noktaları + gerekçeler).
+
+### Ham dosya oyuna hazır DEĞİLDİR — üç sorun ölçüldü
+
+| sorun | örnek | sonucu |
+|---|---|---|
+| baştaki sessizlik | `curtain.mp3` 479 ms | oyunda GECİKME |
+| uzun kuyruk / çoklu olay | `ice cracking.mp3` 6,2 sn'de 12 çatlama | her hamlede çalınamaz |
+| seviye farkı | −0,3 dB … −19,3 dB | biri bağırıyor, diğeri duyulmuyor |
+
+`tools/import_audio.py` (yeni, `import_art.py`nin kardeşi) kesiyor,
+perde/hız ayarlıyor, iki uca sönüş koyuyor ve −3 dBFS'e getiriyor.
+Ham dosyalar `audio_raw/` altında — `art_raw/` ile aynı düzen.
+
+### ÜÇ GERÇEK HATA ÇIKTI
+
+1. **Müziği kimse başlatmıyordu.** `AudioService.PlayMusic` yazılmış,
+   ayarlara ve duraklat anahtarına bağlanmıştı ama projede onu ÇAĞIRAN tek
+   satır yoktu. Dosya konsa bile müzik hiç çalmayacaktı.
+   *DERS: bir sistemin "hazır" olması BAĞLI olması demek değil.*
+2. **Aynı ses üst üste yığılıyordu.** Her emilimde tahtadaki BÜTÜN buzlu
+   blokların sayacı azalıyor; beş buzlu blokta `IceDecremented` aynı karede
+   beş kez yayınlanıyor ve beş özdeş klip toplanıyordu. Sentezlenmiş cılız
+   bliplerle duyulmuyordu, gerçek kliplerle ilk denemede duyuldu.
+   Yeni `PlayOnce`: aynı anahtar 60 ms içinde bir kez.
+   *DERS: olay sayısı = ses sayısı DEĞİLDİR.*
+3. **Müzik döngüsü dikişliydi.** Parça son 3 saniyede SÖNÜYOR; ham hâliyle
+   döngüye girse her 55 saniyede bir kaybolup geri gelirdi. Solan kuyruk
+   kesildi, parçanın başı sonuna çapraz geçişle bindirildi (bas RMS 0,195 /
+   son 0,166 — dikiş duyulmuyor). Ayrıca sessizdi (−27 dB), −16 LUFS'a çekildi.
+
+### Bulunamayan sesler ne oldu
+
+- kapı → `gate_advance` için `sparkle`, `gate_done` için pes `pop`
+- tutma → `pick_up` için `bubble` (kullanıcının önerisi)
+- kaybetme → seviye atlama sesinin TERSİ, bir tık pes
+- menü müziği → tek parça; eksik anahtar oynanış parçasına düşüyor, parça
+  değişmediği için menü ↔ oyun geçişinde müzik baştan başlamıyor
+
+### Ayrıca
+
+Ana ekranda kalp ve jeton sayaçlarının koyu plakası ikonların KUTUSUNUN
+içinden başlıyordu; kalp dikdörtgen olmadığı için (ortada daralıyor)
+arada zemin görünüyordu. Plakalar artık ikonun ORTASINDAN başlıyor.
+
+### SONRAKİ ADIM: PAKETLEME
+
+Kullanıcı "artık bu oyunu paketleyelim" dedi. Yayından önce:
+- `DeviceErrorOverlay.cs:33` → `Enabled = false`
+- APK alınıp ses dengesi CİHAZDA dinlenmeli (seviyeler ölçüyle ayarlandı,
+  kulakla değil)
+- 7. turun APK'de görülmesi gerekenleri (kapı ışığı, buz, roket/UFO,
+  reklam sonrası düğme) aynı derlemede kontrol et
+
+---
+
 ## 2026-08-20 — 7. TURUN EKİ KAPANDI (7/7)
 
 Kullanıcının aynı gün gelen ikinci listesi. Ayrıntılar
@@ -963,6 +1023,48 @@ basmıyordu, bu yüzden test etmeden fark edilmeleri mümkün değildi.
   tepeden render'da boş hücre 0, minyatür 0 hata. Önbellek testi (aynı
   revizyonu tekrar istemek yeniden kurmamalı) geçti.
 - **Dokuz sekmenin hepsi** canlı pencerede çizdirildi: **0 hata, 0 uyarı.**
+
+**İKİNCİ DENETİM TURU — 5 HATA DAHA + TASARIM BORCU KAPANDI (2026-08-17)**
+
+1. **Sıra değiştirmek açık bölümün numarasını bayat bırakıyordu.** `Reorder`
+   dosyaların `displayNumber` alanını yeniliyor ama pencere bölümün KENDİ
+   kopyasını tutuyor; bir sonraki kaydetme eski numarayı geri yazıp düzeltmeyi
+   sessizce iptal ederdi. `SyncDisplayNumberFromDisk()` eklendi — dosyanın
+   tamamını okumuyor (kaydedilmemiş düzenlemeler gitmesin), yalnız o alanı
+   eşitliyor. **DERS: bellekteki kopya bayatlar.**
+2. **Silmek numaraları kaydırmıyordu.** 8. bölüm silinince 9-50 arası bölümler
+   eski numaralarıyla kalıyor, oyunda "Level 9" yazan bölüm 8. sırada
+   oynanıyordu. `Delete` artık `RenumberFromCatalog` çağırıyor.
+3. **`FromJson` üreteç sırasını normalleştirmiyordu** — perde içeriği geçiyordu,
+   üreteç sırası atlanmıştı (üreteç şemaya sonradan eklenmiş, döngü
+   güncellenmemiş). Elle yazılmış bir sırada `cells` ile `w/h` çelişirse blok
+   yanlış boyutta doğardı.
+4. **`AssetDatabase.GetAssetPath(int)`** Unity 6.3'te obsolete olmuş; nesne
+   üzerinden giden aşırı yüklemeye geçildi (konsol uyarısı temizlendi).
+5. **Ölü kod temizlendi:** `Round12`, `CardBorder`, `HairlineRow`,
+   `Selection.IsNone`, `Entry.ObstacleCount` — hiçbiri kullanılmıyordu.
+
+**TASARIM BORCU KAPANDI.** Kalan tek yama Unity'nin varsayılan widget'larıydı.
+`LevelEditorSkin`'e eklendi ve her yerde kullanıldı:
+- `FieldStyle` / `PopupStyle` / `SliderTrack` / `SliderThumb` — yuvarlak köşeli,
+  düz, koyu giriş alanları. **DERS: Unity'nin alanlarını sıfırdan yazmak imleç,
+  seçim ve kopyala davranışını da yazmak demektir. `EditorGUI.IntField` bir
+  GUIStyle kabul ediyor — DAVRANIŞ Unity'de kalıyor, yalnız GÖRÜNÜM bizim.**
+- `IntRow` / `TextRow` / `PopupRow` / `SliderRow` — etiket solda, alan sağda.
+- `Note(text, kind)` — `EditorGUILayout.HelpBox` yerine: yuvarlak zemin, solda
+  renkli şerit, soluk sarmalı yazı. Yükseklik `GetRect(içerik, stil)` ile
+  ÖLÇÜLÜYOR; sabit yükseklik dar pencerede yazıyı kırpardı.
+- 8 HelpBox, 5 `helpBox` kutusu ve ~65 varsayılan etiket skine geçirildi.
+  Editör dosyalarında kalan `EditorStyles` kullanımı: **0** (yalnız skinin
+  kendi font referansları).
+
+**DOĞRULAMA:** derleme **0 hata / 0 uyarı**; katalog tutarlılığı salt-okunur
+denetlendi (50 bölüm, numara uyuşmazlığı 0, liste sırası sapması 0), yani
+yeniden numaralama bugün no-op — kod veriyi bozmuyor.
+
+**ELLE DENENECEK (pencere kapalıydı, açıp kullanıcının işini bölmedim):**
+yeni skinli alanların/kaydırıcıların ve not kutularının canlı çizimi. Editörü
+açtığında bir tuhaflık görürsen söyle.
 
 **İKİ IMGUI TUZAĞI — tekrarlama**
 1. **Sekmeyi/aracı çizim sırasının ORTASINDA değiştirme.** OnGUI bir karede

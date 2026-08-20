@@ -1,5 +1,14 @@
 # Ses Listesi — ne lazım, nereden bulunur
 
+> **DURUM (2026-08-20): SESLER GELDİ VE BAĞLANDI.** 31 anahtarın tamamı dolu,
+> müzik çalıyor. Aşağıdaki liste artık bir ALIŞVERİŞ listesi değil, hangi
+> anahtarın ne işe yaradığının kaydı — ses değiştirmek isteyen buraya bakar.
+>
+> Ham dosyalar `audio_raw/`, üretim `python tools/import_audio.py`.
+> Hangi kaynaktan hangi anahtarın çıktığı: `audio_raw/README.md`.
+> Bulunamayan sesler (kapı, tutma, kaybetme, menü müziği) için ne yapıldığı
+> da orada yazıyor.
+
 Bu liste tahmin değil: oyundaki **gerçek olaylardan** çıkarıldı
 (`BoardEvents`, `PowerUpSystem`, `ComboTracker`, arayüz düğmeleri).
 
