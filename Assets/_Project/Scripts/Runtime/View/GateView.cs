@@ -247,9 +247,35 @@ namespace BlockOut.Runtime.View
             // dönük ve örtülmesi gerekiyor), diğer üç kenarda GEREKSİZ:
             // o yüzler kameradan kaçık ya da profilden, örtülecek bir şey
             // yok. Geriye yalnız bloğun kendi kenar payı kalıyor.
-            return model.Side == Side.North
-                ? visible + BlockInset + InnerFaceCover(model)
-                : BlockInset;
+            // YAN KAPILARDA PAY = ÇERÇEVENİN PAHI (10. tur).
+            //
+            // Kullanıcı: "yan kapılar hâlâ yan duvara sıfır hizalı değil."
+            //
+            // ÖLÇÜM (dünya koordinatı, level_003): kapı x 2,468…3,02,
+            // çerçevenin dış kenarı 3,02 — DIŞ hiza zaten tam. Sızan mor
+            // İÇ tarafta: `BoardFrameMeshBuilder` üst halkayı pah kadar
+            // kaydırdığı için çerçevenin ÜST YÜZÜ 2,5 − 0,09 = **2,41**'de
+            // başlıyor, kapı ise 2,468'de. Aradaki 0,058 hücre (≈4,5 piksel)
+            // çerçevenin açıkta kalan üst yüzü.
+            //
+            // Doğru pay bu yüzden bloğun kenar payı değil ÇERÇEVENİN PAHI:
+            // kapının iç kenarı, çerçevenin üst yüzünün başladığı yere
+            // oturuyor.
+            //
+            // Güney kenarda pay BlockInset kalıyor — orası ölçümle
+            // doğrulanmıştı (kapı 904…948, çerçeve bandı 905…949) ve pahı
+            // eklemek onu tekrar oyun alanına taşırırdı.
+            //
+            // DERS (payın kaynağını sor): 0,032 de 0,09 da "küçük bir sayı"
+            // ama biri bloğun, öteki çerçevenin özelliği. Hangi iki yüzeyi
+            // buluşturduğunu bilmeden seçilen pay, bir kenarda tutup
+            // ötekinde tutmuyor.
+            if (model.Side == Side.North)
+                return visible + BlockInset + InnerFaceCover(model);
+            if (model.Side == Side.East || model.Side == Side.West)
+                return VisualSettings.Current != null
+                    ? VisualSettings.Current.frameBevel : visible;
+            return BlockInset;
         }
 
         /// <summary>

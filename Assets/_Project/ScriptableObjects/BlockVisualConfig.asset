@@ -33,7 +33,7 @@ MonoBehaviour:
   gloss: 64
   rim: 0
   saturation: 2
-  dragLift: 0.28
+  dragLift: 0.45
   dragScale: 1.05
   contactShadow: 1
   shadowOpacity: 0.5
