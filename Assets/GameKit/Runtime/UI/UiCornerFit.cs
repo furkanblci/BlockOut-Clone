@@ -31,6 +31,28 @@ namespace GameKit.UI
     /// yazdığı için ikisi AYNI nesnede bulunamaz; bu bileşen zaten payların
     /// kutuya sığmasını da garanti ettiği için ona gerek de kalmaz.
     /// </summary>
+    /// <summary>
+    /// DÜZENLEYİCİDE DE ÇALIŞMALI (8. tur, düğme turu).
+    ///
+    /// Bu bileşende uzun süre <c>[ExecuteAlways]</c> yoktu ve bu, oyunda
+    /// görünmeyen ama DOĞRULAMA ARACINDA görünen bir yalan üretiyordu.
+    /// Oynatma modunda <c>OnRectTransformDimensionsChange</c> ateşlendiği
+    /// için yarıçap doğruydu; düzenleyicide ise hesap yalnız
+    /// <c>CreateRoundedPanel</c> içindeki doğrudan çağrıyla, yani kutu HENÜZ
+    /// YERLEŞTİRİLMEDEN yapılıyordu. Kutu o an kanvas boyunda göründüğü için
+    /// (1080×1920) yarıçap 1080 × %35 = 382 birim çıkıyor, düğme yakalanan
+    /// görüntüde bir elips oluyordu.
+    ///
+    /// ÖLÇÜM: kutu 511×206 iken çarpan 0,047 — yani yay 382 birim. Doğrusu
+    /// 206 × %35 = 73 birim, çarpan 0,247.
+    ///
+    /// DERS (araç yalan söylüyorsa önce ARACI onar): Bu tur, elips gördüğüm
+    /// için önce köşe oranını, sonra sprite'ı, sonra yerleşimi suçlayarak
+    /// başladı. Hiçbiri bozuk değildi — ölçen düzenek bozuktu. Bir ölçüm
+    /// beklentiden saptığında sorulacak ilk soru "kod mu yanlış?" değil,
+    /// "ölçtüğüm şey gerçekten çalışan şey mi?" olmalı.
+    /// </summary>
+    [ExecuteAlways]
     [RequireComponent(typeof(Image))]
     [DisallowMultipleComponent]
     public sealed class UiCornerFit : MonoBehaviour

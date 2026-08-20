@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using BlockOut.Core;
 using BlockOut.Runtime.Config;
 using BlockOut.Runtime.Flow;
@@ -39,7 +39,7 @@ namespace BlockOut.Runtime.UI
         TextMeshProUGUI _avatarInitial;
         RectTransform _rewardRibbon;
         TextMeshProUGUI _rewardLabel;
-        Image _playFace;
+        PillTint _playPill;
         Button _playButton;
         GameObject _adRow;
         TextMeshProUGUI _adOfferSub;
@@ -420,8 +420,19 @@ namespace BlockOut.Runtime.UI
 
         void BuildPlayButton(Transform root)
         {
-            _playButton = UiKit.CreateSpriteButton("Play", root, UiSkin.Get(Art.ButtonGreen),
-                null, 0, CoinInk);
+            // GÖVDE ARTIK MENÜLERİN DÜĞMESİYLE AYNI REÇETEDEN (8. tur).
+            //
+            // Kullanıcı: "ana menüdeki oynama butonu... tarz olarak alakasız
+            // kalmış." Sebebi ölçüldü: bu düğme `btn_green.png` görselinden,
+            // menülerin düğmesi ise koddan geliyordu. Referansta ikisi de aynı
+            // ışık profiline sahip — ana ekran düğmesinin yan duvarı da
+            // ölçüldü ve pauseâ€™daki Resume ile aynı çıktı (yüz (133,28,252),
+            // duvar (95,20,200) = ×0,79, dipte koyu etek (61,11,128)).
+            var body = MenuPage.PillBody("Play", root, MenuPage.Green,
+                                         out _, out _playPill);
+            _playButton = body.gameObject.AddComponent<Button>();
+            _playButton.transition = Selectable.Transition.None;
+            body.gameObject.AddComponent<GameKit.UI.UiButtonFeel>();
             // DERS (düğme ekranı yemez): İlk hâli genişliğin %68'i ve
             // yüksekliğin %13'ü kadardı; ekranın altını kaplıyor ve manzarayı
             // eziyordu. Referanstaki düğme genişliğin ~%54'ü, yüksekliğin
@@ -438,9 +449,9 @@ namespace BlockOut.Runtime.UI
             // arada gerçek bir nefes payı kalsın.
             UiKit.Place(_playButton, 0.280f, 0.158f, 0.720f, 0.263f);
             _playButton.onClick.AddListener(PlayCurrent);
-            _playFace = _playButton.targetGraphic as Image;
 
-            var face = _playButton.transform.GetChild(0);
+            // Yazılar YÜZÜN üstüne: dipteki koyu etek yazının altında kalsın.
+            var face = _playButton.transform.Find("Face");
 
             // ÖLÇÜ REFERANSTAN (2026-08-17, `ana ekran.jpeg` 946×2048):
             // "Seviye 54" yazısının BÜYÜK harf yüksekliği 67 piksel, yani
@@ -731,11 +742,17 @@ namespace BlockOut.Runtime.UI
             _adRow = UiKit.CreateRect("AdOffer", root).gameObject;
             UiKit.Place((RectTransform)_adRow.transform, 0.255f, 0.158f, 0.745f, 0.263f);
 
-            var button = UiKit.CreateSpriteButton("WatchAd", _adRow.transform,
-                UiSkin.Get(Art.ButtonPurple), null, 0, CoinInk);
-            UiKit.Place(button, 0f, 0f, 1f, 1f);
+            // OYNA düğmesiyle AYNI reçete: bu ikisi ekranda aynı yerde,
+            // sırayla görünüyor (can varken OYNA, yokken reklam). İki farklı
+            // düğme stilinin yan yana en çok göze battığı yer burasıydı.
+            var body = MenuPage.PillBody("WatchAd", _adRow.transform, PlayPurple,
+                                         out _, out _);
+            UiKit.Place(body, 0f, 0f, 1f, 1f);
+            var button = body.gameObject.AddComponent<Button>();
+            button.transition = Selectable.Transition.None;
+            body.gameObject.AddComponent<GameKit.UI.UiButtonFeel>();
 
-            var face = button.transform.GetChild(0);
+            var face = body.Find("Face");
             var title = UiKit.CreateTitle("Title", face, "WATCH AD", 34, CoinInk,
                 new Color(0.16f, 0.06f, 0.30f));
             UiKit.Place(title, 0.06f, 0.44f, 0.94f, 0.94f);
@@ -874,7 +891,7 @@ namespace BlockOut.Runtime.UI
                 _levelLabel.text = "NO LIVES";
                 _difficultyLabel.gameObject.SetActive(true);
                 _difficultyLabel.text = "waiting for lives";
-                if (_playFace != null) _playFace.color = new Color(0.62f, 0.62f, 0.66f);
+                if (_playPill != null) _playPill.Color = new Color(0.62f, 0.62f, 0.66f);
                 _playBlocked = true;
             }
             else if (_playBlocked)
@@ -892,6 +909,9 @@ namespace BlockOut.Runtime.UI
         /// </summary>
         bool _playBlocked;
 
+        /// <summary>ÖLÇÜM: `ana ekran.jpeg`, "Seviye 54" düğmesinin yüzü (133,28,252).</summary>
+        static readonly Color PlayPurple = new Color(0.522f, 0.110f, 0.988f);
+
         void ApplyDifficulty(LevelDifficulty difficulty, int index)
         {
             _levelLabel.text = _scratch.Clear().Append("Level ").Append(index + 1).ToString();
@@ -900,17 +920,15 @@ namespace BlockOut.Runtime.UI
             _difficultyLabel.text = label;
             _difficultyLabel.gameObject.SetActive(!string.IsNullOrEmpty(label));
 
-            // Zorluk arttıkça düğmenin görseli değişir: yeşil → mor → kırmızı.
-            // Renk tonlamak yerine SPRITE değiştiriliyor; parlak plastik yüzeyin
-            // ışık lekesi de o rengin tonunda olsun diye.
-            string sprite = difficulty == LevelDifficulty.SuperHard ? Art.ButtonRed
-                          : difficulty == LevelDifficulty.Hard ? Art.ButtonPurple
-                          : Art.ButtonGreen;
-            if (_playFace != null)
-            {
-                _playFace.sprite = UiSkin.Get(sprite);
-                _playFace.color = Color.white;
-            }
+            // Zorluk arttıkça düğmenin rengi değişir: yeşil → mor → kırmızı.
+            //
+            // Eskiden üç ayrı PNG arasında geçiş yapılıyordu; ışık profili
+            // artık çarpanla türetildiği için tek bir renk yetiyor.
+            // Mor, referansın ana ekran düğmesinden ölçüldü: (133,28,252).
+            if (_playPill != null)
+                _playPill.Color = difficulty == LevelDifficulty.SuperHard ? MenuPage.Red
+                                : difficulty == LevelDifficulty.Hard ? PlayPurple
+                                : MenuPage.Green;
 
             int multiplier = LevelDifficultyRule.RewardMultiplier(difficulty);
             bool showRibbon = multiplier > 1;

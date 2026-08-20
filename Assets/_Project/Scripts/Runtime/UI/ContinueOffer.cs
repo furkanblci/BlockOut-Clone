@@ -1,4 +1,4 @@
-using BlockOut.Runtime.Services;
+﻿using BlockOut.Runtime.Services;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -220,12 +220,15 @@ namespace BlockOut.Runtime.UI
         RectTransform BuildPriceButton(Transform page, string action,
                                        float x0, float y0, float x1, float y1)
         {
-            var button = UiKit.CreateSpriteButton("Buy", page, UiSkin.Get(Art.ButtonGreen),
-                string.Empty, 44, Ink);
-            UiKit.Place(button, x0, y0, x1, y1);
+            // Oyunun standart düğmesi (8. tur) — görselden değil koddan.
+            var body = MenuPage.PillBody("Buy", page, MenuPage.Green, out _, out _);
+            UiKit.Place(body, x0, y0, x1, y1);
+            var button = body.gameObject.AddComponent<Button>();
+            button.transition = Selectable.Transition.None;
+            body.gameObject.AddComponent<GameKit.UI.UiButtonFeel>();
             button.onClick.AddListener(Buy);
 
-            var face = button.transform;
+            var face = body.Find("Face");
 
             var label = UiKit.CreateTitle("Action", face, action, 46, Ink, new Color(0.04f, 0.24f, 0.02f));
             label.alignment = TextAlignmentOptions.Right;

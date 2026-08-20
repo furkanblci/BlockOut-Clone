@@ -62,10 +62,33 @@ namespace GameKit.UI
         /// <see cref="UiCornerFit"/>'in hesabı olduğu gibi geçerli kalıyor;
         /// değişen tek şey köşenin keskinliği (büyütme 2,4× → 1,2×).
         /// </summary>
-        const int PanelSize = 128;
-        const float PanelRadius = 36f;
-        const int PanelBorder = 40;
-        const float PanelPixelsPerUnit = 200f;
+        /// <summary>
+        /// İKİNCİ YÜKSELTME — 2× DAHA (8. tur, düğme turu).
+        ///
+        /// Kullanıcı: "butonların piksel sorunu olduğunu ve tarz olarak
+        /// alakasız kaldığını söylediler."
+        ///
+        /// ÖLÇÜM (referans duraklat paneli, Resume düğmesi 280×113): köşe
+        /// yarıçapı **40 piksel**, yani kısa kenarın %35'i. Bizim ev oranımız
+        /// %22 ve tavanımız 34 birimdi — düğmeler hem fazla köşeliydi hem de
+        /// 1080 çözünürlükte istenen 73 birimlik yarıçap 36 pikselik yaydan
+        /// **4 KAT** büyütülerek çiziliyordu. "Piksel bozukluğu" tam olarak bu.
+        ///
+        /// Bir öncekiyle aynı numara: dört sayı da 2× oluyor, böylece
+        /// <c>PanelRadius/ppu = 0,18</c> ve <c>PanelBorder/ppu = 0,20</c>
+        /// oranları korunuyor. Projedeki kırk kadar elle ölçülmüş
+        /// <c>SetSliceScale</c> değeri ve <see cref="UiCornerFit"/>'in hesabı
+        /// hiç değişmeden geçerli kalıyor; değişen tek şey yayın çözünürlüğü.
+        /// 256×256 RGBA = 256 KB, tek sprite için kabul edilebilir.
+        ///
+        /// DERS (bir sabiti değiştirmek yerine ORANI koru): Bu dokuyu tek
+        /// başına büyütmek kırk çağrı yerini sessizce bozardı. Hangi oranın
+        /// sözleşme olduğunu bilmek, aynı dosyayı ikinci kez korkusuzca
+        /// büyütmeyi mümkün kıldı.
+        const int PanelSize = 256;
+        const float PanelRadius = 72f;
+        const int PanelBorder = 80;
+        const float PanelPixelsPerUnit = 400f;
 
         /// <summary>Dolu, yuvarlak köşeli panel (9-dilim).</summary>
         public static Sprite RoundedPanel =>
@@ -547,9 +570,10 @@ namespace GameKit.UI
             };
             var pixels = new Color32[PanelSize * PanelSize];
 
-            // Yumuşatma bandı ve çerçeve kalınlığı da 2× — yoksa doku
-            // büyüdükçe kenar İNCELİR ve köşe bu sefer fazla keskin çıkar.
-            const float feather = 1.5f;
+            // Yumuşatma bandı doku ÇÖZÜNÜRLÜĞÜYLE ölçeklenmeli: doku iki
+            // kat büyüdüğünde 1,5 pikselik bant ekranda yarıya iner ve köşe
+            // bu sefer tırtıklı çıkar.
+            const float feather = 3.0f;
 
             for (int y = 0; y < PanelSize; y++)
             {

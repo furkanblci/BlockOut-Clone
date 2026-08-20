@@ -8,6 +8,129 @@ Bu dosya her oturum sonunda güncellenir. Aşağısı 2026-08-10 itibarıyla ge�
 
 ---
 
+## 2026-08-20 (8) — DÜĞMELER TEK REÇETEYE İNDİ
+
+İstek: *"genel olarak herkes butonlara laf etti — ana menüdeki oynama
+butonu, settingse basınca panellerde çıkan tekrar oyna butonu, bulunan
+bütün butonlar… piksel sorunu olduğunu ve tarz olarak alakasız kaldığını
+söylediler. Bunu da birebir referans oyundan inceleyerek daha iyi hale
+getiremez miyiz?"*
+
+### Asıl teşhis: tek bir düğme değil, DÖRT AYRI DÜĞME vardı
+
+Oyunda aynı işi yapan dört ayrı uygulama vardı:
+
+1. `MenuPage.PillButton` — menülerin düğmesi (koddan, üç katman)
+2. `GameplayScreen.CreateGreenButton` — sonuç kartının düğmesi (koddan,
+   dört katman, başka oranlarla)
+3. `btn_green/red/purple.png` — duraklat, kayıp, günlük ödül, teklif ve
+   ana ekran düğmeleri (görselden)
+4. Ana ekranın OYNA düğmesi — zorluğa göre üç PNG arasında geçiş
+
+"Tarz olarak alakasız" geri bildiriminin sebebi bunlardan birinin kötü
+olması değil, **aynı olmamalarıydı**. Dördü de tek bir reçeteye indi.
+
+### Ölçüm (`pause_00-00-04.png`, referansın duraklat paneli, 592×1280)
+
+Resume düğmesi **280×113**. Dikey tarama (x=200) ve yatay tarama (y=700):
+
+| katman | kalınlık | ölçülen renk | taban çarpanı |
+|--------|----------|--------------|---------------|
+| dış çizgi | 3 px | (0,84,0) | ×0,15 |
+| üst pah | 8 px | (46,244,8) | ×1,19 |
+| açık kaymak | 6 px | (168,253,86) | beyaza %50 |
+| yüz üstü | — | (56,215,20) | ×1,00 |
+| yüz altı | — | (16,170,3) | ×0,78 |
+| yan duvar | 14 px | (13,130,19) | ×0,64 |
+| dip eteği | 14 px | (0,85,15)→(5,49,8) | ×0,42→×0,24 |
+
+Kırmızı Quit düğmesi aynı taramayla aynı oranları verdi. Yani tek bir
+**ışık profili** var, renk onun altına giriyor. RGB'yi çarpmak tonu ve
+doygunluğu koruyup yalnız parlaklığı değiştirdiği için (HSV'de V×k),
+profil bir renk çarpanı olarak yazılabiliyor.
+
+Köşe yarıçapı **40 piksel = kısa kenarın %35,4'ü**. Bizim ev oranımız
+%22, tavanımız 34 birimdi.
+
+Yazı: harf yüksekliği düğme yüksekliğinin **%28,3'ü**, genişliği
+**%58,6'sı**. Bizimki %24,3 ve %63,1 — hem küçük hem yayvan.
+
+### Yapılanlar
+
+* **`UiVerticalTint`** (yeni): degradeyi ayrı bir katman olarak değil,
+  grafiğin kendi köşe noktalarının rengi olarak yazıyor. Eskiden yüzün
+  üstüne açık, altına koyu birer DİKDÖRTGEN konuyordu; ikisi de yuvarlak
+  köşeyi takip etmiyor ve düğmenin köşelerinde dik kenarlar bırakıyordu.
+  Bildirilen "piksel bozukluğu"nun bir bölümü buydu.
+* **`UiRingLayout`** (yeni): dört katmanı kutunun yüksekliğinin oranı
+  kadar, DÖRT KENARDA DA AYNI PİKSEL içeri çekiyor; yazının puntosunu da
+  yükseklikten türetiyor.
+* **`PillTint`** (yeni): düğmenin rengini tek çağrıyla değiştiriyor. Ana
+  ekranın zorluk rengi artık üç PNG yerine bir `Color`.
+* **`MenuPage.PillButton` / `PillBody`**: ölçülen reçete. Otuzdan fazla
+  çağrı yeri değişmeden yeni görünüşü aldı.
+* Yuvarlak panel sprite'ı **2× daha** büyüdü (256×256, yay 72, ppu 400).
+  `PanelRadius/ppu = 0,18` ve `PanelBorder/ppu = 0,20` oranları
+  korunduğu için kırk kadar elle ölçülmüş `SetSliceScale` değeri ve
+  `UiCornerFit`'in hesabı olduğu gibi geçerli kaldı.
+
+### ÜÇ TUZAK, ÜÇÜ DE ZAMAN YAKTI
+
+**1. Ebeveynin ölçüsünü okuyan bileşen.** Kenar payı ilk hâlde her
+katmanın üstündeydi ve ebeveyninin yüksekliğini okuyordu. Düğme
+kurulurken kök kutu henüz yerleştirilmemiş oluyor ve kanvas boyunda
+(1920) görünüyor; pay 0,027 × 1920 = 52 piksel çıkıyordu. Kök sonradan
+206'ya inince hesap bir daha yapılmıyor, iki iç katman kutunun dışına
+taşıp yok oluyordu (ölçüm: kök 511×206 iken kabuk 408×102, yüz
+−102×−408). Ekranda kocaman siyah bir hap kalıyordu.
+
+**2. `ILayoutSelfController` de kurtarmadı.** Sebebi `LayoutRebuilder`'ın
+kaynağında yazıyor: *bir kutuda hiç denetleyici yoksa bütün alt ağaç
+atlanıyor.* Düğmenin kökünde denetleyici yoktu. Çözüm hesabı KÖKE almak
+oldu — `UiCornerFit`'in yıllardır kullandığı mekanizma.
+
+**3. ARAÇ YALAN SÖYLÜYORDU.** Düzeltmeden sonra bile yakalanan görüntüde
+düğme bir ELİPS'ti. Sırayla köşe oranı, sprite ve yerleşim suçlandı;
+hiçbiri bozuk değildi. `UiCornerFit`'te **`[ExecuteAlways]` yoktu**:
+oynatma modunda `OnRectTransformDimensionsChange` ateşlendiği için
+yarıçap doğruydu, düzenleyicide ise hesap yalnız kurulum anındaki
+(yerleştirilmemiş) ölçüyle yapılıyordu — 1080 × %35 = 382 birim.
+**Oyun doğruydu, ölçen düzenek bozuktu.**
+
+### DERSLER
+
+* **Aynı işi yapan iki kod, er geç iki farklı tasarım olur.** Dördü de
+  aynı gün ölçülmüştü; zamanla köşe oranları, puntolar ve katman sayısı
+  ayrıştı. Kullanıcıya "alakasız" diye ulaşan şey buydu.
+* **Kabartma, üst üste konan yamalarla yapılmaz.** Degrade yüzeyin
+  kendisinin özelliğidir; ayrı bir dikdörtgen olarak konursa silüeti
+  takip etmez.
+* **Bir halkanın kalınlığı çapraya bağlı olamaz.** Çıpa oranı eni ve
+  boyu ayrı ayrı vurur; referansın kullandığı şey bir oran değil bir
+  KALINLIK.
+* **Bir ölçüm beklentiden saparsa ilk soru "kod mu yanlış?" değil,
+  "ölçtüğüm şey gerçekten çalışan şey mi?" olmalı.**
+* **Renk değiştirmek için görsel değiştirmek pahalı bir alışkanlıktır.**
+  Işık profili çarpanla türetilince renk yalnızca bir `Color` oluyor.
+
+### Doğrulama
+
+Yeni düğme referansla yan yana ölçüldü: yarıçap 72,9 birim / 206 =
+**%35,4** (referans %35,4); yazı yüksekliği **%28,2** (referans %28,3);
+yazı genişliği **%58,4** (referans %58,6). Gerçek duraklat paneli
+oynatma modunda yakalandı ve referansla örtüşüyor.
+
+`btn_green.png` / `btn_red.png` / `btn_purple.png` dosyaları DURUYOR ama
+artık kullanılmıyor. Ölçüldü: 512×246, köşesi referanstan belirgin daha
+köşeli ve parlaklığı sol üste doğru asimetrik olarak pişirilmiş — dokuz
+dilimle esnetilince ışık lekesi de esniyor.
+
+**Gözle doğrulanmadı** (derlemesi temiz, aynı API): günlük ödül "CLAIM",
+devam teklifi "Buy", ana ekranın reklam düğmesi, kayıp panelinin "Try
+Again" düğmesi.
+
+---
+
 ## 2026-08-20 (7) — KUTLAMA DİZİLİMİ REFERANSTAN BİREBİR ÇIKARILDI
 
 İstek: *"o konfetilerin havai fişeklerin patladığı yeri iyi dikkatlice

@@ -46,6 +46,35 @@ namespace BlockOut.Runtime.UI
         static readonly Color CardRim = new Color(0.122f, 0.063f, 0.373f);
         /// <summary>Koyu kenarın kalınlığı: referansta 18 piksel = 33 birim.</summary>
         const float CardRimWidth = 30f;
+
+        // KARTIN KENARI TEK BANT DEĞİL, DÖRT (8. tur).
+        //
+        // ÖLÇÜM (ham 59,47 fps kare, kartın solundan y=600'de yatay kesit;
+        // 592 piksel genişlikte ekran, dıştan içe):
+        //   x 22-33  (11 px)  dış kenar, mordan parlağa       (50,32,165)
+        //   x 34-39  ( 6 px)  KOYU oluk                       (30,17,110)
+        //   x 40-55  (16 px)  iç kenar, yine mor              (50,32,165)
+        //   x 56-59  ( 4 px)  PARLAK iç çizgi                 (90,64,233)
+        //   x 60+             düz yüz                         (65,49,192)
+        //
+        // Bizde tek bir koyu bant vardı. Referansın kartında çıplak gözle de
+        // görülen bir İÇ ÇİZGİ var — kenardan yaklaşık 20 piksel içeride
+        // dolanan açık mor hat. Tek bantla o hat hiç yoktu ve kart "düz bir
+        // dikdörtgen" gibi okunuyordu.
+        //
+        // DERS (bir kenarı "kalınlık + renk" diye özetleme): İlk ölçümde
+        // kesitin yalnız en koyu değeri alınıp "kenar bu" denmişti. Kesitin
+        // TAMAMINA bakınca kenarın bir profil olduğu görülüyor; oradaki
+        // parlak hat, kartın kabarık durmasını sağlayan şey.
+        //
+        // Piksel → birim çevrimi: 18 px = 33 birim, yani 1 px ≈ 1,83 birim.
+        static readonly Color CardEdge      = new Color(0.196f, 0.125f, 0.647f);
+        static readonly Color CardGroove    = new Color(0.118f, 0.067f, 0.431f);
+        static readonly Color CardInnerLine = new Color(0.353f, 0.251f, 0.914f);
+        const float CardEdgeBand   = 20f;   // 11 px
+        const float CardGrooveBand = 11f;   //  6 px
+        const float CardInnerBand  = 29f;   // 16 px
+        const float CardLineBand   = 7f;    //  4 px
         /// <summary>
         /// Kartın dış köşe yarıçapı (kanvas birimi). Referansın köşesi tam
         /// bir daire değil (süperelips) ama 60 piksellik bir yay — 592
@@ -53,17 +82,33 @@ namespace BlockOut.Runtime.UI
         /// oturuyor.
         /// </summary>
         const float CardCornerRadius = 110f;
+        // "PERFECT!" başlığının dizgisi — hepsi referanstan ölçüldü,
+        // gerekçesi BuildResultPanel'de.
+        const int TitlePoint = 250;
+        /// <summary>"FAILED" altı harf ve kartın DIŞINDA duruyor.</summary>
+        const int LoseTitlePoint = 160;
+        /// <summary>Harf arası (em/100). Referansta harfler 2-5 piksel arayla.</summary>
+        const float TitleTracking = -16f;
+        /// <summary>Yatay sıkıştırma: referansın tipi Baloo2'den dar.</summary>
+        const float TitleCondense = 0.70f;
+        /// <summary>SDF gövde şişirme — referansın harfleri belirgin kalın.</summary>
+        const float TitleDilate = 0.12f;
+        const float TitleOutlineWidth = 0.30f;
+        /// <summary>Harfin tepesi — referansta ölçüldü (254,211,7).</summary>
+        static readonly Color TitleGoldTop    = new Color(0.996f, 0.827f, 0.027f);
+        /// <summary>Harfin dibi — (250,152,0). Aradaki fark yalnız YEŞİL
+        /// kanalda: sarıdan turuncuya geçiş bu.</summary>
+        static readonly Color TitleGoldBottom = new Color(0.980f, 0.596f, 0.000f);
+
         static readonly Color TitleGold    = new Color(1f, 0.760f, 0.180f);
         static readonly Color TitleOutline = new Color(0.290f, 0.160f, 0.620f);
         static readonly Color CoinGold     = new Color(1f, 0.820f, 0.320f);
         static readonly Color BadgeDark    = new Color(0.165f, 0.125f, 0.430f);
 
-        // PERFECT kartındaki iki plaka — referanstan örneklendi (7. tur, R59).
-        // `…Levels 1-20 Walkthrough.mp4` 11:31 karesi, 592×1280.
-        /// <summary>"Level 20" plakasının yüzü — karttan AÇIK (#523EF7).</summary>
-        static readonly Color LevelPlateFace = new Color(0.322f, 0.247f, 0.969f);
-        /// <summary>Aynı plakanın kenarı — karttan KOYU (#2D2091).</summary>
-        static readonly Color LevelPlateRim  = new Color(0.176f, 0.125f, 0.569f);
+        // PERFECT kartındaki TEK plaka: ödül sayısı. (Bölüm adınınki 8. turda
+        // kaldırıldı — referansta yok, bkz. BuildResultPanel.) Ödül plakası
+        // ise ham karede de doğrulandı: rakamların çevresi kartın moru değil,
+        // (34,21,100) koyu moru ve kenarları kesintisiz.
         /// <summary>Ödül sayısı plakasının yüzü (#221564).</summary>
         static readonly Color RewardPlateFace = new Color(0.133f, 0.082f, 0.392f);
         /// <summary>Ödül sayısı plakasının kenarı (#382978).</summary>
@@ -83,6 +128,8 @@ namespace BlockOut.Runtime.UI
         // ikisini aynı renge boyamak "aynı sonuç" izlenimi veriyordu.
         static readonly Color CardFailViolet = new Color(0.373f, 0.125f, 0.729f);
         static readonly Color CloseRed     = new Color(1.000f, 0.157f, 0.165f);  // #FF282A
+        /// <summary>Kapatma düğmesinin koyu halkası — ölçüm (212,0,4).</summary>
+        static readonly Color CloseRim = new Color(0.831f, 0.000f, 0.016f);
         /// <summary>Çarpının koyu bileziği — referansta ölçüldü (#6E0000).</summary>
         static readonly Color CloseRimDark = new Color(0.431f, 0.000f, 0.000f);
         /// <summary>Çarpının kendisi saf beyaz değil krem (#F4E7D6).</summary>
@@ -168,8 +215,13 @@ namespace BlockOut.Runtime.UI
         // (%5,4-%94,3), y 268-948 → alttan %25,9-%79,1. Bizimki %25,8-%76,7
         // idi; kart referanstan 44 birim (%4,5) ALÇAKTI ve "PERFECT!" başlığı
         // üst kenarına BİNMEK yerine üstünde asılı kalıyordu.
-        const float WinCardX0 = 0.054f, WinCardX1 = 0.943f;
-        const float WinCardY0 = 0.259f, WinCardY1 = 0.791f;
+        //
+        // YENİDEN ÖLÇÜLDÜ (8. tur, 59,47 fps'lik karelerden): 11:31 karesi
+        // yeniden kodlanmış bir ekran görüntüsüydü; kenarları bir-iki piksel
+        // içeriden okunuyordu. Ham kareden kartın mor kütlesi x 29-564,
+        // y 252-949 çıkıyor → %4,9-%95,3 ve alttan %25,9-%80,3.
+        const float WinCardX0 = 0.049f, WinCardX1 = 0.953f;
+        const float WinCardY0 = 0.259f, WinCardY1 = 0.803f;
 
         GameSession _session;
 
@@ -208,11 +260,10 @@ namespace BlockOut.Runtime.UI
         UnityEngine.UI.Image _promptIcon, _promptBurst;
         TMPro.TextMeshProUGUI _promptTitle, _promptText;
         Image _resultCard, _pauseCard;
+        Image _cardGroove, _cardInner, _cardLine, _cardFace;
         TextMeshProUGUI _resultDifficulty;
         TextMeshProUGUI _perfectBadge;
 
-        /// <summary>Bölüm adının açık mor plakası — yazı onun çocuğu (R59).</summary>
-        RectTransform _levelPlate;
         TextMeshProUGUI _resultTitle, _resultReward;
         RectTransform _rewardArt;
         Image _rewardBadge;
@@ -1006,6 +1057,76 @@ namespace BlockOut.Runtime.UI
         }
 
         // REFERANS ÖLÇÜMÜ — bkz. BuildPowerUpBar.
+        // YEŞİL DÜĞME ARTIK PROSEDÜREL — HAZIR GÖRSEL HAP ŞEKLİNDEYDİ.
+        //
+        // ÖLÇÜM (ham 59,47 fps kare, 592×1280): düğme x 142-449, y 765-877 —
+        // yani 307×112 piksel, kenar oranı 2,74. Köşe yarıçapı yüksekliğin
+        // yaklaşık dörtte biri: YUVARLAK KÖŞELİ DİKDÖRTGEN, hap değil.
+        //
+        // Yüzeyin dikey kesiti üç bant veriyor:
+        //   üst  (50,246,22)  parlak
+        //   orta (52,211,18)
+        //   alt  (22,176,5)   koyu
+        // ve bunların çevresinde (20,144,15) bir kenar bandı.
+        //
+        // `btn_green` sprite'ı ise tam bir HAP (iki ucu yarım daire) ve
+        // üstüne basılı bir parlaklık taşıyor. Kartın köşeleriyle aynı dilde
+        // konuşmuyordu: kart yuvarlak köşeli dikdörtgen, düğme kapsül.
+        //
+        // DERS (bu projede yedinci kez): Boyanabilir olan, üstünde KARAR
+        // basılı olmayandır. Köşe yarıçapını ayarlayabilmek gerekiyorsa
+        // yüzey kodla kurulmalı.
+
+        /// <summary>
+        /// Sonuç kartının ana düğmesi ("Continue" / "Play Again" / "Try
+        /// Again"). Artık menülerin düğmesiyle AYNI reçeteden geliyor.
+        ///
+        /// DERS (aynı işi yapan iki kod, er geç iki farklı tasarım olur):
+        /// Burada düğmenin kendi dört katmanı elle kuruluyordu — dış halka,
+        /// yüz, dip bandı, parlaklık — ve <c>MenuPage.PillButton</c> başka
+        /// bir dörtlüyle aynı şeyi yapıyordu. İkisi aynı gün ölçülmüştü ama
+        /// zamanla ayrıştı: köşe oranları 0,30/0,26'ya karşı 0,22, puntolar
+        /// farklı, dip bandı birinde var birinde yok. Kullanıcıya ulaşan
+        /// geri bildirim de tam buydu — "bulunan bütün butonlar tarz olarak
+        /// alakasız kalmış". Alakasızlığın sebebi ikisinin de kötü olması
+        /// değil, AYNI OLMAMASIYDI.
+        ///
+        /// Rengi artık tek yerden geliyor; ışık profili (pah, kaymak, etek)
+        /// çarpanla türetildiği için ayrıca dört renk tanımlamaya gerek yok.
+        /// </summary>
+        static Button CreateGreenButton(string name, Transform parent) =>
+            MenuPage.PillButton(name, parent, "", MenuPage.Green, 78, null);
+
+        /// <summary>
+        /// Kartın beş katmanını tek bir yüz renginden boyar.
+        ///
+        /// Oranlar mor kartta ÖLÇÜLDÜ ve yüze bölündü:
+        ///   dış kenar  (50,32,165) / (65,49,192) = 0,77 · 0,65 · 0,86
+        ///   koyu oluk  (30,17,110) / yüz         = 0,46 · 0,35 · 0,57
+        ///   iç çizgi   (90,64,233) / yüz         = 1,38 · 1,31 · 1,21
+        ///
+        /// Çarpanla türetmenin sebebi: kart üç renkte açılıyor (mor, şarap,
+        /// kızıl). Her biri için ayrı beş renk yazmak on beş sabit demekti ve
+        /// biri unutulduğunda yalnız O zorlukta bozuluyordu. Çarpan, ölçülen
+        /// PROFİLİ taşıyor; renk hangisi olursa olsun kenar aynı kabartıyı
+        /// veriyor.
+        /// </summary>
+        void TintCard(Color face)
+        {
+            if (_resultCard != null)
+                _resultCard.color = Scale(face, 0.77f, 0.65f, 0.86f);
+            if (_cardGroove != null)
+                _cardGroove.color = Scale(face, 0.46f, 0.35f, 0.57f);
+            if (_cardInner != null)
+                _cardInner.color = Scale(face, 0.77f, 0.65f, 0.86f);
+            if (_cardLine != null)
+                _cardLine.color = Scale(face, 1.38f, 1.31f, 1.21f);
+            if (_cardFace != null) _cardFace.color = face;
+
+            static Color Scale(Color c, float r, float g, float b) => new Color(
+                Mathf.Clamp01(c.r * r), Mathf.Clamp01(c.g * g), Mathf.Clamp01(c.b * b), c.a);
+        }
+
         /// <summary>Zorluğa göre sonuç kartının rengi (bkz. RefreshResult).</summary>
         static Color CardTint(Core.LevelDifficulty difficulty)
         {
@@ -1196,8 +1317,8 @@ namespace BlockOut.Runtime.UI
                 Ink, TitleOutline);
             UiKit.Place(warning, 0.06f, 0.290f, 0.94f, 0.400f);
 
-            var retry = UiKit.CreateSpriteButton("Retry", band,
-                UiSkin.Get(Art.ButtonGreen), "Try Again", 46, Ink);
+            var retry = MenuPage.PillButton("Retry", band,
+                "Try Again", MenuPage.Green, 46, null);
             UiKit.Place(retry, 0.185f, 0.055f, 0.815f, 0.255f);
             retry.onClick.AddListener(ConfirmRetry);
 
@@ -1367,15 +1488,25 @@ namespace BlockOut.Runtime.UI
                 new Color(1f, 1f, 1f, 0.18f));
             UiKit.Place(divider, 0.133f, 0.512f, 0.873f, 0.519f);
 
-            var resume = UiKit.CreateSpriteButton("Resume", _pauseCard.transform,
-                UiSkin.Get(Art.ButtonGreen), "Resume", 46, Ink);
+            // GÖRSELDEN REÇETEYE (8. tur). Bu iki düğme `btn_green.png` /
+            // `btn_red.png` görsellerinden geliyordu; oyundaki BÜTÜN diğer
+            // düğmeler ise koddan. İki stil aynı anda ekranda duruyordu ve
+            // kullanıcıya ulaşan geri bildirim buydu.
+            //
+            // Görsel ölçüldü: 512×246, köşesi referanstan belirgin daha
+            // köşeli ve parlaklığı sol üste doğru asimetrik olarak PİŞİRİLMİŞ
+            // — dokuz dilimle esnetilince o parlaklık da esniyor, düğme
+            // genişledikçe ışık kayıyor. Dosya duruyor; yalnız buradan
+            // kullanılmıyor.
+            var resume = MenuPage.PillButton("Resume", _pauseCard.transform,
+                "Resume", MenuPage.Green, 46, null);
             UiKit.Place(resume, 0.237f, 0.330f, 0.763f, 0.487f);
             resume.onClick.AddListener(() => SetPaused(false));
 
             // Referansta "Yeniden Başla" YOK — kaldırıldı. Bölümü yeniden
             // başlatmak isteyen HUD'daki geri düğmesini kullanıyor.
-            var quit = UiKit.CreateSpriteButton("Quit", _pauseCard.transform,
-                UiSkin.Get(Art.ButtonRed), "Quit", 46, Ink);
+            var quit = MenuPage.PillButton("Quit", _pauseCard.transform,
+                "Quit", MenuPage.Red, 46, null);
             UiKit.Place(quit, 0.237f, 0.140f, 0.763f, 0.297f);
             quit.onClick.AddListener(AppRouter.GoHome);
 
@@ -1578,31 +1709,109 @@ namespace BlockOut.Runtime.UI
         /// DERS (ışığın rengi, aydınlattığı şeyden gelir): Bir ödül halesi
         /// ödülün rengini taşımalı; nötr beyaz, altını gümüşe çeviriyor.
         /// </summary>
+        /// <summary>
+        /// Ödül yığınının ışın çelengi ve çevresindeki minik yıldızlar.
+        ///
+        /// Yıldızların yerleri UYDURULMADI: referansın 330-362. kareleri
+        /// (0,5 saniye) tarandı, 4-200 piksel² arası beyaz lekelerin ağırlık
+        /// merkezleri bu dikdörtgenin oranına çevrildi ve birbirine çok yakın
+        /// olanlar birleştirildi. Üçüncü sayı yıldızın boyu — alanının
+        /// karekökünden geliyor, yani referansta büyük olan burada da büyük.
+        /// </summary>
+        static readonly Vector3[] SparkleSpots =
+        {
+            new Vector3(-0.102f, 0.064f, 1.18f),
+            new Vector3(-0.068f, 0.694f, 1.30f),
+            new Vector3(-0.060f, 0.469f, 1.22f),
+            new Vector3(-0.034f, 0.652f, 1.30f),
+            new Vector3(-0.005f, 0.615f, 1.22f),
+            new Vector3(-0.001f, 0.246f, 1.22f),
+            new Vector3( 0.097f, 0.463f, 1.14f),
+            new Vector3( 0.126f, 0.504f, 1.18f),
+            new Vector3( 0.203f, 0.862f, 1.26f),
+            new Vector3( 0.219f, 0.810f, 1.14f),
+            new Vector3( 0.255f, 0.692f, 1.38f),
+            new Vector3( 0.279f, 0.760f, 1.52f),
+            new Vector3( 0.279f, 0.639f, 1.14f),
+            new Vector3( 0.326f, 0.760f, 1.34f),
+            new Vector3( 0.374f, 0.791f, 1.14f),
+            new Vector3( 0.382f, 0.948f, 1.58f),
+            new Vector3( 0.388f, 0.905f, 1.22f),
+            new Vector3( 0.466f, 0.880f, 1.14f),
+            new Vector3( 0.521f, 0.738f, 1.52f),
+            new Vector3( 0.529f, 0.927f, 1.22f),
+            new Vector3( 0.536f, 0.995f, 1.58f),
+            new Vector3( 0.537f, 0.882f, 1.41f),
+            new Vector3( 0.552f, 0.839f, 1.52f),
+            new Vector3( 0.588f, 0.882f, 1.38f),
+            new Vector3( 0.601f, 0.947f, 1.38f),
+            new Vector3( 0.680f, 0.890f, 1.30f),
+            new Vector3( 0.692f, 0.739f, 1.76f),
+            new Vector3( 0.733f, 0.619f, 1.22f),
+            new Vector3( 0.735f, 0.666f, 2.00f),
+            new Vector3( 0.794f, 0.710f, 1.45f),
+            new Vector3( 0.811f, 0.760f, 1.45f),
+            new Vector3( 0.839f, 0.661f, 1.48f),
+            new Vector3( 0.841f, 0.827f, 1.45f),
+            new Vector3( 0.857f, 0.870f, 1.55f),
+            new Vector3( 0.933f, 0.258f, 2.00f),
+            new Vector3( 0.940f, 0.185f, 1.38f),
+            new Vector3( 0.941f, 0.096f, 1.14f),
+            new Vector3( 0.999f, 0.154f, 1.45f),
+            new Vector3( 1.017f, 0.114f, 1.38f),
+            new Vector3( 1.056f, 0.578f, 1.18f),
+        };
+
+        /// <summary>
+        /// Bir yıldızın taban yarı-çapı (kutu oranı olarak).
+        ///
+        /// ÖLÇÜM: referansta yıldız lekelerinin alan medyanı 8 piksel², yani
+        /// çekirdeği ~3 piksel; uçlarıyla birlikte 8-10 piksel. Kutu 290
+        /// piksel genişliğinde olduğuna göre yarı-çap ~0,016. İlk yazdığım
+        /// 0,030 iki katıydı: az sayıda İRİ yıldız, referansın çok sayıda
+        /// MİNİK yıldızından bambaşka bir şey.
+        /// </summary>
+        const float SparkleHalf = 0.017f;
+
         static void BuildGlow(RectTransform parent)
         {
+            // IŞIN ÇELENGİ GERİ GELDİ (8. tur).
+            //
+            // Kodda "ışınlar tek tek döndürülmüş ince dikdörtgenler" diye
+            // anlatılıyordu ama ekranda yalnız yumuşak bir yuvarlak hale
+            // vardı — açıklama kalmış, ışınlar bir turda düşmüştü.
+            // Referansta jetonların arkasından çıkan düz ışınlar açıkça
+            // görülüyor ve yığını "parlayan bir ödül" yapan şey onlar.
+            //
+            // `UiSprites.Burst` tam bunu üretiyor: 12 ışın, merkezden dışa
+            // sönerek. Ayrı bir görsel gerekmiyor.
+            var rays = UiKit.CreateIcon("Rays", parent, UiSprites.Burst,
+                new Color(1f, 1f, 1f, 0.34f));
+            rays.raycastTarget = false;
+            UiKit.Place(rays, -0.52f, -0.46f, 1.52f, 1.52f);
+
             var glow = UiKit.CreateIcon("Glow", parent, UiSprites.Radial,
                 new Color(1f, 0.92f, 0.62f, 0.55f));
             glow.raycastTarget = false;
             UiKit.Place(glow, -0.42f, -0.34f, 1.42f, 1.40f);
 
-            // PARILTILAR: referansta yığının çevresinde üç-dört küçük beyaz
-            // dört uçlu yıldız var. Konumları sabit — rastgele olsaydı kart
-            // her açılışta başka görünür ve "kararlı bir tasarım" hissi
-            // kaybolurdu.
-            var spots = new[]
+            var stars = new Graphic[SparkleSpots.Length];
+            var scales = new float[SparkleSpots.Length];
+            for (int i = 0; i < SparkleSpots.Length; i++)
             {
-                new Vector4(0.11f, 0.64f, 0.20f, 0.77f),
-                new Vector4(0.79f, 0.72f, 0.88f, 0.85f),
-                new Vector4(0.84f, 0.30f, 0.92f, 0.42f),
-                new Vector4(0.43f, 0.92f, 0.51f, 1.03f)
-            };
-            for (int i = 0; i < spots.Length; i++)
-            {
+                var spot = SparkleSpots[i];
                 var star = UiKit.CreateIcon("Sparkle" + i, parent, MenuSprites.Sparkle,
-                    new Color(1f, 1f, 1f, 0.92f));
+                    new Color(1f, 1f, 1f, 0f));
                 star.raycastTarget = false;
-                UiKit.Place(star, spots[i].x, spots[i].y, spots[i].z, spots[i].w);
+                UiKit.Place(star, spot.x - SparkleHalf, spot.y - SparkleHalf,
+                                  spot.x + SparkleHalf, spot.y + SparkleHalf);
+                stars[i] = star;
+                scales[i] = spot.z;
             }
+
+            var field = parent.gameObject.GetComponent<SparkleField>();
+            if (field == null) field = parent.gameObject.AddComponent<SparkleField>();
+            field.Adopt(stars, scales);
         }
 
         void BuildResultPanel(Transform root)
@@ -1636,16 +1845,48 @@ namespace BlockOut.Runtime.UI
             // yalnız renk ve şekil değil, üzerine çizilmiş her ayrıntıyı da
             // dayatır. Kenar kalınlığını, iç çizgiyi ve köşe yarıçapını
             // ayarlayabilmek gerekiyorsa yüzey kodla kurulmalı.
-            _resultCard = UiKit.CreateRoundedPanel("Card", _resultPanel, CardRim,
+            _resultCard = UiKit.CreateRoundedPanel("Card", _resultPanel, CardEdge,
                 GameKit.UI.UiCornerFit.HouseShare, CardCornerRadius);
             UiKit.Place(_resultCard, WinCardX0, WinCardY0, WinCardX1, WinCardY1);
 
-            // Kartın yüzü: koyu kenarın 27 birim içinde. Köşe yarıçapı da
-            // aynı kadar küçük — eş merkezli köşe kuralı (bkz. P56).
-            var cardFace = UiKit.CreateRoundedPanel("Face", _resultCard.transform,
-                CardPurple, GameKit.UI.UiCornerFit.HouseShare, CardCornerRadius - CardRimWidth);
-            UiKit.Place(cardFace, 0f, 0f, 1f, 1f, padding: CardRimWidth);
-            cardFace.raycastTarget = false;
+            // Kenar profili: dört bant, sonra yüz. Her katmanın köşe yarıçapı
+            // içeri girdiği kadar küçülüyor — eş merkezli köşe kuralı (P56).
+            // Aksi hâlde bantlar köşelerde birbirine paralel kalmaz, kenar
+            // kalınlığı köşede incelir.
+            //
+            // KOYU KENAR EKRANDA HİÇ GÖRÜNMÜYORMUŞ (8. turda bulundu).
+            //
+            // Kart `CardRim` ile kuruluyor, çocuğu "Face" ise `CardPurple`
+            // ile. Ama `RefreshResult` her açılışta `_resultCard.color`u
+            // ZORLUK RENGİYLE eziyor ve normal bölümlerde o renk tam olarak
+            // `CardPurple`. Yani kenar da yüz de aynı mor oluyor, 7. turda
+            // ölçülüp yazılan 18 piksellik koyu kenar bir kez bile
+            // çizilmiyordu.
+            //
+            // DERS (ölçüm doğru olabilir ama EKRANA ULAŞMAYABİLİR): Kenarın
+            // rengi kaynakta duruyordu; kimse çalışma anında onu kimin
+            // yazdığını sormadı. Bir sabiti tanımlamak, onun görüneceğini
+            // garanti etmez — sabitin ekrandaki karşılığı ölçülmeli.
+            //
+            // Çözüm: zorluk rengi artık YÜZE gidiyor, kenar bantları da o
+            // renkten TÜRETİLİYOR (bkz. TintCard). Mor/şarap/kızıl üç kart
+            // da aynı kenar profilini koruyor.
+            float inset = 0f;
+            _cardGroove = Band(CardGroove,    CardEdgeBand,   "Groove");
+            _cardInner  = Band(CardEdge,      CardGrooveBand, "Inner");
+            _cardLine   = Band(CardInnerLine, CardInnerBand,  "Line");
+            _cardFace   = Band(CardPurple,    CardLineBand,   "Face");
+            var cardFace = _cardFace;
+
+            Image Band(Color color, float step, string name)
+            {
+                inset += step;
+                var band = UiKit.CreateRoundedPanel(name, _resultCard.transform,
+                    color, GameKit.UI.UiCornerFit.HouseShare, CardCornerRadius - inset);
+                UiKit.Place(band, 0f, 0f, 1f, 1f, padding: inset);
+                band.raycastTarget = false;
+                return band;
+            }
 
             // "PERFECT!" kartın DIŞINDA, üst kenarına binerek duruyor. Kartın
             // içine alınırsa başlık kutunun bir satırı olur; referansta kartı
@@ -1661,28 +1902,89 @@ namespace BlockOut.Runtime.UI
             //   "Continue"  %2,66  →  51 piksel
             // Bizim puntolarımız (88 / 58 / 46 / 44) bunların kabaca
             // YARISINI veriyordu; başlık ekranda cılız kalıyordu.
-            _resultTitle = UiKit.CreateTitle("Title", _resultPanel, "", 132,
+            _resultTitle = UiKit.CreateTitle("Title", _resultPanel, "", TitlePoint,
                 TitleGold, TitleOutline);
             UiKit.Place(_resultTitle, 0.10f, 0.772f, 0.90f, 0.856f);
             _resultTitle.textWrappingMode = TextWrappingModes.NoWrap;
 
-            // Paylaşılan başlık materyali tek tek kontur ayarı kabul etmiyor;
-            // bu etiket kendi kopyasını alıyor (bkz. UiKit.SetOutline).
-            UiKit.SetOutline(_resultTitle, TitleOutline);
+            // BAŞLIK REFERANSA GÖRE YENİDEN DÖKÜLDÜ (8. tur).
+            //
+            // Yan yana konunca (ikisi de aynı genişliğe ölçeklenerek) fark
+            // dört başlıkta toplanıyordu:
+            //
+            //   1. Referansın harfleri BİRBİRİNE DEĞİYOR. Ölçüldü: harf
+            //      araları 2-5 piksel, harf genişliği 34-49 piksel. Bizde
+            //      araların her biri harfin yarısı kadardı.
+            //   2. Referansın harfleri DAHA UZUN. Aynı kelime genişliğinde
+            //      (ekranın %56,2'si) referansın büyük harf yüksekliği
+            //      ekranın %8,05'i, bizimki %4,7'siydi.
+            //   3. Gövde kalın; bizim kontur SDF'i ince bırakıyordu.
+            //   4. Altın DÜZ DEĞİL: tepede açık sarı (255,214,90), dipte
+            //      koyu turuncu (233,140,10).
+            //
+            // 1 ve 2 aynı sebebin iki yüzü: referansın yazı tipi Baloo2'den
+            // belirgin biçimde DAR. Aynı yüksekliğe getirdiğimizde kelime
+            // taşıyor. Çözüm harf aralığını kısmak ve kalan farkı yatay
+            // ölçekle kapatmak — sıkıştırılmış bir başlık, dizgide de
+            // "condensed" diye ayrı bir kesim olarak vardır.
+            //
+            // DERS (yazı tipi bir ÖLÇÜ setidir, yalnız bir biçim değil):
+            // "Aynı puntoyu ver" demek aynı boyu vermiyor; iki tipin büyük
+            // harf yüksekliği de, genişlik/yükseklik oranı da farklı.
+            // Karşılaştırma her zaman EKRANDAKİ piksel üstünden yapılmalı.
+            UiKit.SetOutline(_resultTitle, TitleOutline, TitleOutlineWidth);
+            // OTOMATİK KÜÇÜLTME KAPALI: punto burada BİLEREK kutudan büyük.
+            // `UiTextFit` taşan etiketleri küçültüyor (M46); bu başlık ise
+            // kutusunu kasten aşıyor ve yatay ölçekle geri sığıyor. Fit
+            // açık kalsaydı puntoyu geri indirir, ölçüm boşa giderdi.
+            UiKit.NoFit(_resultTitle);
+            _resultTitle.characterSpacing = TitleTracking;
+            _resultTitle.rectTransform.localScale = new Vector3(TitleCondense, 1f, 1f);
+
+            // Rengin kendisi BEYAZ: altın artık geçişten geliyor ve ikisi
+            // TMP'de çarpılıyor (bkz. RefreshResult'taki not).
+            _resultTitle.color = Color.white;
+            _resultTitle.enableVertexGradient = true;
+            _resultTitle.colorGradient = new VertexGradient(
+                TitleGoldTop, TitleGoldTop, TitleGoldBottom, TitleGoldBottom);
+
+            // Gövdeyi şişirmek: SDF'te `_FaceDilate` harfin kenarını dışarı
+            // itiyor, yani aynı yazı tipini kalınlaştırıyor. Konturu
+            // kalınlaştırmak aynı şey değil — o harfi değil çevresini
+            // büyütür ve harf ARASI boşluğu yer.
+            var titleMaterial = _resultTitle.fontMaterial;
+            titleMaterial.SetFloat(ShaderUtilities.ID_FaceDilate, TitleDilate);
 
             // Kapatma çarpısı: kartın sağ üst köşesine biner. Ana ekrana dönüş
             // artık bu — referansta ayrı bir "Ana Ekran" düğmesi yok.
             // btn_red YUVARLAK DEĞİL, yuvarlak köşeli bir dikdörtgen. Referanstaki
             // kapatma düğmesi tam daire; o yüzden zemini çizimden alıyoruz.
+            // KAPATMA DÜĞMESİ İKİ HALKALI (8. tur).
+            //
+            // ÖLÇÜM (ham kare, y=292 yatay kesiti): düğme x 513-566, yani
+            // çapı 53 piksel = ekran genişliğinin %8,95'i. Kesitte iki ayrı
+            // kırmızı var: dıştaki koyu (212,0,4), içteki parlak (255,47,52).
+            // Çarpı kırık beyaz (249,231,211), siyah değil.
+            //
+            // Bizde tek düz kırmızı bir daire ve KOYU MOR bir çarpı vardı;
+            // koyu zeminde çarpı okunmuyordu ve düğme kartın köşesine
+            // "yapıştırılmış" gibi duruyordu. Koyu halka, düğmeye kartın
+            // üstünde durduğu hissini veren şey.
             _closeButton = UiKit.CreateIconButton("Close", _resultPanel,
-                UiSprites.Circle, CloseRed);
-            UiKit.Place(_closeButton, 0.870f, 0.736f, 0.954f, 0.775f);
+                UiSprites.Circle, CloseRim);
+            UiKit.Place(_closeButton, 0.867f, 0.752f, 0.956f, 0.793f);
             _closeButton.onClick.AddListener(AppRouter.GoHome);
 
+            var closeFace = UiKit.CreateIcon("Face", _closeButton.transform,
+                UiSprites.Circle, CloseRed);
+            closeFace.raycastTarget = false;
+            UiKit.Place(closeFace, 0.10f, 0.10f, 0.90f, 0.90f);
+
             // Çarpı, kırmızı yuvarlağın ÜSTÜNE ayrı bir görsel olarak biniyor.
-            var crossMark = UiKit.CreateIcon("Mark", _closeButton.transform, UiSprites.Cross, Ink);
+            var crossMark = UiKit.CreateIcon("Mark", _closeButton.transform,
+                UiSprites.Cross, CloseInk);
             crossMark.raycastTarget = false;
-            UiKit.Place(crossMark, 0.24f, 0.24f, 0.76f, 0.76f);
+            UiKit.Place(crossMark, 0.27f, 0.27f, 0.73f, 0.73f);
 
             // ZORLUK ETİKETİ KARTIN İÇİNDE, BÖLÜM ADININ ÜSTÜNDE (4. tur, J41).
             //
@@ -1699,39 +2001,41 @@ namespace BlockOut.Runtime.UI
                 Ink, TitleOutline);
             UiKit.Place(_resultDifficulty, 0.08f, 0.900f, 0.92f, 0.968f);
 
-            // BÖLÜM ADI ARTIK KENDİ PLAKASININ İÇİNDE (7. tur, R59).
+            // BÖLÜM ADININ PLAKASI KALDIRILDI — REFERANSTA YOK (8. tur).
             //
-            // Kullanıcı: "Perfect Coin paneli hâlâ düzgün değil, referanstan
-            // birebir örnek alınıp aynısı yapılacak."
+            // 7. turda "Level 20 açık mor bir plakanın içinde" diye ölçülüp
+            // eklenmişti. O ölçüm YANLIŞTI ve nasıl yanlış olduğu öğretici:
+            // yazının 12 piksel altındaki satır taranmış, x 177-402 arası
+            // KESİNTİSİZ koyu çıkmış ve "demek plaka var" denmişti.
             //
-            // ÖLÇÜM (`…Levels 1-20 Walkthrough.mp4` 11:31, 20. bölümün PERFECT
-            // kartı, 592×1280): "Level 20" yazısı düz kartın üstünde DEĞİL,
-            // x 178-410 / y 378-440 aralığında AÇIK MOR bir plakanın içinde.
-            // Plakanın yüzü (82,63,247), kenarı (45,32,145), kartın yüzü ise
-            // (65,49,192) — yani plaka karttan AÇIK, kenarı KOYU.
+            // Bu turda aynı kare yoğun tarandı — yazının üstünde (y=380),
+            // ortasında ve altında (y=446) aynı bant BOŞLUKLU çıkıyor:
             //
-            // Bizde yazı doğrudan kartın üstündeydi. Kartla aynı düzlemde
-            // duran beyaz bir satır, kartın "başlığı" gibi okunuyor; oysa
-            // referansta o bir ETİKET — hangi bölümü bitirdiğini söyleyen
-            // ayrı bir parça.
+            //   y=380  ...###.#############.###.....
+            //   y=441  ...###########################   <- tek dolu satır
+            //   y=446  ...####...#.###############..
             //
-            // DERS (bu panelde ikinci kez): Aynı şey ödül sayısında da vardı
-            // ve orada çözülmüştü ("koyu kapsülün içinde"). Bir ekranda bir
-            // öğe için doğru olan kural, komşusu için de sorulmalı.
-            _levelPlate = UiKit.CreateRect("LevelPlate", _resultCard.transform);
-            UiKit.Place(_levelPlate, 0.278f, 0.746f, 0.719f, 0.838f);
-
-            var levelRim = UiKit.CreateRoundedPanel("Rim", _levelPlate, LevelPlateRim);
-            UiKit.Place(levelRim, 0f, 0f, 1f, 1f);
-            levelRim.raycastTarget = false;
-
-            var levelFace = UiKit.CreateRoundedPanel("Face", _levelPlate, LevelPlateFace);
-            UiKit.Place(levelFace, 0f, 0f, 1f, 1f, padding: 7f);
-            levelFace.raycastTarget = false;
-
-            _perfectBadge = UiKit.CreateTitle("LevelName", _levelPlate, "", 84,
+            // Bir plaka HER satırda kesintisiz olur. Boşluklar harflerin
+            // arasına denk geliyor; yani görülen şey plaka değil, yazının
+            // kalın MOR KONTURU. y=441 taban çizgisinin hemen altı olduğu
+            // için orada bütün harflerin konturu birleşiyor.
+            //
+            // Kartın yüzü de bunu doğruluyor: yazının çevresindeki her
+            // piksel (65,49,192), yani kartın kendi rengi. Plaka olsaydı
+            // orada başka bir renk okunurdu.
+            //
+            // DERS (tek satır delil değildir): Bir yapıyı doğrulamak için
+            // en az iki-üç kesit gerekiyor. Tek kesit, harflerin birleştiği
+            // yere denk gelirse dümdüz bir dikdörtgen gibi okunur.
+            _perfectBadge = UiKit.CreateTitle("LevelName", _resultCard.transform, "", 84,
                 Ink, TitleOutline);
-            UiKit.Place(_perfectBadge, 0.04f, 0.02f, 0.96f, 0.98f);
+            UiKit.Place(_perfectBadge, 0.290f, 0.740f, 0.708f, 0.845f);
+
+            // Konturu KALIN: referansta yazıyı çevreleyen mor şerit yaklaşık
+            // 12 piksel — 7. turda bu şerit yanlışlıkla "plaka" sanılmıştı
+            // (bkz. yukarısı). Kalın kontur, açık mor kartın üstünde beyaz
+            // yazıyı ayakta tutan şey; incesiyle yazı zemine gömülüyor.
+            UiKit.SetOutline(_perfectBadge, TitleOutline, 0.30f);
 
             // Jeton yığını: tek bir "coin_pile" görselimiz yok, bu yüzden
             // icon_coin'lerden kuruyoruz. Gerçek yığın görseli gelince burası
@@ -1788,8 +2092,7 @@ namespace BlockOut.Runtime.UI
             // nereye bakacağını öğrensin.
             // Yeşil "Continue" kartın tek ve büyük eylemi. Hazır btn_green
             // sprite'ı var; boyamaya gerek yok.
-            _resultPrimary = UiKit.CreateTintedButton("Primary", _resultCard.transform,
-                UiSkin.Get(Art.ButtonGreen), Color.white, "", 66, Ink);
+            _resultPrimary = CreateGreenButton("Primary", _resultCard.transform);
             UiKit.Place(_resultPrimary, 0.221f, 0.114f, 0.787f, 0.275f);
             _resultPrimaryLabel = _resultPrimary.GetComponentInChildren<TextMeshProUGUI>();
             _resultPrimary.onClick.AddListener(OnPrimary);
@@ -1828,7 +2131,10 @@ namespace BlockOut.Runtime.UI
         {
             // Kırık kalp: başlıkla kartın kesiştiği yere biner.
             _failHeart = UiKit.CreateIcon("FailHeart", _resultPanel, UiSkin.Get(Art.HeartBroken));
-            UiKit.Place(_failHeart, 0.430f, 0.742f, 0.573f, 0.792f);
+            // Kalp başlığın ALTINDA. Başlık 8. turda büyüyünce kalp
+            // harflerin üstüne bindi ve "FAILED"in ortasını kapattı; iki
+            // öğe aynı kutuya sığmıyordu.
+            UiKit.Place(_failHeart, 0.430f, 0.700f, 0.573f, 0.752f);
 
             // Zorluk etiketi bölüm numarasının ÜSTÜNDE, küçük ve sade.
             _failDifficulty = UiKit.CreateTitle("Difficulty", _resultCard.transform, "", 30,
@@ -1915,77 +2221,17 @@ namespace BlockOut.Runtime.UI
             return UiSkin.Get(Art.Coin);
         }
 
-        /// <summary>
-        /// Konfeti: kartın üstünden saçılan küçük renkli kareler.
-        ///
-        /// Kanvas parçacığı yerine düz Image kullanılıyor — arayüz katmanında
-        /// ParticleSystem çizim sırasına karışıyor ve kartın altında kalıyor.
-        /// Otuz küçük Image bir kerelik kutlama için ucuz.
-        /// </summary>
-        void BurstConfetti()
-        {
-            var sheet = UiSkin.Get(Art.Confetti);
-            var colors = new[]
-            {
-                new Color(0.18f, 0.80f, 0.05f), new Color(1f, 0.78f, 0.10f),
-                new Color(0.95f, 0.30f, 0.45f), new Color(0.25f, 0.62f, 0.98f),
-                new Color(0.66f, 0.35f, 0.92f)
-            };
-
-            for (int i = 0; i < 30; i++)
-            {
-                var piece = sheet != null
-                    ? UiKit.CreateIcon($"Confetti_{i}", _resultPanel, sheet, colors[i % colors.Length])
-                    : UiKit.CreateRoundedPanel($"Confetti_{i}", _resultPanel, colors[i % colors.Length]);
-                piece.raycastTarget = false;
-
-                var rect = piece.rectTransform;
-                rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.72f);
-                rect.pivot = new Vector2(0.5f, 0.5f);
-                rect.sizeDelta = new Vector2(Random.Range(18f, 34f), Random.Range(24f, 42f));
-                rect.anchoredPosition = Vector2.zero;
-
-                float angle = Random.Range(20f, 160f) * Mathf.Deg2Rad;
-                float speed = Random.Range(700f, 1500f);
-                var velocity = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * speed;
-                float spin = Random.Range(-540f, 540f);
-
-                GameKit.FX.Juice.Run(ConfettiFlight(rect, velocity, spin));
-            }
-        }
-
-        static System.Collections.IEnumerator ConfettiFlight(RectTransform piece,
-            Vector2 velocity, float spin)
-        {
-            const float gravity = -2600f;
-            const float life = 1.6f;
-            var position = Vector2.zero;
-            float angle = 0f;
-
-            for (float t = 0f; t < life; t += Time.unscaledDeltaTime)
-            {
-                if (piece == null) yield break;
-
-                velocity.y += gravity * Time.unscaledDeltaTime;
-                position += velocity * Time.unscaledDeltaTime;
-                angle += spin * Time.unscaledDeltaTime;
-
-                piece.anchoredPosition = position;
-                piece.localRotation = Quaternion.Euler(0f, 0f, angle);
-
-                // Son üçte birde solarak kaybolur; birden yok olmak göze çarpar.
-                var image = piece.GetComponent<Image>();
-                if (image != null && t > life * 0.66f)
-                {
-                    var color = image.color;
-                    color.a = 1f - (t - life * 0.66f) / (life * 0.34f);
-                    image.color = color;
-                }
-                yield return null;
-            }
-
-            if (piece != null) Destroy(piece.gameObject);
-        }
+        // KART KONFETİSİ KALDIRILDI (8. tur).
+        //
+        // Referansın PERFECT kartında konfeti YOK: 313-362. karelerin
+        // hiçbirinde kartın üstünde uçuşan parça bulunmuyor. Konfeti bir
+        // önceki adımda, siyah kutlama ekranında zaten var.
+        //
+        // DERS (zıtlık da bir tasarım aracıdır): Gürültülü bir kutlamadan
+        // sonra SAKİN bir kart, ödülü öne çıkarıyor. İkisi de hareketliyse
+        // göz ikinci ekranda dinlenecek yer bulamıyor ve ödüle bakmıyor.
+        // Buradaki canlılığı artık yığının çarparak oturması ve yıldızların
+        // sönüp yanması taşıyor (bkz. SparkleField).
 
         /// <summary>
         /// Ödüllü reklam: kazandıysa ödülü katlar, kaybettiyse süre ekler.
@@ -2452,8 +2698,7 @@ namespace BlockOut.Runtime.UI
                 var sprite = PileFor(reward);
                 if (sprite != null) screen._coinPile.sprite = sprite;
             }
-            if (screen._resultCard != null)
-                screen._resultCard.color = won ? CardPurple : CardFailViolet;
+            screen.TintCard(won ? CardPurple : CardFailViolet);
 
             screen.ApplyResultLayout(won);
             return screen;
@@ -2508,19 +2753,38 @@ namespace BlockOut.Runtime.UI
             // "PERFECT!" x 100-492 (%16,9-%83,1), y 205-285 → alttan
             // %77,7-%84,0; kartın tepesi %79,1. Yani başlığın ALT yarısı
             // kartın üstünde duruyor — onu taşıyan bir tabela gibi.
-            UiKit.Place(_resultTitle, won ? 0.14f : 0.10f, won ? 0.777f : 0.784f,
-                                      won ? 0.86f : 0.90f, won ? 0.848f : 0.848f);
-            UiKit.Place(_closeButton, won ? 0.870f : 0.862f, won ? 0.736f : 0.731f,
-                                      won ? 0.954f : 0.967f, won ? 0.775f : 0.780f);
+            // BAŞLIK KARTIN ÜSTÜNE BİNİYOR — SANILDIĞINDAN ÇOK DAHA FAZLA.
+            //
+            // ÖLÇÜM (ham 59,47 fps kare): altın harfler x 129-462 (ekranın
+            // %56,2'si, tam ortalı), y 224-327. Kartın üst kenarı 252'de.
+            // Yani harflerin ALT DÖRTTE ÜÇÜ kartın üstünde duruyor.
+            //
+            // Bizde başlık kartın üst kenarına ancak DEĞİYORDU; aradaki fark
+            // ekranın %5,9'u. Değen bir başlık "kartın üstündeki yazı" gibi
+            // okunuyor, binen bir başlık kartı taşıyan bir TABELA gibi.
+            UiKit.Place(_resultTitle, won ? 0.09f : 0.10f, won ? 0.745f : 0.756f,
+                                      won ? 0.91f : 0.90f, won ? 0.836f : 0.836f);
+
+            // PUNTO DURUMA GÖRE. Kazanma başlığı kartın üstüne binen bir
+            // tabela; kaybetme başlığı kartın ÜSTÜNDE, kırık kalple birlikte
+            // ayrı bir grup. İkisine aynı puntoyu vermek "FAILED"i kartın
+            // yarısı kadar büyük yapıyordu.
+            _resultTitle.fontSize = won ? TitlePoint : LoseTitlePoint;
+
+            // Kapatma çarpısı KARTIN köşesine biner — kaybetme kartı daha
+            // alçak olduğu için ayrı bir y gerekiyor. Eskiden ikisinde de
+            // aynı yükseklikteydi ve kaybetme ekranında boşlukta duruyordu.
+            UiKit.Place(_closeButton, won ? 0.867f : 0.862f, won ? 0.752f : 0.658f,
+                                      won ? 0.956f : 0.967f, won ? 0.793f : 0.699f);
 
             // Kart İÇİ yerleşim (kart-göreli oranlar); kaybetme düzeni
             // `Game over .mp4` 18. saniyeden ölçüldü.
             // Kaybetme oranları yukarıdaki ölçümden kart-göreliye çevrildi
             // (kart x 0.049..0.951 → genişlik 0.902; y 0.254..0.700 → 0.446).
-            // Bölüm adı plakası — yazı artık plakanın ÇOCUĞU, o yüzden
-            // yerleşen şey plaka (bkz. BuildResultPanel, R59).
-            UiKit.Place(_levelPlate, won ? 0.278f : 0.20f, won ? 0.746f : 0.794f,
-                                     won ? 0.719f : 0.80f, won ? 0.838f : 0.874f);
+            // Bölüm adı: plakasız, doğrudan kartın üstünde (bkz.
+            // BuildResultPanel — plakanın neden kaldırıldığı orada).
+            UiKit.Place(_perfectBadge, won ? 0.290f : 0.212f, won ? 0.740f : 0.788f,
+                                       won ? 0.708f : 0.788f, won ? 0.845f : 0.880f);
             UiKit.Place(_rewardArt, won ? 0.234f : 0.278f, won ? 0.438f : 0.513f,
                                     won ? 0.775f : 0.744f, won ? 0.700f : 0.794f);
             UiKit.Place(_rewardBadge, won ? 0.358f : 0.327f, won ? 0.333f : 0.377f,
@@ -2579,7 +2843,7 @@ namespace BlockOut.Runtime.UI
             var difficultyTint = won
                 ? CardTint(_session != null ? _session.Difficulty : Core.LevelDifficulty.Normal)
                 : CardFailViolet;
-            if (_resultCard != null) _resultCard.color = difficultyTint;
+            TintCard(difficultyTint);
             if (_resultTitle != null)
                 UiKit.SetOutline(_resultTitle, OutlineFor(difficultyTint));
 
@@ -2590,7 +2854,19 @@ namespace BlockOut.Runtime.UI
                 _resultDifficulty.text = label;
                 _resultDifficulty.gameObject.SetActive(!string.IsNullOrEmpty(label));
             }
-            _resultTitle.color = TitleGold;
+            // RENK BEYAZ, ÇÜNKÜ ALTIN ARTIK GEÇİŞTEN GELİYOR.
+            //
+            // `color` ile `colorGradient` TMP'de ÇARPILIYOR. Burada altın
+            // (255,194,46) yazılı kaldığı sürece geçişin açık sarı tepesi
+            // (255,214,90) ile çarpılıp (255,163,16) oluyordu — yani
+            // başlığın üstü de altı da turuncu çıkıyor, geçiş görünmüyordu.
+            // Ekranda "gradyan çalışmıyor" gibi duruyordu; oysa çalışıyordu,
+            // üstüne ikinci bir renk biniyordu.
+            //
+            // DERS (iki renk kaynağı varsa biri BEYAZ olmalı): Çarpımla
+            // birleşen katmanlarda nötr eleman 1'dir. Rengi taşıyan katman
+            // hangisiyse öteki beyaza çekilmeli.
+            _resultTitle.color = Color.white;
 
             // Bölüm numarası İKİ DURUMDA DA var — referansta kaybederken
             // "Seviye 54" karttaki en büyük yazı.
@@ -2633,8 +2909,11 @@ namespace BlockOut.Runtime.UI
             bool advance = won && _session.HasNextLevel;
             _resultPrimaryLabel.text = advance ? "Continue" : won ? "Play Again" : "Try Again";
 
-            // Referansta "Yeniden Dene" düğmesi de YEŞİL — kırmızı değil.
-            if (_resultPrimary.targetGraphic is Image face) face.color = Color.white;
+            // Rengi burada EZMİYORUZ. Eskiden hedef grafik düğmenin yüzüydü
+            // ve kaybedince kırmızıya boyanmasın diye beyaza çekiliyordu;
+            // artık hedef grafik en dıştaki KOYU ÇİZGİ, onu beyaza çekmek
+            // düğmenin çerçevesini yok ederdi. Referansta "Try Again" de
+            // yeşil, yani ezmeye zaten gerek yok.
 
             ApplyResultLayout(won);
 
@@ -2656,33 +2935,95 @@ namespace BlockOut.Runtime.UI
             // değil, biriktirdiği jetonu harcama seçeneği sunuyor.
             _adButton.gameObject.SetActive(false);
 
-            GameKit.FX.Juice.Replace(_resultCard,
-                GameKit.FX.Juice.CardEntrance(_resultCard.transform));
+            // KAZANMA KARTI ÖLÇEKLENEREK GELMİYOR — ANINDA ORADA (8. tur).
+            //
+            // ÖLÇÜM (ham 59,47 fps kare): siyah kutlama ekranından sonra kart
+            // TEK KAREDE tam boyunda beliriyor (313. kare). Bir önceki karede
+            // hiç yok, sonrakinde kenarları son yerinde. Ölçeklenerek açılan
+            // bir kartın en az 8-10 karesi olurdu.
+            //
+            // Canlanan şey kartın kendisi değil İÇİNDEKİLER: ödül yığını iki
+            // katından oturuyor, başlık kartın üst kenarından yukarı açılıyor,
+            // düğme aşarak geliyor. Kart da ölçeklenirse bunların hepsi onun
+            // içinde kaydığı için hiçbiri okunmuyor — üstelik kutlama zaten
+            // çok hareketliydi, kartın sabit gelmesi o gürültüden sonra
+            // "durduk, ödülüne bak" diyor.
+            //
+            // Kaybetme kartı eskisi gibi açılıyor: orada önce sessiz bir
+            // ekran var, kartın kendini duyurması gerekiyor.
+            if (won)
+            {
+                // Önceki bir açılış hareketi hâlâ yaşıyor olabilir: boş bir
+                // rutinle değiştirmek hem onu kesiyor hem de kartı son
+                // boyunda bırakıyor.
+                GameKit.FX.Juice.Replace(_resultCard, HoldCard(_resultCard.transform));
+            }
+            else
+            {
+                // Kaybetme kartında geliş töreni yok; bir önceki KAZANIŞ
+                // bunları sıfır ölçekte bırakmış olabilir, geri alınıyor.
+                if (_resultTitle != null) _resultTitle.transform.localScale = Vector3.one;
+                if (_resultPrimary != null) _resultPrimary.transform.localScale = Vector3.one;
+                if (_rewardBadge != null) _rewardBadge.transform.localScale = Vector3.one;
+                if (_perfectBadge != null) _perfectBadge.transform.localScale = Vector3.one;
+
+                GameKit.FX.Juice.Replace(_resultCard,
+                    GameKit.FX.Juice.CardEntrance(_resultCard.transform));
+            }
             Services.AudioService.PanelOpen();
 
             if (won) GameKit.FX.Juice.Run(CelebrateRoutine());
         }
 
+        // PERFECT KARTININ İÇ ZAMANLAMASI — KARE KARE ÖLÇÜLDÜ (8. tur).
+        //
+        // `…Levels 1-20 Walkthrough.mp4`, 12. bölümün kartı, 59,47 fps.
+        // Sıfır anı, kartın belirdiği kare (313):
+        //
+        //   0,000  ödül yığını 2,00 kat boyunda, KÜÇÜLMEYE başlıyor
+        //   0,135  yığın son boyunda
+        //   0,151  "PERFECT!" bir noktadan açılmaya başlıyor
+        //   0,404  başlık son boyunda
+        //   0,252  "Continue" düğmesi açılmaya başlıyor
+        //   0,521  düğme son boyunda (tepe 1,09 kat)
+        //   0,639  ödül sayısı plakası açılıyor (tepe 1,24 kat)
+        //   0,790  plaka son boyunda
+        //
+        // Bizde sıra aynıydı ama süreler bambaşkaydı: başlık 0,12'de
+        // başlayıp 0,36 sürüyordu, yığın 0,36'da başlayıp 0,42 sürüyordu ve
+        // düğmenin hiç geliş hareketi YOKTU. Toplamda kart "yavaş yavaş
+        // dolan bir liste" gibi açılıyordu; referansta her şey ilk yarım
+        // saniyede bitiyor.
+        const float PileSettle = 0.135f;
+        const float PileFrom = 2.00f;
+        const float TitleAt = 0.151f, TitleGrow = 0.253f;
+        const float ButtonAt = 0.252f, ButtonGrow = 0.269f, ButtonPeak = 1.09f;
+        const float BadgeAt = 0.639f, BadgeGrow = 0.151f, BadgePeak = 1.24f;
+
+        /// <summary>Kartı hareketsiz, tam boyunda tutar (kazanma kartı).</summary>
+        static System.Collections.IEnumerator HoldCard(Transform card)
+        {
+            if (card != null) card.localScale = Vector3.one;
+            yield break;
+        }
+
+        /// <summary>Sırası gelene kadar sıfır ölçek (bkz. CelebrateRoutine).</summary>
+        static void HideForEntrance(Transform target)
+        {
+            if (target != null) target.localScale = Vector3.zero;
+        }
+
         /// <summary>
-        /// Kazanma töreni: başlık iner, bölüm adı yaylanır, jetonlar dökülür.
+        /// Ödül yığınının gelişi: İKİ KATINDAN küçülerek oturuyor.
         ///
-        /// DERS (aynı anda değil SIRAYLA): Hepsini birlikte oynatmak görsel
-        /// gürültü yapar ve hiçbiri fark edilmez. Aralarına 100-140 milisaniye
-        /// koymak, gözün her birini ayrı ayrı görmesini sağlıyor — toplam süre
-        /// yarım saniyeyi geçmediği için de oyuncuyu bekletmiyor.
+        /// ÖLÇÜM: yığının genişliği 468 → 233 piksel, sekiz karede. Yani
+        /// kart açıldığı anda yığın kartı neredeyse dolduruyor ve hızla
+        /// yerine çekiliyor.
         ///
-        /// DERS (yığın TEK PARÇA açılmaz): Jeton yığınını tek bir PopIn ile
-        /// açmak "resim belirdi" der. Jetonları 40 milisaniye arayla açmak
-        /// "para döküldü" der; aynı varlıklarla tamamen başka bir olay.
-        /// </summary>
-        /// <summary>
-        /// Jeton yığınının gelişi: aşağıdan yaylanarak oturur, hale onunla
-        /// birlikte açılır.
-        ///
-        /// Referansta (Levels 1-20, 02:50-02:54, 6 fps) sıra şu: panel açılır
-        /// → jetonlar dağınık ve parlak belirir → toplanıp yığına oturur →
-        /// altında sayı hapı açılır. Tek görselle bunun karşılığı, yığını
-        /// aşağıdan hafif büyüterek getirmek ve halesini onunla açmak.
+        /// DERS (küçülerek gelmek, büyüyerek gelmekten BAŞKA bir şey söyler):
+        /// Eski sürüm yığını %45'ten büyütüyordu — "bir şey belirdi" demek.
+        /// Referans onu %200'den küçültüyor — "bir şey ÇARPTI" demek. İkisi
+        /// de ölçek animasyonu, ama biri ödülü olay yapıyor, diğeri yapmıyor.
         /// </summary>
         System.Collections.IEnumerator PileEntrance()
         {
@@ -2693,62 +3034,143 @@ namespace BlockOut.Runtime.UI
             var glowImage = glow != null ? glow.GetComponent<Image>() : null;
             Color glowTarget = glowImage != null ? glowImage.color : Color.clear;
 
-            Vector2 rest = pile.anchoredPosition;
-            const float duration = 0.42f;
-            for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
+            for (float t = 0f; t < PileSettle; t += Time.unscaledDeltaTime)
             {
-                float k = Mathf.Clamp01(t / duration);
-                float e = GameKit.FX.Juice.EaseOutBack(k, 2.0f);
-                pile.localScale = Vector3.one * Mathf.Lerp(0.45f, 1f, e);
-                pile.anchoredPosition = rest + new Vector2(0f, (1f - e) * -70f);
-                if (glow != null)
+                float k = Mathf.Clamp01(t / PileSettle);
+                // Çıkışta yavaşlayan eğri: ilk kareler hızlı, son kareler
+                // yumuşak. Ölçülen genişlikler de böyle (468→397→367→335→
+                // 304→277→253→239→233).
+                float e = 1f - (1f - k) * (1f - k);
+                pile.localScale = Vector3.one * Mathf.Lerp(PileFrom, 1f, e);
+                if (glowImage != null)
                 {
-                    glow.localScale = Vector3.one * Mathf.Lerp(0.35f, 1f, e);
-                    if (glowImage != null)
-                    {
-                        var c = glowTarget; c.a = glowTarget.a * k;
-                        glowImage.color = c;
-                    }
+                    var c = glowTarget; c.a = glowTarget.a * k;
+                    glowImage.color = c;
                 }
+                if (glow != null) glow.localScale = Vector3.one * Mathf.Lerp(1.4f, 1f, e);
                 yield return null;
             }
             pile.localScale = Vector3.one;
-            pile.anchoredPosition = rest;
             if (glow != null) glow.localScale = Vector3.one;
             if (glowImage != null) glowImage.color = glowTarget;
         }
 
         System.Collections.IEnumerator CelebrateRoutine()
         {
-            yield return new WaitForSecondsRealtime(0.12f);
+            // ÖNCE SAKLA, SONRA GETİR.
+            //
+            // `PopScale` ilk karesinde ölçeği sıfırlıyor — ama o ilk kare
+            // beklemeden SONRA geliyor. Sıfırlama burada yapılmasaydı başlık
+            // 0,15 saniye (dokuz kare), düğme 0,25 saniye (on beş kare) tam
+            // boyunda ekranda durur, sonra sıfıra düşüp yeniden açılırdı.
+            //
+            // DERS (gecikmeli bir animasyonun BAŞLANGIÇ DURUMU gecikemez):
+            // Hareketin kendisi sonra başlayabilir, ama nesnenin o ana kadar
+            // hangi hâlde duracağı HEMEN yazılmalı.
+            HideForEntrance(_resultTitle != null ? _resultTitle.transform : null);
+            HideForEntrance(_resultPrimary != null ? _resultPrimary.transform : null);
+            HideForEntrance(_rewardBadge != null ? _rewardBadge.transform : null);
+
+            // Yığın kartla BİRLİKTE geliyor, sonradan değil.
+            if (_rewardArt != null && _rewardArt.gameObject.activeSelf)
+                GameKit.FX.Juice.Run(PileEntrance());
+
+            // Bölüm adının bir gelişi YOK — ilk kareden itibaren kartın
+            // üstünde. Eskiden yaylanarak açılıyordu; kartla aynı anda duran
+            // tek yazı olması gözün önce ödüle gitmesini sağlıyor.
+            if (_perfectBadge != null) _perfectBadge.transform.localScale = Vector3.one;
+
+            yield return new WaitForSecondsRealtime(TitleAt);
 
             if (_resultTitle != null)
-                GameKit.FX.Juice.Run(GameKit.FX.Juice.PopIn(_resultTitle.transform, 0.36f));
+                GameKit.FX.Juice.Run(GrowTitle(_resultTitle.rectTransform));
             Services.AudioService.Star();
 
-            yield return new WaitForSecondsRealtime(0.10f);
+            yield return new WaitForSecondsRealtime(ButtonAt - TitleAt);
 
-            if (_perfectBadge != null && _perfectBadge.gameObject.activeSelf)
-                GameKit.FX.Juice.Run(GameKit.FX.Juice.PopIn(_perfectBadge.transform, 0.32f));
+            if (_resultPrimary != null)
+                GameKit.FX.Juice.Run(PopScale(_resultPrimary.transform,
+                    ButtonGrow, ButtonPeak));
 
-            BurstConfetti();
+            yield return new WaitForSecondsRealtime(BadgeAt - ButtonAt);
 
-            if (_rewardArt != null && _rewardArt.gameObject.activeSelf)
+            if (_rewardBadge != null && _rewardBadge.gameObject.activeSelf)
             {
-                yield return new WaitForSecondsRealtime(0.14f);
-
-                // YIĞIN ARTIK TEK GÖRSEL (6. tur): tek tek jeton yok, o
-                // yüzden "sırayla düşür" de yok. Referansta yığın aşağıdan
-                // yukarı yaylanarak yerine oturuyor ve hale onunla birlikte
-                // açılıyor.
-                //
-                // Kullanıcı: "Geliş animasyonu yok, orijinaldeki gibi olsun."
-                yield return PileEntrance();
-
-                if (_rewardBadge != null)
-                    GameKit.FX.Juice.Run(GameKit.FX.Juice.PopIn(_rewardBadge.transform, 0.30f));
+                GameKit.FX.Juice.Run(PopScale(_rewardBadge.transform,
+                    BadgeGrow, BadgePeak));
                 Services.AudioService.Coin();
             }
+        }
+
+        /// <summary>
+        /// "PERFECT!" başlığının açılışı: KENDİ ORTASINDAN değil, ALTINDAKİ
+        /// bir noktadan büyüyor.
+        ///
+        /// ÖLÇÜM (ham kare, altın piksellerin kutusu): başlık büyürken üst
+        /// kenarı 292 → 190, alt kenarı 307 → 270 pikselde geziniyor. İkisi
+        /// de yükseliyor ama alt kenar daha yavaş. Ölçekleme merkezini bu iki
+        /// eğriden çözünce y = 314 çıkıyor — başlığın alt kenarının 44 piksel
+        /// ALTI, yani kartın üst kenarının biraz içi.
+        ///
+        /// Görünen etki: yazı kartın tepesinden yukarı doğru AÇILIYOR, sanki
+        /// kartın içinden çıkıyor. Ortadan ölçeklenen bir başlık "belirdi"
+        /// der; buradaki hareket "kart onu yukarı itti" der.
+        ///
+        /// DERS (dönme noktası da ölçülebilir bir şeydir): Bir ölçek
+        /// animasyonunu tarif etmeye süre ve oran yetmiyor; merkezin nerede
+        /// olduğu hareketin ANLAMINI değiştiriyor. İki kenarı ayrı ayrı
+        /// izlemek merkezi tek denklemle veriyor.
+        /// </summary>
+        static System.Collections.IEnumerator GrowTitle(RectTransform title)
+        {
+            if (title == null) yield break;
+
+            // Kutu dört köşesinden de bağlı (esnetilmiş) olduğu için pivotu
+            // değiştirmek yerini OYNATMIYOR, yalnız ölçek merkezini taşıyor.
+            title.pivot = new Vector2(0.5f, -0.54f);
+
+            for (float t = 0f; t < TitleGrow; t += Time.unscaledDeltaTime)
+            {
+                float k = Mathf.Clamp01(t / TitleGrow);
+                // Ölçülen eğri neredeyse doğrusal, sonunda hafifçe yavaşlıyor
+                // ve %1 aşıp dönüyor — `EaseOutBack`in belirgin yaylanması
+                // burada YOK.
+                float e = k * k * (3f - 2f * k) * 0.35f + k * 0.65f;
+                title.localScale = Vector3.one * (e * 1.01f);
+                yield return null;
+            }
+            title.localScale = Vector3.one;
+        }
+
+        /// <summary>
+        /// Sıfırdan tepe ölçeğe, oradan son boyuna. Düğme ve ödül plakası
+        /// bunu kullanıyor; iki aşma oranı da referanstan ölçüldü
+        /// (düğme 1,09; plaka 1,24).
+        /// </summary>
+        static System.Collections.IEnumerator PopScale(
+            Transform target, float duration, float peak)
+        {
+            if (target == null) yield break;
+
+            float rise = duration * 0.56f;
+            for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
+            {
+                if (target == null) yield break;
+                float scale;
+                if (t < rise)
+                {
+                    float k = t / rise;
+                    scale = Mathf.Lerp(0f, peak, 1f - (1f - k) * (1f - k));
+                }
+                else
+                {
+                    float k = Mathf.Clamp01((t - rise) / (duration - rise));
+                    scale = Mathf.Lerp(peak, 1f, k * k * (3f - 2f * k));
+                }
+                target.localScale = Vector3.one * scale;
+                yield return null;
+            }
+            if (target != null) target.localScale = Vector3.one;
         }
     }
 }

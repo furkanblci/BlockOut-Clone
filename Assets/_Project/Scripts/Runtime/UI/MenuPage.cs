@@ -1,4 +1,4 @@
-using TMPro;
+﻿using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UiKit = GameKit.UI.UiKit;
@@ -37,7 +37,10 @@ namespace BlockOut.Runtime.UI
         public static readonly Color Ink        = new Color(1f, 0.99f, 0.96f);
         public static readonly Color InkSoft    = new Color(0.612f, 0.620f, 0.851f);
         public static readonly Color InkDark    = new Color(0.157f, 0.129f, 0.353f);
-        public static readonly Color Green      = new Color(0.176f, 0.800f, 0.047f);
+        /// <summary>ÖLÇÜM: referans Resume düğmesinin yüzünün üst ucu (56,215,20).</summary>
+        public static readonly Color Green      = new Color(0.220f, 0.843f, 0.078f);
+        /// <summary>ÖLÇÜM: referans Quit düğmesinin yüzünün üst ucu (204,22,16).</summary>
+        public static readonly Color Red        = new Color(0.800f, 0.086f, 0.063f);
         public static readonly Color Blue       = new Color(0.173f, 0.545f, 0.996f);
         public static readonly Color CloseRed   = new Color(0.855f, 0.145f, 0.180f);
         public static readonly Color TitleEdge  = new Color(0.45f, 0.42f, 0.92f);
@@ -254,56 +257,186 @@ namespace BlockOut.Runtime.UI
             return image;
         }
 
-        /// <summary>Alt kenarı koyu, 3B kalınlıklı kapsül düğme.</summary>
+        // ===================== DÜĞMENİN REÇETESİ =====================
+        //
+        // Kullanıcı (8. tur): "bütün butonlara herkes laf etti, o yeşil
+        // kırmızı butonlara — piksel sorunu olduğunu ve tarz olarak alakasız
+        // kaldığını söylediler."
+        //
+        // ÖLÇÜM (`pause_00-00-04.png`, referansın duraklat paneli, 592×1280).
+        // Resume düğmesi 280×113 piksel. Dikey tarama (x=200) ve yatay tarama
+        // (y=700) şu katmanları verdi:
+        //
+        //   çok koyu dış çizgi ....... 3 px    (0,84,0)      → taban × 0,20
+        //   üst pah (ışık alan) ...... 8 px    (46,244,8)    → taban × 1,19
+        //   açık iç kaymak ........... 6 px    (168,253,86)  → beyaza %50
+        //   yüz, üst ................ ...      (56,215,20)   → taban × 1,00
+        //   yüz, alt ................ ...      (16,170,3)    → taban × 0,78
+        //   yan duvar (orta yükseklik) 14 px   (13,130,19)   → taban × 0,64
+        //   dip eteği ................ 14 px   (0,85,15)→(5,49,8) → 0,42→0,24
+        //
+        // Kırmızı Quit düğmesi aynı taramayla aynı ORANLARI verdi
+        // (254/204 = 1,25 · 157/204 = 0,77 · 99/204 = 0,49 · 56/204 = 0,27).
+        // Yani tasarımcı her renk için ayrı bir palet seçmemiş; tek bir IŞIK
+        // profili var ve renk onun altına giriyor. Bu yüzden aşağıdaki her
+        // katman tabanın ÇARPANI — düğme yeşil, kırmızı, mavi ya da mor
+        // olduğunda kabartma aynı kalıyor.
+        //
+        // DERS (kabartma, üst üste konan yamalarla yapılmaz): Eski hâlde yüzün
+        // üstüne açık bir dikdörtgen, altına koyu bir dikdörtgen konuyordu.
+        // İkisi de dikdörtgen olduğu için yuvarlak köşeyi takip etmiyordu ve
+        // düğmenin köşelerinde dik kenarlar görünüyordu — "piksel bozukluğu"
+        // diye bildirilen şeyin bir bölümü buydu. Artık geçiş ayrı bir yüzey
+        // değil, yüzeyin KENDİ köşe noktalarının rengi (bkz. UiVerticalTint).
+
+        /// <summary>Düğmenin köşe yarıçapının kısa kenara oranı — ÖLÇÜM: 40/113.</summary>
+        public const float ButtonCornerShare = 0.354f;
+
+        /// <summary>Işık profilinin çarpanları (taban = verilen renk).</summary>
+        public const float ShellTop = 1.19f;      // üst pah, ışık alan kenar
+        public const float ShellBottom = 0.22f;   // dip eteği, en koyu yer
+        // Kaymak çizgisi DİPTE YÜZÜN DEĞİL KABUĞUN tonuna inmeli. Yüzün
+        // tonuna (0,78) indirildiğinde dipte 4 piksellik açık bir çizgi
+        // kalıyordu: kaymak halkası yüzden biraz daha uzun olduğu için o
+        // bant yüzün altında, koyu kabuğun üstünde açıkta kalıyor.
+        // Referansta düğmenin dibinde öyle bir çizgi yok.
+        public const float RimBottom = 0.50f;
+        public const float FaceBottom = 0.78f;    // yüzün alt ucu
+        public const float OutlineTone = 0.15f;   // dış çizgi
+        const float LabelTracking = -16f;  // harf aralığı, punto yüzdesi
+
+        /// <summary>Kenar payları — hepsi düğmenin YÜKSEKLİĞİNİN oranı.</summary>
+        const float ShellInset = 0.033f;   // ÖLÇÜM: 3/113 + gölge payı
+        // Kaymak çizgisi yüzden yalnız ~4 piksel dışarıda: referansta üstte
+        // 6, yanlarda 2 piksel görünüyor. İlk denemede aradaki fark 7
+        // pikseldi ve çizgi düğmenin ÇEVRESİNDE kalın bir halka gibi
+        // duruyordu — referansta öyle bir halka yok, yalnız üst kenarda bir
+        // ışık var.
+        const float RimInset = 0.142f;     // ÖLÇÜM: 16/113
+        const float FaceInset = 0.160f;    // ÖLÇÜM: 18/113
+
+        /// <summary>
+        /// Referansın kabartmalı düğmesi. Renk dışında her şey ölçülmüş
+        /// sabitlerden gelir; çağıran yalnız rengi, yazıyı ve puntoyu verir.
+        ///
+        /// Adı korundu: otuzdan fazla çağrı yeri var ve hepsi "oyunun standart
+        /// düğmesi" anlamında kullanıyor — değişen şey o düğmenin görünüşü.
+        /// </summary>
         public static Button PillButton(string name, Transform parent, string text,
                                         Color color, int fontSize,
                                         UnityEngine.Events.UnityAction onClick)
         {
-            var root = UiKit.CreateRect(name, parent);
+            var root = PillBody(name, parent, color, out var layout, out var tint);
 
-            // DÖRT KATMAN — referans (`settings.jpg`) büyütülerek okundu.
+            // ÖLÇÜM: "Resume" harflerinin yüksekliği düğme yüksekliğinin
+            // %28,3'ü, genişliği ise %58,6'sı. Bizimki %24,3 ve %63,1'di —
+            // yani yazı hem KÜÇÜK hem YAYVAN. Punto artık düğmenin boyundan
+            // türetiliyor (UiRingLayout.Bind); `fontSize` parametresi de
+            // çağrı yerinin beklediği ALT SINIR olarak yaşamaya devam ediyor.
             //
-            // DERS (kalınlık gölgeden değil KONTURDAN geliyor): Bu düğmenin üç
-            // katmanı vardı — koyu kopya (kalınlık), yüz, yazı — ve ekranda
-            // yine "düz renkli bir dikdörtgen" gibi duruyordu. Kullanıcı
-            // "Support, Terms, Privacy butonlarının koyu gölgesi yok" dedi.
-            // Referansta gölge ZATEN var; eksik olan onu çevreleyen KOYU
-            // ÇERÇEVE ve yüzeydeki üst parlaklık. Çerçeve düğmeyi zeminden
-            // kesiyor, parlaklık ona hacim veriyor; ikisi olmadan koyu kopya
-            // yalnız "biraz aşağı kaymış aynı renk" olarak okunuyor.
-            var edge = Capsule("Edge", root, Darken(color, 0.28f));
-            UiKit.Place(edge, 0f, 0f, 1f, 1f);
-            edge.raycastTarget = true;
+            // Harf aralığı ölçümden: −16 (yani punto başına %16 daralma).
+            // Aynı sayı PERFECT başlığında da çıkmıştı — referansın yazısı
+            // Baloo 2'nin varsayılanından tutarlı biçimde daha sıkı.
+            //
+            // Yazı YÜZÜN DEĞİL KÖKÜN çocuğu. Yüzün içine koymak doğal
+            // görünüyor ama ölçüldü: yüz düğmeden 33 piksel kısa ve ölçülen
+            // punto (98) o kutuya satır yüksekliğiyle sığmıyordu — TMP
+            // kendiliğinden 81'e düşürüyor, harf yüksekliği %28,3 yerine
+            // %23,3 kalıyordu. Referansta yazı düğmenin ortasında.
+            var label = UiKit.CreateTitle("Label", root, text, fontSize,
+                Ink, Darken(color, OutlineTone));
+            UiKit.Place(label, 0.04f, 0f, 0.96f, 1f);
+            label.raycastTarget = false;
+            label.characterSpacing = LabelTracking;
+            UiKit.SetOutline(label, Darken(color, OutlineTone), 0.24f);
+            layout.Bind(label, fontSize);
+            tint.BindLabel(label);
 
-            var shadow = Capsule("Shadow", root, Darken(color, 0.58f));
-            UiKit.Place(shadow, 0f, 0f, 1f, 1f, padding: 6f);
-            shadow.raycastTarget = false;
-
-            var face = Capsule("Face", root, color);
-            UiKit.Place(face, 0.016f, 0.18f, 0.984f, 0.985f);
-
-            var gloss = UiKit.CreateRect("Gloss", face.transform);
-            var glossImage = gloss.gameObject.AddComponent<Image>();
-            glossImage.sprite = MenuSprites.FadeDown;
-            glossImage.type = Image.Type.Sliced;
-            glossImage.color = new Color(1f, 1f, 1f, 0.28f);
-            glossImage.raycastTarget = false;
-            UiKit.Place(gloss, 0.04f, 0.46f, 0.96f, 0.94f);
-            gloss.localRotation = Quaternion.Euler(0f, 0f, 180f);
-
-            var label = UiKit.CreateTitle("Label", face.transform, text, fontSize,
-                Ink, Darken(color, 0.28f));
-            UiKit.Place(label, 0.05f, 0.06f, 0.95f, 0.94f);
-
-            // Hedef grafik artık EN DIŞTAKİ katman: dokunmayı yakalayan da o
-            // (gölge artık raycast almıyor, kenarın altında kalıyor).
             var button = root.gameObject.AddComponent<Button>();
-            button.targetGraphic = edge;
+            button.targetGraphic = root.GetComponentInChildren<Image>();
             button.transition = Selectable.Transition.None;
             root.gameObject.AddComponent<GameKit.UI.UiButtonFeel>();
             if (onClick != null) button.onClick.AddListener(onClick);
             return button;
         }
+
+        /// <summary>
+        /// Düğmenin YALNIZ GÖVDESİ — yazısız. İçine kendi içeriğini koymak
+        /// isteyenler için (ana ekrandaki OYNA düğmesinde iki satır yazı var).
+        ///
+        /// DERS (bir yapıyı bölmek, kopyalamaktan ucuzdur): OYNA düğmesi
+        /// kendi dört katmanını kurmak yerine bunu çağırıyor; böylece ışık
+        /// profili tek yerde kalıyor ve "ana ekranın düğmesi menülerinkine
+        /// benzemiyor" diye bir geri bildirim bir daha gelemiyor.
+        /// </summary>
+        public static RectTransform PillBody(string name, Transform parent, Color color,
+                                             out GameKit.UI.UiRingLayout layout,
+                                             out PillTint tint)
+        {
+            var root = UiKit.CreateRect(name, parent);
+            layout = root.gameObject.AddComponent<GameKit.UI.UiRingLayout>();
+
+            // 1) DIŞ ÇİZGİ — düğmeyi zeminden kesen çok koyu halka.
+            // Dokunmayı da bu yakalıyor: en dıştaki katman, tıklanabilir
+            // alanın gerçek sınırı.
+            var outline = UiKit.CreateRoundedPanel("Outline", root,
+                Darken(color, OutlineTone), ButtonCornerShare, NoRadiusCap);
+            UiKit.Place(outline, 0f, 0f, 1f, 1f);
+            outline.raycastTarget = true;
+
+            // 2) KABUK — üstte ışık, dipte etek. Tek katman, tek geçiş.
+            var shell = Ring("Shell", root, layout, ShellInset, 0.346f);
+            var shellTint = Tint(shell, Brighten(color, ShellTop), Darken(color, ShellBottom));
+
+            // 3) KAYMAK — yüzün üst kenarındaki açık çizgi.
+            var rim = Ring("Rim", root, layout, RimInset, 0.305f);
+            var rimTint = Tint(rim, Color.Lerp(color, Color.white, 0.5f),
+                               Darken(color, RimBottom));
+
+            // 4) YÜZ.
+            var face = Ring("Face", root, layout, FaceInset, 0.285f);
+            var faceTint = Tint(face, color, Darken(color, FaceBottom));
+
+            tint = root.gameObject.AddComponent<PillTint>();
+            tint.Bind(outline, shellTint, rimTint, faceTint);
+            return root;
+        }
+
+        /// <summary>
+        /// Köşe yarıçabı TAVANSIZ. Tavan (34 birim) panel ve kart için
+        /// ölçülmüştü; düğmede oran %35'e çıkıyor ve tavan onu kırpıyordu.
+        /// </summary>
+        const float NoRadiusCap = 9999f;
+
+        /// <summary>Dört kenardan eşit pay alan, beyaz (yani boyanmaya hazır) halka.</summary>
+        static Image Ring(string name, RectTransform parent, GameKit.UI.UiRingLayout layout,
+                          float inset, float cornerShare)
+        {
+            var image = UiKit.CreateRoundedPanel(name, parent.transform, Color.white,
+                                                 cornerShare, NoRadiusCap);
+            image.raycastTarget = false;
+            layout.Add(image.rectTransform, inset);
+            return image;
+        }
+
+        static GameKit.UI.UiVerticalTint Tint(Image image, Color top, Color bottom)
+        {
+            var tint = image.gameObject.AddComponent<GameKit.UI.UiVerticalTint>();
+            tint.Set(top, bottom);
+            return tint;
+        }
+
+        /// <summary>
+        /// Rengi ALFAYA DOKUNMADAN açar. <see cref="Darken"/>'ın eşi:
+        /// RGB'yi çarpmak tonu ve doygunluğu korur, yalnız PARLAKLIĞI değişir
+        /// — ışık alan bir yüzeyin fizikte yaptığı da tam olarak budur.
+        /// Beyaza doğru karıştırmak ise rengi soldurur, o yüzden pah için
+        /// uygun değil (referansta pah daha DOYGUN yeşil, daha soluk değil).
+        /// </summary>
+        public static Color Brighten(Color color, float factor) =>
+            new Color(Mathf.Min(1f, color.r * factor),
+                      Mathf.Min(1f, color.g * factor),
+                      Mathf.Min(1f, color.b * factor), color.a);
 
         /// <summary>
         /// Sayıyı oyunun her yerinde AYNI biçimde yazar: binlik ayıracı BOŞLUK

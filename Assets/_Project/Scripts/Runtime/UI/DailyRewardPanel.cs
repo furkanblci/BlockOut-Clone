@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using BlockOut.Runtime.Services;
 using TMPro;
 using UnityEngine;
@@ -106,8 +106,13 @@ namespace BlockOut.Runtime.UI
             panel.BuildTiles(well.rectTransform);
 
             // --- Alt satır: yeşil "CLAIM" ---
-            panel._claim = UiKit.CreateSpriteButton("Claim", panel._card,
-                UiSkin.Get(Art.ButtonGreen), "CLAIM", 54, Ink);
+            // Oyunun standart düğmesi (8. tur): bu üç düğme —"CLAIM", teklif
+            // ekranındaki "Buy" ve ana ekrandaki reklam düğmesi— görselden
+            // geliyordu, gerisi koddan. Aynı ekranda iki farklı düğme stili
+            // olması, kullanıcının "bütün butonlar tarz olarak alakasız"
+            // geri bildiriminin doğrudan sebebiydi.
+            panel._claim = MenuPage.PillButton("Claim", panel._card,
+                "CLAIM", MenuPage.Green, 54, null);
             UiKit.Place(panel._claim, 0.200f, 0.040f, 0.800f, 0.180f);
             panel._claimLabel = panel._claim.GetComponentInChildren<TextMeshProUGUI>();
             panel._claim.onClick.AddListener(panel.OnClaim);
