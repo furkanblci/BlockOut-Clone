@@ -21,11 +21,30 @@ namespace BlockOut.Runtime.View
     {
         const float SnapDuration = 0.09f;
 
-        // Kalkma yüksekliği ayardan gelir. YÜKSEK bir değer bloğu duvarın
-        // üstüne çıkarır ve "duvarın içinden geçiyor" görüntüsü doğurur —
-        // bu yüzden varsayılan neredeyse sıfır, his ölçekten geliyor.
+        /// <summary>
+        /// Tutulan bloğun kalkma yüksekliği.
+        ///
+        /// KALKIŞ, GÖVDEYİ DE KAPININ ÜSTÜNE ÇIKARMALI (10. tur).
+        ///
+        /// Kullanıcı bloğu kapıya götürünce kapının rengi çıtçıtların
+        /// ARASINDAN görünüyordu. Sebebi ince: blok "kapının önünde" sayılsın
+        /// diye önce 0,02, sonra 0,1 verilmişti ve ÇITÇITLARIN tepesi
+        /// (0,8·1,05 + kalkış) kapıyı geçiyordu — ama çıtçıtlar yuvarlak
+        /// tümsekler, aralarında boşluk var. O boşluklardan görünen yüzey
+        /// GÖVDENİN üstü ve o hâlâ 0,94'teydi, yani kapının (1,074) altında.
+        /// Göz bunu "kapı bloğun içinden geçiyor" diye okuyor.
+        ///
+        /// Ölçüt bu yüzden çıtçıtların değil GÖVDENİN tepesi:
+        ///   brickHeight × dragScale + dragLift  >  kapı yüksekliği
+        ///   0,80 × 1,05 + 0,28 = 1,120  >  1,074  ✓
+        ///
+        /// DERS (bir nesnenin "önde" olması siluetinin DOLU olmasına bağlı):
+        /// Delikli bir siluette en yüksek noktayı öne almak yetmiyor;
+        /// arkadaki şey deliklerden görünmeye devam ediyor. Kıyaslanacak
+        /// yükseklik, arkayı KAPATAN yüzeyin yüksekliği.
+        /// </summary>
         static float DragLift => VisualSettings.Current != null
-            ? VisualSettings.Current.dragLift : 0.02f;
+            ? VisualSettings.Current.dragLift : 0.28f;
 
         static float DragScale => VisualSettings.Current != null
             ? VisualSettings.Current.dragScale : 1.05f;
