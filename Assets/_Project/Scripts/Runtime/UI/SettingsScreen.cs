@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using BlockOut.Runtime.Services;
 using TMPro;
 using UnityEngine;
@@ -53,10 +53,7 @@ namespace BlockOut.Runtime.UI
         sealed class Toggle
         {
             public System.Func<bool> Get;
-            public Image OffFace;
-            public Image OnEdgeImage, OnBody;
-            public RectTransform OnGlossRect;
-            public TextMeshProUGUI OffText, OnText;
+            public MenuPage.SwitchView View;
         }
 
         readonly List<Toggle> _toggles = new List<Toggle>();
@@ -292,41 +289,10 @@ namespace BlockOut.Runtime.UI
             // çip yüzeyi #39D510, çipin üst parlaklığı #B5FC60.
             // "Açık" yazısı BEYAZ DEĞİL, koyu yeşil — parlak yeşilin üstünde
             // beyaz yazı okunuyor ama referansın kontrastı tersine kurulmuş.
-            var rim = MenuPage.Capsule("SlotRim", row, SlotRim);
-            UiKit.Place(rim, 0.625f, 0.14f, 0.923f, 0.86f);
+            var view = MenuPage.Switch("Switch", row, 32);
+            UiKit.Place(view.Root, 0.625f, 0.14f, 0.923f, 0.86f);
 
-            var slot = MenuPage.Capsule("Slot", rim.transform, SlotDark);
-            UiKit.Place(slot, 0f, 0f, 1f, 1f, padding: 5f);
-
-            var toggle = new Toggle { Get = get };
-
-            toggle.OffFace = MenuPage.Capsule("Off", slot.transform, SlotDark);
-            UiKit.Place(toggle.OffFace, 0.03f, 0.08f, 0.58f, 0.92f);
-            toggle.OffText = UiKit.CreateTitle("OffText", toggle.OffFace.transform, "Off", 32,
-                MenuPage.InkSoft, new Color(0.12f, 0.10f, 0.28f));
-            UiKit.Place(toggle.OffText, 0.04f, 0.06f, 0.96f, 0.94f);
-
-            // Çip: koyu kontur → yüzey → üst parlaklık. Kutusu yuvayı
-            // sağda ve dikeyde AŞIYOR (referanstaki kabartma).
-            toggle.OnEdgeImage = MenuPage.Capsule("On", slot.transform, OnEdge);
-            UiKit.Place(toggle.OnEdgeImage, 0.60f, -0.06f, 1.065f, 1.06f);
-
-            toggle.OnBody = MenuPage.Capsule("Body", toggle.OnEdgeImage.transform, OnGreen);
-            UiKit.Place(toggle.OnBody, 0f, 0f, 1f, 1f, padding: 6f);
-
-            var onGloss = UiKit.CreateRect("Gloss", toggle.OnBody.transform);
-            var onGlossImage = onGloss.gameObject.AddComponent<Image>();
-            onGlossImage.sprite = MenuSprites.FadeDown;
-            onGlossImage.type = Image.Type.Sliced;
-            onGlossImage.color = OnGloss;
-            onGlossImage.raycastTarget = false;
-            UiKit.Place(onGloss, 0.07f, 0.46f, 0.93f, 0.94f);
-            onGloss.localRotation = Quaternion.Euler(0f, 0f, 180f);
-            toggle.OnGlossRect = onGloss;
-
-            toggle.OnText = UiKit.CreateTitle("OnText", toggle.OnEdgeImage.transform, "On", 36,
-                OnInk, new Color(0.63f, 1f, 0.45f));
-            UiKit.Place(toggle.OnText, 0.04f, 0.06f, 0.96f, 0.94f);
+            var toggle = new Toggle { Get = get, View = view };
 
             _toggles.Add(toggle);
 
@@ -341,11 +307,11 @@ namespace BlockOut.Runtime.UI
             // aynı şeye basıp farklı sonuç alınca kontrolü değil oyunu
             // suçlar; üstelik yazının söylediğinin tersini yapan bir düğme
             // tek başına da yanlış.
-            AddHalfClick(toggle.OffFace, false, set);
+            AddHalfClick(toggle.View.OffFace, false, set);
             // Tıklanan yüzey EN DIŞTAKİ katman (koyu kontur): çip artık üç
             // katman ve dokunmayı en dıştaki yakalamalı, yoksa konturun
             // taşan 6 birimlik şeridi ölü alan olurdu.
-            AddHalfClick(toggle.OnEdgeImage, true, set);
+            AddHalfClick(toggle.View.OnFace, true, set);
         }
 
         /// <summary>Anahtarın bir yarısı: basınca o duruma GEÇER, ters çevirmez.</summary>
@@ -369,27 +335,7 @@ namespace BlockOut.Runtime.UI
                 _playerId.text = MetaServices.Ready ? MetaServices.PlayerId : "—";
 
             foreach (var toggle in _toggles)
-            {
-                bool on = toggle.Get();
-
-                // AKTİF olan yarı KABARIK ve renkli, diğeri yuvaya gömülür.
-                //
-                // Üç katmanın üçü de tazeleniyor: kontur, yüzey ve üst
-                // parlaklık. Kapalıyken parlaklık tamamen kapanıyor — sönük
-                // bir yüzeyde duran ışık, yüzeyi "yarı açık" gösteriyordu.
-                toggle.OnEdgeImage.color = on ? OnEdge : SlotDark;
-                toggle.OnBody.color = on ? OnGreen : SlotDark;
-                if (toggle.OnGlossRect != null)
-                    toggle.OnGlossRect.gameObject.SetActive(on);
-
-                toggle.OffFace.color = on ? SlotDark : new Color(0.36f, 0.32f, 0.60f);
-
-                // "On" yazısı açıkken KOYU YEŞİL: referansta parlak yeşilin
-                // üstündeki yazı beyaz değil, kendinden koyu. Kapalıyken
-                // okunurluk için soluk lavantaya dönüyor.
-                toggle.OnText.color = on ? OnInk : MenuPage.InkSoft;
-                toggle.OffText.color = on ? MenuPage.InkSoft : MenuPage.Ink;
-            }
+                toggle.View.SetOn(toggle.Get());
         }
     }
 }

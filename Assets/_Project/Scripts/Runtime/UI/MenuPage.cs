@@ -438,6 +438,97 @@ namespace BlockOut.Runtime.UI
                       Mathf.Min(1f, color.g * factor),
                       Mathf.Min(1f, color.b * factor), color.a);
 
+        // ===================== AÇ/KAPA ANAHTARI =====================
+        //
+        // Oyunda İKİ TANE vardı: ayarlar ekranınınki (referanstan ölçülmüş —
+        // çip yuvayı taşıyor, üç katmanlı, yazısı koyu yeşil) ve duraklat
+        // panelininki (düz iki yarım, yazısı beyaz). Aynı kontrol, iki ayrı
+        // görünüş. Düğmelerdeki hikâyenin aynısı.
+        //
+        // ÖLÇÜM (`pause_00-00-04.png`, y=380 yatay tarama): yeşil çipin
+        // profili düğmeninkiyle AYNI — koyu kontur (0,72,4), parlak bilezik
+        // (75,211,48), yüz (40,191,13). Yani çip küçük bir düğme; ayrı bir
+        // reçeteye gerek yok, <see cref="PillBody"/> zaten onu veriyor.
+        //
+        // Yazı renkleri de ölçüldü: açıkken "On" KOYU YEŞİL (28,64,25),
+        // kapalıyken "Off" LEYLAK (71,57,208). Referansın kontrastı tersine
+        // kurulu — parlak yeşilin üstüne beyaz değil, kendinden koyu yazı.
+
+        /// <summary>Yuvanın dış bileziği (#9081FE) ve içi (#342B7E).</summary>
+        static readonly Color SwitchRim  = new Color(0.565f, 0.506f, 0.996f);
+        static readonly Color SwitchDark = new Color(0.204f, 0.169f, 0.494f);
+        /// <summary>Çipin yüzeyi — ÖLÇÜM (40,191,13).</summary>
+        static readonly Color SwitchOn   = new Color(0.157f, 0.749f, 0.051f);
+        /// <summary>Açık çipin üstündeki yazı — ÖLÇÜM (28,64,25).</summary>
+        static readonly Color SwitchOnInk = new Color(0.110f, 0.251f, 0.098f);
+        /// <summary>Sönük yarının yazısı — ÖLÇÜM (71,57,208).</summary>
+        static readonly Color SwitchIdleInk = new Color(0.278f, 0.224f, 0.816f);
+
+        /// <summary>Kurulan anahtarın parçaları; durumu <see cref="SetOn"/> çevirir.</summary>
+        public sealed class SwitchView
+        {
+            public RectTransform Root;
+            public Image OffFace;
+            /// <summary>Çipin dokunmayı yakalayan en dış katmanı.</summary>
+            public Image OnFace;
+            public PillTint Chip;
+            public TMPro.TextMeshProUGUI OffText, OnText;
+
+            public void SetOn(bool on)
+            {
+                // Çip AÇIKKEN yeşil, KAPALIYKEN yuvanın kendi koyusuna
+                // düşüyor — yani "sönmüş" değil, yuvaya gömülmüş oluyor.
+                Chip.Color = on ? SwitchOn : SwitchDark;
+                OffFace.color = on ? SwitchDark : new Color(0.36f, 0.32f, 0.60f);
+                OnText.color = on ? SwitchOnInk : SwitchIdleInk;
+                OffText.color = on ? SwitchIdleInk : Ink;
+            }
+        }
+
+        /// <summary>
+        /// Oyunun tek aç/kapa anahtarı. Çağıran yalnız kökü yerleştiriyor.
+        ///
+        /// İki yarı da AYRI AYRI tıklanabilir olmalı (oyuncu istediği duruma
+        /// DOĞRUDAN basıyor); tıklamayı çağıran bağlıyor çünkü iki ekranda
+        /// iki farklı kaydetme yolu var.
+        /// </summary>
+        public static SwitchView Switch(string name, Transform parent, int fontSize)
+        {
+            var root = UiKit.CreateRect(name, parent);
+
+            var rim = Capsule("SlotRim", root, SwitchRim);
+            UiKit.Place(rim, 0f, 0f, 1f, 1f);
+
+            var slot = Capsule("Slot", rim.transform, SwitchDark);
+            UiKit.Place(slot, 0f, 0f, 1f, 1f, padding: 5f);
+
+            var view = new SwitchView { Root = root };
+
+            view.OffFace = Capsule("Off", slot.transform, SwitchDark);
+            view.OffFace.raycastTarget = true;
+            UiKit.Place(view.OffFace, 0.03f, 0.08f, 0.58f, 0.92f);
+            view.OffText = UiKit.CreateTitle("OffText", view.OffFace.transform, "Off",
+                fontSize, InkSoft, new Color(0.12f, 0.10f, 0.28f));
+            UiKit.Place(view.OffText, 0.04f, 0.06f, 0.96f, 0.94f);
+            view.OffText.raycastTarget = false;
+
+            // Çip yuvayı SAĞDA VE DİKEYDE AŞIYOR: referanstaki kabartma.
+            // İçine gömülü bir çip, anahtarı "iki renkli düz bir şerit"
+            // gibi gösteriyordu.
+            var chip = PillBody("On", slot.transform, SwitchOn, out var layout, out view.Chip);
+            UiKit.Place(chip, 0.60f, -0.06f, 1.065f, 1.06f);
+            view.OnFace = chip.Find("Outline").GetComponent<Image>();
+
+            view.OnText = UiKit.CreateTitle("OnText", chip, "On", fontSize,
+                SwitchOnInk, new Color(0.63f, 1f, 0.45f));
+            UiKit.Place(view.OnText, 0.04f, 0f, 0.96f, 1f);
+            view.OnText.characterSpacing = LabelTracking;
+            view.OnText.raycastTarget = false;
+            layout.Bind(view.OnText, fontSize);
+
+            return view;
+        }
+
         /// <summary>
         /// Sayıyı oyunun her yerinde AYNI biçimde yazar: binlik ayıracı BOŞLUK
         /// ("2 000"). Referans böyle yapıyor (`market.jpeg` paket tutarları).

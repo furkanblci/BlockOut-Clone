@@ -8,6 +8,86 @@ Bu dosya her oturum sonunda güncellenir. Aşağısı 2026-08-10 itibarıyla ge�
 
 ---
 
+## 2026-08-20 (9) — DÜĞME TURUNUN DEVAMI: ANAHTAR VE DEGRADE YAMALARI
+
+Kullanıcı: *"aynı şekilde düzenlemen gereken başka bir yer kaldı mı?"*
+Tarandı; iki kalıp daha çıktı ve ikisi de kapatıldı.
+
+### 1. AÇ/KAPA ANAHTARI DA İKİ KEZ YAZILMIŞTI
+
+Düğmelerdeki hikâyenin birebir aynısı:
+
+* `SettingsScreen` — referanstan ölçülmüş: çip yuvayı taşıyor, üç
+  katmanlı, "On" yazısı koyu yeşil.
+* `GameplayScreen` (duraklat paneli) — düz iki yarım, beyaz "On" yazısı,
+  kabartma yok.
+
+ÖLÇÜM (`pause_00-00-04.png`, y=380 yatay tarama) yeşil çipin profilinin
+**düğmeninkiyle aynı** olduğunu gösterdi: koyu kontur (0,72,4), parlak
+bilezik (75,211,48), yüz (40,191,13). Yani çip küçük bir düğme —
+`MenuPage.PillBody` zaten onu veriyor, ayrı bir reçeteye gerek yok.
+
+Yazı renkleri de ölçüldü: açıkken "On" **koyu yeşil** (28,64,25),
+kapalıyken "Off" **leylak** (71,57,208). Referansın kontrastı tersine
+kurulu — parlak yeşilin üstüne beyaz değil, kendinden koyu yazı.
+
+Artık tek bir `MenuPage.Switch` var; iki ekran da onu çağırıyor.
+
+### 2. DİKDÖRTGEN DEGRADE YAMALARI (5 yer)
+
+`MenuSprites.FadeDown` + `Image.Type.Sliced` = **kenarlıksız, yani düpedüz
+gerilmiş bir dikdörtgen**. Yuvarlak bir yüzeyin üstüne konduğunda köşeyi
+düz bir çizgiyle kesiyor. Beş yerde vardı:
+
+| yer | yüzey |
+|-----|-------|
+| `SettingsScreen` | anahtarın yeşil çipi |
+| `StoreScreen` | teklif kartının turuncu görseli |
+| `LeaderboardScreen` | seçili sekme |
+| `LeaderboardScreen` | sıra rozeti |
+| `HomeScreen` | "Ödüller x3" şeridi |
+
+Beşi de `UiVerticalTint`'e çevrildi: geçiş artık ayrı bir katman değil,
+yüzeyin **kendi köşe noktalarının rengi**. Silüet neyse geçiş de o; üstelik
+beş çizim çağrısı da eksildi.
+
+Bir incelik: köşe rengi **çarpar**, üstüne bindiremez. Bu yüzden yüzeyin
+`color`'ı beyaza alınıp gerçek renkler geçişe taşındı, alfayla karıştırma
+da (`Color.Lerp`) elle yapıldı. Çalışma anında rengi değişen yerlerde
+(sekme seçimi, sıra rozeti) artık `image.color` değil `tint.Set(...)`
+çağrılıyor.
+
+### 3. SON `btn_*.png` KULLANICISI
+
+`FakeAdScreen`'in "Skip (no reward)" düğmesi `btn_purple.png` kullanan son
+yerdi; o da reçeteye geçti. Oyunda artık **görselden gelen tek bir düğme
+kalmadı**.
+
+### DERS
+
+**"Aynı işi yapan iki kod" bir kez düzeltilince bitmiyor.** Düğmeleri
+birleştirdikten sonra aynı soruyu bir kez daha sormak, anahtarı ve beş
+degrade yamasını çıkardı. Bir kalıbı gördükten sonra onu ARAMAK gerekiyor
+— düzeltilen örnek, aranacak şeyin tarifi oluyor.
+
+### Doğrulama
+
+Gerçek duraklat paneli oynatma modunda yakalandı: çip yuvayı taşıyor,
+kontur/bilezik/yüz profili düğmeyle aynı, "On" yazısı koyu yeşil.
+Referansla örtüşüyor.
+
+**Gözle doğrulanmadı** (derlemesi temiz): mağaza teklif kartı, liderlik
+sekmeleri ve sıra rozeti, ana ekranın ödül şeridi, sahte reklam ekranı.
+
+### DİKKAT — `Builds/BlockOut.apk` BAYAT
+
+Depodaki APK 20 Ağustos 21:11'de, bu turun ORTASINDA üretildi (önceki
+turun `delayCall` kuyruğu alan yenilemesinden sonra bir kez daha
+ateşlendi). Düğme ve anahtar değişikliklerinin bir bölümünü içermiyor —
+teste vermeden önce yeniden derle.
+
+---
+
 ## 2026-08-20 (8) — DÜĞMELER TEK REÇETEYE İNDİ
 
 İstek: *"genel olarak herkes butonlara laf etti — ana menüdeki oynama

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Text;
 using GameKit.Services;
@@ -172,8 +172,10 @@ namespace BlockOut.Runtime.Services
                 UiKit.Ink, new Color(0.12f, 0.09f, 0.30f));
             UiKit.Place(_countdown, 0.12f, 0.15f, 0.88f, 0.21f);
 
-            _skip = UiKit.CreateSpriteButton("Skip", _root,
-                UI.UiSkin.Get(UI.Art.ButtonPurple), "Skip (no reward)", 24, UiKit.Ink);
+            // Oyunun standart düğmesi (8. tur): `btn_purple.png` görselini
+            // kullanan SON yer burasıydı.
+            _skip = UI.MenuPage.PillButton("Skip", _root,
+                "Skip (no reward)", new Color(0.522f, 0.110f, 0.988f), 24, null);
             UiKit.Place(_skip, 0.28f, 0.05f, 0.72f, 0.13f);
             _skip.onClick.AddListener(() => Finish(RewardedResult.Skipped));
 

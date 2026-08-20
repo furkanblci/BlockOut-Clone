@@ -268,6 +268,9 @@ namespace BlockOut.Runtime.UI
         RectTransform _rewardArt;
         Image _rewardBadge;
         Button _resultPrimary, _adButton, _closeButton;
+
+        /// <summary>Ses/müzik/titreşim anahtarları — üçü de aynı ortak kontrol.</summary>
+        readonly MenuPage.SwitchView[] _toggles = new MenuPage.SwitchView[3];
         TextMeshProUGUI _resultPrimaryLabel, _adLabel;
 
         // Yalnız kaybetme panelinde görünenler (bkz. BuildFailExtras).
@@ -1513,8 +1516,6 @@ namespace BlockOut.Runtime.UI
             _pausePanel.gameObject.SetActive(false);
         }
 
-        readonly (Image off, Image on, TextMeshProUGUI offText, TextMeshProUGUI onText)[] _toggles =
-            new (Image, Image, TextMeshProUGUI, TextMeshProUGUI)[3];
 
         /// <summary>
         /// Bir ayar satırı: simge + etiket + Off/On anahtarı.
@@ -1539,31 +1540,21 @@ namespace BlockOut.Runtime.UI
             text.alignment = TextAlignmentOptions.Left;
             UiKit.Place(text, 0.279f, y0, 0.526f, y1);
 
-            // Anahtarın gövdesi: koyu kapsül, içinde iki yarı.
-            var track = UiKit.CreateSlicedPanel($"Track_{index}", card,
-                UiSkin.Get(Art.PanelDark), BadgeDark);
-            UiKit.Place(track, 0.553f, y0, 0.863f, y1);
+            // OYUNUN TEK ANAHTARI (8. tur).
+            //
+            // Burada anahtarın İKİNCİ bir uygulaması vardı: düz iki yarım,
+            // beyaz "On" yazısı, kabartma yok. Ayarlar ekranındaki ise
+            // referanstan ölçülmüştü. Aynı kontrol iki ekranda iki türlü
+            // görünüyordu — düğmelerdeki hikâyenin aynısı, aynı çözüm.
+            var view = MenuPage.Switch($"Track_{index}", card, 30);
+            UiKit.Place(view.Root, 0.553f, y0, 0.863f, y1);
 
-            var offFace = UiKit.CreateSlicedPanel("Off", track.transform,
-                UiSprites.RoundedPanel, ToggleIdle);
-            UiKit.Place(offFace, 0.045f, 0.12f, 0.495f, 0.88f);
-            var offText = UiKit.CreateTitle("OffText", offFace.transform, "Off", 30,
-                ToggleIdleInk, TitleOutline);
-            UiKit.Place(offText, 0f, 0f, 1f, 1f);
-
-            var onFace = UiKit.CreateSlicedPanel("On", track.transform,
-                UiSprites.RoundedPanel, ToggleActive);
-            UiKit.Place(onFace, 0.505f, 0.12f, 0.955f, 0.88f);
-            var onText = UiKit.CreateTitle("OnText", onFace.transform, "On", 30,
-                Ink, TitleOutline);
-            UiKit.Place(onText, 0f, 0f, 1f, 1f);
-
-            _toggles[index] = (offFace, onFace, offText, onText);
+            _toggles[index] = view;
 
             // Her iki yarı da tıklanabilir: oyuncu istediği duruma DOĞRUDAN
             // basıyor. Tek düğmeli "değiştir" davranışı bir fazladan adım.
-            AddToggleClick(offFace, index, false, apply);
-            AddToggleClick(onFace, index, true, apply);
+            AddToggleClick(view.OffFace, index, false, apply);
+            AddToggleClick(view.OnFace, index, true, apply);
         }
 
         void AddToggleClick(Image face, int index, bool value, System.Action<bool> apply)
@@ -1596,16 +1587,7 @@ namespace BlockOut.Runtime.UI
             bool[] values = { settings.Sounds, settings.Music, settings.Haptics };
 
             for (int i = 0; i < _toggles.Length; i++)
-            {
-                var (off, on, offText, onText) = _toggles[i];
-                if (off == null || on == null) continue;
-
-                bool isOn = values[i];
-                off.color = isOn ? ToggleIdle : ToggleActive;
-                on.color = isOn ? ToggleActive : ToggleIdle;
-                offText.color = isOn ? ToggleIdleInk : Ink;
-                onText.color = isOn ? Ink : ToggleIdleInk;
-            }
+                _toggles[i]?.SetOn(values[i]);
         }
 
         void SetPaused(bool paused)

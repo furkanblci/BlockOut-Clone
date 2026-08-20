@@ -109,7 +109,17 @@ namespace BlockOut.Runtime.UI
         /// biçimde üstünde. Fazlası bedava: taşan zemin hiçbir zaman ölçüye
         /// girmiyor, yalnız maskenin dışında bekliyor.
         /// </summary>
-        const float OverscrollPad = 700f;
+        // TAŞMA PAYI 700'DEN 260'A İNDİ (8. tur).
+        //
+        // Bu pay, esnek kaydırmada içeriğin uçlarda açılmasıyla ortaya çıkan
+        // boşluğu zeminle doldurmak için vardı ve 700 birim seçilmişti çünkü
+        // taşmanın ne kadar olacağı BİLİNMİYORDU. Artık taşma 160 birimle
+        // sınırlı (bkz. UiScrollOvershoot), yani 260 fazlasıyla yetiyor.
+        //
+        // DERS (bilinmeyeni bol payla kapatmak, bilinmezliği KORUR): 700
+        // birimlik zemin, açılmanın kendisini de gizliyordu — kullanıcı
+        // "çok geliyor" derken gördüğü şey tam olarak o paydı.
+        const float OverscrollPad = 260f;
 
         /// <summary>
         /// İçeriğin SONUNA eklenen boşluk: en aşağı kaydırıldığında son öğe
@@ -249,10 +259,38 @@ namespace BlockOut.Runtime.UI
             scroll.scrollSensitivity = 45f;
             scroll.decelerationRate = 0.12f;
 
+            // TAŞMA SINIRLANDI (8. tur). Unity'nin esnek kipinde taşma
+            // mesafesi ayarlanamıyor; uzun bir sürüklemede liste ekran boyu
+            // kadar açılıp bölüm zeminlerinin sonunu geçiyordu.
+            scroll.gameObject.AddComponent<GameKit.UI.UiScrollOvershoot>().Limit = 160f;
+
             // Taşıyıcı dıştaki listeyi ancak o kurulduktan sonra tanıyabilir:
             // dikey jestleri ona AKTARACAK.
             if (screen._carousel != null)
                 screen._carousel.Bind(scroll, screen._carouselPages, screen._carouselDots);
+
+            // TENTE LEVHASI VE GÖLGESİ İÇERİKTEN ÇIKARILDI (8. tur).
+            //
+            // Kullanıcı: "yukarıda basılı tutup çektiğimizde çok fazla
+            // geldiği için zemin kopuyor… bir gölge bugu var, o gözükmesin."
+            //
+            // İkisi de `content` altındaydı, yani içerikle birlikte
+            // KAYIYORDU. Aşağı doğru esnetildiğinde koyu lacivert levha
+            // tentenin altından çıkıp koca bir bant hâline geliyor, altındaki
+            // 34 birimlik gölge de ayrı bir şerit gibi görünüyordu — ekran
+            // görüntülerindeki "gölge bugu" tam olarak bu.
+            //
+            // Artık `root` altındalar ve tenteden ÖNCE kuruluyorlar: çizim
+            // sırası içerik → levha → gölge → tente. Levha festonun
+            // çentiklerini arkadan kapatmaya devam ediyor, gölge de tentenin
+            // içeriğe düşen gölgesi olarak yerinde duruyor. Hiçbiri artık
+            // kıpırdamıyor, dolayısıyla ortaya çıkamıyor.
+            //
+            // DERS (bir öğe neyle birlikte HAREKET ETMELİ?): "İçeriğin
+            // parçası" ile "başlığın parçası" arasındaki fark, kaydırınca
+            // ortaya çıkıyor. Bu levha görsel olarak tenteye ait; içerikte
+            // durmasının tek sebebi orada kurulmuş olmasıydı.
+            BuildAwningShade(root);
 
             // Tente EN SON kurulur: kardeş sırası çizim sırasıdır, içeriğin
             // üstünde kalması gereken tek şey o.
@@ -471,23 +509,16 @@ namespace BlockOut.Runtime.UI
             Background(content, sectionTop, y - sectionTop, BgCoins, "BgCoins",
                        padBottom: OverscrollPad);
 
-            // EN SON: tentenin arkasındaki levha ve gölgesi. Kardeş sırası
-            // çizim sırası olduğu için burada kurulunca bütün kartların
-            // ÜSTÜNDE kalıyor — eskiden `root` altında olduğu için de öyleydi,
-            // tek fark artık içerikle birlikte kayıp gitmesi.
-            BuildAwningShade(content);
-
             return y;
         }
 
         /// <summary>
         /// Tentenin arkasındaki koyu lacivert levha ve altındaki yumuşak
-        /// gölge — İÇERİĞİN parçası, yani kaydırınca yukarı çıkıp kaybolur.
+        /// gölge — BAŞLIĞIN parçası, içeriğin değil (8. turda taşındı).
         ///
-        /// Levha yalnız festonun çentiklerini arkadan kapatmak için var:
-        /// yüksekliği tam <see cref="AwningH"/>, altına taşan tek şey 34
-        /// birimlik düşüş. Kaydırma başladığı anda ikisi de tentenin ardına
-        /// giriyor ve içerik doğrudan festona değiyor (referansta da öyle).
+        /// Levha festonun çentiklerini arkadan kapatıyor, gölge de tentenin
+        /// içeriğe düşen izini veriyor. İkisi de sabit: içerik altlarından
+        /// akıp gidiyor.
         /// </summary>
         static void BuildAwningShade(Transform content)
         {
@@ -496,14 +527,25 @@ namespace BlockOut.Runtime.UI
             shadeImage.color = new Color(0.024f, 0.137f, 0.529f);   // #062387
             shadeImage.raycastTarget = false;
 
-            // Levhanın altına yumuşak bir düşüş: sert kesim "iki katman"
-            // demiyordu, yalnız "iki renk" diyordu.
-            var drop = Row("AwningDrop", content, AwningH, 34f);
-            var dropImage = drop.gameObject.AddComponent<Image>();
-            dropImage.sprite = MenuSprites.FadeDown;
-            dropImage.type = Image.Type.Sliced;
-            dropImage.color = new Color(0f, 0f, 0f, 0.42f);
-            dropImage.raycastTarget = false;
+            // TENTENİN GÖLGESİ KALDIRILDI (8. tur).
+            //
+            // Kullanıcı: "şurada gölge var, Special Offers'ın üstünde
+            // kalıyor ama alakası yok, normalde olmaması gereken bir şey —
+            // o mavi kısmın gölgesi, onu kaldıralım."
+            //
+            // 34 birimlik bu koyu düşüş, levhanın alt kenarını yumuşatmak
+            // için konmuştu. Ama levha zaten tentenin ARKASINDA; görünen tek
+            // yeri festonun çentikleri. Gölge ise tentenin altından taşıp
+            // turuncu "Special Offers" kurdelesinin üstüne düşüyordu — yani
+            // yumuşattığı kenar görünmüyor, kendisi görünüyordu.
+            //
+            // Referansta tentenin altında gölge yok: feston doğrudan içeriğe
+            // değiyor.
+            //
+            // DERS (bir öğe neyi çözdüğünü GÖSTEREBİLMELİ): "Sert kesimi
+            // yumuşatsın" diye eklenen bir katman, yumuşattığı kesimin
+            // görünmediği bir yerde duruyorsa yalnız kendi varlığını
+            // gösteriyordur.
         }
 
         /// <summary>
@@ -677,17 +719,16 @@ namespace BlockOut.Runtime.UI
             var band = UiKit.CreateRoundedPanel("Band", card, OfferBand);
             UiKit.Place(band, 0f, OfferLipH / height, 1f, (OfferLipH + OfferBandH) / height);
 
-            var art = UiKit.CreateRoundedPanel("Art", card, OfferTop);
-            UiKit.Place(art, 0f, (OfferLipH + OfferBandH) / height - 0.04f, 1f, 1f);
-
             // Dikey degrade: alta doğru koyulaşan turuncu.
-            var fade = UiKit.CreateRect("Fade", art.transform);
-            var fadeImage = fade.gameObject.AddComponent<Image>();
-            fadeImage.sprite = MenuSprites.FadeDown;
-            fadeImage.type = Image.Type.Sliced;
-            fadeImage.color = OfferLow;
-            fadeImage.raycastTarget = false;
-            UiKit.Place(fade, 0.01f, 0.02f, 0.99f, 0.98f);
+            //
+            // Eskiden yüzeyin üstüne ikinci bir DİKDÖRTGEN konuyordu ve o
+            // dikdörtgen kartın yuvarlak köşesini kesiyordu — köşelerde düz
+            // bir turuncu kenar görünüyordu. Geçiş artık yüzeyin kendi köşe
+            // noktalarının rengi, dolayısıyla silüet neyse o (bkz. 8. tur).
+            var art = UiKit.CreateRoundedPanel("Art", card, Color.white);
+            UiKit.Place(art, 0f, (OfferLipH + OfferBandH) / height - 0.04f, 1f, 1f);
+            art.gameObject.AddComponent<GameKit.UI.UiVerticalTint>()
+               .Set(OfferTop, OfferLow);
 
             var pile = UiKit.CreateIcon("Pile", art.transform,
                 Tiered(Art.CoinPile, offer.Pile, Art.Coin));

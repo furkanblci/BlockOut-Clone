@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using BlockOut.Runtime.Services;
 using TMPro;
 using UnityEngine;
@@ -144,7 +144,8 @@ namespace BlockOut.Runtime.UI
             new List<(Image, TextMeshProUGUI, int)>();
 
         /// <summary>Seçili sekmenin üst ışığı; <see cref="Refresh"/> açıp kapatıyor.</summary>
-        readonly List<RectTransform> _tabGloss = new List<RectTransform>();
+        readonly List<GameKit.UI.UiVerticalTint> _tabGloss =
+            new List<GameKit.UI.UiVerticalTint>();
         TextMeshProUGUI _selfRank, _selfName, _selfScore, _countdown;
 
         // Sekme değişince yenilenecek yazılar.
@@ -224,22 +225,17 @@ namespace BlockOut.Runtime.UI
             for (int i = 0; i < TabNames.Length; i++)
             {
                 float x0 = 0.014f + i * 0.3287f;
-                var face = MenuPage.Capsule("Tab" + i, slot.transform, TabIdle);
+                var face = MenuPage.Capsule("Tab" + i, slot.transform, Color.white);
                 UiKit.Place(face, x0, 0.10f, x0 + 0.3213f, 0.90f);
                 face.raycastTarget = true;
 
                 // Üstte toplanan ışık: seçili sekmeyi "cam düğme" yapan şey.
-                // Seçili olmayanda da duruyor ama Refresh onu kapatıyor —
-                // burada kurulması, sonradan yaratmaya göre daha ucuz.
-                var gloss = UiKit.CreateRect("Gloss", face.transform);
-                var glossImage = gloss.gameObject.AddComponent<Image>();
-                glossImage.sprite = MenuSprites.FadeDown;
-                glossImage.type = Image.Type.Sliced;
-                glossImage.color = TabGloss;
-                glossImage.raycastTarget = false;
-                UiKit.Place(gloss, 0.03f, 0.46f, 0.97f, 0.97f);
-                gloss.localRotation = Quaternion.Euler(0f, 0f, 180f);
-                gloss.gameObject.SetActive(false);
+                //
+                // Eskiden ayrı bir DİKDÖRTGEN katmandı ve sekmenin yuvarlak
+                // köşesini kesiyordu; ayrıca seçim değişince o katman
+                // açılıp kapanıyordu. Artık sekmenin kendi köşe noktalarının
+                // rengi ve seçim yalnız iki rengi değiştiriyor (8. tur).
+                _tabGloss.Add(face.gameObject.AddComponent<GameKit.UI.UiVerticalTint>());
 
                 var label = UiKit.CreateTitle("Label", face.transform, TabNames[i], 40,
                     MenuPage.Ink, MenuPage.InkDark);
@@ -253,7 +249,6 @@ namespace BlockOut.Runtime.UI
                 int captured = i;
                 button.onClick.AddListener(() => { _activeTab = captured; Refresh(); });
                 _tabs.Add((face, label, i));
-                _tabGloss.Add(gloss);
             }
 
             // Geri sayım rozeti sekmelerin ALT kenarına biner; referansta
@@ -855,17 +850,15 @@ namespace BlockOut.Runtime.UI
                 MenuPage.Darken(slotColor, 0.62f));
             UiKit.Place(rankRim, -0.005f, 0.04f, 0.155f, 0.96f);
 
-            var rankSlot = MenuPage.Capsule("RankSlot", rankRim.transform, slotColor);
+            // Üstte toplanan ışık, rozetin KENDİ köşe noktalarının rengi.
+            // Ayrı bir dikdörtgen olarak konduğunda rozetin yuvarlak köşesini
+            // kesiyordu (8. tur). Beyazla karıştırma burada elle yapılıyor
+            // çünkü köşe rengi çarpar, üstüne bindiremez.
+            var rankSlot = MenuPage.Capsule("RankSlot", rankRim.transform, Color.white);
             UiKit.Place(rankSlot, 0f, 0f, 1f, 1f, padding: 6f);
-
-            var rankGloss = UiKit.CreateRect("Gloss", rankSlot.transform);
-            var rankGlossImage = rankGloss.gameObject.AddComponent<Image>();
-            rankGlossImage.sprite = MenuSprites.FadeDown;
-            rankGlossImage.type = Image.Type.Sliced;
-            rankGlossImage.color = new Color(1f, 1f, 1f, medalled ? 0.42f : 0.18f);
-            rankGlossImage.raycastTarget = false;
-            UiKit.Place(rankGloss, 0.06f, 0.50f, 0.94f, 0.94f);
-            rankGloss.localRotation = Quaternion.Euler(0f, 0f, 180f);
+            rankSlot.gameObject.AddComponent<GameKit.UI.UiVerticalTint>()
+                    .Set(Color.Lerp(slotColor, Color.white, medalled ? 0.42f : 0.18f),
+                         slotColor);
 
             // Madalyalı rozette yazı KOYU: altın/gümüş üstünde beyaz okunmuyor.
             var rankInk = medalled ? new Color(0.24f, 0.14f, 0.03f) : MenuPage.Ink;
@@ -1083,13 +1076,15 @@ namespace BlockOut.Runtime.UI
             foreach (var (face, label, index) in _tabs)
             {
                 bool on = index == _activeTab;
-                face.color = on ? TabActive : TabIdle;
                 label.color = on ? MenuPage.Ink : new Color(1f, 1f, 1f, 0.78f);
 
                 // Üst ışık YALNIZ seçilide: referansta seçili sekme camdan
-                // bir düğme gibi parlıyor, diğer ikisi mat kalıyor.
+                // bir düğme gibi parlıyor, diğer ikisi mat kalıyor. Seçili
+                // olmayanda üst ve alt aynı renk, yani geçiş yok.
                 if (index < _tabGloss.Count && _tabGloss[index] != null)
-                    _tabGloss[index].gameObject.SetActive(on);
+                    _tabGloss[index].Set(
+                        on ? Color.Lerp(TabActive, TabGloss, 0.55f) : TabIdle,
+                        on ? TabActive : TabIdle);
             }
 
             // Sekmenin ASIL işi: listeyi değiştirmek. Renk yalnız hangisinin

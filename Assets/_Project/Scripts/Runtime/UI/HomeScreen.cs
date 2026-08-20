@@ -547,23 +547,16 @@ namespace BlockOut.Runtime.UI
             edge.raycastTarget = false;
             UiKit.Place(edge, 0f, 0f, 1f, 1f);
 
-            var faceFill = UiKit.CreateRoundedPanel("Face", ribbonRoot,
-                new Color(0.984f, 0.643f, 0.039f));
+            // Işık üstte toplanır; geçiş yüzeyin KENDİ rengi, üstüne konan
+            // ayrı bir dikdörtgen değil — o dikdörtgen şeridin yuvarlak
+            // köşesini kesiyordu (8. tur).
+            var faceFill = UiKit.CreateRoundedPanel("Face", ribbonRoot, Color.white);
+            faceFill.gameObject.AddComponent<GameKit.UI.UiVerticalTint>()
+                    .Set(new Color(0.996f, 0.788f, 0.235f),
+                         new Color(0.984f, 0.643f, 0.039f));
             UiKit.SetSliceScale(faceFill, 1.05f);
             faceFill.raycastTarget = false;
             UiKit.Place(faceFill, 0f, 0f, 1f, 1f, padding: 7f);
-
-            // Işık üstte toplanır. `FadeDown` altta opak olduğu için 180°
-            // çevriliyor — aynı dokuyu ters yönde kullanmak, ikinci bir doku
-            // üretmekten ucuz.
-            var sheen = UiKit.CreateRect("Sheen", faceFill.transform);
-            var sheenImage = sheen.gameObject.AddComponent<Image>();
-            sheenImage.sprite = MenuSprites.FadeDown;
-            sheenImage.type = Image.Type.Sliced;
-            sheenImage.color = new Color(1f, 0.788f, 0.235f, 0.85f);
-            sheenImage.raycastTarget = false;
-            UiKit.Place(sheen, 0.02f, 0.10f, 0.98f, 0.94f);
-            sheen.localRotation = Quaternion.Euler(0f, 0f, 180f);
 
             // KOYU KAHVE YAZI + KREM KONTUR. Referansta yazı plakadan daha
             // koyu; beyaz yazı turuncu üstünde yeterince ayrışmıyor.
