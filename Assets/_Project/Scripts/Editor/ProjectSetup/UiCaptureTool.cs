@@ -122,6 +122,9 @@ namespace BlockOut.Editor.ProjectSetup
             }
 
             Canvas.ForceUpdateCanvases();
+            // Derlenmemiş bir shader varyantı kareyi magenta çizer; gerekçe
+            // için bkz. BoardCaptureTool.EnsureSynchronousShaders.
+            BoardCaptureTool.EnsureSynchronousShaders();
             camera.Render();
 
             var previous = RenderTexture.active;

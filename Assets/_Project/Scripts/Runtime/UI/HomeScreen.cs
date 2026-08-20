@@ -823,13 +823,50 @@ namespace BlockOut.Runtime.UI
             // "reklam izle, can al" teklifi çıkıyor. Oyuncunun oturumu burada
             // biter ya da devam eder; boş bir düğme bırakmak bitmesini seçmektir.
             _adRow.SetActive(!canPlay && LevelCatalog.Count > 0);
+
+            // CANSIZ DURUM GERİ ALINABİLİR OLMALI.
+            //
+            // BULUNAN HATA (kullanıcı: "reklam izledikten sonra canım olmasına
+            // rağmen butonda can yok yazıyor"): Bu blok düğmeyi griye boyayıp
+            // yazısını değiştiriyordu ama TERSİNİ yapan hiçbir satır yoktu.
+            // Yazıyı geri koyan tek yer `ApplyDifficulty` ve o da yalnız
+            // BÖLÜM DEĞİŞTİĞİNDE çağrılıyor (`next != _shownNext`). Reklam
+            // izlenip can alındığında bölüm aynı kaldığı için düğme "CAN YOK"
+            // yazmaya ve gri kalmaya devam ediyordu — üstelik `interactable`
+            // true olduğu için BASILABİLİYORDU. Yani ekran yalan söylüyordu.
+            //
+            // DERS (bir durumu boyayan her satırın geri dönüşü de olmalı):
+            // "Şu koşulda şunu yaz" biçiminde yazılmış her görünüm kuralı,
+            // koşul kalktığında ne olacağını da söylemek zorunda. Tazeleme
+            // fonksiyonları idempotent görünür ama tek yönlü yazılırsa
+            // değildir; hata ancak koşul GERİ DÖNDÜĞÜNDE ortaya çıkar ve
+            // testte kolayca atlanır.
+            //
+            // Ayrıca yazı TÜRKÇEYDİ. Arayüz 2026-08-10'da tamamen İngilizceye
+            // geçti; bu satır o taramada gözden kaçmış ve İngilizce bir
+            // düğmenin ortasında tek başına duruyordu.
             if (!canPlay)
             {
-                _levelLabel.text = "CAN YOK";
+                _levelLabel.text = "NO LIVES";
+                _difficultyLabel.gameObject.SetActive(true);
                 _difficultyLabel.text = "waiting for lives";
                 if (_playFace != null) _playFace.color = new Color(0.62f, 0.62f, 0.66f);
+                _playBlocked = true;
+            }
+            else if (_playBlocked)
+            {
+                // Can geri geldi: düğmenin yazısını, zorluğunu ve görselini
+                // bölüm hiç değişmemiş olsa bile yeniden kur.
+                _playBlocked = false;
+                ApplyDifficulty(LevelCatalog.DifficultyAt(next), next);
             }
         }
+
+        /// <summary>
+        /// OYNA düğmesi şu an "can yok" görünümünde mi? Can geri geldiğinde
+        /// görünümü yeniden kurmak için gerekiyor (bkz. <see cref="Refresh"/>).
+        /// </summary>
+        bool _playBlocked;
 
         void ApplyDifficulty(LevelDifficulty difficulty, int index)
         {

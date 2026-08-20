@@ -23,15 +23,35 @@ namespace BlockOut.Editor.ProjectSetup
     /// kadrajı üretmenin başka yolu yok; sayılar değişirse ikisi birlikte
     /// değişmeli.
     /// </summary>
+    [UnityEditor.InitializeOnLoad]
     public static class BoardCaptureTool
     {
+        /// <summary>
+        /// Her domain reload'dan SONRA eşzamansız shader derlemesini kapatır.
+        ///
+        /// Neden statik kurucuda: ayarı yakalamanın İÇİNDE kapatmak işe
+        /// yaramıyor — Unity onu bir sonraki düzenleyici karesinde dikkate
+        /// alıyor, yani aynı çağrıdaki `Camera.Render()` yine magenta çiziyor.
+        /// Ölçüldü: ayrı bir çağrıda kapatınca magenta piksel 18 476 → 0.
+        /// Domain reload ayarı varsayılana (açık) döndürdüğü için de her
+        /// derlemeden sonra yeniden kapatılması gerekiyor.
+        /// </summary>
+        static BoardCaptureTool() => EnsureSynchronousShaders();
+
         /// <summary>
         /// <paramref name="levelPath"/>: `Assets/_Project/Levels/level_004.json`.
         /// <paramref name="tilt"/>: kamera eğimi (varsayılan oyununkiyle aynı).
         /// Döndürdüğü yol geçici klasördeki PNG.
         /// </summary>
+        /// <param name="tweak">
+        /// Tahta kurulduktan SONRA, kare alınmadan ÖNCE çağrılır. Yalnız bir
+        /// olay sırasında görünen şeyleri (kapı ağzı ışığı, buz kırılması,
+        /// vurgulanmış blok) elle açıp yakalayabilmek için — bunlar oynatma
+        /// kipi olmadan hiç görülemezdi.
+        /// </param>
         public static string Capture(string levelPath, string fileName,
-            int width = 1080, int height = 1920, float tilt = 80f, float fov = 27f)
+            int width = 1080, int height = 1920, float tilt = 80f, float fov = 27f,
+            System.Action<Transform> tweak = null)
         {
             var level = LevelModel.Build(LevelLoader.Parse(File.ReadAllText(levelPath)));
             var board = level.Board;
@@ -60,8 +80,11 @@ namespace BlockOut.Editor.ProjectSetup
             cam.aspect = (float)width / height;
 
             BoardBuilder.Build(host.transform, level, space, palette);
+            tweak?.Invoke(host.transform);
 
             Fit(cam, board.Width, board.Height, tilt);
+
+            EnsureSynchronousShaders();
             cam.Render();
 
             var previous = RenderTexture.active;
@@ -85,6 +108,36 @@ namespace BlockOut.Editor.ProjectSetup
 
             Debug.Log($"[BoardCapture] {path}");
             return path;
+        }
+
+        /// <summary>
+        /// EŞZAMANSIZ SHADER DERLEMESİNİ KAPATIR — ve bir daha AÇMAZ.
+        ///
+        /// BULUNAN HATA: Bir domain reload'dan sonraki ilk yakalamalarda
+        /// tahtanın ızgara çizgileri MAGENTA (212,0,212) çıkıyordu. Materyal
+        /// doğruydu (`Universal Render Pipeline/Unlit`, renk 0,0,0,0.34,
+        /// kuyruk 2990) ve konsolda tek hata yoktu. Sebep: Unity düzenleyicide
+        /// bir shader VARYANTI henüz derlenmemişse o nesneyi magenta "bekliyor"
+        /// rengiyle çiziyor; `Camera.Render()` derlemeyi beklemiyor.
+        ///
+        /// ÖLÇÜLDÜ: aynı sahne art arda üç kez yakalandı, üçünde de tam
+        /// 18 476 magenta piksel — yani geçici değil, TAKILI kalmış bir durum.
+        /// Ayar ayrı bir çağrıda kapatılınca 0'a düştü.
+        ///
+        /// Ayar geri AÇILMIYOR: kapatıp aynı çağrının sonunda geri açmak bir
+        /// sonraki yakalamayı yeniden bozuyor (ilk kare yine varyantı bekliyor).
+        /// Bu bir doğrulama aracı; senkron derleme birkaç yüz milisaniye
+        /// yavaşlatır, karşılığında kare her zaman doğru.
+        ///
+        /// DERS (doğrulama aracının kendi yalanı en tehlikelisidir): Kare
+        /// "ızgara bozuk, blokların üstüne çiziliyor" diyordu ve oyunda öyle
+        /// bir hata yok. Ölçüm aracı, ölçtüğü şeyin durumunu değil KENDİ
+        /// durumunu gösterebiliyorsa önce onu sabitlemek gerekir.
+        /// </summary>
+        public static void EnsureSynchronousShaders()
+        {
+            if (UnityEditor.ShaderUtil.allowAsyncCompilation)
+                UnityEditor.ShaderUtil.allowAsyncCompilation = false;
         }
 
         /// <summary>`GameSession.FitCamera`'nın doğrulama kopyası.</summary>

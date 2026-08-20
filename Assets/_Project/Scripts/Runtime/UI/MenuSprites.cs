@@ -625,6 +625,54 @@ namespace BlockOut.Runtime.UI
         public static Sprite Snowflake => _snowflake != null ? _snowflake
             : (_snowflake = BuildSnowflake());
 
+        static Sprite _sparkle;
+
+        /// <summary>
+        /// DÖRT UÇLU PARILTI — ödül halelerinin çevresindeki küçük yıldız.
+        ///
+        /// Referansta (PERFECT kartı, jeton yığınının çevresi) üç-dört tane
+        /// var: içbükey kollu, uçları sivri, saf beyaz. Kar tanesinden farkı
+        /// kol SAYISI değil BİÇİMİ — kar tanesinin kolları sabit kalınlıkta
+        /// çubuk, parıltının kolları merkezden uca doğru incelen bir eğri.
+        /// Bu incelme parıltıyı "ışık", sabit kalınlık ise "nesne" gösteriyor.
+        ///
+        /// Kollar süperelips ile: |x|^p + |y|^p = r^p, p &lt; 1 olduğunda
+        /// kenarlar içeri çöküyor ve dört sivri uç çıkıyor. Tek formül, dört
+        /// kol, döndürme yok.
+        /// </summary>
+        public static Sprite Sparkle => _sparkle != null ? _sparkle
+            : (_sparkle = BuildSparkle());
+
+        static Sprite BuildSparkle()
+        {
+            const int s = 96;
+            var tex = NewTexture("Sparkle", s, s);
+            var pixels = new Color32[s * s];
+
+            float half = s * 0.5f;
+            // p = 0.42: belirgin içbükey kol. 1 = elmas, 2 = daire.
+            const float p = 0.42f;
+            const float radius = 0.46f;
+
+            for (int y = 0; y < s; y++)
+            for (int x = 0; x < s; x++)
+            {
+                float px = (x + 0.5f - half) / s;
+                float py = (y + 0.5f - half) / s;
+
+                float d = Mathf.Pow(Mathf.Abs(px), p) + Mathf.Pow(Mathf.Abs(py), p);
+                float edge = Mathf.Pow(radius, p);
+                // Kenar yumuşatma: eşiğin çevresinde dar bir bant.
+                float alpha = 1f - Step(edge * 0.92f, edge * 1.08f, d);
+                pixels[y * s + x] = new Color(1f, 1f, 1f, Mathf.Clamp01(alpha));
+            }
+
+            tex.SetPixels32(pixels);
+            tex.Apply(false, true);
+            return Sprite.Create(tex, new Rect(0, 0, s, s), new Vector2(0.5f, 0.5f), 100f, 0,
+                SpriteMeshType.FullRect);
+        }
+
         static Sprite BuildSnowflake()
         {
             const int s = 96;
@@ -697,7 +745,7 @@ namespace BlockOut.Runtime.UI
         {
             _capsule = _capsuleOutline = _awning = _infinity = _noAds = null;
             _fadeDown = _pennant = _ring = _sunburst = _foliage = null;
-            _quilt = _frostVignette = _snowflake = null;
+            _quilt = _frostVignette = _snowflake = _sparkle = null;
         }
     }
 }

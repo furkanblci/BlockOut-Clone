@@ -488,6 +488,41 @@ namespace BlockOut.Runtime.View
             return mat;
         }
 
+        /// <summary>
+        /// KAPI AĞZI IŞIĞI — blok kapıya girerken temas çizgisinde parlayan
+        /// ince bant.
+        ///
+        /// ÖLÇÜM (`…Levels 1-20 Walkthrough.mp4` 01:44,6 karesi; kırmızı bloğun
+        /// kırmızı kapıya girdiği an, 592×1280): bloğun kapıya değen kenarında
+        /// 6 piksel genişliğinde (%1,0 ekran, hücrenin %8'i) bir bant var ve
+        /// rengi (255,178,179) / (238,197,201) — yani NEREDEYSE BEYAZ, kapının
+        /// kırmızısından (250,35,37) çok daha açık.
+        ///
+        /// DERS (6. turun ölçümü doğruydu ama tam değildi): O tur "kapı
+        /// yutarken DEĞİŞMİYOR" diye ölçülmüş ve kapının beyaz patlaması
+        /// haklı olarak kaldırılmıştı. Değişmeyen KAPIYDI; ışık kapıda değil,
+        /// ikisinin TEMAS ÇİZGİSİNDE. Doğru soruyu sorup yanlış yere bakmak,
+        /// var olan bir ayrıntıyı "yok" diye kaydettirdi.
+        /// </summary>
+        static readonly Dictionary<BlockColor, Material> _gateMouth =
+            new Dictionary<BlockColor, Material>();
+
+        public static Material GateMouthLight(ColorPaletteSO palette, BlockColor color)
+        {
+            if (_gateMouth.TryGetValue(color, out var cached) && cached != null) return cached;
+
+            var entry = palette != null ? palette.Get(color) : null;
+            Color baseColor = entry != null ? entry.uiColor : Color.gray;
+
+            // Ölçülen (255,178,179), kapının (250,35,37) rengiyle beyaz
+            // arasında %72 beyaz karışıma denk geliyor.
+            var c = Color.Lerp(baseColor, Color.white, 0.72f);
+            c.a = 1f;
+            var mat = CreateTransparent("GateMouth_" + color, c, 3020);
+            _gateMouth[color] = mat;
+            return mat;
+        }
+
         public static Material Translucent(Color color) =>
             CreateTransparent("Beam", color, 3000);
 
@@ -786,6 +821,7 @@ namespace BlockOut.Runtime.View
             _curtainFrame = null;
             _curtainStreak = _curtainSparkle = null;
             _badgeRim = _badgeFace = null;
+            _gateMouth.Clear();
             _generatorBody = null;
             _solids.Clear();
             _arrow = null;

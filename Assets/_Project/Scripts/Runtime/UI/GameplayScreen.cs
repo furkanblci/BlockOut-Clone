@@ -41,6 +41,18 @@ namespace BlockOut.Runtime.UI
         // Eskiden (77,62,237) idi — referanstan belirgin biçimde parlak ve
         // daha doygun; kart "neon" görünüyordu.
         static readonly Color CardPurple   = new Color(0.255f, 0.192f, 0.753f);
+
+        /// <summary>Sonuç kartının koyu kenarı — referanstan (31,16,95).</summary>
+        static readonly Color CardRim = new Color(0.122f, 0.063f, 0.373f);
+        /// <summary>Koyu kenarın kalınlığı: referansta 18 piksel = 33 birim.</summary>
+        const float CardRimWidth = 30f;
+        /// <summary>
+        /// Kartın dış köşe yarıçapı (kanvas birimi). Referansın köşesi tam
+        /// bir daire değil (süperelips) ama 60 piksellik bir yay — 592
+        /// genişlikte, bizim tuvalde 110 birim — görsel olarak birebir
+        /// oturuyor.
+        /// </summary>
+        const float CardCornerRadius = 110f;
         static readonly Color TitleGold    = new Color(1f, 0.760f, 0.180f);
         static readonly Color TitleOutline = new Color(0.290f, 0.160f, 0.620f);
         static readonly Color CoinGold     = new Color(1f, 0.820f, 0.320f);
@@ -1554,12 +1566,43 @@ namespace BlockOut.Runtime.UI
         /// soru "ışın var mı" idi. Bir ayrıntıyı doğru ölçmek, o ayrıntının
         /// var olduğunu varsaymayı meşrulaştırmıyor.
         /// </summary>
+        /// <summary>
+        /// Jeton yığınının arkasındaki hale — SICAK ALTIN, soğuk beyaz değil.
+        ///
+        /// ÖLÇÜM (referans PERFECT kartı, yığının çevresindeki hale): hale
+        /// kartın morundan (65,49,192) sarıya doğru kayıyor, en parlak yeri
+        /// (150,120,235) civarı ve çevresinde üç-dört küçük BEYAZ dört uçlu
+        /// parıltı var. Bizimki (0.90, 0.88, 1) ile mavi-beyazdı; altın bir
+        /// yığının arkasında soğuk bir ışık, jetonları "buzlu" gösteriyordu.
+        ///
+        /// DERS (ışığın rengi, aydınlattığı şeyden gelir): Bir ödül halesi
+        /// ödülün rengini taşımalı; nötr beyaz, altını gümüşe çeviriyor.
+        /// </summary>
         static void BuildGlow(RectTransform parent)
         {
             var glow = UiKit.CreateIcon("Glow", parent, UiSprites.Radial,
-                new Color(0.90f, 0.88f, 1f, 0.62f));
+                new Color(1f, 0.92f, 0.62f, 0.55f));
             glow.raycastTarget = false;
             UiKit.Place(glow, -0.42f, -0.34f, 1.42f, 1.40f);
+
+            // PARILTILAR: referansta yığının çevresinde üç-dört küçük beyaz
+            // dört uçlu yıldız var. Konumları sabit — rastgele olsaydı kart
+            // her açılışta başka görünür ve "kararlı bir tasarım" hissi
+            // kaybolurdu.
+            var spots = new[]
+            {
+                new Vector4(0.11f, 0.64f, 0.20f, 0.77f),
+                new Vector4(0.79f, 0.72f, 0.88f, 0.85f),
+                new Vector4(0.84f, 0.30f, 0.92f, 0.42f),
+                new Vector4(0.43f, 0.92f, 0.51f, 1.03f)
+            };
+            for (int i = 0; i < spots.Length; i++)
+            {
+                var star = UiKit.CreateIcon("Sparkle" + i, parent, MenuSprites.Sparkle,
+                    new Color(1f, 1f, 1f, 0.92f));
+                star.raycastTarget = false;
+                UiKit.Place(star, spots[i].x, spots[i].y, spots[i].z, spots[i].w);
+            }
         }
 
         void BuildResultPanel(Transform root)
@@ -1571,12 +1614,38 @@ namespace BlockOut.Runtime.UI
             var scrim = UiKit.CreatePanel("Scrim", _resultPanel, new Color(0.05f, 0.03f, 0.14f, 0.84f));
             scrim.raycastTarget = true;
 
-            // Kart MOR — referansta krem değil. panel_card açık renkli olduğu için
-            // çarpımla mora boyanabiliyor; panel_dark ya da btn_square ile aynı
-            // sonuç ALINAMAZ, koyu bir sprite açık renge boyanmaz.
-            _resultCard = UiKit.CreateSlicedPanel("Card", _resultPanel, UiSkin.Get(Art.PanelCard),
-                CardPurple);
+            // KART ARTIK PROSEDÜREL — HAZIR GÖRSEL ÇİFT ÇERÇEVE ÜRETİYORDU.
+            //
+            // Kullanıcı (7. tur devamı): "perfect paneli daha iyi hale
+            // getirilebilir."
+            //
+            // ÖLÇÜM (`…Levels 1-20 Walkthrough.mp4` 11:31, kartın ortasından
+            // dikey kesit, 592×1280):
+            //   kartın dış kenarı → 18 piksel KOYU kenar (31,16,95)
+            //   ardından 15 piksellik yumuşak geçiş
+            //   sonra düz yüz (65,49,192), kartın sonuna kadar TEK PARÇA
+            // Yani referansın kartı: koyu bir kenar ve içinde düz bir yüz.
+            //
+            // Bizde `panel_card` sprite'ı kullanılıyordu ve o görselin
+            // İÇİNDE basılı ikinci bir çerçeve var: ekranda kart, "çerçeve
+            // içinde çerçeve" gibi okunuyor ve 9-dilim dikişi kartın
+            // ortasında yatay bir iz bırakıyordu. Boyama o baskıyı
+            // kaldıramaz — baskılı gölge bu projede altı kez sorun çıkardı.
+            //
+            // DERS (hazır görsel, İÇİNDEKİ kararları da getirir): Bir sprite
+            // yalnız renk ve şekil değil, üzerine çizilmiş her ayrıntıyı da
+            // dayatır. Kenar kalınlığını, iç çizgiyi ve köşe yarıçapını
+            // ayarlayabilmek gerekiyorsa yüzey kodla kurulmalı.
+            _resultCard = UiKit.CreateRoundedPanel("Card", _resultPanel, CardRim,
+                GameKit.UI.UiCornerFit.HouseShare, CardCornerRadius);
             UiKit.Place(_resultCard, WinCardX0, WinCardY0, WinCardX1, WinCardY1);
+
+            // Kartın yüzü: koyu kenarın 27 birim içinde. Köşe yarıçapı da
+            // aynı kadar küçük — eş merkezli köşe kuralı (bkz. P56).
+            var cardFace = UiKit.CreateRoundedPanel("Face", _resultCard.transform,
+                CardPurple, GameKit.UI.UiCornerFit.HouseShare, CardCornerRadius - CardRimWidth);
+            UiKit.Place(cardFace, 0f, 0f, 1f, 1f, padding: CardRimWidth);
+            cardFace.raycastTarget = false;
 
             // "PERFECT!" kartın DIŞINDA, üst kenarına binerek duruyor. Kartın
             // içine alınırsa başlık kutunun bir satırı olur; referansta kartı

@@ -358,3 +358,186 @@ renkleri (dip 0.50, omuz 1.00, kapak 0.88), köşeler yuvarlatıldı, baş geni�
 Kaynak dosyayı düzenledikten hemen sonra çağrılan komut **eski kodu** ölçebilir:
 bu turda perde parıltısı üç kez "değişmedi" göründü. Kural: düzenlemeden sonra
 ÖNCE yalnız `AssetDatabase.Refresh` yapan bir komut, SONRA ölçen komut.
+
+---
+
+# 7. TUR — EK (aynı gün, kullanıcının ikinci listesi)
+
+## 1. KRİTİK — alt kapılar blokların üstünü örtüyor ✔
+
+Kullanıcı: "alttaki kapıların üstüne blok gelince bloğun bir kısmı kapının
+üstünde kalıyor, bu KRİTİK bir bug, önceden yoktu."
+
+**Sebep — T65'in yan etkisi.** T65'te `InwardOverhang` 0,09 → 0,235 yapıldı ve
+bu değer DÖRT KENARA birden uygulandı. Paralaks her zaman kuzeye (yukarı)
+kaydırıyor ama "içeri" yönü kenara göre değişiyor:
+
+| kenar | içeri yönü | paralaks etkisi | doğru pay |
+|---|---|---|---|
+| ÜST | güney | payı YER | 0,09 + 0,145 = **0,235** |
+| ALT | kuzey | payı EKLER | 0,09 − 0,145 = **−0,055** |
+| YAN | X ekseni | etkisiz (paralaks Z'de) | **0,09** |
+
+0,235'i alt kenara vermek kapıyı tahtanın **0,38 hücre** içine sokuyordu
+(0,235 pay + 0,145 kayma) ve kapı plakası bloğun alt saplama sırasının üstünü
+örtüyordu. Eski 0,09 değerinde bile alt kapılar 0,235 hücre örtüyordu — hata
+kısmen zaten vardı, 7. tur onu görünür eşiğin üstüne çıkardı.
+
+`InwardOverhang` artık `GateModel` alıyor ve kenara göre hesaplıyor;
+`BarDepth` ile `OutwardOffset` de öyle.
+
+**DERS: bir düzeltmenin YÖNÜ vardır.** Tek kenarda yapılan ölçüm o kenara
+özeldir. Simetrik görünen bir geometride bile, kameranın kırdığı simetriyi
+hesaba katmadan değeri dört kenara uygulamak bir kenarı düzeltirken
+karşısındakini iki katı bozuyor.
+
+## 2. Kapıdan geçerken parıltı gelmiyor ✔
+
+**6. turun ölçümü doğruydu ama yanlış yere bakmıştı.** O turda "kapı yutarken
+değişiyor mu" diye 280 kare tarandı; cevap doğru çıktı — KAPI değişmiyor. Ama
+ışık kapının üstünde değil, kapı ile bloğun **TEMAS ÇİZGİSİNDE**.
+
+ÖLÇÜM (`…Levels 1-20 Walkthrough.mp4` 01:44,6; kırmızı blok kırmızı kapıya
+giriyor, 592×1280): bloğun kapıya değen kenarında **6 piksel** (hücrenin %8'i)
+genişliğinde bir bant var, rengi **(255,178,179)** — kapının kırmızısından
+(250,35,37) çok daha açık, neredeyse beyaz.
+
+Yeni `GateView.PlayAbsorbFlash`: kapının iç kenarında, açıklık boyunca uzanan
+0,10 hücrelik bir şerit 0,17 saniyede yanıp sönüyor. Materyal renk başına
+paylaşılıyor ama her kapı KENDİ kopyasını alıyor — paylaşılan materyalin
+alfasını söndürmek aynı renkteki bütün kapıları birlikte söndürürdü.
+
+**DERS: bir ölçümün kapsamı, sonucunun geçerlilik alanıdır.** Doğru soruyu
+sorup yanlış yere bakmak, var olan bir ayrıntıyı "yok" diye kaydettirdi.
+
+## 3. PERFECT paneli daha iyi ✔
+
+- **Kart artık prosedürel.** ÖLÇÜM (kartın ortasından dikey kesit): dış kenar
+  → 18 piksel KOYU bant (31,16,95) → 15 piksel yumuşak geçiş → düz yüz
+  (65,49,192), sonuna kadar TEK PARÇA. Bizde `panel_card` sprite'ı vardı ve o
+  görselin İÇİNDE basılı ikinci bir çerçeve var: kart "çerçeve içinde çerçeve"
+  gibi okunuyor, 9-dilim dikişi de ortada yatay bir iz bırakıyordu. Artık koyu
+  kenar (30 birim) + yüz, eş merkezli köşelerle.
+- **Hale SICAK ALTIN oldu.** (0.90, 0.88, 1) mavi-beyazdı ve altın yığını
+  "buzlu" gösteriyordu; (1, 0.92, 0.62) referanstaki sıcak ışığı veriyor.
+- **Parıltılar eklendi.** Referansta yığının çevresinde üç-dört küçük beyaz
+  dört uçlu yıldız var. Yeni `MenuSprites.Sparkle`: süperelips (p = 0,42) ile
+  içbükey kollu yıldız — tek formül, dört kol, döndürme yok.
+
+**DERS: hazır görsel, İÇİNDEKİ kararları da getirir.** Bir sprite yalnız renk
+ve şekil değil, üzerine çizilmiş her ayrıntıyı dayatır.
+
+## 4. Buz parçalanması belirgin değil ✔
+
+Kullanıcı: "…parçalanma efekti gözüksün HER BUZ PARÇASI İÇİN."
+
+**Sebep:** Kırıntılar bloğun TEK bir noktasından — `RectCenterToWorld` ile
+bulunan merkezinden — çıkıyordu. 3×2'lik bir buz bloğunda bu, altı hücrelik
+bir yüzeyin ortasında beliren küçük bir tutam demek; buzun büyük kısmında
+hiçbir şey olmuyor. Üstelik merkez, L şeklindeki bloklarda BOŞ bir hücreye
+düşebiliyor.
+
+Yapılanlar:
+- Kırıntılar artık **her hücrede ayrı** doğuyor (blok ve kapı buzu için).
+- Kırıntı boyu 0,20 → 0,30; ömrü 0,42 → 0,55; beyaz kıvılcım 0,12 → 0,18.
+- Kabuğun çatlama animasyonu: süre 0,22 → 0,34, beyazlama %70 → %100, titreme
+  genliği 0,035 → 0,055.
+
+3×2'lik bir blokta toplam kırıntı 11 → 42 ve yüzeye yayılmış durumda.
+
+**DERS: bir efekt "var" olabilir ve yine de görünmeyebilir.** Bu efekt 5. turda
+eklendi ve doğru çalışıyordu; eksik olan varlığı değil ŞİDDETİYDİ.
+
+## 5. Reklamdan sonra "CAN YOK" yazısı kalıyor ✔
+
+`HomeScreen.Refresh` düğmeyi griye boyayıp yazısını "CAN YOK" yapıyordu ama
+TERSİNİ yapan hiçbir satır yoktu. Yazıyı geri koyan tek yer `ApplyDifficulty`
+ve o da yalnız BÖLÜM DEĞİŞTİĞİNDE çağrılıyor (`next != _shownNext`). Reklam
+izlenip can alındığında bölüm aynı kaldığı için düğme "CAN YOK" yazmaya ve gri
+kalmaya devam ediyordu — üstelik `interactable` true olduğu için
+BASILABİLİYORDU. Ekran yalan söylüyordu.
+
+Ayrıca yazı **TÜRKÇEYDİ**; arayüz 2026-08-10'da tamamen İngilizceye geçmişti ve
+bu satır o taramada gözden kaçmıştı. Artık "NO LIVES".
+
+**DERS: bir durumu boyayan her satırın geri dönüşü de olmalı.** Tazeleme
+fonksiyonları idempotent GÖRÜNÜR ama tek yönlü yazılırsa değildir; hata ancak
+koşul geri döndüğünde ortaya çıkar ve testte kolayca atlanır.
+
+## 6. Roket ve UFO oyundakiyle aynı olsun ✔
+
+**Roket olarak ekrana düşen şey `PrimitiveType.Cube` idi** — buz parçası
+materyaliyle boyanmış 0,22×0,55×0,22'lik BEYAZ BİR KÜP. Oyuncunun mağazada
+gördüğü, HUD'da gördüğü ve düğmesine bastığı roketle hiçbir ilgisi yoktu. UFO
+ise yalnız bir ışık sütunuydu: "bir şey sildi" diyor ama SİLEN ŞEYİ
+göstermiyordu.
+
+REFERANS (`Block Out! menus,powerups,vs.mp4` 01:08,5 ve 01:17):
+- Roket, yardımcı düğmesindeki roketin TA KENDİSİ; tahtanın DIŞINDAN (sağ alt)
+  geliyor, eğri bir yay çizerek hedefe varıyor, burnu gidiş yönüne bakıyor,
+  ardında turuncu kıvılcım izi bırakıyor. 01:09'da parlak sarı patlama.
+- UFO, silinen her bloğun üstüne iniyor; hücrenin ~1,6 katı, mor-eflatun bir
+  hâle bırakıyor.
+
+Yapılanlar: ikisi de artık `UiSkin.Get(Art.Rocket / Art.Ufo)` sprite'ı,
+`SpriteRenderer` ile dünya uzayında, XZ düzlemine yatırılmış. Roketin uçuşu
+ikinci dereceden Bézier (0,26 → 0,42 sn) ve dönmüyor — burnu yöne bakıyor
+(`icon_rocket`in kendi 45°'lik yatıklığı `RocketNoseTilt` ile geri alınıyor).
+UFO yukarıdan inip bekliyor, sonra saydamlaşarak süzülüyor.
+
+**DERS: bir yardımcının kimliği ikonundadır.** Oyuncu düğmeye bastığında
+gördüğü şeyin, bastığı şeye benzemesi gerekiyor.
+
+## 7. Ses listesi
+
+Zaten hazırdı: **`docs/audio-brief.md`** — 30'dan fazla ses anahtarı (ne zaman
+çalar, karakteri, süresi), klasör düzeni, format ve Unity içe aktarma ayarları,
+kaynak listesi (Kenney, FreePD, Pixabay, Mixkit, freesound, jsfxr/Bfxr) ve
+lisans notu. Yükleyici de yazılmış: `Assets/_Project/Audio/SFX` ve `Music`
+klasörlerine dosyayı atmak yeterli.
+
+---
+
+## Ek turun araç dersi — YAKALAMA ARACI YALAN SÖYLEDİ
+
+Bu turda bir "hata" bulundu ve oyunda öyle bir şey yoktu: tahtanın ızgara
+çizgileri yakalamalarda **MAGENTA** (212,0,212) çıkıyor, blokların üstüne
+çiziliyordu. Materyal doğruydu (`Universal Render Pipeline/Unlit`, renk
+(0,0,0,0.34), kuyruk 2990), konsolda tek hata yoktu ve aynı sahne art arda üç
+kez yakalandığında **tam 18 476** magenta piksel çıkıyordu — yani geçici değil,
+takılı kalmış bir durum.
+
+Sebep: Unity düzenleyicide bir shader VARYANTI henüz derlenmemişse o nesneyi
+magenta "bekliyor" rengiyle çiziyor ve `Camera.Render()` derlemeyi beklemiyor.
+`ShaderUtil.allowAsyncCompilation = false` AYRI bir çağrıda yapılınca magenta
+piksel 0'a düştü. Ayarı aynı çağrının içinde kapatmak İŞE YARAMIYOR — Unity onu
+bir sonraki düzenleyici karesinde dikkate alıyor. Bu yüzden `BoardCaptureTool`
+artık `[InitializeOnLoad]` ile her domain reload'dan sonra ayarı kapatıyor.
+
+**DERS: doğrulama aracının kendi yalanı en tehlikelisidir.** Ölçüm aracı,
+ölçtüğü şeyin durumunu değil KENDİ durumunu gösterebiliyorsa önce onu
+sabitlemek gerekir.
+
+## İkinci araç dersi — "başarılı" derleme, derlendi demek değil
+
+`Unity_RunCommand` yalnız KENDİ parçacığını derliyor. Proje derlemesi hatalıysa
+komut yine "Command executed successfully" diyor ve ESKİ derlemeyle çalışıyor.
+Bu turda `GameplayScreen` iki satırlık bir isim alanı hatasıyla derlenmedi ve
+üç yakalama boyunca hiçbir değişiklik görünmedi.
+
+**Kural:** her düzenlemeden sonra `Unity_GetConsoleLogs` ile hata var mı diye
+bak. Pratik hile: doğrulama komutunda YENİ eklenen sembole dokun
+(`MenuSprites.Sparkle != null` gibi) — derleme bayatsa komut sessizce geçmek
+yerine "does not contain a definition" diye patlar.
+
+## Bu ekte doğrulananlar
+
+| madde | nasıl doğrulandı |
+|---|---|
+| alt kapı örtmesi | `BoardCaptureTool` ile önce/sonra karesi; blokların alt kenarı artık tam görünüyor |
+| kapı ağzı ışığı | `tweak` kancasıyla şerit açık hâlde yakalandı — kapının iç kenarında, açıklık boyunca |
+| PERFECT paneli | referans kare ile yan yana; çift çerçeve gitti, parıltılar ve sıcak hale geldi |
+| buz çatlaması | kod ölçüsü (kırıntı 11 → 42, hücre başına doğum) — hareketi APK'de görülmeli |
+| CAN YOK hatası | kod yolu: `_playBlocked` bayrağı ile geri dönüş; APK'de reklam izlenerek doğrulanmalı |
+| roket / UFO | sprite'lar dünya uzayında yakalandı: boyut, yön ve görünürlük doğru — uçuş APK'de |
+| taşma denetimi | dokuz ekran durumu, **toplam 0 taşan yazı** |

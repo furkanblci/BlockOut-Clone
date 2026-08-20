@@ -141,21 +141,66 @@ namespace BlockOut.Runtime.FX
         /// parçalanma efekti oynatmak, asıl kırılma anını değersizleştirirdi
         /// — büyük an, küçük anlardan AYRIŞMALI.
         /// </summary>
+        /// <summary>
+        /// ÇATLAMA HER HÜCREDE AYRI OLUR (7. tur düzeltmesi).
+        ///
+        /// Kullanıcı: "buzlu levellerde kapıdan blok girince buz blokları
+        /// parçalanıyor ama yeterince belirgin değil, anlaşılmıyor;
+        /// parçalanma efekti gözüksün HER BUZ PARÇASI İÇİN."
+        ///
+        /// BULUNAN SEBEP: Kırıntılar bloğun TEK bir noktasından —
+        /// `RectCenterToWorld` ile hesaplanan merkezinden — çıkıyordu. 3×2'lik
+        /// bir buz bloğunda bu, altı hücrelik bir yüzeyin ortasında beliren
+        /// küçük bir tutam demek: buzun büyük kısmında hiçbir şey olmuyor ve
+        /// oyuncu "bir şey oldu mu?" diye bakıyor. Üstelik merkez, L şeklindeki
+        /// bloklarda BOŞ bir hücreye bile düşebiliyor.
+        ///
+        /// DERS (bir olayın ölçeği, olayın nesnesi kadar olmalı): Aynı sayıda
+        /// parçacığı tek noktadan çıkarmak ile yüzeye yaymak, ekranda
+        /// bambaşka iki olay. İlki "ufak bir kıvılcım", ikincisi "bu blok
+        /// çatladı". Toplam parçacık sayısı hemen hemen aynı kaldı; değişen
+        /// şey nereden çıktıkları.
+        /// </summary>
         void OnIceDecremented(BlockModel block)
         {
-            Vector3 at = _space.RectCenterToWorld(
-                block.Position, block.W, block.H, BrickHeightHalf);
-            IceCrack(at, block.Cells.Count);
+            foreach (var cell in block.Cells)
+            {
+                // `Cells` sınırlayıcı kutuya göre YERELDİR; dünya konumu için
+                // bloğun konumu ekleniyor ve hücrenin ortasına çekiliyor.
+                Vector3 at = _space.CornerToWorld(
+                    block.Position.x + cell.x + 0.5f,
+                    block.Position.y + cell.y + 0.5f,
+                    BrickHeightHalf);
+                IceCrack(at, 1);
+            }
             GameKit.FX.CameraShake.Add(0.10f);
         }
 
         void OnGateIceDecremented(GateModel gate)
         {
-            IceCrack(GateWorldPoint(gate), Mathf.Max(1, gate.Length));
+            // Kapı buzu da hücre hücre çatlar: 3 hücrelik bir kapıda tek
+            // tutam yerine üç ayrı çatlama.
+            int cells = Mathf.Max(1, gate.Length);
+            float spanStart = gate.SpanMin;
+            for (int i = 0; i < cells; i++)
+            {
+                float along = spanStart + i + 0.5f;
+                Vector3 at = gate.EdgeHorizontal
+                    ? _space.CornerToWorld(along, gate.EdgeCoord, 0.2f)
+                    : _space.CornerToWorld(gate.EdgeCoord, along, 0.2f);
+                IceCrack(at, 1);
+            }
             GameKit.FX.CameraShake.Add(0.10f);
         }
 
-        /// <summary>Çatlama kırıntısı: kırılmanın küçük kardeşi.</summary>
+        /// <summary>
+        /// Çatlama kırıntısı: kırılmanın küçük kardeşi — ama GÖRÜNÜR olanı.
+        ///
+        /// Boyut 0.20 → 0.30 ve ömür 0.42 → 0.55 (7. tur). Hücre başına
+        /// çağrıldığı için sayı 5+2·hücre yerine sabit 7'ye indi; 3×2'lik bir
+        /// blokta toplam 11 yerine 42 kırıntı çıkıyor ve bunlar yüzeye
+        /// yayılmış durumda. Beyaz kıvılcım da hücre başına iki tane.
+        /// </summary>
         void IceCrack(Vector3 position, int cells)
         {
             int shards = 5 + cells * 2;
@@ -164,21 +209,22 @@ namespace BlockOut.Runtime.FX
                 position = position,
                 applyShapeToPosition = true,
                 startColor = new Color(0.78f, 0.94f, 1f, 1f),
-                startLifetime = 0.42f,
-                startSize = 0.20f
+                startLifetime = 0.55f,
+                startSize = 0.30f
             };
             _crumbs.Emit(chips, shards);
 
-            // Tek bir beyaz kıvılcım: "çatladı" vurgusu.
+            // Beyaz kıvılcım: "çatladı" vurgusu. Kırıntılardan KISA ömürlü,
+            // yani göz önce beyazı görüp sonra camgöbeği tozu okuyor.
             var spark = new ParticleSystem.EmitParams
             {
                 position = position,
                 applyShapeToPosition = true,
                 startColor = Color.white,
-                startLifetime = 0.18f,
-                startSize = 0.12f
+                startLifetime = 0.22f,
+                startSize = 0.18f
             };
-            _crumbs.Emit(spark, 3);
+            _crumbs.Emit(spark, 2);
         }
 
         Vector3 GateWorldPoint(GateModel gate)

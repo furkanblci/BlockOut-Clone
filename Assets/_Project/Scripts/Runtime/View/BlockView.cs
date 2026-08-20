@@ -1017,9 +1017,22 @@ namespace BlockOut.Runtime.View
 
         Coroutine _iceCrack;
 
+        /// <remarks>
+        /// SÜRE VE ŞİDDET ARTTI (7. tur). Kullanıcı çatlamanın "yeterince
+        /// belirgin olmadığını, anlaşılmadığını" söyledi. 0,22 saniye 60
+        /// fps'te 13 kare demek ve beyazlama tepe değeri %70'te kalıyordu;
+        /// göz tahtaya değil emilen bloğa baktığı için o kadarı fark
+        /// edilmiyordu. Süre 0,34'e, beyazlama %100'e, titreme genliği
+        /// 0,035'ten 0,055'e çıktı.
+        ///
+        /// DERS (bir efekt "var" olabilir ve yine de görünmeyebilir): Bu
+        /// efekt 5. turda eklendi ve doğru çalışıyordu; eksik olan varlığı
+        /// değil ŞİDDETİYDİ. Oyuncunun bakışı başka yerdeyse, eşiğin altında
+        /// kalan her şey yok sayılır.
+        /// </remarks>
         IEnumerator IceCrackRoutine()
         {
-            const float duration = 0.22f;
+            const float duration = 0.34f;
             var renderer = _iceShell.GetComponent<MeshRenderer>();
             var shared = renderer != null ? renderer.sharedMaterial : null;
             Material flash = null;
@@ -1039,12 +1052,12 @@ namespace BlockOut.Runtime.View
                 float pulse = 1f - k;
 
                 // Titreme: hızlı ve sönen, "çatladı" hissi.
-                float shake = Mathf.Sin(k * Mathf.PI * 6f) * 0.035f * pulse;
+                float shake = Mathf.Sin(k * Mathf.PI * 6f) * 0.055f * pulse;
                 _iceShell.transform.localScale = baseScale + new Vector3(shake, 0f, -shake);
 
                 if (flash != null)
                 {
-                    var c = Color.Lerp(from, Color.white, pulse * 0.7f);
+                    var c = Color.Lerp(from, Color.white, pulse);
                     c.a = from.a;
                     if (flash.HasProperty("_BaseColor")) flash.SetColor("_BaseColor", c);
                     flash.color = c;

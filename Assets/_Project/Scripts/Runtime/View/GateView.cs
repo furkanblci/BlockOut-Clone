@@ -84,9 +84,9 @@ namespace BlockOut.Runtime.View
         /// hesaba katmıyor. Doğrusu iki UÇTAN tanımlamak: dış kenar
         /// çerçevenin dış kenarı, iç kenar oyun alanının bir tık içi.
         /// </summary>
-        static float BarDepth => VisualSettings.Current == null ? 0.55f
+        static float BarDepth(GateModel model) => VisualSettings.Current == null ? 0.55f
             : MatchesFrame
-                ? VisualSettings.Current.frameThickness + InwardOverhang + FrameOverlapBias
+                ? VisualSettings.Current.frameThickness + InwardOverhang(model) + FrameOverlapBias
                 : VisualSettings.Current.gateBarDepth;
 
         /// <summary>
@@ -113,10 +113,50 @@ namespace BlockOut.Runtime.View
         /// ekranın kendisi. Bu tür bir kusuru sayı hesabıyla değil, ancak
         /// KAREYİ ÖLÇEREK bulabilirsin.
         ///
-        /// Yeni değer: 0,235 − 0,145 (kapının kayması) = 0,09 hücre görünür
-        /// taşma; referansta ölçülen değerin (%9) aynısı.
+        /// PAY KENARA GÖRE DEĞİŞİR — 7. turun düzeltmesi (kullanıcı: "alttaki
+        /// kapıların üstüne blok gelince bloğun bir kısmı kapının üstünde
+        /// kalıyor, bu KRİTİK, önceden yoktu").
+        ///
+        /// BULUNAN HATA: Yukarıdaki hesap doğruydu ama YALNIZ ÜST kenar için.
+        /// Paralaks her zaman KUZEYE (yukarı) kaydırıyor; "içeri" yönü ise
+        /// kenara göre değişiyor:
+        ///   • ÜST kenarda içeri = güney → kayma payı YER, telafi için pay
+        ///     BÜYÜMELİ  →  0.09 + 0.145 = 0.235
+        ///   • ALT kenarda içeri = kuzey → kayma payı EKLER, pay KÜÇÜLMELİ
+        ///     →  0.09 − 0.145 = −0.055 (kapı tahtanın dışında bitiyor ama
+        ///        ekranda 0.09 hücre içeride görünüyor)
+        ///   • YAN kenarlarda içeri = X ekseni; paralaks Z'de olduğu için
+        ///     ikisi birbirine karışmıyor → düz 0.09
+        ///
+        /// 0.235'i her kenara vermek alt kapıları tahtanın 0,38 hücre içine
+        /// sokuyordu (0,235 pay + 0,145 kayma) ve kapı plakası bloğun alt
+        /// saplama sırasının üstünü örtüyordu. Eski 0,09 değerinde bile alt
+        /// kapılar 0,235 hücre örtüyordu — yani bu hata KISMEN zaten vardı,
+        /// 7. turdaki değişiklik onu görünür eşiğin üstüne çıkardı.
+        ///
+        /// DERS (bir düzeltmenin YÖNÜ vardır): Ölçüm tek bir kenarda
+        /// yapıldığında bulunan sayı o kenara özeldir. Simetrik görünen bir
+        /// geometride bile, kameranın kırdığı simetriyi hesaba katmadan
+        /// değeri dört kenara birden uygulamak bir kenarı düzeltirken
+        /// karşısındakini iki katı bozuyor.
         /// </summary>
-        const float InwardOverhang = 0.235f;
+        static float InwardOverhang(GateModel model)
+        {
+            // Referansta kapı oyun alanına hücrenin %9'u kadar taşıyor.
+            const float visible = 0.09f;
+            if (!model.EdgeHorizontal) return visible;
+
+            float skew = BarHeight * CameraSkew;
+            // OutwardSign −1 = ÜST kenar (dışarısı kuzey), +1 = ALT kenar.
+            return model.OutwardSign < 0f ? visible + skew : visible - skew;
+        }
+
+        /// <summary>
+        /// Kameranın dikeyden sapması: `tan(90° − 80°)`. Yerden `h` yükseklikteki
+        /// bir yüzey ekranda `h · CameraSkew` kadar kuzeye kaymış görünür.
+        /// Eğim <c>GameSession.FitCamera</c>'da 80° olarak sabit.
+        /// </summary>
+        const float CameraSkew = 0.1763f;
 
         /// <summary>
         /// Barın merkezi, tahta kenarından DIŞA doğru bu kadar uzakta:
@@ -133,9 +173,10 @@ namespace BlockOut.Runtime.View
         /// iç kenar `-InwardOverhang`, dış kenar `frameThickness + bias`;
         /// merkez ikisinin ortası.
         /// </summary>
-        static float OutwardOffset => VisualSettings.Current == null ? 0.275f
+        static float OutwardOffset(GateModel model) => VisualSettings.Current == null ? 0.275f
             : MatchesFrame
-                ? (VisualSettings.Current.frameThickness + FrameOverlapBias - InwardOverhang) * 0.5f
+                ? (VisualSettings.Current.frameThickness + FrameOverlapBias
+                   - InwardOverhang(model)) * 0.5f
                 : VisualSettings.Current.gateOutwardOffset;
 
         MeshRenderer _renderer;
@@ -143,6 +184,11 @@ namespace BlockOut.Runtime.View
         TMPro.TextMeshPro _iceCounter;
         GateModel _model;
         GameObject _arrow;
+
+        /// <summary>Temas çizgisindeki parlama şeridi (bkz. PlayAbsorbFlash).</summary>
+        MeshRenderer _mouthLight;
+        Material _mouthMaterial;
+        Coroutine _mouthFade;
 
         public static GateView Create(
             Transform parent, GateModel model, BoardSpace space, Material colorMaterial,
@@ -155,7 +201,7 @@ namespace BlockOut.Runtime.View
 
             float spanCenter = (barMin + barMax) * 0.5f;
             float barLength = Mathf.Max(0.25f, barMax - barMin);
-            float offCoord = model.EdgeCoord + model.OutwardSign * OutwardOffset;
+            float offCoord = model.EdgeCoord + model.OutwardSign * OutwardOffset(model);
 
             Vector3 center;
             float alongX;   // barın X eksenindeki uzunluğu
@@ -163,12 +209,12 @@ namespace BlockOut.Runtime.View
             if (model.EdgeHorizontal)
             {
                 center = space.CornerToWorld(spanCenter, offCoord, 0f);
-                alongX = barLength; alongZ = BarDepth;
+                alongX = barLength; alongZ = BarDepth(model);
             }
             else
             {
                 center = space.CornerToWorld(offCoord, spanCenter, 0f);
-                alongX = BarDepth; alongZ = barLength;
+                alongX = BarDepth(model); alongZ = barLength;
             }
 
             // KAPI ARTIK KESKİN BİR KÜP DEĞİL (4. tur, G20/G26).
@@ -218,6 +264,7 @@ namespace BlockOut.Runtime.View
             view._renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             view._colorMaterial = colorMaterial;
             view._arrow = CreateArrow(parent, model, center, palette);
+            view.BuildMouthLight(barLength, model, outwardDir, palette);
 
             if (model.IsIced)
             {
@@ -688,11 +735,103 @@ namespace BlockOut.Runtime.View
         /// kapı. Kapıyı da oynatmak, sahnede iki şey birden hareket ettiği
         /// için gözü böler ve asıl olayı — bloğun parçalanmasını — gölgeler.
         ///
-        /// Metot çağrı uyumluluğu için duruyor (GateSystem üç yerden
-        /// çağırıyor) ama artık yalnız buz sayacını tazeliyor.
+        /// AMA IŞIK VAR — YANLIŞ YERE BAKILMIŞ (7. tur düzeltmesi).
+        ///
+        /// Kullanıcı: "kapıdan blok geçerken geçtiği taraftan parıltı
+        /// gelmiyor, o ışık olayını hâlâ yapamadık."
+        ///
+        /// YENİDEN ÖLÇÜM (`…Levels 1-20 Walkthrough.mp4` 01:44,6 karesi,
+        /// 592×1280; kırmızı blok sağdaki kırmızı kapıya giriyor): bloğun
+        /// kapıya DEĞEN kenarında 6 piksellik (hücrenin %8'i) bir bant var ve
+        /// rengi (255,178,179) — kapının kırmızısından (250,35,37) çok daha
+        /// açık, neredeyse beyaz. Bir kare sonrasında blok iri parçalara
+        /// ayrılıp dışarı savruluyor ve bant kayboluyor.
+        ///
+        /// DERS (doğru soruyu sorup yanlış yere bakmak): 6. turda "kapı
+        /// yutarken değişiyor mu" diye 280 kare tarandı ve cevap doğru
+        /// çıktı — KAPI değişmiyor. Ama ışık kapının üstünde değil, kapı ile
+        /// bloğun TEMAS ÇİZGİSİNDE. Ölçüm "yok" dedi çünkü aranan şey
+        /// oradaydı da bakılan yer orası değildi. Bir ölçümün kapsamı,
+        /// sonucunun geçerlilik alanıdır.
         /// </summary>
         public void PlayAbsorbFlash()
         {
+            if (_mouthLight == null) return;
+            if (_mouthFade != null) StopCoroutine(_mouthFade);
+            _mouthFade = StartCoroutine(FlashMouth());
+        }
+
+        /// <summary>
+        /// Temas çizgisindeki şerit: kapının İÇ kenarında, açıklığın boyunca.
+        ///
+        /// Kapının kendisinden daha yüksekte duruyor — kamera tepeye yakın
+        /// olduğu için bloğun üst yüzeyiyle kapı arasındaki dar şeridi ancak
+        /// ikisinin de üstünde çizilen bir katman gösterebiliyor.
+        /// </summary>
+        void BuildMouthLight(float barLength, GateModel model, Vector3 outwardDir,
+                             BlockOut.Runtime.Config.ColorPaletteSO palette)
+        {
+            // Ölçülen bant hücrenin %8'i; bir tık geniş tutuluyor çünkü bandın
+            // yarısı bloğun, yarısı kapının üstüne düşüyor.
+            const float bandDepth = 0.10f;
+            const float bandHeight = 0.02f;
+
+            var light = ViewKit.CreateShape(PrimitiveType.Cube, "MouthLight");
+            light.transform.SetParent(transform, worldPositionStays: false);
+
+            float alongX = model.EdgeHorizontal ? barLength * 0.97f : bandDepth;
+            float alongZ = model.EdgeHorizontal ? bandDepth : barLength * 0.97f;
+            light.transform.localScale = new Vector3(alongX, bandHeight, alongZ);
+
+            // Barın İÇ kenarı: merkezden içeri doğru derinliğin yarısı.
+            float half = BarDepth(model) * 0.5f;
+            light.transform.localPosition =
+                -outwardDir * half + Vector3.up * (BarHeight + 0.03f);
+
+            _mouthLight = light.GetComponent<MeshRenderer>();
+
+            // KENDİ MATERYAL KOPYASI. Renk başına paylaşılan bir materyalin
+            // alfasını söndürmek, aynı renkteki BÜTÜN kapıları birlikte
+            // söndürürdü — bir bölümde aynı renkten üç kapı olabiliyor.
+            // Bölüm başına birkaç kapı var; kopya maliyeti yok denecek kadar az.
+            _mouthMaterial = new Material(ViewKit.GateMouthLight(palette, model.ActiveColor));
+            _mouthLight.sharedMaterial = _mouthMaterial;
+            _mouthLight.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            _mouthLight.receiveShadows = false;
+            light.SetActive(false);
+        }
+
+        /// <summary>
+        /// Şerit BİR ANDA yanar, sonra söner. Referansta bant tek karede tam
+        /// parlaklıkta beliriyor ve iki-üç karede kayboluyor (20 fps'te ~0,15
+        /// saniye); yükselerek gelen bir ışık "yumuşak" durur ve emilimin
+        /// ANİLİĞİNİ anlatmaz.
+        /// </summary>
+        System.Collections.IEnumerator FlashMouth()
+        {
+            const float life = 0.17f;
+            var go = _mouthLight.gameObject;
+            go.SetActive(true);
+
+            Color color = _mouthMaterial.color;
+            for (float t = 0f; t < life; t += Time.deltaTime)
+            {
+                // Kare kare sönüş: doğrusal, çünkü referansta ışık kalıcı bir
+                // hale bırakmıyor — yanıp bitiyor.
+                color.a = 1f - t / life;
+                _mouthMaterial.color = color;
+                if (_mouthMaterial.HasProperty("_BaseColor"))
+                    _mouthMaterial.SetColor("_BaseColor", color);
+                yield return null;
+            }
+
+            go.SetActive(false);
+            _mouthFade = null;
+        }
+
+        void OnDestroy()
+        {
+            if (_mouthMaterial != null) Destroy(_mouthMaterial);
         }
 
         public void UpdateIceCount()
