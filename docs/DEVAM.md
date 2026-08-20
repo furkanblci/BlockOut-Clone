@@ -8,6 +8,61 @@ Bu dosya her oturum sonunda güncellenir. Aşağısı 2026-08-10 itibarıyla ge�
 
 ---
 
+## 2026-08-20 (10) — DÜĞME TURU KAPANDI: HEPSİ GÖZLE DOĞRULANDI
+
+8. ve 9. turda "gözle doğrulanmadı" diye bırakılan her ekran oynatma
+modunda gezildi. Bir şey daha çıktı.
+
+### BULUNAN: BEŞİNCİ BİR DÜĞME UYGULAMASI
+
+Mağazanın yeşil fiyat düğmesi (`StoreScreen.PriceButton`) 8. turdaki
+taramada gözden kaçmıştı — kendi dört katmanını kuruyor, kendi köşe
+yarıçapını kullanıyordu. Oyunun en çok bakılan ikinci ekranında,
+yanındaki her şeyden farklı duruyordu. Reçeteye alındı; altına taşan
+yumuşak gölge KORUNDU (5. turda ölçülmüştü, referansta da var).
+
+### DOĞRULANANLAR
+
+| ekran | ne bakıldı | sonuç |
+|-------|-----------|-------|
+| Mağaza | teklif kartının degradesi | köşeyi kesmiyor |
+| Mağaza | `$1.99` fiyat düğmesi | reçeteye geçti |
+| Liderlik | seçili sekme, sıra rozeti | degrade silüete uyuyor |
+| Ana ekran | WATCH AD düğmesi | reçetede |
+| Günlük ödül | CLAIM | reçetede |
+| Devam teklifi | Play / Add Time | reçetede |
+| Kayıp paneli | Try Again | reçetede |
+| Duraklat | Resume / Quit / anahtarlar | referansla örtüşüyor |
+
+Son ikisi (sahte reklamın Skip düğmesi ve ana ekranın ödül şeridi)
+zamanlamaya bağlı olduğu için ekran görüntüsü yerine YAPI ölçüldü:
+
+* **Skip** — kutu 475×153,6, yarıçap/boy **0,354** (hedef 0,354). Katman
+  payları: kabuk 0,033 · kaymak 0,142 · yüz 0,160 — üçü de ölçülen
+  sabitlerle birebir.
+* **Ödül şeridi** — yüzün degradesi (0,996 0,788 0,235) → (0,984 0,643
+  0,039) ve **çocuk sayısı 0**: dikdörtgen yama gerçekten kalkmış,
+  geçiş yüzeyin kendisinde.
+
+### DERS
+
+**Zamanlamaya bağlı bir ekranı yakalayamıyorsan yapıyı ölç.** Sahte
+reklamın düğmesi geri sayımla açılıyor, ödül şeridi yalnız zor
+bölümlerde çıkıyor; ikisini de doğru anda yakalamak için üç tur harcandı
+ve üçü de ıskaladı. Katman paylarını ve yarıçabı okumak on saniye sürdü
+ve aynı soruya daha kesin cevap verdi — "doğru görünüyor mu" değil,
+"ölçüler tuttu mu".
+
+### Kalan bilinçli istisnalar
+
+* `GameplayScreen._adButton` — 5. turda kaldırılmıştı, her yerde
+  `SetActive(false)`. Kod duruyor ama ekrana hiç çıkmıyor.
+* Üst bardaki kare simge düğmeleri, HUD'un kare düğmeleri, güç
+  düğmeleri ve sekme çubuğu — bunlar kapsül değil, kendi ölçülmüş
+  aileleri var.
+
+---
+
 ## 2026-08-20 (9) — DÜĞME TURUNUN DEVAMI: ANAHTAR VE DEGRADE YAMALARI
 
 Kullanıcı: *"aynı şekilde düzenlemen gereken başka bir yer kaldı mı?"*

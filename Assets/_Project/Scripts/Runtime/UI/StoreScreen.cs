@@ -1319,35 +1319,31 @@ namespace BlockOut.Runtime.UI
                              float cornerShare = UiCornerFit.HouseShare)
             => MenuPage.Capsule(name, parent, color, cornerShare);
 
-        /// <summary>Yeşil fiyat düğmesi: koyu bir kapsülün üstünde parlak yüz.</summary>
+        /// <summary>
+        /// Paketlerin yeşil fiyat düğmesi. Oyunun standart düğmesi + altına
+        /// taşan yumuşak gölge.
+        ///
+        /// DERS (bir kalıbı düzeltmek onu ARAMAYI gerektirir): Düğmeler 8.
+        /// turda tek reçeteye indirilmişti ama bu BEŞİNCİ uygulama gözden
+        /// kaçmıştı — mağazada, oyunun en çok bakılan ikinci ekranında,
+        /// yanındaki her şeyden farklı köşe yarıçapıyla duruyordu.
+        /// Düzeltilen örnek, aranacak şeyin tarifidir.
+        ///
+        /// Gölge KORUNDU: 5. turda kullanıcı "yeşil butonların bir tık daha
+        /// fazla gölgesi var" demişti ve referansta da var. Düğmenin ALTINA
+        /// taşıyor, yani reçetenin bir parçası değil, bu ekrana özel.
+        /// </summary>
         static Button PriceButton(string name, Transform parent, string text, int fontSize)
         {
             var root = UiKit.CreateRect(name, parent);
 
-            // DIŞ GÖLGE (5. tur, kullanıcı: "yeşil butonların bir tık daha
-            // fazla gölgesi var"). Düğmenin ALTINA taşan, düğmeden koyu ve
-            // yumuşak bir kapsül: yeşili yüzeyden kaldıran şey bu.
-            var drop = Capsule("Drop", root, new Color(0f, 0f, 0f, 0.30f));
+            var drop = Capsule("Drop", root, new Color(0f, 0f, 0f, 0.30f),
+                               MenuPage.ButtonCornerShare);
             UiKit.Place(drop, 0.004f, -0.10f, 0.996f, 0.94f);
             drop.raycastTarget = false;
 
-            // Koyu yeşil taban: düğmenin kendi kalınlığı. Payı 0,16'dan
-            // 0,22'ye çıktı — referansta taban daha kalın görünüyor.
-            var shadow = Capsule("Shadow", root, Darken(PriceGreen, 0.52f));
-            UiKit.Place(shadow, 0f, 0f, 1f, 1f);
-            shadow.raycastTarget = true;
-
-            var face = Capsule("Face", root, PriceGreen);
-            UiKit.Place(face, 0.012f, 0.22f, 0.988f, 1f);
-
-            var label = UiKit.CreateTitle("Label", face.transform, text, fontSize,
-                new Color(1f, 1f, 1f), new Color(0.05f, 0.24f, 0.04f));
-            UiKit.Place(label, 0.04f, 0.04f, 0.96f, 0.96f);
-
-            var button = root.gameObject.AddComponent<Button>();
-            button.targetGraphic = shadow;
-            button.transition = Selectable.Transition.None;
-            root.gameObject.AddComponent<GameKit.UI.UiButtonFeel>();
+            var button = MenuPage.PillButton("Body", root, text, PriceGreen, fontSize, null);
+            UiKit.Place(button, 0f, 0f, 1f, 1f);
             return button;
         }
     }
