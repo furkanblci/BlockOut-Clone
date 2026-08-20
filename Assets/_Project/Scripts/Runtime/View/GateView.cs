@@ -234,8 +234,38 @@ namespace BlockOut.Runtime.View
             //
             // (0,02 birimlik yükseklik farkının payı 0,0035 hücre; ölçüm
             // hassasiyetinin altında, o yüzden hesaba katılmıyor.)
-            return visible + BlockInset;
+            return visible + BlockInset + InnerFaceCover(model);
         }
+
+        /// <summary>
+        /// KUZEY KENARDA DUVARIN İÇ YÜZÜ DE ÖRTÜLMELİ (10. tur).
+        ///
+        /// Kullanıcı: "yukarıdaki kapıda hala altındaki duvarı kaplamamış."
+        ///
+        /// PİKSEL KANITI (kendi yakalamamız, hücre 77px): üst kapının alt
+        /// kenarı y=369, oyun alanı y=380 — arada **11 piksel** duvar
+        /// görünüyor. Alt kapıda aynı ölçüm **0 piksel** veriyor. 11/77 =
+        /// 0,143 hücre ve bu tam olarak `frameHeight × skew` (0,8 × 0,1763 =
+        /// 0,141).
+        ///
+        /// Sebebi geometrik: kamera güneyden bakıyor.
+        ///   • KUZEY duvarın iç yüzü GÜNEYE bakıyor → kameraya dönük,
+        ///     görünüyor → kapı onu örtmeli.
+        ///   • GÜNEY duvarın iç yüzü KUZEYE bakıyor → kameradan kaçık,
+        ///     hiç görünmüyor → örtülecek bir şey yok.
+        ///   • DOĞU/BATI duvarların iç yüzü kameraya profilden → görünmüyor.
+        ///
+        /// DERS (kenara göre değişen düzeltmeyi ÖLÇÜM haklı çıkarmalı):
+        /// Bu dosyanın notu böyle paylardan haklı olarak şüpheleniyor —
+        /// önceki turlarda aynı fiziksel olayı iki farklı işaretle taklit
+        /// etmeye çalışan paylar konmuştu. Buradaki fark uydurma değil:
+        /// üst kenarda 11 piksel duvar görünüyor, alt kenarda sıfır. Ayrımın
+        /// ölçülebilir bir karşılığı varsa, koda da girmeli.
+        /// </summary>
+        static float InnerFaceCover(GateModel model) =>
+            model.Side == Side.North && VisualSettings.Current != null
+                ? VisualSettings.Current.frameHeight * CameraSkew
+                : 0f;
 
         /// <summary>
         /// Kameranın dikeyden sapması: `tan(90° − 80°)`. Yerden `h` yükseklikteki
