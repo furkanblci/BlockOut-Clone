@@ -883,8 +883,33 @@ namespace BlockOut.Runtime.View
             // aradan tahtanın koyu zeminini geçiriyor ve sınır kendiliğinden
             // doğuyor — referansta da her buz kalıbının hücresi içinde payı var.
             //
-            // Dikeydeki 1.05 z-fighting içindi, aynen kalıyor.
-            _iceShell.transform.localScale = new Vector3(0.94f, 1.05f, 0.94f);
+            // DİKEY ÖLÇEK ARTIK ÖLÇÜLÜYOR (10. tur).
+            //
+            // Kullanıcı: "normal duruyorken bloklar buz bloğun üstünde
+            // olmasın, bu kötü bir görünüm."
+            //
+            // ÖLÇÜM (`level_012`, gerçek renderer sınırları):
+            //   blok      y 0 … 1,05
+            //   buz kabuğu y 0 … 0,84
+            // Kabuk siluet mesh'inden geliyor ve o mesh SAPLAMASIZ, yani
+            // 0,80 boyunda; 1,05'lik ölçek onu 0,84'e çıkarıyordu. Bloğun
+            // saplamaları (0,80 … 1,05) buzun DIŞINDA kalıyor, yani buzlu
+            // blok "buzun içinden fırlamış" gibi görünüyordu.
+            //
+            // 1,05 sabiti z-fighting için konmuştu ve o gün doğruydu — kabuk
+            // o zaman tuğlanın KENDİ mesh'iydi, yani saplamaları vardı.
+            // Kabuk düz levhaya çevrilince (referansta buz pürüzsüz) sabit
+            // sessizce yanlış oldu: aynı sayı artık başka bir mesh'i
+            // ölçekliyordu.
+            //
+            // DERS (bir sabit, ölçeklediği şey değişince yanlış olur):
+            // Yükseklik artık iki mesh'in gerçek sınırlarından türetiliyor;
+            // hangi mesh kullanılırsa kullanılsın kabuk bloğu örtüyor.
+            float shellTop = _iceShell.GetComponent<MeshFilter>().sharedMesh.bounds.max.y;
+            float verticalScale = shellTop > 0.001f
+                ? shellHeight * 1.02f / shellTop
+                : 1.05f;
+            _iceShell.transform.localScale = new Vector3(0.94f, verticalScale, 0.94f);
 
             // KOYU KENAR: komşu buz kalıpları birbirinden ayrışsın.
             // Düz levha yapılınca (referansta saplama yok) yan yana iki buz
