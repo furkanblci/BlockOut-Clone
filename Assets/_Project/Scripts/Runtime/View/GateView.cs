@@ -25,10 +25,25 @@ namespace BlockOut.Runtime.View
         static bool MatchesFrame => VisualSettings.Current == null ||
                                     VisualSettings.Current.gateMatchesWall;
 
-        // Z-FIGHTING: kapı ile çerçeve tam olarak aynı hacmi kaplarsa yüzeyler
-        // çakışır ve kamera açısına göre titreyen tırtıklı kenarlar oluşur.
-        // Kapıyı bir tık büyük yapmak çakışmayı kaldırır; fark gözle görülmez.
-        const float FrameOverlapBias = 0.02f;
+        /// <summary>
+        /// Kapının çerçevenin dışına taşma payı — ARTIK SIFIR (10. tur).
+        ///
+        /// Kullanıcı: "bir tık fazla gibi, duvarın tam bitişiğine eşit denk
+        /// olması lazım" (referans görseli ekledi). ÖLÇÜM: kapının görünen
+        /// dış kenarı 4,182, çerçevenin görünen dış kenarı 4,161 — tam
+        /// 0,02 fark, yani bu payın kendisi.
+        ///
+        /// Pay z-çakışmasını önlemek için konmuştu ve o gün haklıydı: kapı
+        /// çerçeveyle AYNI bantta, aynı yükseklikteydi. Kapı 8. turda
+        /// blokların üstüne (y≈1,12) çıkınca çerçeveyle (y 0…0,8) ortak
+        /// yüzeyi kalmadı; çakışacak bir şey yokken hâlâ ödenen bir pay
+        /// olarak kaldı.
+        ///
+        /// DERS (bir düzeltmenin gerekçesi ortadan kalkabilir): Kod
+        /// doğruydu, yorumu doğruydu, sebebi artık yoktu. Bir sabiti
+        /// okurken "bu neden var" kadar "bu hâlâ geçerli mi" de sorulmalı.
+        /// </summary>
+        const float FrameOverlapBias = 0f;
 
         /// <summary>
         /// Kapı çerçeveden BİR TIK YÜKSEK durur.
@@ -41,7 +56,7 @@ namespace BlockOut.Runtime.View
         /// tek başına taşıyor.
         /// </summary>
         static float BarHeight => VisualSettings.Current == null ? 0.34f
-            : MatchesFrame ? BlockTop + PlateLift
+            : MatchesFrame ? BlockTop * DragScale + PlateLift
                            : VisualSettings.Current.gateBarHeight;
 
         /// <summary>
@@ -51,8 +66,28 @@ namespace BlockOut.Runtime.View
         static float BlockTop => VisualSettings.Current == null ? 0.515f
             : VisualSettings.Current.brickHeight + VisualSettings.Current.studHeight;
 
-        /// <summary>Kapı plakasının blokların tepesinden ne kadar yükseği.</summary>
+        /// <summary>
+        /// Kapı plakasının blokların tepesinden ne kadar yükseği.
+        ///
+        /// SÜRÜKLENEN BLOK DA HESABA KATILMALI (10. tur). Kullanıcı: "basılı
+        /// tuttuğumuzda blok kapının içine giriyor."
+        ///
+        /// SEBEP: Blok tutulunca <c>dragScale</c> (1,05) ile büyüyor. Tepesi
+        /// 1,05 × 1,05 = **1,1025**'e çıkıyor, kapı ise 1,07'de duruyordu —
+        /// yani tutulan blok kapının ÜSTÜNE çıkıyor ve onu örtüyordu.
+        /// Durgun blokta (1,05) sorun görünmüyordu, o yüzden sekiz turdur
+        /// fark edilmemişti.
+        ///
+        /// DERS (bir nesnenin yüksekliği tek bir sayı değildir): Blok
+        /// "1,05 boyunda" diye biliniyordu ama oyunun bir hâlinde 1,1025
+        /// boyunda. Üstünde durması gereken bir şeyi hizalarken nesnenin
+        /// EN YÜKSEK hâlini almak gerekiyor, tipik hâlini değil.
+        /// </summary>
         const float PlateLift = 0.02f;
+
+        /// <summary>Bloğun tutulduğu andaki ölçeği — tepesi bu kadar yükseliyor.</summary>
+        static float DragScale => VisualSettings.Current == null ? 1.05f
+            : Mathf.Max(1f, VisualSettings.Current.dragScale);
 
         /// <summary>
         /// Blok kenarının hücre sınırından içeri payı — kapının bloğu ne kadar
