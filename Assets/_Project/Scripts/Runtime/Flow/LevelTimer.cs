@@ -40,6 +40,21 @@ namespace BlockOut.Runtime.Flow
             Running = true;
         }
 
+        /// <summary>
+        /// Kalan süreyi DOĞRUDAN yazar — yalnız geliştirici konsolu için.
+        ///
+        /// DERS (test kancası neden ayrı bir metot?): <see cref="AddTime"/>
+        /// toplamı da büyütür (yıldız hesabı bozulmasın diye). Konsoldan
+        /// "1 yıldızla kazandır" ya da "süreyi bitir" demek içinse toplamın
+        /// SABİT kalması gerekir — yoksa üretilmek istenen sonucun kendisi
+        /// kayar. İki farklı niyet, iki farklı metot.
+        /// </summary>
+        public void DebugSetRemaining(float seconds)
+        {
+            Remaining = (float)Math.Max(0.0, seconds);
+            Running = Remaining > 0f;
+        }
+
         public void Tick(float deltaTime)
         {
             if (!Running) return;

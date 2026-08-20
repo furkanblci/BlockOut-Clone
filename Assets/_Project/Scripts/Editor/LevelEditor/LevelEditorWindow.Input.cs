@@ -18,6 +18,7 @@ namespace BlockOut.Editor.LevelEditor
             if (e.type != EventType.KeyDown) return;
             bool ctrl = e.control || e.command;
 
+            // ---- kabuk kısayolları: her sekmede geçerli ----
             if (ctrl && e.keyCode == KeyCode.Z) { if (e.shift) Redo(); else Undo(); e.Use(); return; }
             if (ctrl && e.keyCode == KeyCode.Y) { Redo(); e.Use(); return; }
             if (ctrl && e.keyCode == KeyCode.S)
@@ -26,6 +27,20 @@ namespace BlockOut.Editor.LevelEditor
                 else { string path = LevelEditorIO.AskSavePath(_data.Id); if (path != null) SaveTo(path); }
                 e.Use(); return;
             }
+            if (ctrl && e.keyCode == KeyCode.PageUp) { GoToNeighbour(-1); e.Use(); return; }
+            if (ctrl && e.keyCode == KeyCode.PageDown) { GoToNeighbour(1); e.Use(); return; }
+            if (ctrl && e.keyCode == KeyCode.Tab)
+            {
+                RequestTab((Tab)(((int)_tab + 1) % TabInfo.Length));
+                e.Use(); return;
+            }
+
+            // ---- düzenleme kısayolları: YALNIZ tuvalin olduğu sekmelerde ----
+            // DERS: Galeri sekmesinde "3" tuşuna basmak araç değiştirirse,
+            // kullanıcı Tahta'ya döndüğünde sebebini bilmediği bir durumla
+            // karşılaşır. Kısayollar bağlamla sınırlı olmalı.
+            if (_tab != Tab.Board) return;
+
             if (ctrl && e.keyCode == KeyCode.C) { CopySelection(); e.Use(); return; }
             if (ctrl && e.keyCode == KeyCode.V) { PasteClipboard(); e.Use(); return; }
             if (ctrl && e.keyCode == KeyCode.D) { DuplicateSelection(); e.Use(); return; }
@@ -49,10 +64,12 @@ namespace BlockOut.Editor.LevelEditor
                 return;
             }
 
-            if (e.keyCode >= KeyCode.Alpha1 && e.keyCode <= KeyCode.Alpha6)
+            // Araç sayısı kadar rakam tuşu. Sınır ToolInfo'dan OKUNUYOR:
+            // 7. araç (Üreteç) eklendiğinde burası Alpha6'da kalmıştı ve
+            // kılavuzda "1 – 7" yazmasına rağmen 7 tuşu çalışmıyordu.
+            if (e.keyCode >= KeyCode.Alpha1 && e.keyCode < KeyCode.Alpha1 + ToolInfo.Length)
             {
-                _tool = (Tool)(e.keyCode - KeyCode.Alpha1);
-                if (_tool != Tool.Select) _selections.Clear();
+                RequestTool((Tool)(e.keyCode - KeyCode.Alpha1));
                 e.Use();
             }
         }
@@ -127,7 +144,90 @@ namespace BlockOut.Editor.LevelEditor
                     else if (_canvas.TryCell(e.mousePosition, _data.Board.Width, _data.Board.Height, out var cell))
                     { _regionStart = cell; e.Use(); }
                     break;
+
+                case Tool.Generator:
+                    PlaceGenerator(e, erase);
+                    break;
             }
+        }
+
+        /// <summary>
+        /// Üreteci en yakın kenara koyar. Aynı kenar+şeritte üreteç varsa
+        /// yenisini eklemez — iki makine aynı girişten besleyemez.
+        /// </summary>
+        void PlaceGenerator(Event e, bool erase)
+        {
+            if (!_canvas.TryEdge(e.mousePosition, _data.Board.Width, _data.Board.Height,
+                    out var cell, out var side)) return;
+
+            int lane = side == Side.North || side == Side.South ? cell.x : cell.y;
+            int existing = FindGenerator(side, lane);
+
+            if (erase)
+            {
+                if (existing < 0) return;
+                Record();
+                _data.Obstacles.RemoveAt(existing);
+                _selections.Clear();
+                AfterChange();
+                Say("Üreteç silindi");
+                e.Use();
+                return;
+            }
+
+            if (existing >= 0)
+            {
+                // Var olanı seçmek, sessizce hiçbir şey yapmamaktan iyidir:
+                // kullanıcı zaten o makineyle ilgileniyor.
+                RequestTool(Tool.Select);
+                _selections.Clear();
+                _selections.Add(new Selection { Kind = SelKind.Generator, Index = existing });
+                Say("Bu girişte üreteç zaten var — seçildi");
+                e.Use();
+                return;
+            }
+
+            Record();
+            var generator = LevelEditorIO.NewGenerator(side, 0, 0);
+            LevelEditorIO.SetGeneratorLane(generator, lane);
+
+            // Boş bir makine bölümü kilitler; fırçadaki blokla başlat ki
+            // yerleştirir yerleştirmez anlamlı olsun.
+            LevelEditorIO.SetQueue(generator, new List<BlockData> { BrushBlock(0, 0) });
+
+            _data.Obstacles.Add(generator);
+            _selections.Clear();
+            _selections.Add(new Selection { Kind = SelKind.Generator, Index = _data.Obstacles.Count - 1 });
+            AfterChange();
+            Say($"{side} kenarına üreteç kondu (şerit {lane})");
+            e.Use();
+        }
+
+        int FindGenerator(Side side, int lane)
+        {
+            for (int i = 0; i < _data.Obstacles.Count; i++)
+            {
+                var obstacle = _data.Obstacles[i];
+                if (obstacle.Type != "generator") continue;
+                if (!SideUtil.TryParse(LevelEditorIO.GetString(obstacle, "side", "N"), out var s)) continue;
+                if (s == side && LevelEditorIO.GeneratorLane(obstacle) == lane) return i;
+            }
+            return -1;
+        }
+
+        /// <summary>Fırçanın o anki ayarlarından bir blok üretir (şekil, katmanlar, buz, eksen).</summary>
+        BlockData BrushBlock(int x, int y)
+        {
+            var block = new BlockData
+            {
+                X = x, Y = y, W = _blockW, H = _blockH,
+                Cells = BrushMask(),
+                Ice = _blockIce,
+                Axis = string.IsNullOrEmpty(_blockAxis) ? null : _blockAxis
+            };
+            foreach (var layer in _layers) block.Layers.Add(layer.ToId());
+            BlockShape.Normalize(block);
+            return block;
         }
 
         void OnMouseDrag(Event e, bool erase)
@@ -252,8 +352,7 @@ namespace BlockOut.Editor.LevelEditor
             _selections.Clear();
             for (int i = 0; i < _data.Blocks.Count; i++)
                 _selections.Add(new Selection { Kind = SelKind.Block, Index = i });
-            _tool = Tool.Select;
-            Repaint();
+            RequestTool(Tool.Select);
         }
 
         bool TryPick(Vector2 mouse, out Selection selection)
@@ -269,6 +368,16 @@ namespace BlockOut.Editor.LevelEditor
                     selection = new Selection { Kind = SelKind.Gate, Index = i };
                     return true;
                 }
+            }
+
+            // Üreteçler tahtanın dışında durduğu için hücre testinden ÖNCE
+            // denenir; TryCell onları hiçbir zaman yakalamaz.
+            for (int i = 0; i < _data.Obstacles.Count; i++)
+            {
+                if (_data.Obstacles[i].Type != "generator") continue;
+                if (!GeneratorRect(_data.Obstacles[i], out _).Contains(mouse)) continue;
+                selection = new Selection { Kind = SelKind.Generator, Index = i };
+                return true;
             }
 
             if (!_canvas.TryCell(mouse, _data.Board.Width, _data.Board.Height, out var cell))
@@ -508,7 +617,17 @@ namespace BlockOut.Editor.LevelEditor
                         if (selection.Index < _data.Gates.Count) _data.Gates.RemoveAt(selection.Index);
                         break;
                     case SelKind.Curtain:
+                    case SelKind.Generator:
                         if (selection.Index < _data.Obstacles.Count) _data.Obstacles.RemoveAt(selection.Index);
+                        break;
+                    case SelKind.Queued:
+                        if (selection.Index < _data.Obstacles.Count)
+                        {
+                            var machine = _data.Obstacles[selection.Index];
+                            var queue = LevelEditorIO.GetQueue(machine);
+                            if (selection.Sub < queue.Count) queue.RemoveAt(selection.Sub);
+                            LevelEditorIO.SetQueue(machine, queue);
+                        }
                         break;
                     case SelKind.Content:
                         if (selection.Index < _data.Obstacles.Count)
@@ -589,7 +708,7 @@ namespace BlockOut.Editor.LevelEditor
                 created.Add(new Selection { Kind = SelKind.Block, Index = _data.Blocks.Count - 1 });
             }
 
-            _tool = Tool.Select;
+            RequestTool(Tool.Select);
             _selections.Clear();
             _selections.AddRange(created);
             AfterChange();
@@ -620,15 +739,9 @@ namespace BlockOut.Editor.LevelEditor
                 return;
             Record();
 
-            var block = new BlockData
-            {
-                X = Mathf.Clamp(cell.x, 0, _data.Board.Width - _blockW),
-                Y = Mathf.Clamp(cell.y, 0, _data.Board.Height - _blockH),
-                W = _blockW, H = _blockH, Ice = _blockIce,
-                Cells = BrushMask(),
-                Axis = string.IsNullOrEmpty(_blockAxis) ? null : _blockAxis
-            };
-            foreach (var layer in _layers) block.Layers.Add(layer.ToId());
+            var block = BrushBlock(
+                Mathf.Clamp(cell.x, 0, _data.Board.Width - _blockW),
+                Mathf.Clamp(cell.y, 0, _data.Board.Height - _blockH));
 
             var curtain = CurtainCovering(cell);
             if (curtain != null)
@@ -652,6 +765,7 @@ namespace BlockOut.Editor.LevelEditor
                 {
                     Record();
                     _data.Blocks.RemoveAt(i);
+                    DropSelection();          // indeksler kaydı — seçim artık yalan söylerdi
                     AfterChange(); e.Use();
                     return;
                 }
@@ -666,6 +780,7 @@ namespace BlockOut.Editor.LevelEditor
                         Record();
                         contents.RemoveAt(i);
                         LevelEditorIO.SetContents(obstacle, contents);
+                        DropSelection();
                         AfterChange(); e.Use();
                         return;
                     }
@@ -684,12 +799,14 @@ namespace BlockOut.Editor.LevelEditor
 
             if (erase)
             {
-                if (existing >= 0) { _data.Gates.RemoveAt(existing); AfterChange(); }
+                if (existing >= 0) { _data.Gates.RemoveAt(existing); DropSelection(); AfterChange(); }
                 e.Use();
                 return;
             }
 
-            if (existing >= 0) _data.Gates.RemoveAt(existing);
+            // Aynı kenara yeniden koymak da indeks değiştirir: eski kayıt
+            // silinip yenisi listenin SONUNA ekleniyor.
+            if (existing >= 0) { _data.Gates.RemoveAt(existing); DropSelection(); }
             var gate = new GateData
             {
                 X = cell.x, Y = cell.y, Side = sideId, Length = _gateLength, Ice = _gateIce
@@ -736,6 +853,7 @@ namespace BlockOut.Editor.LevelEditor
 
             Record();
             _data.Obstacles.Remove(curtain);
+            DropSelection();
             AfterChange(); e.Use();
         }
     }

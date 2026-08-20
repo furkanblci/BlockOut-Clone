@@ -26,10 +26,36 @@ namespace BlockOut.Runtime.Input
         public bool IsDown { get; private set; }
         public Vector2 Position { get; private set; }
 
+        /// <summary>
+        /// Üstte tam ekran bir katman (geliştirici konsolu) varken girdi
+        /// oynanışa GEÇMEZ.
+        ///
+        /// DERS (IMGUI hiçbir şeyi engellemez): OnGUI ile çizilen bir panel
+        /// yalnızca ÜSTE ÇİZER; altındaki oyun dünyası dokunuşları almaya
+        /// devam eder. Konsol açıkken panele basan parmak, aynı anda arkadaki
+        /// bloğu da sürüklüyordu — yani test aracının kendisi test edilen
+        /// durumu bozuyordu. Kilit statik: girdiyi okuyan tek yer burası
+        /// olduğu için tek kapı yeterli.
+        /// </summary>
+        public static bool Blocked;
+
         void Update()
         {
             var pointer = Pointer.current;
             if (pointer == null) return; // ne mouse ne dokunmatik var (olağandışı)
+
+            if (Blocked)
+            {
+                // Kilit AÇILDIĞI anda parmak basılıysa sürüklemeyi düzgün
+                // bitir; yoksa blok "yapışık" kalır ve konsol kapanınca
+                // kaldığı yerden sürüklenmeye devam eder.
+                if (IsDown)
+                {
+                    IsDown = false;
+                    PointerUp?.Invoke(Position);
+                }
+                return;
+            }
 
             Position = pointer.position.ReadValue();
             bool pressed = pointer.press.isPressed;

@@ -23,6 +23,10 @@ Bir şeyi buraya taşımadan önce sor: **"Bunu Match-3 yapsam da kullanır mıy
 | `Services/Analytics` | `IAnalyticsProvider` + tipli olay girişi (level_start/complete/fail, para akışı). |
 | `Services/Ads` | `IAdProvider` + ödüllü reklam sözleşmesi + araya giren reklamda sıklık sınırı. |
 | `Services/PerfProbe` | Cihazda fps + **kare başına GC ayırması**. Profiler bağlamadan ölçüm. |
+| `DevTools/DevConsole` | Gizli geliştirici konsolu: üst köşeye 5 dokunuş, Unity konsolu tonlarında koyu panel (S/M/L boyut, dört köşeden birine yaslanma, rozete indirme), sekmeleri oyun kaydeder. |
+| `DevTools/DevPage` | Konsolun genişletme noktası: oyun kendi sekmesini bu sınıftan türetir. |
+| `DevTools/DevLog` | Cihaz üstünde Unity log akışı (halka tampon) + konsolun kendi işlemleri. |
+| `DevTools/DevLogPage` · `DevSystemPage` | Hazır iki sekme: log akışı ve cihaz künyesi / zaman ölçeği / konsol ayarları. |
 | `Flow/SceneRouter` | Sahne geçişi + aralarda taşınan tek parça niyet (okununca tüketilir). |
 | `UI/UiKit` | Prefab'sız uGUI kurucuları, CanvasScaler ve safe-area doğru ayarlı. |
 | `Editor/MobileQualityTool` | URP mobil kontrol listesi (HDR, gölge, opaque/depth, MSAA, SRP Batcher) — her ayarın yanında gerekçesi. |
@@ -35,6 +39,45 @@ Bir şeyi buraya taşımadan önce sor: **"Bunu Match-3 yapsam da kullanır mıy
 Bu ayrım kritik: reklam ağı, oyunun ömrü boyunca **değişme ihtimali en yüksek** bağımlılıktır. Oyun kodu doğrudan ağın API'sini çağırırsa o çağrılar projeye yayılır ve geçiş haftalar alır.
 
 **Ödüllü reklam sözleşmesi:** ödül, geri çağrı `Completed` derse verilir. "Gösterdim, hemen vereyim" demek en sık yapılan hata — oyuncu reklamı kapatınca da ödül alır ve model çöker.
+
+## Geliştirici konsolunu yeni bir oyuna takmak
+
+Konsolun KABUĞU kitte (gizli açılış, panel, tema, boyut, log, cihaz künyesi),
+İÇERİĞİ oyunda. Yeni oyunda yapılacak üç şey var:
+
+```csharp
+// 1) Oyuna özel bir sekme: DevPage'den türet, çizimi Ui üzerinden yap.
+public sealed class WaveDevPage : DevPage
+{
+    public override string Title => "DALGA";          // sekme etiketi, KISA olsun
+    public override void Draw()
+    {
+        Kv("Aktif dalga", Game.Wave.ToString());
+        if (BtnAccent("SONRAKİ DALGA", 38f)) { Game.NextWave(); Note("dalga atlandı"); }
+    }
+}
+
+// 2) Kanca: kit oyunu tanımadığı için duraklatmayı ve girdi kilidini senden ister.
+public sealed class DevHost : IDevConsoleHost
+{
+    public string Context => "DALGA " + Game.Wave;    // başlıktaki tek satır
+    public void SetPaused(bool paused) => Game.SetPaused(paused);
+    public void SetInputBlocked(bool blocked) => PointerInput.Blocked = blocked;
+}
+
+// 3) Kurulum (uygulama açılışında bir kez):
+DevConsole.Ensure();
+DevConsole.Host = new DevHost();
+DevConsole.Register(new WaveDevPage());
+DevConsole.Register(new DevLogPage());               // kitten hazır
+DevConsole.Register(new DevSystemPage());            // kitten hazır
+```
+
+Kancaları boş bırakmak konsolu çalıştırır ama arkasındaki oyun akmaya ve
+dokunuşları almaya devam eder — yani araç ölçtüğü şeyi bozar. `Ensure()` her
+yapıda derlenir; mağazaya çıkacak bir oyunda sınıfı `#if DEVELOPMENT_BUILD`
+içine almak yeterli (test edilen yapı ile aracın olduğu yapı AYNI olmalı,
+yoksa testçi "araç açılmıyor" diye rapor eder).
 
 ## Sonraki projede kullanmak
 

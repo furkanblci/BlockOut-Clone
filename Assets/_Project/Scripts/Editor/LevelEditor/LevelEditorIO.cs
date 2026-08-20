@@ -60,12 +60,27 @@ namespace BlockOut.Editor.LevelEditor
             // Elle yazılmış dosyalarda "cells" ile w/h çelişebilir; şeklin tek
             // gerçeği maske, w/h ondan tazelenir.
             foreach (var block in data.Blocks) BlockShape.Normalize(block);
+
+            // Engellerin İÇİNDEKİ bloklar da normalleştirilmeli. Perde içeriği
+            // zaten geçiyordu; üreteç SIRASI atlanmıştı — üreteç şemaya sonradan
+            // eklendiğinde bu döngü güncellenmemiş. Sonuç: elle yazılmış bir
+            // sırada `cells` maskesi ile w/h çelişirse blok yanlış boyutta
+            // doğardı.
             foreach (var obstacle in data.Obstacles)
             {
                 var contents = GetContents(obstacle);
-                if (contents.Count == 0) continue;
-                foreach (var block in contents) BlockShape.Normalize(block);
-                SetContents(obstacle, contents);
+                if (contents.Count > 0)
+                {
+                    foreach (var block in contents) BlockShape.Normalize(block);
+                    SetContents(obstacle, contents);
+                }
+
+                var queue = GetQueue(obstacle);
+                if (queue.Count > 0)
+                {
+                    foreach (var block in queue) BlockShape.Normalize(block);
+                    SetQueue(obstacle, queue);
+                }
             }
             return data;
         }
@@ -209,6 +224,16 @@ namespace BlockOut.Editor.LevelEditor
             data.Extra[key] = value;
         }
 
+        public static string GetString(ObstacleData data, string key, string fallback = "") =>
+            data.Extra != null && data.Extra.TryGetValue(key, out var token)
+                ? token.Value<string>() : fallback;
+
+        public static void SetString(ObstacleData data, string key, string value)
+        {
+            data.Extra ??= new Dictionary<string, JToken>();
+            data.Extra[key] = value;
+        }
+
         public static List<BlockData> GetContents(ObstacleData data)
         {
             if (data.Extra != null && data.Extra.TryGetValue("contents", out var token))
@@ -220,6 +245,56 @@ namespace BlockOut.Editor.LevelEditor
         {
             data.Extra ??= new Dictionary<string, JToken>();
             data.Extra["contents"] = JArray.FromObject(blocks);
+        }
+
+        // ---------- üreteç (generator) yardımcıları ----------
+        // Şema: { "type":"generator", "side":"N|E|S|W", "x":n, "y":n, "queue":[blok...] }
+        // Makine tahtanın DIŞINDA durur; x/y yalnız KENAR BOYUNCA konumu taşır
+        // (kuzey/güney için x anlamlı, doğu/batı için y). Diğer alan 0 kalır —
+        // mevcut 19 üretecin hepsi bu biçimde yazılmış, editör de öyle yazar.
+
+        public static ObstacleData NewGenerator(Side side, int x, int y)
+        {
+            var data = new ObstacleData
+            {
+                Type = "generator",
+                Extra = new Dictionary<string, JToken>()
+            };
+            SetString(data, "side", side.ToId());
+            SetInt(data, "x", x);
+            SetInt(data, "y", y);
+            data.Extra["queue"] = new JArray();
+            return data;
+        }
+
+        /// <summary>Kenar boyunca konum: kuzey/güney'de kolon, doğu/batı'da satır.</summary>
+        public static int GeneratorLane(ObstacleData data)
+        {
+            SideUtil.TryParse(GetString(data, "side", "N"), out var side);
+            return side == Side.North || side == Side.South
+                ? GetInt(data, "x") : GetInt(data, "y");
+        }
+
+        public static void SetGeneratorLane(ObstacleData data, int lane)
+        {
+            SideUtil.TryParse(GetString(data, "side", "N"), out var side);
+            if (side == Side.North || side == Side.South)
+            { SetInt(data, "x", lane); SetInt(data, "y", 0); }
+            else
+            { SetInt(data, "y", lane); SetInt(data, "x", 0); }
+        }
+
+        public static List<BlockData> GetQueue(ObstacleData data)
+        {
+            if (data.Extra != null && data.Extra.TryGetValue("queue", out var token))
+                return token.ToObject<List<BlockData>>() ?? new List<BlockData>();
+            return new List<BlockData>();
+        }
+
+        public static void SetQueue(ObstacleData data, List<BlockData> blocks)
+        {
+            data.Extra ??= new Dictionary<string, JToken>();
+            data.Extra["queue"] = JArray.FromObject(blocks);
         }
     }
 }

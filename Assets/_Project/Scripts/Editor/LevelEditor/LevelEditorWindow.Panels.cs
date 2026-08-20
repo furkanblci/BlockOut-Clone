@@ -5,138 +5,20 @@ using UnityEngine;
 
 namespace BlockOut.Editor.LevelEditor
 {
-    /// <summary>Level editörünün arayüz katmanı: üst şerit ve yan panel bölümleri.</summary>
+    /// <summary>
+    /// Tahta sekmesinin sol kolonu: araç seçimi, fırça ayarları, seçili nesne
+    /// denetçisi ve bölüm bilgileri.
+    ///
+    /// DERS (denetçi BAĞLAMA duyarlı olmalı): Panel "hiçbir şey seçili değilken
+    /// fırçayı", "bir şey seçiliyken o nesneyi" gösterir. İkisini birden
+    /// göstermek kullanıcıyı her seferinde "şimdi hangisini değiştiriyorum?"
+    /// diye düşündürür.
+    /// </summary>
     public sealed partial class LevelEditorWindow
     {
-        // ---------------- üst şerit ----------------
-
-        void DrawToolbar()
-        {
-            using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
-            {
-                if (GUILayout.Button("Yeni", EditorStyles.toolbarButton, GUILayout.Width(48)))
-                {
-                    if (ConfirmDiscard())
-                    {
-                        _data = LevelEditorIO.NewLevel();
-                        _path = null; _selections.Clear();
-                        _undoStack.Clear(); _redoStack.Clear();
-                        AfterChange(); _dirty = false;
-                    }
-                }
-
-                if (EditorGUILayout.DropdownButton(new GUIContent("Aç"),
-                        FocusType.Passive, EditorStyles.toolbarDropDown, GUILayout.Width(46)))
-                    ShowLevelMenu();
-
-                using (new EditorGUI.DisabledScope(_path == null))
-                    if (GUILayout.Button(new GUIContent("Kaydet", "Ctrl+S"),
-                            EditorStyles.toolbarButton, GUILayout.Width(58)))
-                        SaveTo(_path);
-
-                if (EditorGUILayout.DropdownButton(new GUIContent("Kaydet…"),
-                        FocusType.Passive, EditorStyles.toolbarDropDown, GUILayout.Width(66)))
-                    ShowSaveMenu();
-
-                GUILayout.Space(6);
-                using (new EditorGUI.DisabledScope(_undoStack.Count == 0))
-                    if (GUILayout.Button(new GUIContent("↶", "Geri al (Ctrl+Z)"),
-                            EditorStyles.toolbarButton, GUILayout.Width(26))) Undo();
-                using (new EditorGUI.DisabledScope(_redoStack.Count == 0))
-                    if (GUILayout.Button(new GUIContent("↷", "İleri al (Ctrl+Y)"),
-                            EditorStyles.toolbarButton, GUILayout.Width(26))) Redo();
-
-                GUILayout.Space(6);
-                if (EditorGUILayout.DropdownButton(new GUIContent("Bölüm"),
-                        FocusType.Passive, EditorStyles.toolbarDropDown, GUILayout.Width(62)))
-                    ShowLevelTransformMenu();
-
-                GUILayout.Space(6);
-                if (GUILayout.Button("Doğrula", EditorStyles.toolbarButton, GUILayout.Width(58)))
-                    RunValidation();
-                _autoValidate = GUILayout.Toggle(_autoValidate,
-                    new GUIContent("Otomatik", "Her değişiklikten sonra doğrula"),
-                    EditorStyles.toolbarButton, GUILayout.Width(62));
-
-                if (GUILayout.Button(new GUIContent("▶ Play Test", "Bu bölümü hemen oyna"),
-                        EditorStyles.toolbarButton, GUILayout.Width(80)))
-                {
-                    StashState();
-                    LevelEditorIO.PlayTest(_data);
-                }
-
-                GUILayout.FlexibleSpace();
-                GUILayout.Label(_path == null
-                    ? "(kaydedilmemiş)"
-                    : System.IO.Path.GetFileName(_path) + (_dirty ? " •" : ""), EditorStyles.miniLabel);
-            }
-        }
-
-        void ShowLevelMenu()
-        {
-            var menu = new GenericMenu();
-            foreach (var path in LevelPaths())
-                menu.AddItem(new GUIContent(System.IO.Path.GetFileName(path)), path == _path,
-                    () => { if (ConfirmDiscard()) LoadFrom(path); });
-
-            menu.AddSeparator("");
-            menu.AddItem(new GUIContent("Dosyadan aç…"), false, () =>
-            {
-                if (!ConfirmDiscard()) return;
-                string path = LevelEditorIO.AskLoadPath();
-                if (path != null) LoadFrom(path);
-            });
-            menu.ShowAsContext();
-        }
-
-        void ShowSaveMenu()
-        {
-            var menu = new GenericMenu();
-            menu.AddItem(new GUIContent("Farklı kaydet…"), false, () =>
-            {
-                string path = LevelEditorIO.AskSavePath(_data.Id);
-                if (path != null) SaveTo(path);
-            });
-            menu.AddItem(new GUIContent("Sonraki bölüm olarak kaydet"), false, () =>
-            {
-                string path = LevelEditorIO.NextLevelPath(out int number);
-                _data.Id = $"level_{number:000}";
-                _data.DisplayNumber = number;
-                SaveTo(path);
-            });
-            menu.ShowAsContext();
-        }
-
-        /// <summary>Bölüm geneli dönüşümler — varyant üretmenin en hızlı yolu.</summary>
-        void ShowLevelTransformMenu()
-        {
-            var menu = new GenericMenu();
-            menu.AddItem(new GUIContent("Yatay aynala"), false,
-                () => { Record(); LevelTransform.MirrorHorizontal(_data); _selections.Clear(); AfterChange(); });
-            menu.AddItem(new GUIContent("Dikey aynala"), false,
-                () => { Record(); LevelTransform.MirrorVertical(_data); _selections.Clear(); AfterChange(); });
-            menu.AddItem(new GUIContent("180° döndür"), false,
-                () => { Record(); LevelTransform.Rotate180(_data); _selections.Clear(); AfterChange(); });
-            menu.ShowAsContext();
-        }
-
-        static List<string> LevelPaths()
-        {
-            var paths = new List<string>();
-            foreach (var guid in AssetDatabase.FindAssets("t:TextAsset", new[] { LevelEditorIO.LevelDir }))
-            {
-                string path = AssetDatabase.GUIDToAssetPath(guid);
-                if (path.EndsWith(".json") && !path.Contains("__playtest")) paths.Add(path);
-            }
-            paths.Sort();
-            return paths;
-        }
-
-        // ---------------- yan panel ----------------
-
         void DrawSidePanel()
         {
-            using (new EditorGUILayout.VerticalScope(GUILayout.Width(290)))
+            using (new EditorGUILayout.VerticalScope(GUILayout.Width(PanelWidth)))
             using (var scroll = new EditorGUILayout.ScrollViewScope(_panelScroll))
             {
                 _panelScroll = scroll.scrollPosition;
@@ -149,35 +31,38 @@ namespace BlockOut.Editor.LevelEditor
 
                 EditorGUILayout.Space(8);
                 DrawLevelSettings();
-                EditorGUILayout.Space(6);
-                DrawReferenceSection();
-                EditorGUILayout.Space(6);
-                DrawBrowserSection();
-                EditorGUILayout.Space(6);
-                DrawReportSection();
             }
         }
 
         void DrawToolButtons()
         {
-            EditorGUILayout.LabelField("Araçlar", EditorStyles.boldLabel);
-            for (int row = 0; row < 2; row++)
+            LevelEditorSkin.SectionHeader("Araçlar");
+
+            const int perRow = 4;
+            int rows = (ToolInfo.Length + perRow - 1) / perRow;
+            for (int row = 0; row < rows; row++)
             {
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    for (int i = row * 3; i < Mathf.Min(row * 3 + 3, ToolInfo.Length); i++)
+                    for (int i = row * perRow; i < Mathf.Min(row * perRow + perRow, ToolInfo.Length); i++)
                     {
                         bool on = (int)_tool == i;
-                        var content = new GUIContent(ToolInfo[i].label, ToolInfo[i].tip);
-                        if (GUILayout.Toggle(on, content, EditorStyles.miniButton, GUILayout.Height(26)) && !on)
-                        {
-                            _tool = (Tool)i;
-                            if (_tool != Tool.Select) _selections.Clear();
-                        }
+                        if (LevelEditorSkin.Button(ToolInfo[i].label, LevelEditorSkin.Neutral,
+                                62f, 28f, ToolInfo[i].tip, on) && !on)
+                            RequestTool((Tool)i);
                     }
+
+                    // Düğmeler SABİT genişlikte; eksik kalan yer esnek boşlukla
+                    // doldurulur. Aksi hâlde 7 araç 4'e bölünmediği için son
+                    // satırdaki üç düğme diğerlerinden geniş çıkardı.
+                    GUILayout.FlexibleSpace();
                 }
             }
-            EditorGUILayout.LabelField(ToolInfo[(int)_tool].tip, EditorStyles.wordWrappedMiniLabel);
+            // Savunma sınırı: araç sayısı değiştiğinde diskte SERİLEŞMİŞ eski
+            // _tool değeri diziyi aşabilir (Unity o değeri int olarak saklar).
+            EditorGUILayout.LabelField(
+                ToolInfo[Mathf.Clamp((int)_tool, 0, ToolInfo.Length - 1)].tip,
+                LevelEditorSkin.SectionBody);
         }
 
         void DrawToolOptions()
@@ -185,7 +70,7 @@ namespace BlockOut.Editor.LevelEditor
             switch (_tool)
             {
                 case Tool.Blocks:
-                    EditorGUILayout.LabelField("Blok Şekli", EditorStyles.boldLabel);
+                    LevelEditorSkin.SectionHeader("Blok Şekli");
                     DrawSizePalette();
                     using (new EditorGUILayout.HorizontalScope())
                     {
@@ -206,7 +91,7 @@ namespace BlockOut.Editor.LevelEditor
                     DrawAxisPicker();
 
                     EditorGUILayout.Space(4);
-                    EditorGUILayout.LabelField("Katmanlar (dıştan içe)", EditorStyles.boldLabel);
+                    LevelEditorSkin.SectionHeader("Katmanlar", "Dıştan içe. Üst katman soyulunca altındaki renk kalır.");
                     DrawLayerChips();
                     DrawColorGrid(_layers[Mathf.Clamp(_activeLayer, 0, _layers.Count - 1)],
                         c => _layers[Mathf.Clamp(_activeLayer, 0, _layers.Count - 1)] = c);
@@ -214,23 +99,35 @@ namespace BlockOut.Editor.LevelEditor
                     break;
 
                 case Tool.Gates:
-                    EditorGUILayout.LabelField("Kapı Rengi", EditorStyles.boldLabel);
+                    LevelEditorSkin.SectionHeader("Kapı Rengi");
                     DrawColorGrid(_gateColor, c => _gateColor = c);
-                    _gateLength = EditorGUILayout.IntSlider("Uzunluk", _gateLength, 1, 5);
-                    _gateIce = Mathf.Max(0, EditorGUILayout.IntField("Buz kaplaması", _gateIce));
+                    _gateLength = LevelEditorSkin.SliderRow("Uzunluk", _gateLength, 1, 5);
+                    _gateIce = Mathf.Max(0, LevelEditorSkin.IntRow("Buz kaplaması", _gateIce));
                     break;
 
                 case Tool.Curtain:
-                    _curtainCount = EditorGUILayout.IntSlider("Sayaç", _curtainCount, 1, 20);
-                    EditorGUILayout.HelpBox(
-                        "Perde koyduktan sonra Blok aracıyla içine blok yerleştir — gizli içerik olurlar.",
-                        MessageType.Info);
+                    _curtainCount = LevelEditorSkin.SliderRow("Sayaç", _curtainCount, 1, 20);
+                    LevelEditorSkin.Note(
+                        "Perde koyduktan sonra Blok aracıyla içine blok yerleştir — gizli içerik olurlar.");
+                    break;
+
+                case Tool.Generator:
+                    LevelEditorSkin.SectionHeader("Sıradaki Blok", "Üreteç kondugunda sıraya bu blok girer.");
+                    DrawSizePalette();
+                    DrawColorGrid(_layers[Mathf.Clamp(_activeLayer, 0, _layers.Count - 1)],
+                        c => _layers[Mathf.Clamp(_activeLayer, 0, _layers.Count - 1)] = c);
+                    LevelEditorSkin.Note(
+                        "Kenara tıkla — o girişe üreteç kondu ve fırçadaki blok sıraya girdi. " +
+                        "Sıranın kalanını alt şeritteki üreteç kutusundan doldur (+ düğmesi). " +
+                        "Sağ tık: üreteci sil.\n\n" +
+                        "Üreteç zamanla değil YER AÇILINCA üretir; sıradaki bloklar da " +
+                        "'oyunda olan renk' sayılır — o rengin kapısı olmalı.");
                     break;
 
                 case Tool.Select:
-                    EditorGUILayout.HelpBox(
+                    LevelEditorSkin.Note(
                         "Nesneye tıkla, sürükleyerek taşı. Boş alanda sürükleyerek kutu seçim yap, " +
-                        "Ctrl+tık ile seçime ekle. Alt+sürükle kopyalar.", MessageType.Info);
+                        "Ctrl+tık ile seçime ekle. Alt+sürükle kopyalar.");
                     DrawStampSection();
                     break;
             }
@@ -321,11 +218,12 @@ namespace BlockOut.Editor.LevelEditor
         void DrawSizePalette()
         {
             const int perRow = 6;
-            var brushColor = ColorOf(_layers[0]);
+            var brushColor = ColorOf(_layers.Count > 0 ? _layers[0] : BlockColor.Red);
+            bool rowOpen = false;
 
             for (int i = 0; i < ShapePresets.Length; i++)
             {
-                if (i % perRow == 0) EditorGUILayout.BeginHorizontal();
+                if (i % perRow == 0) { EditorGUILayout.BeginHorizontal(); rowOpen = true; }
 
                 var preset = ShapePresets[i];
                 bool selected = BrushMatches(_blockMask, _blockW, _blockH, preset.Rows);
@@ -337,9 +235,10 @@ namespace BlockOut.Editor.LevelEditor
                 DrawShapeIcon(rect, preset.Rows, brushColor);
                 if (selected) LevelCanvasDrawer.Outline(rect, Color.white, 2f);
 
-                if (i % perRow == perRow - 1 || i == ShapePresets.Length - 1)
-                    EditorGUILayout.EndHorizontal();
+                if (i % perRow == perRow - 1) { EditorGUILayout.EndHorizontal(); rowOpen = false; }
             }
+
+            if (rowOpen) EditorGUILayout.EndHorizontal();
         }
 
         /// <summary>Maskeyi küçük hücre kareleri olarak çizer (palet ikonu).</summary>
@@ -389,13 +288,26 @@ namespace BlockOut.Editor.LevelEditor
             }
         }
 
-        /// <summary>8 rengin swatch ızgarası — açılır menü yerine tek tıkla renk.</summary>
+        /// <summary>
+        /// Renk swatch ızgarası — açılır menü yerine tek tıkla renk.
+        ///
+        /// DERS (satır kapatmayı SAYIYA bağlama): Bu metot eskiden satırı
+        /// `i % 4 == 3` olunca kapatıyordu; palet 8 renkken bu her zaman
+        /// tutuyordu. Palet 10 renge çıkınca (mor + camgöbeği) son satır
+        /// (9. ve 10. renk) HİÇ kapanmadı ve editör her karede
+        /// "Invalid GUILayout state ... Begin/End calls match" hatası bastı.
+        /// Kural: açılan grubu döngü bitiminde bir BAYRAKLA kapat, eleman
+        /// sayısının bölünebilirliğine güvenme.
+        /// </summary>
         void DrawColorGrid(BlockColor current, System.Action<BlockColor> onPick)
         {
+            const int perRow = 4;
             var colors = (BlockColor[])System.Enum.GetValues(typeof(BlockColor));
+            bool rowOpen = false;
+
             for (int i = 0; i < colors.Length; i++)
             {
-                if (i % 4 == 0) EditorGUILayout.BeginHorizontal();
+                if (i % perRow == 0) { EditorGUILayout.BeginHorizontal(); rowOpen = true; }
 
                 var rect = GUILayoutUtility.GetRect(56, 26, GUILayout.Height(26));
                 if (GUI.Button(rect, new GUIContent("", colors[i].ToString()))) onPick(colors[i]);
@@ -403,14 +315,17 @@ namespace BlockOut.Editor.LevelEditor
                     ColorOf(colors[i]));
                 if (colors[i] == current) LevelCanvasDrawer.Outline(rect, Color.white, 2f);
 
-                if (i % 4 == 3) EditorGUILayout.EndHorizontal();
+                if (i % perRow == perRow - 1) { EditorGUILayout.EndHorizontal(); rowOpen = false; }
             }
+
+            // Son satır tam dolmadıysa burada kapanır.
+            if (rowOpen) EditorGUILayout.EndHorizontal();
         }
 
         void DrawStampSection()
         {
             EditorGUILayout.Space(4);
-            EditorGUILayout.LabelField("Pano & Damgalar", EditorStyles.boldLabel);
+            LevelEditorSkin.SectionHeader("Pano & Damgalar");
             using (new EditorGUILayout.HorizontalScope())
             {
                 using (new EditorGUI.DisabledScope(_selections.Count == 0))
@@ -452,8 +367,8 @@ namespace BlockOut.Editor.LevelEditor
 
         void DrawSelectionInspector()
         {
-            EditorGUILayout.LabelField(_selections.Count > 1
-                ? $"Seçili {_selections.Count} nesne" : "Seçili Nesne", EditorStyles.boldLabel);
+            LevelEditorSkin.SectionHeader(_selections.Count > 1
+                ? $"Seçili {_selections.Count} Nesne" : "Seçili Nesne");
 
             var primary = Primary;
             EditorGUI.BeginChangeCheck();
@@ -467,7 +382,7 @@ namespace BlockOut.Editor.LevelEditor
                     if (block == null) { _selections.Clear(); return; }
 
                     EditorGUILayout.LabelField(primary.Kind == SelKind.Content
-                        ? "Perde içeriği (gizli blok)" : "Blok", EditorStyles.miniLabel);
+                        ? "Perde içeriği (gizli blok)" : "Blok", LevelEditorSkin.RowLabel);
 
                     using (new EditorGUILayout.HorizontalScope())
                     {
@@ -505,7 +420,7 @@ namespace BlockOut.Editor.LevelEditor
                         DrawBlockAxisButton(block, "↕ dikey", "v");
                     }
 
-                    EditorGUILayout.LabelField("Katmanlar", EditorStyles.miniLabel);
+                    EditorGUILayout.LabelField("Katmanlar", LevelEditorSkin.RowLabel);
                     using (new EditorGUILayout.HorizontalScope())
                     {
                         for (int i = 0; i < block.Layers.Count; i++)
@@ -537,9 +452,9 @@ namespace BlockOut.Editor.LevelEditor
                 {
                     if (primary.Index >= _data.Gates.Count) { _selections.Clear(); return; }
                     var gate = _data.Gates[primary.Index];
-                    EditorGUILayout.LabelField($"Kapı — {gate.Side} kenarı", EditorStyles.miniLabel);
-                    gate.Length = EditorGUILayout.IntSlider("Uzunluk", gate.Length, 1, 5);
-                    gate.Ice = Mathf.Max(0, EditorGUILayout.IntField("Buz kaplaması", gate.Ice));
+                    EditorGUILayout.LabelField($"Kapı — {gate.Side} kenarı", LevelEditorSkin.RowLabel);
+                    gate.Length = LevelEditorSkin.SliderRow("Uzunluk", gate.Length, 1, 5);
+                    gate.Ice = Mathf.Max(0, LevelEditorSkin.IntRow("Buz kaplaması", gate.Ice));
                     BlockColorUtil.TryParse(gate.Colors.Count > 0 ? gate.Colors[0] : "red", out var gateColor);
                     DrawColorGrid(gateColor, c =>
                     {
@@ -550,17 +465,35 @@ namespace BlockOut.Editor.LevelEditor
                     break;
                 }
 
+                case SelKind.Generator:
+                case SelKind.Queued:
+                {
+                    if (primary.Index >= _data.Obstacles.Count) { _selections.Clear(); return; }
+
+                    // DERS (indeks TÜR garantisi vermez): Engeller tek listede
+                    // duruyor — perde ve üreteç yan yana. Seçim yalnız indeks
+                    // tuttuğu için, liste değişince "üreteç" sanılan kayıt bir
+                    // PERDEYE denk gelebiliyordu. O hâlde üreteç denetçisi
+                    // perdenin üstünde çalışır ve "sıraya ekle" dediğinde
+                    // perdeye `queue` alanı yazar — sessiz veri bozulması.
+                    var obstacle = _data.Obstacles[primary.Index];
+                    if (obstacle.Type != "generator") { _selections.Clear(); return; }
+
+                    DrawGeneratorInspector(obstacle);
+                    break;
+                }
+
                 case SelKind.Curtain:
                 {
                     if (primary.Index >= _data.Obstacles.Count) { _selections.Clear(); return; }
                     var curtain = _data.Obstacles[primary.Index];
-                    EditorGUILayout.LabelField("Perde", EditorStyles.miniLabel);
-                    int count = EditorGUILayout.IntSlider("Sayaç",
+                    EditorGUILayout.LabelField("Perde", LevelEditorSkin.RowLabel);
+                    int count = LevelEditorSkin.SliderRow("Sayaç",
                         LevelEditorIO.GetInt(curtain, "count", 1), 1, 20);
                     LevelEditorIO.SetInt(curtain, "count", count);
                     EditorGUILayout.LabelField(
                         $"Gizli içerik: {LevelEditorIO.GetContents(curtain).Count} blok",
-                        EditorStyles.miniLabel);
+                        LevelEditorSkin.RowLabel);
                     break;
                 }
             }
@@ -576,18 +509,147 @@ namespace BlockOut.Editor.LevelEditor
             DrawStampSection();
         }
 
+        /// <summary>
+        /// Seçili üretecin denetçisi: kenar, şerit ve sıranın tamamı.
+        ///
+        /// Sıra burada SATIR SATIR düzenlenir (alt şeritte yalnız renk kutuları
+        /// var); şekil ve buz gibi alanlar ancak burada görünür.
+        /// </summary>
+        void DrawGeneratorInspector(ObstacleData generator)
+        {
+            EditorGUILayout.LabelField("Blok Üreteci", LevelEditorSkin.RowLabel);
+
+            SideUtil.TryParse(LevelEditorIO.GetString(generator, "side", "N"), out var side);
+            int lane = LevelEditorIO.GeneratorLane(generator);
+            bool horizontal = side == Side.North || side == Side.South;
+            int laneMax = (horizontal ? _data.Board.Width : _data.Board.Height) - 1;
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                EditorGUILayout.LabelField("Kenar", GUILayout.Width(42));
+                foreach (var candidate in new[] { Side.North, Side.East, Side.South, Side.West })
+                {
+                    bool on = candidate == side;
+                    var previous = GUI.backgroundColor;
+                    if (on) GUI.backgroundColor = new Color(0.55f, 0.85f, 1f);
+                    if (GUILayout.Button(candidate.ToId(), GUILayout.Height(22)) && !on)
+                    {
+                        Record();
+                        LevelEditorIO.SetString(generator, "side", candidate.ToId());
+                        // Kenar değişince şerit yeni kenarın uzunluğuna sığmalı.
+                        bool nowHorizontal = candidate == Side.North || candidate == Side.South;
+                        int limit = (nowHorizontal ? _data.Board.Width : _data.Board.Height) - 1;
+                        LevelEditorIO.SetGeneratorLane(generator, Mathf.Clamp(lane, 0, limit));
+                        AfterChange();
+                    }
+                    GUI.backgroundColor = previous;
+                }
+            }
+
+            EditorGUI.BeginChangeCheck();
+            int newLane = LevelEditorSkin.SliderRow(
+                horizontal ? "Kolon" : "Satır", Mathf.Clamp(lane, 0, laneMax), 0, Mathf.Max(0, laneMax));
+            if (EditorGUI.EndChangeCheck())
+            {
+                Record();
+                LevelEditorIO.SetGeneratorLane(generator, newLane);
+                AfterChange();
+            }
+
+            var queue = LevelEditorIO.GetQueue(generator);
+            EditorGUILayout.LabelField($"Sıra — {queue.Count} blok (ilk sırada olan sıradaki)",
+                LevelEditorSkin.Value);
+
+            if (queue.Count == 0)
+                LevelEditorSkin.Note("Sıra boş — bu makine hiç blok üretmez.",
+                    LevelEditorSkin.NoteKind.Warning);
+
+            bool changed = false;
+            for (int i = 0; i < queue.Count; i++)
+            {
+                var block = queue[i];
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    GUILayout.Label((i + 1) + ".", LevelEditorSkin.RowLabel, GUILayout.Width(20));
+
+                    var swatch = GUILayoutUtility.GetRect(20, 20, GUILayout.Width(20), GUILayout.Height(20));
+                    LevelCanvasDrawer.Fill(swatch, ColorOf(block.Layers.Count > 0 ? block.Layers[0] : "red"));
+                    // IndexOf -1 dönebilir (nesne listeden çıkmışsa); menüye
+                    // geçersiz indeks göndermek tıklama anında istisna atardı.
+                    int obstacleIndex = _data.Obstacles.IndexOf(generator);
+                    if (GUI.Button(swatch, GUIContent.none, GUIStyle.none) && obstacleIndex >= 0)
+                        ShowQueueMenu(obstacleIndex, i);
+
+                    bool shaped = block.Cells != null && block.Cells.Count > 0;
+                    if (shaped)
+                    {
+                        var icon = GUILayoutUtility.GetRect(20, 20, GUILayout.Width(20), GUILayout.Height(20));
+                        DrawShapeIcon(icon, block.Cells,
+                            ColorOf(block.Layers.Count > 0 ? block.Layers[0] : "red"));
+                    }
+                    else
+                    {
+                        int w = Mathf.Clamp(EditorGUILayout.IntField(block.W, GUILayout.Width(28)), 1, 6);
+                        GUILayout.Label("×", GUILayout.Width(10));
+                        int h = Mathf.Clamp(EditorGUILayout.IntField(block.H, GUILayout.Width(28)), 1, 6);
+                        if (w != block.W || h != block.H) { block.W = w; block.H = h; changed = true; }
+                    }
+
+                    GUILayout.Label("buz", LevelEditorSkin.RowLabel, GUILayout.Width(24));
+                    int ice = Mathf.Max(0, EditorGUILayout.IntField(block.Ice, GUILayout.Width(28)));
+                    if (ice != block.Ice) { block.Ice = ice; changed = true; }
+
+                    // DERS: Listeyi çizim sırasının ORTASINDA kısaltmak, o
+                    // geçişte Layout'ta ölçülenden az kontrol çizmek demektir.
+                    // GUIUtility.ExitGUI() bu geçişi temiz biçimde iptal eder —
+                    // `using` kapsamları Dispose edilir, layout grupları kapanır,
+                    // Unity bir sonraki karede güncel listeyle baştan çizer.
+                    using (new EditorGUI.DisabledScope(i == 0))
+                        if (GUILayout.Button(new GUIContent("▲", "öne al"), GUILayout.Width(22)))
+                        {
+                            MoveInQueue(generator, i, -1);
+                            GUIUtility.ExitGUI();
+                        }
+
+                    if (GUILayout.Button(new GUIContent("✕", "sıradan çıkar"), GUILayout.Width(22)))
+                    {
+                        Record();
+                        queue.RemoveAt(i);
+                        LevelEditorIO.SetQueue(generator, queue);
+                        AfterChange();
+                        GUIUtility.ExitGUI();
+                    }
+                }
+            }
+
+            if (changed)
+            {
+                Record();
+                LevelEditorIO.SetQueue(generator, queue);
+                AfterChange();
+            }
+
+            if (GUILayout.Button("Fırçadaki bloğu sıraya ekle"))
+            {
+                Record();
+                queue.Add(BrushBlock(0, 0));
+                LevelEditorIO.SetQueue(generator, queue);
+                AfterChange();
+            }
+        }
+
         void DrawLevelSettings()
         {
-            EditorGUILayout.LabelField("Bölüm Bilgileri", EditorStyles.boldLabel);
+            LevelEditorSkin.SectionHeader("Bölüm Bilgileri");
             EditorGUI.BeginChangeCheck();
-            _data.Id = EditorGUILayout.TextField("Kimlik", _data.Id);
-            _data.DisplayNumber = EditorGUILayout.IntField("Bölüm No", _data.DisplayNumber);
+            _data.Id = LevelEditorSkin.TextRow("Kimlik", _data.Id);
+            _data.DisplayNumber = LevelEditorSkin.IntRow("Bölüm No", _data.DisplayNumber);
             int diff = Mathf.Max(0, System.Array.IndexOf(Difficulties, _data.Difficulty));
-            _data.Difficulty = Difficulties[EditorGUILayout.Popup("Zorluk", diff, Difficulties)];
-            _data.TimeSeconds = EditorGUILayout.IntField("Süre (sn)", _data.TimeSeconds);
+            _data.Difficulty = Difficulties[LevelEditorSkin.PopupRow("Zorluk", diff, Difficulties)];
+            _data.TimeSeconds = LevelEditorSkin.IntRow("Süre (sn)", _data.TimeSeconds);
 
-            int w = EditorGUILayout.IntSlider("Genişlik", _data.Board.Width, 3, 12);
-            int h = EditorGUILayout.IntSlider("Yükseklik", _data.Board.Height, 3, 14);
+            int w = LevelEditorSkin.SliderRow("Genişlik", _data.Board.Width, 3, 12);
+            int h = LevelEditorSkin.SliderRow("Yükseklik", _data.Board.Height, 3, 14);
             if (EditorGUI.EndChangeCheck())
             {
                 if (w != _data.Board.Width || h != _data.Board.Height) ResizeBoard(w, h);
@@ -595,176 +657,19 @@ namespace BlockOut.Editor.LevelEditor
             }
         }
 
-        // ---------------- referans görsel ----------------
+        // Referans bindirmesi, bölüm tarayıcısı ve doğrulama raporu artık kendi
+        // sekmelerinde: bkz. .Tabs (Referans / Doğrula / Çözüm) ve .Board (tarayıcı doku).
 
-        void DrawReferenceSection()
-        {
-            _showReference = EditorGUILayout.Foldout(_showReference, "Referans Görsel", true);
-            if (!_showReference) return;
-
-            using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
-            {
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    _reference.Visible = EditorGUILayout.ToggleLeft("Göster", _reference.Visible,
-                        GUILayout.Width(70));
-                    _reference.Behind = EditorGUILayout.ToggleLeft(
-                        new GUIContent("Arkada", "Kapalıysa ızgaranın üstünde çizilir"),
-                        _reference.Behind, GUILayout.Width(70));
-                    if (GUILayout.Button("Görsel seç…"))
-                    {
-                        string path = EditorUtility.OpenFilePanel("Referans görsel", "", "png,jpg,jpeg");
-                        if (!string.IsNullOrEmpty(path)) _reference.SetImage(path);
-                    }
-                }
-
-                _reference.Opacity = EditorGUILayout.Slider("Opaklık", _reference.Opacity, 0f, 1f);
-                _reference.Scale = EditorGUILayout.Slider("Ölçek", _reference.Scale, 0.2f, 3f);
-                _reference.Offset = EditorGUILayout.Vector2Field("Kaydırma", _reference.Offset);
-
-                EditorGUILayout.Space(2);
-                EditorGUILayout.LabelField("Videodan kare çıkar", EditorStyles.miniBoldLabel);
-
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    EditorGUILayout.LabelField("ffmpeg", GUILayout.Width(48));
-                    EditorGUILayout.LabelField(
-                        string.IsNullOrEmpty(LevelReferenceOverlay.FfmpegPath)
-                            ? "(ayarlı değil)" : System.IO.Path.GetFileName(LevelReferenceOverlay.FfmpegPath),
-                        EditorStyles.miniLabel);
-                    if (GUILayout.Button("Seç…", GUILayout.Width(48)))
-                    {
-                        string path = EditorUtility.OpenFilePanel("ffmpeg çalıştırılabiliri", "", "exe");
-                        if (!string.IsNullOrEmpty(path)) LevelReferenceOverlay.FfmpegPath = path;
-                    }
-                }
-
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    EditorGUILayout.LabelField("Video", GUILayout.Width(48));
-                    EditorGUILayout.LabelField(
-                        string.IsNullOrEmpty(LevelReferenceOverlay.VideoPath)
-                            ? "(ayarlı değil)" : System.IO.Path.GetFileName(LevelReferenceOverlay.VideoPath),
-                        EditorStyles.miniLabel);
-                    if (GUILayout.Button("Seç…", GUILayout.Width(48)))
-                    {
-                        string path = EditorUtility.OpenFilePanel("Referans video", "", "mp4,mov,mkv");
-                        if (!string.IsNullOrEmpty(path)) LevelReferenceOverlay.VideoPath = path;
-                    }
-                }
-
-                using (new EditorGUILayout.HorizontalScope())
-                {
-                    _reference.Timestamp = EditorGUILayout.TextField("Zaman", _reference.Timestamp);
-                    if (GUILayout.Button("Kare al", GUILayout.Width(70)))
-                    {
-                        if (!_reference.ExtractFrame(out string error))
-                            EditorUtility.DisplayDialog("Kare alınamadı", error, "Tamam");
-                    }
-                }
-            }
-        }
-
-        // ---------------- bölüm tarayıcısı ----------------
-
-        void DrawBrowserSection()
-        {
-            _showBrowser = EditorGUILayout.Foldout(_showBrowser, "Bölümler", true);
-            if (!_showBrowser) return;
-
-            using (var scroll = new EditorGUILayout.ScrollViewScope(_browserScroll, GUILayout.Height(110)))
-            {
-                _browserScroll = scroll.scrollPosition;
-                foreach (var path in LevelPaths())
-                {
-                    bool current = path == _path;
-                    using (new EditorGUILayout.HorizontalScope())
-                    {
-                        if (GUILayout.Toggle(current, System.IO.Path.GetFileNameWithoutExtension(path),
-                                EditorStyles.miniButton) && !current)
-                        {
-                            if (ConfirmDiscard()) LoadFrom(path);
-                        }
-                    }
-                }
-            }
-        }
-
-        // ---------------- rapor & çözüm ----------------
-
-        void DrawReportSection()
-        {
-            _showMetrics = EditorGUILayout.Foldout(_showMetrics, "Doğrulama & Tasarım", true);
-            if (!_showMetrics || _report == null) return;
-
-            var style = new GUIStyle(EditorStyles.boldLabel);
-            style.normal.textColor = _report.Ok
-                ? new Color(0.4f, 0.85f, 0.45f) : new Color(1f, 0.5f, 0.4f);
-
-            var solution = _report.Solution;
-            EditorGUILayout.LabelField(_report.Ok
-                ? $"✓ Oynanabilir — {solution.Moves.Count} hamle"
-                : "⚠ Sorunlu bölüm", style);
-
-            if (_report.Ok && solution != null)
-            {
-                using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
-                {
-                    EditorGUILayout.LabelField(
-                        $"Açılış seçeneği: {solution.InitialOptions}   " +
-                        $"Zorunlu hamle: {solution.ForcedSteps}/{solution.Moves.Count}",
-                        EditorStyles.miniLabel);
-                    EditorGUILayout.LabelField(
-                        $"Ortalama seçenek: {solution.AverageOptions:0.0}   " +
-                        $"Tahmini süre: ~{_report.EstimatedSeconds} sn (verilen {_data.TimeSeconds})",
-                        EditorStyles.miniLabel);
-
-                    using (new EditorGUILayout.HorizontalScope())
-                    {
-                        _showSolution = EditorGUILayout.ToggleLeft("Çözümü göster", _showSolution,
-                            GUILayout.Width(110));
-                        using (new EditorGUI.DisabledScope(!_showSolution))
-                        {
-                            if (GUILayout.Button("◀", GUILayout.Width(26)))
-                                _playbackStep = Mathf.Max(-1, _playbackStep - 1);
-                            if (GUILayout.Button("▶", GUILayout.Width(26)))
-                                _playbackStep = Mathf.Min(solution.Moves.Count - 1, _playbackStep + 1);
-                            _playbackStep = Mathf.RoundToInt(GUILayout.HorizontalSlider(
-                                _playbackStep, -1, solution.Moves.Count - 1));
-                            GUILayout.Label(_playbackStep < 0 ? "tümü" : $"{_playbackStep + 1}",
-                                EditorStyles.miniLabel, GUILayout.Width(34));
-                        }
-                    }
-
-                    if (_showSolution && _playbackStep >= 0 && _playbackStep < solution.Moves.Count)
-                    {
-                        var move = solution.Moves[_playbackStep];
-                        EditorGUILayout.LabelField(
-                            $"{_playbackStep + 1}. {move.Color} → ({move.X},{move.Y}) " +
-                            $"{move.Outcome} · o anda {move.Options} seçenek",
-                            EditorStyles.miniLabel);
-                    }
-                }
-
-                DrawColorSummary();
-            }
-
-            var messages = new List<string>(_report.AllMessages);
-            if (messages.Count == 0) return;
-
-            using (var scroll = new EditorGUILayout.ScrollViewScope(_reportScroll, GUILayout.Height(90)))
-            {
-                _reportScroll = scroll.scrollPosition;
-                foreach (var line in messages)
-                    EditorGUILayout.LabelField("• " + line, EditorStyles.wordWrappedMiniLabel);
-            }
-        }
-
+        /// <summary>
+        /// Rengin tahtadaki katman sayısı ile o rengin kapı sayısını yan yana
+        /// koyar. Kapısı olmayan renk = çözülemeyen bölüm; bu tablo o hatayı
+        /// çözücüyü beklemeden gösterir.
+        /// </summary>
         void DrawColorSummary()
         {
             if (_report.BlockCounts.Count == 0) return;
 
-            EditorGUILayout.LabelField("Renk dağılımı", EditorStyles.miniBoldLabel);
+            EditorGUILayout.LabelField("Renk dağılımı", LevelEditorSkin.Value);
             foreach (var pair in _report.BlockCounts)
             {
                 _report.GateCounts.TryGetValue(pair.Key, out int gates);
@@ -774,7 +679,7 @@ namespace BlockOut.Editor.LevelEditor
                     LevelCanvasDrawer.Fill(swatch, ColorOf(pair.Key));
                     EditorGUILayout.LabelField(
                         $"{pair.Key}: {pair.Value} katman · {gates} kapı" + (gates == 0 ? "  ⚠" : ""),
-                        EditorStyles.miniLabel);
+                        LevelEditorSkin.RowLabel);
                 }
             }
         }
