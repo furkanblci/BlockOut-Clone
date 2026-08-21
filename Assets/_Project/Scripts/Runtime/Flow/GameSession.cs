@@ -584,7 +584,7 @@ namespace BlockOut.Runtime.Flow
             events.GateIceDecremented += _ => _haptics.Play(GameKit.Services.HapticStrength.Light);
             events.GateIceShattered += _ => _haptics.Play(GameKit.Services.HapticStrength.Medium);
             events.CurtainOpened    += _ => _haptics.Play(GameKit.Services.HapticStrength.Medium);
-            events.BoardCleared     += () => _haptics.Play(GameKit.Services.HapticStrength.Heavy);
+            events.BoardCleared     += _ => _haptics.Play(GameKit.Services.HapticStrength.Heavy);
         }
 
         /// <summary>
@@ -644,7 +644,9 @@ namespace BlockOut.Runtime.Flow
                 Timer.DebugSetRemaining(Timer.Total * ratio);
             }
 
-            OnBoardCleared();
+            // Hata ayıklama kancası paneli HEMEN açar: gösterilecek bir
+            // emilim yok, beklenecek bir şey de yok.
+            OnBoardCleared(0f);
         }
 
         /// <summary>
@@ -691,7 +693,38 @@ namespace BlockOut.Runtime.Flow
             FailLevel("devmenu");
         }
 
-        void OnBoardCleared()
+        void OnBoardCleared(float showDelay)
+        {
+            // DURUM HEMEN DEĞİŞİR, PANEL SONRA AÇILIR.
+            //
+            // `State = Won` sürükleme kontrolünü kapatıyor; onu geciktirmek
+            // oyuncunun boşalmış tahtada blok sürüklemeye çalışmasına izin
+            // verirdi. Beklenen şey kararın kendisi değil, GÖSTERİLMESİ.
+            State = GameState.Won;
+            Timer.Stop();
+
+            if (showDelay > 0.01f && isActiveAndEnabled)
+            {
+                StartCoroutine(ShowWinAfter(showDelay));
+                return;
+            }
+
+            FinishWin();
+        }
+
+        System.Collections.IEnumerator ShowWinAfter(float delay)
+        {
+            for (float t = 0f; t < delay; t += Time.deltaTime)
+            {
+                // Bekleme sırasında oyuncu duraklatır ya da bölümden çıkarsa
+                // panel açılmamalı.
+                if (State != GameState.Won) yield break;
+                yield return null;
+            }
+            FinishWin();
+        }
+
+        void FinishWin()
         {
             State = GameState.Won;
             Timer.Stop();

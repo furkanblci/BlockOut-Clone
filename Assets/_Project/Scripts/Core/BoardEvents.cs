@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace BlockOut.Core
 {
@@ -26,7 +26,12 @@ namespace BlockOut.Core
         public event Action<GateModel> GateAdvanced;
         public event Action<CurtainModel> CurtainDecremented;
         public event Action<CurtainModel> CurtainOpened;
-        public event Action BoardCleared;
+        /// <summary>
+        /// Tahta boşaldı. Parametre, zaferin GÖSTERİLMESİ için beklenmesi
+        /// gereken süre: son blok kapıdan geçerken ve kapı solarken paneli
+        /// açmak, oyuncuya son hamlesini hiç göstermiyordu.
+        /// </summary>
+        public event Action<float> BoardCleared;
 
         public void RaiseBlockAbsorbed(BlockModel block, GateModel gate) =>
             BlockAbsorbed?.Invoke(block, gate);
@@ -56,6 +61,7 @@ namespace BlockOut.Core
 
         public void RaiseBlockSpawned(BlockModel block) => BlockSpawned?.Invoke(block);
 
-        public void RaiseBoardCleared() => BoardCleared?.Invoke();
+        public void RaiseBoardCleared(float showDelay = 0f) =>
+            BoardCleared?.Invoke(showDelay);
     }
 }

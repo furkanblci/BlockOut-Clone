@@ -1421,157 +1421,115 @@ namespace BlockOut.Runtime.View
             for (float t = 0f; t < delay; t += Time.deltaTime)
                 yield return null;
 
-            // SÜRE VE EĞRİ YENİDEN ÖLÇÜLDÜ (11. tur) — bkz. AbsorbTiming.
-            // Eski değer 8 fps'te çıkarılmış ÜÇ kareden okunmuştu; 59,47
-            // fps'te on iki ara kare alınınca hem süre (0,375 → 0,387) hem
-            // de eğri (doğrusala yakın → belirgin yavaşlayan) düzeldi.
-            float duration = AbsorbTiming.GhostFade;
+            // KAPI GERÇEKTEN SAYDAMLAŞIYOR — RENGE YÜRÜMÜYOR.
+            //
+            // Kullanıcı: "fade bir şekilde kayboluyor ama o bittikten sonra
+            // tekrar destroy oluyor gibi, sanki resetleniyor."
+            //
+            // BULUNAN SEBEP: Sönme, barın rengini ÇERÇEVENİN rengine
+            // yürütüyordu; gerekçesi "kapının arkasında zaten çerçeve var"
+            // idi. Ama kapı barı çerçevenin içine, OYUN ALANININ üstüne
+            // taşıyor (pah payı + paralaks). O bandın arkasında çerçeve
+            // değil ZEMİN var ve zemin çok daha koyu. Sönme bittiğinde
+            // orada hâlâ çerçeve renginde parlak bir kutu duruyor, çizici
+            // kapatılınca o kutu bir anda yok oluyordu — yani solmanın
+            // ardından İKİNCİ, ani bir kayboluş.
+            //
+            // ÖLÇÜM (referans, turuncu kuzey kapısı, sönme bitmiş kare 1700,
+            // tek sütun): y=400 → (66,56,163) çerçevenin üstü, y=420 →
+            // (39,31,108) iç pah, y=430 → (27,21,84) ZEMİN. Her piksel
+            // arkasındaki şeye dönmüş; referans kapıyı boyamıyor,
+            // saydamlaştırıyor.
+            //
+            // DERS (bir geçişin hedefi sabit bir RENK değil, ARKADAKİ
+            // PİKSELDİR): "Arkasında ne var" sorusunun tek cevabı olduğunu
+            // varsaymak, cevabın değiştiği yerde sessizce yanlış oluyor.
+            // Ölçüm bir kez, arkasında çerçeve olan bir noktadan alınmıştı;
+            // o nokta iki modeli de doğruluyordu.
+            //
+            // Saydamlığın kendi tuzağı (nesnenin arka yüzeylerinin de
+            // görünmesi, mesh'in iç kenarlarının uzun çizgiler bırakması)
+            // `BlockOut/BrickFade`in iki geçişiyle çözülüyor.
+            var fadeShader = Shader.Find("BlockOut/BrickFade");
 
-            // RENK DEĞİŞMİYOR, YALNIZ ALFA İNİYOR.
-            //
-            // ÖLÇÜM DOĞRULADI: referansta ara kare (150,48,95); kapının
-            // kırmızısı (238,45,46) ile çerçevenin moru (66,55,158) arasında
-            // %51'lik DÜZ bir karışım (hesap: R 150 → t=0.51, o t ile
-            // G=50 ölçülen 48, B=103 ölçülen 95). Yani referans kapıyı başka
-            // bir renge boyamıyor; sadece saydamlaştırıyor ve altındaki
-            // çerçeve kendiliğinden görünüyor.
-            //
-            // DERS (bir kaybolmayı iki değişkenle anlatmaya çalışma): Renk ve
-            // alfa birlikte yürüyünce ara karelerde kapı ne kendi rengi ne de
-            // çerçeve oluyor — "solmuş" değil "kirlenmiş" görünüyordu.
-            // `ghostMaterial` artık yalnız çağrı uyumluluğu için duruyor.
-            // SAYDAMLIK YOK — RENK ÇERÇEVEYE DOĞRU YÜRÜYOR (5. tur).
-            //
-            // Kullanıcı: "bazen kapı kaybolurken üzerinde uzun çizgi
-            // işaretleri görüyoruz."
-            //
-            // TEŞHİS: Sönme `ViewKit.Translucent` kullanıyordu; o materyal
-            // derinliğe YAZMAZ (`_ZWrite = 0`, saydamların olması gerektiği
-            // gibi). Kapı yarı saydamken prizmanın üst kapağı, pahı ve yan
-            // duvarı ekranda üst üste harmanlanıyor; iki kez boyanan yerler
-            // daha koyu çıkıyor ve mesh'in iç kenarları UZUN ÇİZGİLER olarak
-            // görünüyor.
-            //
-            // DERS (saydamlık, nesnenin KENDİ içini de gösterir): "Yavaşça
-            // kaybolsun" denince ilk akla gelen alfayı indirmek. Ama alfa,
-            // nesnenin arkasındakini gösterirken kendi arka yüzeylerini de
-            // gösterir. İçi dolu bir cismin yarı saydam hâli, cismin
-            // topolojisini ele verir.
-            //
-            // ÇÖZÜM ölçümden geliyor: referansın ara karesi (150,48,95),
-            // kapı kırmızısı ile çerçeve moru arasında %51'lik düz bir
-            // karışım. Kapının ARKASINDA zaten çerçeve var; dolayısıyla
-            // "alfayı sıfıra indirmek" ile "rengi çerçeve rengine yürütmek"
-            // ekranda AYNI pikselleri üretiyor — ama ikincisi opak, yani
-            // çizgi üretmiyor.
-            Color from = ReadColor(_renderer.sharedMaterial);
-            var visualCfg = VisualSettings.Current;
-            Color to = visualCfg != null
-                ? visualCfg.frameColor
-                : new Color(0.30f, 0.26f, 0.58f);
-            to.a = from.a;
+            var fading = new List<Material>();
+            var faded = new List<MeshRenderer>();
 
-            // Kendi örneğimizde çalışıyoruz: paylaşılan materyali boyamak
-            // aynı renkteki BÜTÜN kapıları söndürürdü.
-            var fading = ViewKit.CopyFor(_renderer.sharedMaterial, "GateFade");
-            _renderer.sharedMaterial = fading;
-
-            var arrowRenderer = _arrow != null ? _arrow.GetComponent<MeshRenderer>() : null;
-            Material arrowFading = null;
-            Color arrowFrom = default, arrowTo = default;
-            if (arrowRenderer != null)
+            void Prepare(MeshRenderer renderer)
             {
-                arrowFrom = ReadColor(arrowRenderer.sharedMaterial);
-                arrowTo = to;
-                arrowTo.a = arrowFrom.a;
-                arrowFading = ViewKit.CopyFor(arrowRenderer.sharedMaterial, "ArrowFade");
-                arrowRenderer.sharedMaterial = arrowFading;
+                if (renderer == null || renderer.sharedMaterial == null) return;
+                var copy = FadeCopy(renderer.sharedMaterial, fadeShader);
+                if (copy == null) return;
+                renderer.sharedMaterial = copy;
+                fading.Add(copy);
+                faded.Add(renderer);
             }
 
-            // OKUN KOYU HALKASI DA SÖNMELİ (6. tur, kullanıcı: "kapının
-            // gidişi, kayboluşu daha smooth olsun; bizde bir bozulma var").
-            //
-            // Halka `_arrow`ın çocuğu; sönme onu boyamıyordu. Bar ve ok
-            // çerçeve rengine yürürken halka koyu kalıyor, sonunda hepsi bir
-            // anda kapanıyordu — geçişin son karesinde ekranda ok biçiminde
-            // koyu bir leke beliriyordu. Kullanıcının gördüğü "bozulma" buydu.
-            var ringRenderers = new List<MeshRenderer>();
-            var ringMaterials = new List<Material>();
-            var ringFrom = new List<Color>();
+            // KAPININ AĞACININ TAMAMI, ada göre değil (bkz. aşağıdaki not).
+            foreach (var renderer in GetComponentsInChildren<MeshRenderer>(true))
+                if (renderer.enabled) Prepare(renderer);
 
-            // Duvarın iç yüzündeki şerit de barla birlikte solmalı: ağaçta
-            // olduğu için sonunda kapanıyor ama solma boyunca rengi
-            // değişmezse geçişin ortasında yalnız o parlak kalıyor.
-            if (_wallFace != null)
-            {
-                var faceCopy = ViewKit.CopyFor(_wallFace.sharedMaterial, "WallFaceFade");
-                ringFrom.Add(ReadColor(_wallFace.sharedMaterial));
-                _wallFace.sharedMaterial = faceCopy;
-                ringRenderers.Add(_wallFace);
-                ringMaterials.Add(faceCopy);
-            }
-
+            // Ok ve onun koyu halkası kapının ağacında değil — `CreateArrow`
+            // onları tahta köküne bağlıyor.
             if (_arrow != null)
-                foreach (var r in _arrow.GetComponentsInChildren<MeshRenderer>(true))
-                {
-                    if (arrowRenderer != null && r == arrowRenderer) continue;
-                    var copy = ViewKit.CopyFor(r.sharedMaterial, "RingFade");
-                    ringFrom.Add(ReadColor(r.sharedMaterial));
-                    r.sharedMaterial = copy;
-                    ringRenderers.Add(r);
-                    ringMaterials.Add(copy);
-                }
+                foreach (var renderer in _arrow.GetComponentsInChildren<MeshRenderer>(true))
+                    if (renderer.enabled) Prepare(renderer);
 
-            // KAPI TAMAMEN SAYDAMLAŞIYOR (4. tur, G22).
-            //
-            // Kullanıcı: "Kapı kaybolma efekti — bizde soluklaşıyor;
-            // orijinalde tamamen transparan olarak kayboluyor."
-            //
-            // DERS (yarım kalmış bir geçiş, geçiş değil ARIZA gibi okunur):
-            // Kapı ghost rengine solup ORADA KALIYORDU. Ekranda "rengi
-            // atmış bir kapı" duruyor ve oyuncu onu hâlâ kullanılabilir
-            // sanıyordu. Kapının işi bittiyse ekranda yeri de bitmeli.
-            //
-            // Gizlemenin eskiden kaçınılan bedeli "duvarda boşluk kalması"ydı;
-            // bu doğru değil: `BoardFrameMeshBuilder` çerçeveyi KESİNTİSİZ bir
-            // halka olarak örüyor, kapı yalnız onun üstünde duruyor. Kapı
-            // saydamlaşınca altından çerçevenin kendisi çıkıyor — referansta
-            // da görünen bu.
+            float duration = AbsorbTiming.GhostFade;
             for (float t = 0f; t < duration; t += Time.deltaTime)
             {
-                float e = AbsorbTiming.GhostCurve(t / duration);
-                Paint(fading, Color.Lerp(from, to, e));
-                if (arrowFading != null)
-                    Paint(arrowFading, Color.Lerp(arrowFrom, arrowTo, e));
-                for (int i = 0; i < ringMaterials.Count; i++)
-                    Paint(ringMaterials[i], Color.Lerp(ringFrom[i], to, e));
+                float visible = 1f - AbsorbTiming.GhostCurve(t / duration);
+                foreach (var material in fading)
+                    if (material != null) material.SetFloat("_Fade", visible);
                 yield return null;
             }
 
             // KAPININ ALTINDAKİ HER ŞEY KAPANIYOR, YALNIZ BAR DEĞİL.
             //
-            // Eskiden yalnız `_renderer` ve ok kapatılıyordu. Kapıya sonradan
-            // eklenen bir çocuk (bkz. kaldırılan koyu kenar) o listede
-            // olmadığı için sönmüyor ve ekranda gri bir dikdörtgen olarak
-            // kalıyordu.
-            //
-            // DERS (ada göre değil, AĞACA göre kapat): "Şu iki nesneyi
-            // gizle" diyen kod, üçüncü nesne eklendiği gün sessizce yanlış
-            // olur. `GetComponentsInChildren` o listeyi kendi tutuyor.
+            // DERS (ada göre değil, AĞACA göre kapat): "Şu iki nesneyi gizle"
+            // diyen kod, üçüncü nesne eklendiği gün sessizce yanlış olur.
+            foreach (var renderer in faded)
+                if (renderer != null) renderer.enabled = false;
             foreach (var renderer in GetComponentsInChildren<MeshRenderer>(true))
                 renderer.enabled = false;
-            // Ok ve ONUN ÇOCUKLARI (koyu halka) kapının ağacında değil —
-            // `CreateArrow` onları tahta köküne bağlıyor. Ada göre değil,
-            // OKUN ağacına göre kapatılıyorlar.
             if (_arrow != null)
                 foreach (var renderer in _arrow.GetComponentsInChildren<MeshRenderer>(true))
                     renderer.enabled = false;
 
-            if (fading != null) Destroy(fading);
-            if (arrowFading != null) Destroy(arrowFading);
-            foreach (var m in ringMaterials) if (m != null) Destroy(m);
+            foreach (var material in fading)
+                if (material != null) Destroy(material);
             _fade = null;
         }
+
+        /// <summary>
+        /// Bir materyalin SÖNEBİLEN kopyası: aynı renk, aynı ışıklandırma,
+        /// üstüne `_Fade`.
+        ///
+        /// Kaynak tuğla shader'ı değilse (okun düz renkli süsleri gibi)
+        /// düz ışıklandırma yazılıyor — `_Ambient = 1` ile `BrickFade`
+        /// tam olarak Unlit'in çizdiğini çiziyor.
+        /// </summary>
+        static Material FadeCopy(Material source, Shader fadeShader)
+        {
+            if (fadeShader == null) return null;
+
+            var copy = new Material(fadeShader) { name = source.name + "_Fade" };
+            copy.SetColor("_BaseColor", ReadColor(source));
+
+            bool brick = source.shader != null && source.shader.name == "BlockOut/Brick";
+            copy.SetFloat("_Ambient", brick ? Read(source, "_Ambient", 0.62f) : 1f);
+            copy.SetFloat("_Specular", brick ? Read(source, "_Specular", 0.85f) : 0f);
+            copy.SetFloat("_RimStrength", brick ? Read(source, "_RimStrength", 0.12f) : 0f);
+            copy.SetFloat("_Gloss", brick ? Read(source, "_Gloss", 42f) : 42f);
+            copy.SetFloat("_Saturation", brick ? Read(source, "_Saturation", 1.18f) : 1f);
+            copy.SetFloat("_Fade", 1f);
+            return copy;
+        }
+
+        static float Read(Material material, string property, float fallback) =>
+            material != null && material.HasProperty(property)
+                ? material.GetFloat(property)
+                : fallback;
 
         static void Paint(Material material, Color color)
         {

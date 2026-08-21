@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using BlockOut.Core;
 using GameKit.Services;
 using UnityEngine;
@@ -154,7 +154,7 @@ namespace BlockOut.Runtime.Services
             events.IceShattered     += b => _player.Play(Clip(Sfx.IceCrack), 0.55f);
             events.GateIceShattered += g => _player.Play(Clip(Sfx.IceCrack), 0.55f);
             events.CurtainOpened    += c => _player.Play(Clip(Sfx.CurtainOpen), 0.55f);
-            events.BoardCleared     += () => _player.Play(Clip(Sfx.Win), 0.7f);
+            events.BoardCleared     += _ => _player.Play(Clip(Sfx.Win), 0.7f);
 
             // Buraya kadarı zaten vardı. Aşağısı SESSİZDİ — olay yayınlanıyordu
             // ama kimse dinlemiyordu. Referans oyunda hepsinin sesi var; sayaç

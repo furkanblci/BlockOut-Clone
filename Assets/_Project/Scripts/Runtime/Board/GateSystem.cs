@@ -210,7 +210,9 @@ namespace BlockOut.Runtime.Board
             RecomputeGateStates(
                 FX.AbsorbTiming.PreRoll + duration + FX.AbsorbTiming.GhostDelay);
 
-            CheckCleared();
+            // Zafer, koreografi bitip kapı da solduktan sonra gösteriliyor.
+            CheckCleared(FX.AbsorbTiming.PreRoll + duration +
+                         FX.AbsorbTiming.GhostDelay + FX.AbsorbTiming.GhostFade);
         }
 
         /// <summary>
@@ -226,13 +228,35 @@ namespace BlockOut.Runtime.Board
         /// Bir kez tetiklenir: aynı karede iki blok birden silinirse olay
         /// ikinci kez atılmasın.
         /// </summary>
-        public void CheckCleared()
+        public void CheckCleared() => CheckCleared(0f);
+
+        /// <param name="showDelay">
+        /// Zafer panelinin açılması için beklenecek süre.
+        ///
+        /// Kullanıcı: "son kapıya soktuğun bloğu görmeden level bitiyor."
+        ///
+        /// BULUNAN SEBEP: `_level.RemoveBlock` emilimin BAŞINDA çağrılıyor
+        /// (mantık için doğru: blok o an tahtadan çıkmış sayılır), yani son
+        /// blok daha kapıya girerken tahta mantıksal olarak boşalıyor ve
+        /// panel açılıyordu. Blok kapıdan geçerken ekranda panel vardı.
+        ///
+        /// ÖLÇÜM (referans, 4. bölümün son mavi bloğu): blok kare 1746'da
+        /// bitti, bölüm geçişi kare 1796'da başladı = 50 kare = 0,84 sn.
+        /// Aradaki sürede kapı soluyor (1775-1794) — yani referans, zaferi
+        /// KAPI SOLDUKTAN SONRA gösteriyor.
+        ///
+        /// DERS (mantığın bittiği yer, gösterinin bittiği yer değildir):
+        /// Model "tahta boş" dediğinde ekranda hâlâ oynanacak yarım saniye
+        /// var. İkisini aynı karede bağlamak, oyuncunun kendi son hamlesini
+        /// görmesini engelliyordu.
+        /// </param>
+        public void CheckCleared(float showDelay)
         {
             if (_cleared) return;
             if (_level.Blocks.Count > 0 || _level.HasPendingContent()) return;
 
             _cleared = true;
-            _events.RaiseBoardCleared();
+            _events.RaiseBoardCleared(showDelay);
         }
 
         bool _cleared;
