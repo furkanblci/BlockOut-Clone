@@ -445,6 +445,7 @@ namespace BlockOut.Runtime.View
             view._colorMaterial = colorMaterial;
             view._arrow = CreateArrow(parent, model, center, palette);
             view.BuildMouthLight(barLength, model, outwardDir, palette);
+            view.BuildWallFace(space, model, barMin, barMax, colorMaterial);
 
             if (model.IsIced)
             {
@@ -948,6 +949,67 @@ namespace BlockOut.Runtime.View
         /// olduğu için bloğun üst yüzeyiyle kapı arasındaki dar şeridi ancak
         /// ikisinin de üstünde çizilen bir katman gösterebiliyor.
         /// </summary>
+        /// <summary>
+        /// DUVARIN İÇ YÜZÜ, KAPININ AÇIKLIĞI BOYUNCA KAPI RENGİNDE (10. tur).
+        ///
+        /// Kullanıcı: "kapının altı boşken o küçük alanda da kapının modeli
+        /// olması gerekiyor... ama blok geldiğinde blok önde gözükecek."
+        ///
+        /// Yani aynı şerit iki şey olmalı: BOŞKEN kapı, DOLUYKEN bloğun
+        /// arkası. Bunu yükseklikle çözmek mümkün değil — çerçeve 0,80,
+        /// bloğun gövdesi de 0,80; araya bir kat sığmıyor. Kapı barını
+        /// oraya uzatmak da olmuyor, çünkü bar bloktan yüksek olmak zorunda
+        /// (yoksa duran blok kapıyı örter) ve o zaman şeridi de örtüyor.
+        ///
+        /// Çözüm şeridi kapının değil DUVARIN parçası yapmak: duvarın iç
+        /// yüzüne, tam kapının açıklığı boyunca, kapı renginde ince bir
+        /// yüzey. Yüksekliği duvarınkiyle aynı (0…frameHeight), yani:
+        ///   • boşken görünüyor — arkasında yalnız duvar var,
+        ///   • blok gelince blok DAHA YAKIN (z küçük) olduğu için örtüyor.
+        /// Derinlik testi işi kendiliğinden yapıyor, sıraya karışmak
+        /// gerekmiyor.
+        ///
+        /// DERS (bir şeyin iki farklı davranması gerekiyorsa, onu doğru
+        /// NESNENİN parçası yap): Şerit "kapının uzantısı" diye
+        /// düşünüldüğü sürece kapının kurallarına (bloktan yüksek olmak)
+        /// tabiydi ve istenen davranış imkânsızdı. Duvarın parçası olunca
+        /// duvarın kurallarına tabi oluyor ve istenen davranış bedava
+        /// geliyor.
+        /// </summary>
+        void BuildWallFace(BoardSpace space, GateModel model,
+                           float barMin, float barMax, Material colorMaterial)
+        {
+            // Yalnız KUZEY duvarın iç yüzü kameraya dönük; diğer üçünde
+            // görünecek bir yüzey yok (bkz. paylardaki aynı gerekçe).
+            if (model.Side != Side.North || VisualSettings.Current == null) return;
+
+            float height = VisualSettings.Current.frameHeight;
+            var face = ViewKit.CreateShape(PrimitiveType.Cube, "WallFace");
+            face.transform.SetParent(transform.parent, worldPositionStays: false);
+
+            float spanCenter = (barMin + barMax) * 0.5f;
+            float length = Mathf.Max(0.25f, barMax - barMin);
+
+            // Yüzey oyun alanının sınırında, duvarın içine KIL PAYI gömülü:
+            // duvarla aynı düzlemde olursa derinlik tamponu titrer.
+            const float sink = 0.004f;
+            var center = space.CornerToWorld(spanCenter, model.EdgeCoord, 0f);
+            center.y = height * 0.5f;
+            center.z += model.OutwardSign * sink;
+
+            face.transform.position = center;
+            face.transform.localScale = new Vector3(length, height, 0.02f);
+
+            var renderer = face.GetComponent<MeshRenderer>();
+            renderer.sharedMaterial = colorMaterial;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            _wallFace = renderer;
+        }
+
+        /// <summary>Duvarın iç yüzündeki kapı rengi şerit; renk değişince o da değişir.</summary>
+        MeshRenderer _wallFace;
+
         void BuildMouthLight(float barLength, GateModel model, Vector3 outwardDir,
                              BlockOut.Runtime.Config.ColorPaletteSO palette)
         {
