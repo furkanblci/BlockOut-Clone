@@ -211,8 +211,11 @@ namespace BlockOut.Runtime.Board
                 FX.AbsorbTiming.PreRoll + duration + FX.AbsorbTiming.GhostDelay);
 
             // Zafer, koreografi bitip kapı da solduktan sonra gösteriliyor.
+            // Pay: sönme rutini `t < duration` ile bittiği için son kare tam
+            // sınırda kalabiliyor; panel, kapı EKRANDAN GİTTİKTEN sonra
+            // açılsın diye bir kare fazlası bekleniyor.
             CheckCleared(FX.AbsorbTiming.PreRoll + duration +
-                         FX.AbsorbTiming.GhostDelay + FX.AbsorbTiming.GhostFade);
+                         FX.AbsorbTiming.GhostDelay + FX.AbsorbTiming.GhostFade + 0.06f);
         }
 
         /// <summary>

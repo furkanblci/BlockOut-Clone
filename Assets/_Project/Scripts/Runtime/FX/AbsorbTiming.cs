@@ -85,13 +85,18 @@ namespace BlockOut.Runtime.FX
         /// başladığıydı. Başka bir hareketin içine gömülen geçiş, süresi ne
         /// olursa olsun "bir anda oldu" diye okunuyor.
         /// </summary>
-        public const float GhostDelay = 0.49f;
+        /// KISALDI (kullanıcı: "bir tık hızlandırabiliriz, çok yavaş
+        /// olmuş"). Referansın 0,49'u ölçümdü ama orada bekleme sırasında
+        /// hâlâ küpler uçuşuyor; bizim küp bulutumuz daha erken duruyor ve
+        /// arada ölü bir bekleme kalıyordu.
+        public const float GhostDelay = 0.26f;
 
         /// <summary>
         /// Kapının solma süresi — ÖLÇÜM: turuncu kapı kare 1673'te (181,128,62)
         /// iken 1696'da çerçevenin (67,57,163) rengine indi = 23 kare = 0,387 sn.
+        /// Kullanıcı isteğiyle 0,26'ya çekildi; eğri aynı kaldı.
         /// </summary>
-        public const float GhostFade = 0.387f;
+        public const float GhostFade = 0.26f;
 
         /// <summary>
         /// Solma eğrisi: başta hızlı, sonunda yavaş.

@@ -290,7 +290,6 @@ namespace BlockOut.Runtime.UI
             // parçası" ile "başlığın parçası" arasındaki fark, kaydırınca
             // ortaya çıkıyor. Bu levha görsel olarak tenteye ait; içerikte
             // durmasının tek sebebi orada kurulmuş olmasıydı.
-            BuildAwningShade(root);
 
             // Tente EN SON kurulur: kardeş sırası çizim sırasıdır, içeriğin
             // üstünde kalması gereken tek şey o.
@@ -300,6 +299,49 @@ namespace BlockOut.Runtime.UI
 
         // ---- Tente ---------------------------------------------------------
 
+        // TENTENİN ARKASINDAKİ LEVHA VE GÖLGESİ KALDIRILDI.
+        // <summary>
+        // Tentenin arkasındaki koyu lacivert levha ve altındaki yumuşak
+        // gölge — BAŞLIĞIN parçası, içeriğin değil (8. turda taşındı).
+        //
+        // Levha festonun çentiklerini arkadan kapatıyor, gölge de tentenin
+        // içeriğe düşen izini veriyor. İkisi de sabit: içerik altlarından
+        // akıp gidiyor.
+        // </summary>
+            // LEVHA DA KALDIRILDI (11. tur).
+            //
+            // Kullanıcı: "mağazada brandanın altında düz mavi arka plan
+            // geliyor, onu kaldır."
+            //
+            // Levha tentenin festonlarını ARKADAN kapatmak için vardı ve
+            // `#062387` düz bir dikdörtgendi. Tentenin kendi dokusu zaten
+            // opak; kapattığı tek şey festonların arasındaki çentiklerdi ve
+            // ekranda göze çarpan şey o çentikler değil, levhanın kendisi
+            // oldu — tentenin altında duran düz mavi bir bant.
+            //
+            // DERS (arkadaki katman, önündeki KADAR görünür): "Yalnız
+            // çentiklerden görünür" diye eklenen bir levha, çentiklerden
+            // görünenden fazlasını gösteriyorsa artık arka plan değil,
+            // ekranın bir öğesidir.
+            // TENTENİN GÖLGESİ KALDIRILDI (8. tur).
+            //
+            // Kullanıcı: "şurada gölge var, Special Offers'ın üstünde
+            // kalıyor ama alakası yok, normalde olmaması gereken bir şey —
+            // o mavi kısmın gölgesi, onu kaldıralım."
+            //
+            // 34 birimlik bu koyu düşüş, levhanın alt kenarını yumuşatmak
+            // için konmuştu. Ama levha zaten tentenin ARKASINDA; görünen tek
+            // yeri festonun çentikleri. Gölge ise tentenin altından taşıp
+            // turuncu "Special Offers" kurdelesinin üstüne düşüyordu — yani
+            // yumuşattığı kenar görünmüyor, kendisi görünüyordu.
+            //
+            // Referansta tentenin altında gölge yok: feston doğrudan içeriğe
+            // değiyor.
+            //
+            // DERS (bir öğe neyi çözdüğünü GÖSTEREBİLMELİ): "Sert kesimi
+            // yumuşatsın" diye eklenen bir katman, yumuşattığı kesimin
+            // görünmediği bir yerde duruyorsa yalnız kendi varlığını
+            // gösteriyordur.
         void BuildAwning(Transform root)
         {
             // Çentik şeridi: tentenin üstünde kalan güvenli alan dışı boşluk.
@@ -381,8 +423,6 @@ namespace BlockOut.Runtime.UI
             // üstünde asılı kalıyor ve "bizimle geliyor" gibi okunuyor.
             // Bir katmanın sabit mi akan mı olduğunu, DURDUĞU yere değil,
             // ekran hareket ederken ne yaptığına bakarak seçmek gerekiyor.
-            // Kurulumu <see cref="BuildAwningShade"/> yapıyor — çağrıldığı
-            // yer `BuildContent`'in SONU (kardeş sırası = çizim sırası).
 
             var bar = Row("Awning", root, 0f, AwningH);
 
@@ -512,41 +552,6 @@ namespace BlockOut.Runtime.UI
             return y;
         }
 
-        /// <summary>
-        /// Tentenin arkasındaki koyu lacivert levha ve altındaki yumuşak
-        /// gölge — BAŞLIĞIN parçası, içeriğin değil (8. turda taşındı).
-        ///
-        /// Levha festonun çentiklerini arkadan kapatıyor, gölge de tentenin
-        /// içeriğe düşen izini veriyor. İkisi de sabit: içerik altlarından
-        /// akıp gidiyor.
-        /// </summary>
-        static void BuildAwningShade(Transform content)
-        {
-            var shade = Row("AwningShade", content, 0f, AwningH);
-            var shadeImage = shade.gameObject.AddComponent<Image>();
-            shadeImage.color = new Color(0.024f, 0.137f, 0.529f);   // #062387
-            shadeImage.raycastTarget = false;
-
-            // TENTENİN GÖLGESİ KALDIRILDI (8. tur).
-            //
-            // Kullanıcı: "şurada gölge var, Special Offers'ın üstünde
-            // kalıyor ama alakası yok, normalde olmaması gereken bir şey —
-            // o mavi kısmın gölgesi, onu kaldıralım."
-            //
-            // 34 birimlik bu koyu düşüş, levhanın alt kenarını yumuşatmak
-            // için konmuştu. Ama levha zaten tentenin ARKASINDA; görünen tek
-            // yeri festonun çentikleri. Gölge ise tentenin altından taşıp
-            // turuncu "Special Offers" kurdelesinin üstüne düşüyordu — yani
-            // yumuşattığı kenar görünmüyor, kendisi görünüyordu.
-            //
-            // Referansta tentenin altında gölge yok: feston doğrudan içeriğe
-            // değiyor.
-            //
-            // DERS (bir öğe neyi çözdüğünü GÖSTEREBİLMELİ): "Sert kesimi
-            // yumuşatsın" diye eklenen bir katman, yumuşattığı kesimin
-            // görünmediği bir yerde duruyorsa yalnız kendi varlığını
-            // gösteriyordur.
-        }
 
         /// <summary>
         /// Bölüm zemini. Kardeş sırasında EN BAŞA alınır: sonradan eklenen
