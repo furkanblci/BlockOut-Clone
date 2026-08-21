@@ -309,8 +309,27 @@ namespace BlockOut.Runtime.View
         static float OutwardOffset(GateModel model) => VisualSettings.Current == null ? 0.275f
             : MatchesFrame
                 ? (VisualSettings.Current.frameThickness + FrameOverlapBias
-                   - InwardOverhang(model)) * 0.5f
+                   - InwardOverhang(model)) * 0.5f - SouthShift(model)
                 : VisualSettings.Current.gateOutwardOffset;
+
+        /// <summary>
+        /// GÜNEY KAPISI BİR TIK İÇERİ (10. tur).
+        ///
+        /// Kullanıcı: "alt kapılarda çok ufak bir pay arkada boşluk oluyor
+        /// ve önden bir tık fazla uzun görünüyor."
+        ///
+        /// İki belirti tek hareketle çözülüyor: kapıyı bütün olarak içeri
+        /// kaydırmak arkasını uzatıp önünü kısaltıyor. Derinliği
+        /// değiştirmiyor, yani duvar bandını kaplama oranı aynı kalıyor —
+        /// yalnız bandın içindeki yeri düzeliyor.
+        ///
+        /// Yalnız güneye uygulanıyor; kuzey, doğu ve batı ölçümle
+        /// doğrulanmış durumda ve onlara dokunulmuyor.
+        /// </summary>
+        const float SouthInsetShift = 0.03f;
+
+        static float SouthShift(GateModel model) =>
+            model.Side == Side.South ? SouthInsetShift : 0f;
 
         MeshRenderer _renderer;
         Material _colorMaterial;
@@ -984,8 +1003,17 @@ namespace BlockOut.Runtime.View
             if (model.Side != Side.North || VisualSettings.Current == null) return;
 
             float height = VisualSettings.Current.frameHeight;
+            // ŞERİT KAPININ ÇOCUĞU OLMAK ZORUNDA.
+            //
+            // İlk hâlinde tahta köküne bağlanmıştı ve kapı sönüp kapanınca
+            // ekranda kırmızı bir şerit olarak KALIYORDU. Bu dosyanın kendi
+            // notu bunu zaten yazıyor: "ada göre değil, AĞACA göre kapat" —
+            // sönme rutini `GetComponentsInChildren` ile kapının ağacını
+            // kapatıyor, ağacın dışındaki hiçbir şeyi göremiyor. Uyarıyı
+            // okuyup yine aynı tuzağa düşmek, notun neden yazıldığını
+            // gösteriyor.
             var face = ViewKit.CreateShape(PrimitiveType.Cube, "WallFace");
-            face.transform.SetParent(transform.parent, worldPositionStays: false);
+            face.transform.SetParent(transform, worldPositionStays: false);
 
             float spanCenter = (barMin + barMax) * 0.5f;
             float length = Mathf.Max(0.25f, barMax - barMin);
@@ -1220,6 +1248,19 @@ namespace BlockOut.Runtime.View
             var ringRenderers = new List<MeshRenderer>();
             var ringMaterials = new List<Material>();
             var ringFrom = new List<Color>();
+
+            // Duvarın iç yüzündeki şerit de barla birlikte solmalı: ağaçta
+            // olduğu için sonunda kapanıyor ama solma boyunca rengi
+            // değişmezse geçişin ortasında yalnız o parlak kalıyor.
+            if (_wallFace != null)
+            {
+                var faceCopy = ViewKit.CopyFor(_wallFace.sharedMaterial, "WallFaceFade");
+                ringFrom.Add(ReadColor(_wallFace.sharedMaterial));
+                _wallFace.sharedMaterial = faceCopy;
+                ringRenderers.Add(_wallFace);
+                ringMaterials.Add(faceCopy);
+            }
+
             if (_arrow != null)
                 foreach (var r in _arrow.GetComponentsInChildren<MeshRenderer>(true))
                 {
