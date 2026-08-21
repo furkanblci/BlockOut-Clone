@@ -956,9 +956,132 @@ namespace BlockOut.Runtime.View
         /// </summary>
         public void PlayAbsorbFlash()
         {
+            // `_model` serileşmeyen bir alan: oynatma sırasında derleme
+            // yapılırsa nesne ayakta kalıyor ama alan null'a düşüyor.
+            // Oyunda olmaz, düzenleyicide olur — animasyonun oradan
+            // patlamasına gerek yok.
+            if (_model != null)
+            {
+                if (_recoil != null) StopCoroutine(_recoil);
+                _recoil = StartCoroutine(Recoil());
+            }
+
             if (_mouthLight == null) return;
             if (_mouthFade != null) StopCoroutine(_mouthFade);
             _mouthFade = StartCoroutine(FlashMouth());
+        }
+
+        Coroutine _recoil;
+        Vector3 _restPosition;
+        bool _restCaptured;
+
+        // ================= KAPININ GERİ TEPMESİ =================
+        //
+        // Kullanıcı: "orjinal oyunda kapılardan blok geçtiğinde kapı
+        // sallanıyor, arkaya gidiyor çok azıcık — hissiyatı çok artıran bir
+        // şey."
+        //
+        // ÖLÇÜM (`Levels`, 59,47 fps ham kareler; kapının BEYAZ OKUNUN ağırlık
+        // merkezi izlendi — bar yeşil olduğu için kapıya giren yeşil blokla
+        // karışıyordu, ok karışmıyor):
+        //   kare 233   0,00
+        //   kare 241  −1,96
+        //   kare 249  −4,97   ← tepe
+        //   kare 257  −0,05   ← yerine döndü
+        //   kare 264  −1,87   ← İKİNCİ salınım
+        //   kare 268   0,00   ← durdu
+        //
+        // Yani: 5 piksel DIŞARI (hücre 74 → 0,068 hücre), tepeye 0,27 sn,
+        // sonra sönümlü salınım. İkinci tepe ilkinin 0,37 katı, iki tepe
+        // arası 15 kare = 0,25 sn.
+        //
+        // DERS (hareketli bir şeyi ölçerken KARIŞMAYAN bir işaret seç):
+        // Kapının kendi kenarını izlemek işe yaramadı — içine giren blok
+        // aynı renkte olduğu için kenar kayboluyordu ve ölçüm 23 piksellik
+        // sıçramalar veriyordu. Okun beyazı sahnede tek; onu izleyince
+        // sinyal bir anda temizlendi.
+
+        /// <summary>Tepe sapma (hücre) — ÖLÇÜM: 5 piksel / 74.</summary>
+        const float RecoilAmount = 0.068f;
+        /// <summary>Tepeye çıkış — ÖLÇÜM: kare 233→249, 0,27 sn.</summary>
+        const float RecoilRise = 0.27f;
+        /// <summary>Salınım süresi — ÖLÇÜM: iki tepe arası 15 kare.</summary>
+        const float RecoilPeriod = 0.25f;
+        /// <summary>Tepeden tepeye sönüm — ÖLÇÜM: 1,87 / 4,97.</summary>
+        const float RecoilDecay = 0.37f;
+
+        System.Collections.IEnumerator Recoil()
+        {
+            if (!_restCaptured)
+            {
+                _restPosition = transform.position;
+                // OK DA KAPIYLA BİRLİKTE GİTMELİ.
+                //
+                // `CreateArrow` oku tahtanın köküne bağlıyor (kapının
+                // ağacında değil). Referansta hareketi ÖLÇERKEN izlediğim
+                // işaret zaten oktu — yani orada ok kapıyla birlikte
+                // gidiyor. Burada da elle taşınıyor.
+                if (_arrow != null) _restArrow = _arrow.transform.position;
+                _restCaptured = true;
+            }
+
+            // Dışarı yön: kapının kenarından tahtanın DIŞINA.
+            Vector3 outward = _model.EdgeHorizontal
+                ? new Vector3(0f, 0f, -_model.OutwardSign)
+                : new Vector3(_model.OutwardSign, 0f, 0f);
+
+            // 1) Blok içeri girerken kapı yavaşça geri itiliyor.
+            //
+            // BULUNDUĞU YERDEN başlıyor, sıfırdan değil: kapıya art arda iki
+            // blok girdiğinde ikinci tepme birincinin ortasında başlıyor ve
+            // sıfırdan kurulmuş bir eğri kapıyı önce yerine ZIPLATIRDI.
+            float start = _offset;
+            for (float t = 0f; t < RecoilRise; t += Time.deltaTime)
+            {
+                float k = Mathf.Clamp01(t / RecoilRise);
+                // Yavaşlayan giriş: itme blok ilerledikçe azalıyor.
+                float e = 1f - (1f - k) * (1f - k);
+                Place(outward, Mathf.Lerp(start, RecoilAmount, e));
+                yield return null;
+            }
+
+            // 2) Blok bitince yay bırakılıyor: sönümlü salınım.
+            //
+            // SALINIM İÇERİ GEÇMİYOR. İlk hâl düz kosinüstü ve kapı dinlenme
+            // noktasının ÖTESİNE, tahtanın içine doğru 0,042 taşıyordu.
+            // Referansta öyle bir şey yok: ölçülen sapmalar (−4,97 · −0,05 ·
+            // −1,87 · 0,00) hep DIŞARI tarafta kalıyor, kapı hiç içeri
+            // girmiyor. `(1+cos)/2` eğrisi sıfırın altına inmiyor ve aynı
+            // iki tepeyi veriyor.
+            //
+            // DERS (ölçümün İŞARETİ de bir veridir): Sönümlü yay deyince
+            // akla iki yöne salınan bir şey geliyor; ölçüm ise tek yönlü bir
+            // yaylanma gösteriyordu. Hareketin biçimini varsaymak yerine
+            // sayıların işaretine bakmak gerekiyordu.
+            float settle = RecoilPeriod * 1.5f;
+            for (float t = 0f; t < settle; t += Time.deltaTime)
+            {
+                float k = t / RecoilPeriod;
+                float damp = Mathf.Pow(RecoilDecay, k);
+                float wave = 0.5f + 0.5f * Mathf.Cos(k * Mathf.PI * 2f);
+                Place(outward, RecoilAmount * damp * wave);
+                yield return null;
+            }
+
+            Place(outward, 0f);
+            _recoil = null;
+        }
+
+        Vector3 _restArrow;
+        /// <summary>Şu anki dışarı sapma; yeni tepme buradan devam ediyor.</summary>
+        float _offset;
+
+        /// <summary>Barı ve okunu birlikte taşır.</summary>
+        void Place(Vector3 outward, float offset)
+        {
+            _offset = offset;
+            transform.position = _restPosition + outward * offset;
+            if (_arrow != null) _arrow.transform.position = _restArrow + outward * offset;
         }
 
         /// <summary>
