@@ -155,12 +155,30 @@ namespace BlockOut.Runtime.View
             var colors = new List<Color>();
             var tris = new List<int>();
 
+            // TONLAR REFERANSTAN ÖLÇÜLDÜ (10. tur).
+            //
+            // Vertex renkleri çizilmeye başlayınca ortaya çıktı ki eldeki
+            // sayılar referanstan baştan sona daha KOYU: tahta kirli, ağır
+            // bir kütle gibi duruyordu.
+            //
+            // ÖLÇÜM (`f0001`, çerçevenin mavi kanalı; üst yüz = 1,00):
+            //   üst yüz      0,98      dış pah      0,94
+            //   dış yan üst  0,68      dış yan dip  0,50
+            //   iç pah       0,77      iç duvar dip 0,43
+            // Eldeki değerler sırasıyla 1,00 · 0,82 · 0,52 · 0,20 · 0,82 ·
+            // 0,38 idi — özellikle eteğin dibi (0,20 yerine 0,50) ve iç
+            // duvar (0,38 yerine 0,43) gözle görülür biçimde karanlıktı.
+            //
+            // DERS (bir sayı ancak GÖRÜNÜR olunca yanlışlığı anlaşılır):
+            // Bu tonlar yıllardır buradaydı ve kimse yanlış demedi — çünkü
+            // hiç çizilmiyorlardı. Ölü kod yalnız yer kaplamaz, yanlış
+            // olduğunu da saklar.
             Color topTone = Color.white;
-            Color bevelTone = new Color(0.82f, 0.82f, 0.82f);
-            Color sideTone = new Color(0.52f, 0.52f, 0.52f);
-            Color innerTone = new Color(0.38f, 0.38f, 0.38f); // iç duvar en koyu
-            // Eteğin dibi: ışığın hiç ulaşmadığı yer.
-            Color skirtTone = new Color(0.20f, 0.20f, 0.20f);
+            Color bevelTone = new Color(0.94f, 0.94f, 0.94f);   // dış pah
+            Color outerSideTop = new Color(0.68f, 0.68f, 0.68f);
+            Color outerSideBottom = new Color(0.50f, 0.50f, 0.50f);
+            Color innerBevelTone = new Color(0.77f, 0.77f, 0.77f);
+            Color innerTone = new Color(0.43f, 0.43f, 0.43f);   // iç duvar dibi
 
             int count = outer.Count;
             float shoulder = height - bevel;
@@ -191,7 +209,7 @@ namespace BlockOut.Runtime.View
             // blokların ve duvarların ölçüleri aynen geçerli.
             Strip(verts, normals, colors, tris, count,
                 i => Lift(outer[i], -OuterSkirt), i => Lift(outer[i], shoulder),
-                i => OutNormal(outer, i), skirtTone, bevelTone);
+                i => OutNormal(outer, i), outerSideBottom, outerSideTop);
 
             // Dış pah (omuzdan üste, içeri kaçarak)
             Strip(verts, normals, colors, tris, count,
@@ -209,12 +227,12 @@ namespace BlockOut.Runtime.View
             Strip(verts, normals, colors, tris, count,
                 i => Lift(innerTop[i], height),
                 i => Lift(inner[i], shoulder),
-                i => (-OutNormal(inner, i) + Vector3.up).normalized, topTone, bevelTone);
+                i => (-OutNormal(inner, i) + Vector3.up).normalized, topTone, innerBevelTone);
 
             // İç duvar (omuzdan zemine)
             Strip(verts, normals, colors, tris, count,
                 i => Lift(inner[i], shoulder), i => Lift(inner[i], 0f),
-                i => -OutNormal(inner, i), bevelTone, innerTone);
+                i => -OutNormal(inner, i), innerBevelTone, innerTone);
 
             var mesh = new Mesh { name = "BoardFrame" };
             mesh.SetVertices(verts);

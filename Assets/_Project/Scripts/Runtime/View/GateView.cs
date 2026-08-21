@@ -998,9 +998,12 @@ namespace BlockOut.Runtime.View
         void BuildWallFace(BoardSpace space, GateModel model,
                            float barMin, float barMax, Material colorMaterial)
         {
-            // Yalnız KUZEY duvarın iç yüzü kameraya dönük; diğer üçünde
-            // görünecek bir yüzey yok (bkz. paylardaki aynı gerekçe).
-            if (model.Side != Side.North || VisualSettings.Current == null) return;
+            // Kamera güneyden bakıyor:
+            //   KUZEY kenarda duvarın İÇ yüzü dönük  → kapı onu örtmeli
+            //   GÜNEY kenarda duvarın DIŞ yüzü dönük → kapı oraya BAĞLANMALI
+            //   doğu/batı → ikisi de profilden, görünecek yüzey yok
+            if (VisualSettings.Current == null) return;
+            if (model.Side != Side.North && model.Side != Side.South) return;
 
             float height = VisualSettings.Current.frameHeight;
             // ŞERİT KAPININ ÇOCUĞU OLMAK ZORUNDA.
@@ -1018,15 +1021,31 @@ namespace BlockOut.Runtime.View
             float spanCenter = (barMin + barMax) * 0.5f;
             float length = Mathf.Max(0.25f, barMax - barMin);
 
-            // Yüzey oyun alanının sınırında, duvarın içine KIL PAYI gömülü:
-            // duvarla aynı düzlemde olursa derinlik tamponu titrer.
+            // KUZEY: oyun alanının sınırında, duvarın iç yüzünde.
+            // GÜNEY: tahtanın DIŞ kenarında, eteğin üstünde — kapı orada
+            // gövdeye bağlanıyor.
+            //
+            // Kullanıcı: "kapı bağlanmamış durumda, alt kısmı yok; amacımız
+            // kapıyı bağlamak içindi." Tahta 10. turda kalın bir levhaya
+            // dönüşünce alt kapı o levhanın üstünde duran ince bir plaka
+            // gibi kaldı — gövdeye inen bir yüzü yoktu.
             const float sink = 0.004f;
-            var center = space.CornerToWorld(spanCenter, model.EdgeCoord, 0f);
-            center.y = height * 0.5f;
+            bool south = model.Side == Side.South;
+
+            float faceCoord = south
+                ? model.EdgeCoord + model.OutwardSign * VisualSettings.Current.frameThickness
+                : model.EdgeCoord;
+            var center = space.CornerToWorld(spanCenter, faceCoord, 0f);
+
+            // Güneyde yüzey eteğin dibinden omuza kadar; kuzeyde duvarın
+            // kendi yüksekliği.
+            float top = height;
+            float bottom = south ? -OuterSkirtDepth : 0f;
+            center.y = (top + bottom) * 0.5f;
             center.z += model.OutwardSign * sink;
 
             face.transform.position = center;
-            face.transform.localScale = new Vector3(length, height, 0.02f);
+            face.transform.localScale = new Vector3(length, top - bottom, 0.02f);
 
             var renderer = face.GetComponent<MeshRenderer>();
             renderer.sharedMaterial = colorMaterial;
@@ -1035,8 +1054,15 @@ namespace BlockOut.Runtime.View
             _wallFace = renderer;
         }
 
-        /// <summary>Duvarın iç yüzündeki kapı rengi şerit; renk değişince o da değişir.</summary>
+        /// <summary>Duvarın yüzündeki kapı rengi şerit; renk değişince o da değişir.</summary>
         MeshRenderer _wallFace;
+
+        /// <summary>
+        /// Tahtanın dış yan yüzünün y=0 altına inen payı — çerçeve
+        /// örücüsündeki `OuterSkirt` ile AYNI olmak zorunda, yoksa güney
+        /// kapısının yüzü levhanın dibine yetişmez.
+        /// </summary>
+        const float OuterSkirtDepth = 0.70f;
 
         void BuildMouthLight(float barLength, GateModel model, Vector3 outwardDir,
                              BlockOut.Runtime.Config.ColorPaletteSO palette)
