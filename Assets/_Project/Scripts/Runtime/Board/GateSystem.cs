@@ -149,7 +149,9 @@ namespace BlockOut.Runtime.Board
 
             _events.RaiseLayerPeeled(block, gate);
             _obstacles.NotifyBlockExit();          // emilim sayılır: buz erir, perde sayar
-            RecomputeGateStates(); // soyulan rengin son örneğiyse kapısı ghost olabilir
+            // Soyulmada da kapı hemen solmasın: soyulma da bir emilim
+            // gösterisi (kupler, ışınlar) oynatıyor.
+            RecomputeGateStates(FX.AbsorbTiming.GhostDelay);
         }
 
         void Absorb(BlockModel block, GateModel gate)
@@ -205,7 +207,8 @@ namespace BlockOut.Runtime.Board
             // Çıkış zinciri: buzlar erir, perdeler sayar (belki içerik doğar)...
             _obstacles.NotifyBlockExit();
             // ...renk mevcudiyeti değişti — ghost/kuyruk durumlarını tazele.
-            RecomputeGateStates();
+            RecomputeGateStates(
+                FX.AbsorbTiming.PreRoll + duration + FX.AbsorbTiming.GhostDelay);
 
             CheckCleared();
         }
@@ -239,7 +242,15 @@ namespace BlockOut.Runtime.Board
         /// dahil) kalmadıysa kuyruk varsa ilerler, yoksa kapı kalıcı ghost olur.
         /// Buzlu kapılar atlanır — buz kırılınca zaten yeniden hesaplanır.
         /// </summary>
-        public void RecomputeGateStates()
+        public void RecomputeGateStates() => RecomputeGateStates(0f);
+
+        /// <param name="ghostDelay">
+        /// Rengi tükenen kapının solmaya başlamadan önce bekleyeceği süre.
+        /// Emilimden çağrıldığında koreografinin bitişine kadar bekliyor;
+        /// bölüm kurulurken ya da yardımcılardan çağrıldığında beklemiyor
+        /// (orada gösterilecek bir emilim yok).
+        /// </summary>
+        public void RecomputeGateStates(float ghostDelay)
         {
             foreach (var gate in _level.Gates)
             {
@@ -260,7 +271,8 @@ namespace BlockOut.Runtime.Board
 
                     gate.IsGhost = true;
                     if (view != null)
-                        view.SetGhost(ViewKit.GhostFor(_palette, gate.ActiveColor));
+                        view.SetGhost(ViewKit.GhostFor(_palette, gate.ActiveColor),
+                                      ghostDelay);
                     _events.RaiseGateGhosted(gate);
                     break;
                 }

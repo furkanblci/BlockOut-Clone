@@ -1385,7 +1385,14 @@ namespace BlockOut.Runtime.View
         /// Kapı GİZLENMEZ — referans oyunda da kapı yerinde durup solar.
         /// Gizlemek duvarda boşluk bırakıyordu (kapı kenarına duvar örülmez).
         /// </summary>
-        public void SetGhost(Material ghostMaterial)
+        public void SetGhost(Material ghostMaterial) => SetGhost(ghostMaterial, 0f);
+
+        /// <param name="delay">
+        /// Solmaya başlamadan önceki bekleme. Emilimden gelen çağrılar
+        /// buraya emilim koreografisinin süresini + ölçülen 0,49 saniyeyi
+        /// veriyor; kapı, blok geçerken solmaya başlamasın diye.
+        /// </param>
+        public void SetGhost(Material ghostMaterial, float delay)
         {
             // GEÇİŞ ANİDEN DEĞİL, SÖNEREK.
             //
@@ -1396,7 +1403,7 @@ namespace BlockOut.Runtime.View
             // siliniyor; sönme, "bu kapının işi bitti" cümlesinin ta kendisi.
             // Bir kare süren değişim bilgi taşımaz, yalnız şaşırtır.
             if (_fade != null) StopCoroutine(_fade);
-            _fade = StartCoroutine(FadeToGhost(ghostMaterial));
+            _fade = StartCoroutine(FadeToGhost(ghostMaterial, delay));
         }
 
         Coroutine _fade;
@@ -1409,13 +1416,16 @@ namespace BlockOut.Runtime.View
         /// yol açıyordu. Kaynak rengiyle hedef rengi arasında yürümek geçişi
         /// tek bir hareket gibi gösteriyor.
         /// </summary>
-        System.Collections.IEnumerator FadeToGhost(Material ghostMaterial)
+        System.Collections.IEnumerator FadeToGhost(Material ghostMaterial, float delay)
         {
-            // ÖLÇÜM (Levels 1-20, 8 fps ile çıkarılan kareler): kapı 8. karede
-            // tam kırmızı (238,45,46), 9'da yarı yolda (150,48,95), 10'da
-            // neredeyse bitmiş (95,53,135), 11'de tam çerçeve rengi
-            // (66,55,158). Üç kare = 0,375 saniye.
-            const float duration = 0.375f;
+            for (float t = 0f; t < delay; t += Time.deltaTime)
+                yield return null;
+
+            // SÜRE VE EĞRİ YENİDEN ÖLÇÜLDÜ (11. tur) — bkz. AbsorbTiming.
+            // Eski değer 8 fps'te çıkarılmış ÜÇ kareden okunmuştu; 59,47
+            // fps'te on iki ara kare alınınca hem süre (0,375 → 0,387) hem
+            // de eğri (doğrusala yakın → belirgin yavaşlayan) düzeldi.
+            float duration = AbsorbTiming.GhostFade;
 
             // RENK DEĞİŞMİYOR, YALNIZ ALFA İNİYOR.
             //
@@ -1529,13 +1539,7 @@ namespace BlockOut.Runtime.View
             // da görünen bu.
             for (float t = 0f; t < duration; t += Time.deltaTime)
             {
-                // DOĞRUSAL, `SmoothStep` DEĞİL: ölçülen ara kare tam ortada
-                // %51'de. SmoothStep aynı anda %50 verirdi ama uçlarda
-                // yavaşlar; referansın üç karesi eşit aralıklı.
-                float k = Mathf.Clamp01(t / duration);
-                // Hafif yavaşlayan bir eğri: doğrusal geçişte son kare "kesik"
-                // hissettiriyordu. Ölçülen ara kare hâlâ ~%51'de kalıyor.
-                float e = k * k * (3f - 2f * k) * 0.35f + k * 0.65f;
+                float e = AbsorbTiming.GhostCurve(t / duration);
                 Paint(fading, Color.Lerp(from, to, e));
                 if (arrowFading != null)
                     Paint(arrowFading, Color.Lerp(arrowFrom, arrowTo, e));
