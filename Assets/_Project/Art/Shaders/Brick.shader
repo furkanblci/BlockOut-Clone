@@ -1,4 +1,4 @@
-// Tuğla shader'ı: taban rengi × vertex AO × sabit yönlü yumuşak ışık.
+﻿// Tuğla shader'ı: taban rengi × vertex AO × sabit yönlü yumuşak ışık.
 //
 // DERS (neden özel shader?): URP Lit, vertex renklerini kullanmaz ve mobilde
 // gereğinden pahalıdır. Bizim stilimizde gölge yok, ışık tek yönlü ve sabit —
@@ -20,6 +20,9 @@ Shader "BlockOut/Brick"
         _Specular("Spekuler Guc", Range(0, 2)) = 0.85
         _Gloss("Parlaklik Keskinligi", Range(4, 128)) = 42
         _Saturation("Renk Doygunlugu", Range(1, 2)) = 1.18
+        // Kapıya giren bloğu duvar çizgisinde KESER (bkz. BlockView.SetAbsorbProgress).
+        // (0,0,0,1) = kırpma yok; her .mat varsayılan olarak bunu alır.
+        _ClipPlane("Kirpma Duzlemi", Vector) = (0, 0, 0, 1)
     }
 
     SubShader
@@ -53,6 +56,7 @@ Shader "BlockOut/Brick"
                 float4 positionHCS : SV_POSITION;
                 half3  normalWS    : TEXCOORD0;
                 float3 viewDirWS   : TEXCOORD1;
+                float3 positionWS  : TEXCOORD2;
                 half4  color       : COLOR;
             };
 
@@ -64,6 +68,7 @@ Shader "BlockOut/Brick"
                 half _Specular;
                 half _Gloss;
                 half _Saturation;
+                float4 _ClipPlane;
             CBUFFER_END
 
             Varyings vert(Attributes IN)
@@ -73,12 +78,23 @@ Shader "BlockOut/Brick"
                 OUT.positionHCS = TransformWorldToHClip(positionWS);
                 OUT.normalWS = TransformObjectToWorldNormal(IN.normalOS);
                 OUT.viewDirWS = GetWorldSpaceViewDir(positionWS);
+                OUT.positionWS = positionWS;
                 OUT.color = IN.color;
                 return OUT;
             }
 
             half4 frag(Varyings IN) : SV_Target
             {
+                // DUVAR ÇİZGİSİNDE KESME.
+                //
+                // Referansta kapıya giren blok küçülmüyor, KIRPILIYOR: dışarı
+                // kayarken silüeti duvarın iç çizgisinde kesiliyor, saplamalar
+                // ise sonuna kadar kendi boyunda kalıyor (bkz. kare 1743 —
+                // alttaki saplama sırası tam ortasından kesik). Bloğu
+                // küçültmek bunu taklit edemiyor, çünkü küçülen bir blokta
+                // saplamalar da küçülüyor ve "emildi" değil "söndü" oluyor.
+                clip(dot(IN.positionWS, _ClipPlane.xyz) + _ClipPlane.w);
+
                 half3 normal = normalize(IN.normalWS);
                 half3 light = normalize(_LightDir.xyz);
                 half3 view = normalize(IN.viewDirWS);

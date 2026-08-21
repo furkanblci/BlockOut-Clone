@@ -1,4 +1,4 @@
-using BlockOut.Core;
+﻿using BlockOut.Core;
 using BlockOut.Runtime.Flow;
 using GameKit.DevTools;
 using UnityEngine;
@@ -110,6 +110,16 @@ namespace BlockOut.Runtime.DevTools
             }
 
             Paragraph("Gerçek bitiş yolu çağrılır (ödül, can, kayıt, analitik) ve konsol kapanır.");
+
+            if (Button("EMİLİMİ OYNAT", S.Btn, 38f))
+            {
+                Note(session.DebugAbsorbOne()
+                    ? "kapıya değen blok emildi"
+                    : "kapıya değen blok yok");
+                DevConsole.SetVisible(false);
+            }
+
+            Paragraph("Kapıya değen ilk bloğu emdirir — geçiş efektine bakmak için.");
         }
 
         static void ForceWin(GameSession session, int stars, string label)

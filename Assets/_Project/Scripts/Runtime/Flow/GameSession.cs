@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using BlockOut.Core;
 using BlockOut.Runtime.Board;
 using BlockOut.Runtime.Config;
@@ -413,6 +413,7 @@ namespace BlockOut.Runtime.Flow
             var views = BoardBuilder.Build(boardRoot, _level, space, palette);
             var obstacles = new ObstacleSystem(_level, views, palette, _events, space);
             var gates = new GateSystem(_level, views, config, _events, obstacles, palette);
+            _gates = gates;
             gates.RecomputeGateStates(); // baştan rengi olmayan kapı hemen ghost görünsün
             obstacles.Start();           // üreteçler ilk bloklarını tahtaya itsin
             _drag = new DragController(
@@ -651,6 +652,37 @@ namespace BlockOut.Runtime.Flow
         /// göster". Süre gerçekten sıfırlanır ki panel, sayacı bitmiş bir
         /// bölümün gösterdiği şeyin aynısını göstersin.
         /// </summary>
+        GateSystem _gates;
+
+        /// <summary>
+        /// Kapiya degen ilk blogu emdirir — gizli gelistirici menusunun
+        /// "emilimi oynat" dugmesi.
+        ///
+        /// Emilim koreografisi (blogun kayisi, kapinin geri tepmesi, kupler,
+        /// isik huzmeleri) ancak oynanirken goruluyor ve ekranin dogru
+        /// yerinde olup olmadigina bakmak icin her seferinde bolumu elle
+        /// oynamak gerekiyordu. Bu kanca DebugForceWin ile ayni kurala uyar:
+        /// kestirme bir animasyon calistirmaz, GERCEK yolu (ResolveContact)
+        /// cagirir — yani sayaclar, buzlar ve zafer kontrolu de isler.
+        /// </summary>
+        /// <returns>Emilecek blok bulunduysa true.</returns>
+        public bool DebugAbsorbOne()
+        {
+            if (_gates == null || _level == null) return false;
+
+            // EN BUYUK blogu secer: efekte bakmak icin cagriliyor ve 1x1 bir
+            // parcanin gecisi ekranda neredeyse hicbir sey gostermiyor.
+            BlockModel biggest = null;
+            foreach (var block in _level.Blocks)
+            {
+                if (!_gates.CanResolve(block)) continue;
+                if (biggest == null || block.Cells.Count > biggest.Cells.Count)
+                    biggest = block;
+            }
+            return biggest != null &&
+                   _gates.ResolveContact(biggest) != GateContactResult.None;
+        }
+
         public void DebugForceLose()
         {
             if (State == GameState.Won || State == GameState.Lost) return;

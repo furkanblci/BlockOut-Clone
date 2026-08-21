@@ -89,6 +89,7 @@ namespace BlockOut.Runtime.View
         }
 
         GameObject _innerPanel, _innerRim;
+        GameObject _shadow;
 
         /// <summary>
         /// İÇ İÇE BLOK: alttaki katmanın rengi ÜSTTEN görünür (2. tur, 56. madde).
@@ -754,6 +755,7 @@ namespace BlockOut.Runtime.View
             Vector2 offset = cfg != null ? cfg.shadowOffset : new Vector2(0.06f, -0.06f);
 
             var quad = new GameObject("Shadow");
+            _shadow = quad;
             quad.transform.SetParent(transform, worldPositionStays: false);
             // Gölge de bloğun ŞEKLİNİ izler: L bloğun altında dikdörtgen gölge
             // olmaz. Hücre başına quad, tek mesh'te.
@@ -1291,39 +1293,142 @@ namespace BlockOut.Runtime.View
             Destroy(gameObject);
         }
 
-        public void PlayAbsorb(Vector3 outwardWorldDir, float travel, float duration)
+        // ================= KAPIDAN GEÇME =================
+        //
+        // ÖLÇÜM (`Levels`, 59,47 fps; 4. bölümün mavi 2×2 bloğu güney
+        // kapısından geçerken — kareler 1732…1746):
+        //
+        //   • Blok KÜÇÜLMÜYOR. Dışarı kayıyor ve silüeti duvarın çizgisinde
+        //     KESİLİYOR; saplamalar sonuna kadar kendi boyunda kalıyor
+        //     (kare 1743'te alttaki saplama sırası tam ortasından kesik).
+        //   • Süre: 14 kare = 0,235 sn / 2 hücre → **hücre başına 0,118 sn**.
+        //   • Hız sabit değil: ilk karelerde 7 piksel, son karede 17 piksel.
+        //     Ölçülen ilerleme (normalize) 0,052 · 0,104 · … · 0,874 · 1,00;
+        //     `t·(0,62 + 0,38·t²)` bu diziyi ±0,015 içinde veriyor.
+        //
+        // DERS (kaybolmanın iki ayrı anlatımı): Eski hâl bloğu %6'ya kadar
+        // küçültüp yana kaydırıyordu. Küçülen blokta saplamalar da küçülüyor,
+        // yani blok "emilmiyor" — uzaklaşıyor. Referans bloğun BOYUNU
+        // korumayı seçmiş; kaybolan tek şey siluetin duvarın arkasında kalan
+        // kısmı. Aradaki fark, aynı süreyi iki bambaşka cümleyle anlatıyor.
+
+        /// <summary>Emilim eğrisi — ÖLÇÜM: 14 karelik ilerleme dizisi.</summary>
+        public static float Intake(float t)
         {
-            StopTween();
-            StartCoroutine(AbsorbRoutine(outwardWorldDir, travel, duration));
+            t = Mathf.Clamp01(t);
+            return t * (0.62f + 0.38f * t * t);
         }
 
-        IEnumerator AbsorbRoutine(Vector3 dir, float travel, float duration)
-        {
-            Vector3 startPos = transform.position;
-            Vector3 endPos = startPos + dir * travel;
+        Vector3 _absorbStart;
+        Vector3 _absorbDir;
+        readonly System.Collections.Generic.List<Material> _absorbMaterials =
+            new System.Collections.Generic.List<Material>();
 
-            // Hareket eksenine göre daralma: yalnızca gidiş yönünde incelir,
-            // dik eksen neredeyse korunur — "yuvaya sığmak için sıkışma" hissi.
-            float axisX = Mathf.Abs(dir.x);
-            float axisZ = Mathf.Abs(dir.z);
+        /// <summary>
+        /// Emilime hazırlar: kırpma düzlemi DÜNYADA sabit (duvarın çizgisi),
+        /// blok onun içinden geçiyor — bu yüzden düzlem bir kez yazılıyor,
+        /// her karede değil.
+        /// </summary>
+        /// <param name="outwardWorldDir">Tahtanın dışına bakan birim yön.</param>
+        /// <param name="clipPointWorld">Duvarın iç çizgisi üzerinde bir nokta.</param>
+        public void BeginAbsorb(Vector3 outwardWorldDir, Vector3 clipPointWorld)
+        {
+            StopTween();
+            _absorbStart = transform.position;
+            _absorbDir = outwardWorldDir;
+
+            // İçeride kalan taraf POZİTİF: normal içeri baksın.
+            Vector3 normal = -outwardWorldDir;
+            var plane = new Vector4(normal.x, normal.y, normal.z,
+                                    -Vector3.Dot(clipPointWorld, normal));
+
+            // Gölge yatay bir çıkartma; kırpma düzlemi dikey olduğu için onu
+            // kesmez, kapının dışına kayıp zeminin üstünde durur. Blok
+            // kaybolurken gölgesinin kalması, hiç kırpmamaktan daha kötü.
+            if (_shadow != null) _shadow.SetActive(false);
+
+            foreach (var renderer in GetComponentsInChildren<MeshRenderer>(true))
+            {
+                var source = renderer.sharedMaterial;
+                if (source == null) continue;
+
+                var copy = source.HasProperty(ClipPlaneId)
+                    ? new Material(source)
+                    : FlatBrickCopy(source);
+                if (copy == null) continue;
+
+                copy.SetVector(ClipPlaneId, plane);
+                renderer.sharedMaterial = copy;
+                _absorbMaterials.Add(copy);
+            }
+        }
+
+        static readonly int ClipPlaneId = Shader.PropertyToID("_ClipPlane");
+
+        /// <summary>
+        /// Kırpmayı bilmeyen bir materyalin (iç katmanın ince hattı, ok
+        /// süsleri — URP/Unlit) yerine geçecek DÜZ ışıklı tuğla kopyası.
+        ///
+        /// DERS (kırpma bir materyal özelliğidir, nesne özelliği değil):
+        /// Bloğun gövdesini kesip süslerini kesmemek, duvarın üstünde havada
+        /// asılı bir çerçeve bırakıyordu. Süsleri emilim başlarken gizlemek de
+        /// olurdu ama o zaman blok kapıya girmeden önce kılık değiştiriyor.
+        /// `_Ambient=1` ile tuğla shader'ı zaten Unlit'in aynısını çiziyor;
+        /// yeni bir shader dosyası yazmak gerekmiyor.
+        /// </summary>
+        static Material FlatBrickCopy(Material source)
+        {
+            var shader = Shader.Find("BlockOut/Brick");
+            if (shader == null) return null;
+
+            Color color = Color.white;
+            if (source.HasProperty("_BaseColor")) color = source.GetColor("_BaseColor");
+            else if (source.HasProperty("_Color")) color = source.GetColor("_Color");
+
+            var mat = new Material(shader) { name = source.name + "_Clip" };
+            mat.SetColor("_BaseColor", color);
+            mat.SetFloat("_Ambient", 1f);
+            mat.SetFloat("_Specular", 0f);
+            mat.SetFloat("_RimStrength", 0f);
+            mat.SetFloat("_Saturation", 1f);
+            return mat;
+        }
+
+        /// <summary>
+        /// Bloğu kapıdan geçirir ve sonunda yok eder.
+        /// </summary>
+        /// <param name="preRoll">
+        /// Blok kımıldamadan önceki bekleme. Referansta kapının ağzında blok
+        /// daha gelmeden ışık beliriyor; o ışığın kendini göstermesi için
+        /// bloğun bir an durması gerekiyor.
+        /// </param>
+        public void PlayAbsorb(Vector3 outwardWorldDir, Vector3 clipPointWorld,
+                               float travel, float duration, float preRoll)
+        {
+            BeginAbsorb(outwardWorldDir, clipPointWorld);
+            StartCoroutine(AbsorbRoutine(travel, duration, preRoll));
+        }
+
+        IEnumerator AbsorbRoutine(float travel, float duration, float preRoll)
+        {
+            for (float t = 0f; t < preRoll; t += Time.deltaTime)
+                yield return null;
 
             for (float t = 0f; t < duration; t += Time.deltaTime)
             {
-                float k = Mathf.Clamp01(t / duration);
-                float eased = k * k;                       // hızlanarak girer
-
-                transform.position = Vector3.Lerp(startPos, endPos, eased)
-                                     + Vector3.down * (eased * 0.18f); // yuvaya çöker
-
-                float shrink = Mathf.Lerp(1f, 0.06f, eased);
-                float keep = Mathf.Lerp(1f, 0.82f, eased);
-                transform.localScale = new Vector3(
-                    Mathf.Lerp(keep, shrink, axisX),
-                    Mathf.Lerp(1f, 0.55f, eased),
-                    Mathf.Lerp(keep, shrink, axisZ));
+                transform.position =
+                    _absorbStart + _absorbDir * (Intake(t / duration) * travel);
                 yield return null;
             }
+
             Destroy(gameObject);
+        }
+
+        void OnDestroy()
+        {
+            foreach (var material in _absorbMaterials)
+                if (material != null) Destroy(material);
+            _absorbMaterials.Clear();
         }
     }
 }

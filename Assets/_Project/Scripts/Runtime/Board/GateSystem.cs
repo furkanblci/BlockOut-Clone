@@ -1,4 +1,4 @@
-using BlockOut.Core;
+﻿using BlockOut.Core;
 using BlockOut.Runtime.Config;
 using BlockOut.Runtime.View;
 using UnityEngine;
@@ -156,6 +156,18 @@ namespace BlockOut.Runtime.Board
         {
             _level.RemoveBlock(block);
 
+            // EMILIMIN SURESI BLOGUN DERINLIGINDEN GELIR.
+            //
+            // OLCUM (`Levels`, 4. bolum, 2 hucrelik mavi blok): temastan
+            // bitise 14 kare = 0,235 sn -> hucre basina 0,118 sn. Eski hal
+            // `absorbDuration` sabitini (0,25) her bloga uyguluyordu; 1x1 bir
+            // parca da 2x4'luk bir kutle de ayni surede yutuluyordu ve kucuk
+            // blok agir cekim gibi duruyordu.
+            int depth = gate.EdgeHorizontal ? block.H : block.W;
+            float duration = FX.AbsorbTiming.Duration(depth);
+
+            _views.Gates.TryGetValue(gate, out var gateView);
+
             if (_views.Blocks.TryGetValue(block, out var view))
             {
                 _views.Blocks.Remove(block);
@@ -165,15 +177,28 @@ namespace BlockOut.Runtime.Board
                     ? new Vector3(0f, 0f, -gate.OutwardSign)
                     : new Vector3(gate.OutwardSign, 0f, 0f);
 
-                // Bloğun merkezi kapı çizgisine tam oturana kadar ilerlesin;
-                // daha fazlası duvarın üstünden geçmesine yol açar.
-                float travel = (gate.EdgeHorizontal ? block.H : block.W) * 0.5f + 0.2f;
-                view.PlayAbsorb(dir, travel, _config.absorbDuration);
+                // Blok, gorunen son parcasi da duvarin arkasinda kalana kadar
+                // ilerliyor; silueti zaten kapinin ic cizgisinde kirpiliyor,
+                // yani "fazla" yol goze gorunmuyor.
+                float travel = depth + 0.35f;
+
+                // Kirpma cizgisi kapinin KENDI geometrisinden geliyor. Kapi
+                // gorunumu yoksa (buzlu/ghost yolundan gelen bir durum)
+                // kenarin kendisi kullaniliyor.
+                Vector3 clipPoint = gateView != null
+                    ? gateView.MouthWorldPoint
+                    : view.transform.position + dir * (depth * 0.5f);
+
+                view.PlayAbsorb(dir, clipPoint, travel, duration,
+                                FX.AbsorbTiming.PreRoll);
             }
 
-            // Kapı da tepki versin: yutma iki taraflı bir olay (4. tur G23).
-            if (_views.Gates.TryGetValue(gate, out var gateView) && gateView != null)
-                gateView.PlayAbsorbFlash();
+            // Kapi da tepki versin: yutma iki tarafli bir olay (4. tur G23).
+            // Geri tepme blok ICERI GIRDIGI SURECE suruyor, o yuzden tepeye
+            // cikis suresi emilimin suresi; blok girmeden onceki on-yukleme
+            // kadar da gecikiyor ki kapi bloktan once kimildamasin.
+            if (gateView != null)
+                gateView.PlayAbsorbFlash(duration, FX.AbsorbTiming.PreRoll);
 
             _events.RaiseBlockAbsorbed(block, gate);
 

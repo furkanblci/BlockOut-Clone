@@ -566,6 +566,110 @@ namespace BlockOut.Runtime.View
             return mat;
         }
 
+        static Texture2D _softDot;
+
+        /// <summary>
+        /// Merkezi parlak, kenari erimis yuvarlak leke (64x64, RGBA).
+        ///
+        /// Iki katmanli profil: dar ve parlak bir cekirdek + genis ve sonuk
+        /// bir hale. Tek usluyle yapilan profil katkili harmanlamada
+        /// doyuyor ve leke keskin kenarli bir dikdortgene donuyordu (olcum:
+        /// ekranda 10 piksel genisliginde, kenari 1 piksel keskin beyaz
+        /// seritler; referansta cekirdek 2-3 piksel ve cevresi erimis).
+        /// </summary>
+        public static Texture2D SoftDot
+        {
+            get
+            {
+                if (_softDot != null) return _softDot;
+
+                const int size = 64;
+                var texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+                {
+                    name = "SoftDot",
+                    wrapMode = TextureWrapMode.Clamp,
+                    filterMode = FilterMode.Bilinear,
+                    hideFlags = HideFlags.HideAndDontSave
+                };
+
+                var pixels = new Color32[size * size];
+                const float half = (size - 1) * 0.5f;
+                for (int y = 0; y < size; y++)
+                {
+                    for (int x = 0; x < size; x++)
+                    {
+                        float dx = (x - half) / half;
+                        float dy = (y - half) / half;
+                        float k = Mathf.Clamp01(1f - Mathf.Sqrt(dx * dx + dy * dy));
+                        float core = k * k * k * k * k * k;
+                        float halo = k * k;
+                        float a = Mathf.Clamp01(0.8f * core + 0.32f * halo);
+                        pixels[y * size + x] =
+                            new Color32(255, 255, 255, (byte)Mathf.RoundToInt(a * 255f));
+                    }
+                }
+                texture.SetPixels32(pixels);
+                texture.Apply(false, false);
+                _softDot = texture;
+                return texture;
+            }
+        }
+
+        /// <summary>
+        /// YUMUSAK ISIK MATERYALI — hale, parlama, isin.
+        ///
+        /// DERS (harmanlama ayarini YAZMAK, onun uygulanacagi anlamina
+        /// gelmez): Bu materyal once `URP/Unlit`, sonra
+        /// `URP/Particles/Unlit` uzerine kuruldu. Her iki denemede de
+        /// ayarlar dogruydu ve calisma aninda dogrulandi
+        /// (`_Surface`=1, `_Blend`, `_SrcBlend`=SrcAlpha, `_DstBlend`=One,
+        /// `_ZWrite`=0, kuyruk 3100, `_SURFACE_TYPE_TRANSPARENT` acik,
+        /// dokunun alfasi da olculdu: merkez 1,00 - ceyrek 0,10 - kenar
+        /// 0,00). Ekranda cikan sey yine de SIYAH BIR KARE ve ortasinda
+        /// opak bir top oldu: yani yuzey opak ciziliyor ve dokunun alfasi
+        /// hic kullanilmiyor.
+        ///
+        /// OLCUM (ayni sahnede, ayni doku, ayni parcacik, tek degisken
+        /// shader):
+        ///   Sprites/Default                    -> dogru, yumusak hale
+        ///   URP/Particles/Unlit                -> siyah kare
+        ///   URP/Unlit                          -> siyah kare
+        /// Harmanlama numaralarini (`_Blend` 1 ve 2) ayri ayri denemek de
+        /// sonucu degistirmedi.
+        ///
+        /// `Sprites/Default` on-carpilmis alfayla harmanliyor, kose rengini
+        /// carpiyor (parcacigin `startColor`'i calisiyor) ve bu projede
+        /// zaten kullaniliyor (gölge materyali) — yani build'de eleniyor
+        /// olma riski de yok.
+        ///
+        /// DERS (uc kez ayni sekilde basarisiz olan bir yontem, dorduncude
+        /// de basarisiz olur): Ilk siyah kareden sonra dogru hamle ayarlari
+        /// bir kez daha gozden gecirmek degil, DEGISKENI degistirip olcmekti.
+        /// </summary>
+        /// <param name="inFront">
+        /// Derinlik testini atlar. Referansta ışık hüzmeleri bloğun ÖNÜNDE
+        /// duruyor; kapının ağzında doğan bir hüzme, blok daha oradayken
+        /// bloğun içinde kalıyor ve normal derinlik testiyle hiç
+        /// görünmüyordu.
+        /// </param>
+        public static Material AdditiveSoft(Color color, bool inFront = true)
+        {
+            var shader = Shader.Find("BlockOut/Glow") ?? Shader.Find("Sprites/Default");
+            var mat = new Material(shader) { name = "GlowSoft_TEMP" };
+
+            var texture = SoftDot;
+            mat.mainTexture = texture;
+            if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", texture);
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
+            if (mat.HasProperty("_ZTest"))
+                mat.SetFloat("_ZTest", inFront
+                    ? (float)UnityEngine.Rendering.CompareFunction.Always
+                    : (float)UnityEngine.Rendering.CompareFunction.LessEqual);
+            mat.color = color;
+            mat.renderQueue = 3100;
+            return mat;
+        }
+
         static Material CreateTransparent(string name, Color color, int queue)
         {
             var shader = Shader.Find("Universal Render Pipeline/Unlit");

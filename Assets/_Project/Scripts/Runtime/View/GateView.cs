@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using BlockOut.Core;
 using BlockOut.Runtime.Board;
+using BlockOut.Runtime.FX;
 using UnityEngine;
 
 namespace BlockOut.Runtime.View
@@ -954,7 +955,40 @@ namespace BlockOut.Runtime.View
         /// oradaydı da bakılan yer orası değildi. Bir ölçümün kapsamı,
         /// sonucunun geçerlilik alanıdır.
         /// </summary>
-        public void PlayAbsorbFlash()
+        /// <summary>Tahtanın dışına bakan birim yön (dünya).</summary>
+        public Vector3 OutwardWorld => _model == null ? Vector3.forward
+            : (_model.EdgeHorizontal
+                ? new Vector3(0f, 0f, -_model.OutwardSign)
+                : new Vector3(_model.OutwardSign, 0f, 0f));
+
+        /// <summary>
+        /// KIRPMA ÇİZGİSİ: barın İÇ yüzü, dünya koordinatında.
+        ///
+        /// Blok tam burada kayboluyor — barın kendi geometrisinden
+        /// türetiliyor, ayrı bir sabitten değil. Bar paralaks telafisiyle
+        /// kaydırılmış durumda (bkz. `Create`); çizgi de onunla birlikte
+        /// kaydığı için ekranda ikisi üst üste oturuyor.
+        /// </summary>
+        public Vector3 MouthWorldPoint => _restCaptured
+            ? _restPosition - OutwardWorld * (BarDepth(_model) * 0.5f)
+            : transform.position - OutwardWorld * (BarDepth(_model) * 0.5f);
+
+        public void PlayAbsorbFlash() => PlayAbsorbFlash(RecoilRise, 0f);
+
+        /// <param name="rise">
+        /// Geri tepmenin tepeye çıkış süresi. Referansta kapı, blok İÇERİ
+        /// GİRDİĞİ SÜRECE geriliyor — yani bu süre emilimin süresidir, sabit
+        /// bir sayı değil. 2 hücrelik blokta 0,235 sn ölçüldü; 1 hücrelik bir
+        /// blokta aynı 0,27'yi kullanmak, kapıyı blok çoktan yok olduktan
+        /// sonra da geri itmek demekti.
+        /// </param>
+        public void PlayAbsorbFlash(float rise) => PlayAbsorbFlash(rise, 0f);
+
+        /// <param name="delay">
+        /// Blok kimildamadan onceki on-yukleme kadar bekler. Kapinin bloktan
+        /// ONCE geri gitmesi, itenin ne oldugunu belirsizlestiriyordu.
+        /// </param>
+        public void PlayAbsorbFlash(float rise, float delay)
         {
             // `_model` serileşmeyen bir alan: oynatma sırasında derleme
             // yapılırsa nesne ayakta kalıyor ama alan null'a düşüyor.
@@ -963,12 +997,12 @@ namespace BlockOut.Runtime.View
             if (_model != null)
             {
                 if (_recoil != null) StopCoroutine(_recoil);
-                _recoil = StartCoroutine(Recoil());
+                _recoil = StartCoroutine(Recoil(Mathf.Max(0.05f, rise), delay));
             }
 
             if (_mouthLight == null) return;
             if (_mouthFade != null) StopCoroutine(_mouthFade);
-            _mouthFade = StartCoroutine(FlashMouth());
+            _mouthFade = StartCoroutine(FlashMouth(rise, delay));
         }
 
         Coroutine _recoil;
@@ -1010,8 +1044,11 @@ namespace BlockOut.Runtime.View
         /// <summary>Tepeden tepeye sönüm — ÖLÇÜM: 1,87 / 4,97.</summary>
         const float RecoilDecay = 0.37f;
 
-        System.Collections.IEnumerator Recoil()
+        System.Collections.IEnumerator Recoil(float rise, float delay)
         {
+            for (float t = 0f; t < delay; t += Time.deltaTime)
+                yield return null;
+
             if (!_restCaptured)
             {
                 _restPosition = transform.position;
@@ -1036,9 +1073,9 @@ namespace BlockOut.Runtime.View
             // blok girdiğinde ikinci tepme birincinin ortasında başlıyor ve
             // sıfırdan kurulmuş bir eğri kapıyı önce yerine ZIPLATIRDI.
             float start = _offset;
-            for (float t = 0f; t < RecoilRise; t += Time.deltaTime)
+            for (float t = 0f; t < rise; t += Time.deltaTime)
             {
-                float k = Mathf.Clamp01(t / RecoilRise);
+                float k = Mathf.Clamp01(t / rise);
                 // Yavaşlayan giriş: itme blok ilerledikçe azalıyor.
                 float e = 1f - (1f - k) * (1f - k);
                 Place(outward, Mathf.Lerp(start, RecoilAmount, e));
@@ -1236,6 +1273,7 @@ namespace BlockOut.Runtime.View
             _mouthLight.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             _mouthLight.receiveShadows = false;
             light.SetActive(false);
+
         }
 
         /// <summary>
@@ -1244,13 +1282,43 @@ namespace BlockOut.Runtime.View
         /// saniye); yükselerek gelen bir ışık "yumuşak" durur ve emilimin
         /// ANİLİĞİNİ anlatmaz.
         /// </summary>
-        System.Collections.IEnumerator FlashMouth()
+        System.Collections.IEnumerator FlashMouth(float hold, float delay)
         {
-            const float life = 0.17f;
+            // ISIK BLOK ICERI GIRDIGI SURECE YANAR (11. tur).
+            //
+            // Kullanici: "blok kapidan giriyor ... ayni anda kapidan iceri
+            // isik yansimasi da oluyor ve bununla beraber senkron, ne kadar
+            // iceri girdikce..."
+            //
+            // Eski hal sabit 0,17 saniyede sonuyordu. Referansta ise temas
+            // cizgisindeki parlak bant blogun TAMAMI gecene kadar duruyor
+            // (kare 1732-1746 boyunca kesintisiz) ve ancak blok bitince
+            // soluyor. Sabit sure, uzun bir blokta isigi blok daha yari
+            // yoldayken sondururuyordu.
+            //
+            // DERS (bir isigin suresi, aydinlattigi olayin suresidir): Ayni
+            // sayiyi ("bir parlama ne kadar surer") her yerde kullanmak
+            // kolay; ama burada isik bir VURUS degil, suren bir olayin
+            // aydinlatmasi.
+            float life = AbsorbTiming.MouthFade;
             var go = _mouthLight.gameObject;
+
+            for (float t = 0f; t < delay; t += Time.deltaTime)
+                yield return null;
+
             go.SetActive(true);
 
             Color color = _mouthMaterial.color;
+            color.a = 1f;
+            _mouthMaterial.color = color;
+            if (_mouthMaterial.HasProperty("_BaseColor"))
+                _mouthMaterial.SetColor("_BaseColor", color);
+
+            // Hale blok icerledikce GUCLENIYOR: kullanicinin istedigi
+            // "ne kadar iceri girdikce" senkronu burada da gecerli.
+            for (float t = 0f; t < hold; t += Time.deltaTime)
+                yield return null;
+
             for (float t = 0f; t < life; t += Time.deltaTime)
             {
                 // Kare kare sönüş: doğrusal, çünkü referansta ışık kalıcı bir
