@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace BlockOut.Runtime.View
@@ -159,14 +159,39 @@ namespace BlockOut.Runtime.View
             Color bevelTone = new Color(0.82f, 0.82f, 0.82f);
             Color sideTone = new Color(0.52f, 0.52f, 0.52f);
             Color innerTone = new Color(0.38f, 0.38f, 0.38f); // iç duvar en koyu
+            // Eteğin dibi: ışığın hiç ulaşmadığı yer.
+            Color skirtTone = new Color(0.20f, 0.20f, 0.20f);
 
             int count = outer.Count;
             float shoulder = height - bevel;
 
-            // Dış yan duvar (aşağıdan omuza)
+            // Dış yan duvar (etek dibinden omuza)
+            //
+            // TAHTA BİR LEVHA, BİR ÇERÇEVE DEĞİL (10. tur).
+            //
+            // Kullanıcı: "orjinal oyunda dış duvarın alt kısmı geçişli
+            // gölgeli bir şekilde görünüyor ama bizde görünmüyor... alt
+            // kapıların duvara yerleşimini sevememe sebebimin bu olduğunu
+            // fark ettim."
+            //
+            // ÖLÇÜM (referans karesi, hücre 80,6 piksel; tahtanın dibi):
+            //   üst yüz        943…979  (37 px)
+            //   pah            980…983  ( 4 px)
+            //   DIŞ YAN YÜZ    984…1003 (20 px) ← bizde yok denecek kadar az
+            // 20 piksel = 0,248 hücre; kamera eğimi 0,1763 olduğuna göre
+            // yan yüzün gerçek yüksekliği **1,41 hücre**. Bizimki omuza
+            // kadar 0,71'di, yani ekranda 3 piksel — arka planla kaynaşıp
+            // yok oluyordu. Tahta bu yüzden "kalın bir levha" değil "ince
+            // bir çerçeve" gibi okunuyordu ve üstüne oturan kapının da
+            // dayanacak bir gövdesi yoktu.
+            //
+            // Etek yalnız DIŞ halkaya ekleniyor: iç duvar oyun alanının
+            // zeminine iniyor, onu uzatmak zeminin altına sarkardı.
+            // Üstteki hiçbir yüzey kıpırdamıyor, dolayısıyla kapıların,
+            // blokların ve duvarların ölçüleri aynen geçerli.
             Strip(verts, normals, colors, tris, count,
-                i => Lift(outer[i], 0f), i => Lift(outer[i], shoulder),
-                i => OutNormal(outer, i), sideTone, bevelTone);
+                i => Lift(outer[i], -OuterSkirt), i => Lift(outer[i], shoulder),
+                i => OutNormal(outer, i), skirtTone, bevelTone);
 
             // Dış pah (omuzdan üste, içeri kaçarak)
             Strip(verts, normals, colors, tris, count,
@@ -200,6 +225,15 @@ namespace BlockOut.Runtime.View
             mesh.UploadMeshData(true);
             return mesh;
         }
+
+        /// <summary>
+        /// Tahtanın dış yan yüzünün y=0'ın ALTINA inen payı.
+        ///
+        /// ÖLÇÜM: referansta yan yüz ekranda 0,248 hücre; 0,248 / 0,1763 =
+        /// 1,41 hücre gerçek yükseklik. Omuz bizde 0,71 olduğuna göre
+        /// eksik olan 0,70.
+        /// </summary>
+        const float OuterSkirt = 0.70f;
 
         static Vector3 Lift(Vector2 point, float y) => new Vector3(point.x, y, point.y);
         static Vector2 Shrink(Vector2 point, float amount) => point - point.normalized * amount;

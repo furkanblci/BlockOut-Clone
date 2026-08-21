@@ -82,8 +82,34 @@ namespace BlockOut.Runtime.Board
                     cfg != null ? cfg.frameCornerRadius : 0.6f,
                     cfg != null ? cfg.frameBevel : 0.09f);
 
+                // ÇERÇEVE VERTEX RENGİNİ OKUYAN SHADER'A GEÇTİ (10. tur).
+                //
+                // Kullanıcı: "orjinal oyunda dış duvarın alt kısmı geçişli
+                // gölgeli görünüyor, bizde görünmüyor."
+                //
+                // BULUNAN HATA: `BoardFrameMeshBuilder.Weave` yıllardır her
+                // şeride bir ton yazıyor (üst 1,00 · pah 0,82 · yan 0,52 ·
+                // iç duvar 0,38) ve o tonlar mesh'e yükleniyor — ama çerçeve
+                // `URP/Lit` kullanıyordu ve **Lit vertex rengini okumaz**.
+                // Yani sahte AO hesaplanıyor, saklanıyor ve hiç çizilmiyordu;
+                // tahta tek düz renk olarak görünüyor, kalınlık hissi
+                // doğmuyordu. Alt kapıların "havada duruyor" görünmesinin
+                // sebebi de buydu: dayandıkları gövdenin gölgesi yoktu.
+                //
+                // `BlockOut/Brick` zaten `_BaseColor × vertex rengi` yapıyor
+                // (bloklar için yazılmıştı). Yalnız ÇERÇEVEYE veriliyor —
+                // duvar çubukları ve ölü bölgeler renk taşımayan mesh'lerden
+                // geliyor, onlara vertex rengi okuyan bir shader vermek
+                // tanımsız sonuç üretirdi.
+                //
+                // DERS (üretilen ama okunmayan veri, olmayan veriden kötüdür):
+                // Kod doğru, yorum doğru, sayı doğru — ve hiçbir etkisi yok.
+                // Bir hesabın çıktısının gerçekten TÜKETİLDİĞİNİ doğrulamadan
+                // "yapıldı" saymak, bu turda ikinci kez karşıma çıktı
+                // (`floorColorB` de aynıydı).
                 var frameRenderer = frameGo.AddComponent<MeshRenderer>();
-                frameRenderer.sharedMaterial = frameMat;
+                frameRenderer.sharedMaterial = MakeShadedMat("FrameShaded",
+                    cfg != null ? cfg.frameColor : new Color(0.30f, 0.26f, 0.58f));
                 frameRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 frameRenderer.receiveShadows = false;
             }
@@ -573,6 +599,19 @@ namespace BlockOut.Runtime.Board
             mesh.RecalculateBounds();
             mesh.UploadMeshData(true);
             return mesh;
+        }
+
+        /// <summary>
+        /// Vertex rengini (sahte AO) okuyan yüzey materyali.
+        /// Shader bulunamazsa Lit'e düşüyor: tahta renksiz kalmasın.
+        /// </summary>
+        static Material MakeShadedMat(string name, Color color)
+        {
+            var shader = Shader.Find("BlockOut/Brick");
+            if (shader == null) return MakeMat(name, color);
+            var mat = new Material(shader) { name = name };
+            mat.SetColor("_BaseColor", color);
+            return mat;
         }
 
         static Material MakeMat(string name, Color color)
