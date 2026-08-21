@@ -1047,8 +1047,23 @@ namespace BlockOut.Runtime.View
             face.transform.position = center;
             face.transform.localScale = new Vector3(length, top - bottom, 0.02f);
 
+            // KAPININ ALT YÜZÜ GÖLGEDE (10. tur).
+            //
+            // Kullanıcı: "kapının alt kısımları daha da koyu olması gerekiyor,
+            // çünkü gölge düşüyor."
+            //
+            // ÖLÇÜM (referans `f0121`, üst kapı): yüz (40,191,13), hemen
+            // altındaki dikey bant (7,78,16)…(0,93,10) — yani yüzün yaklaşık
+            // **0,45 katı**. Bizimki yüzle aynı renkti, o yüzden kapı düz bir
+            // çıkartma gibi duruyordu; onu üç boyutlu yapan şey bu ton farkı.
             var renderer = face.GetComponent<MeshRenderer>();
-            renderer.sharedMaterial = colorMaterial;
+            renderer.sharedMaterial = ViewKit.CopyFor(colorMaterial, "GateFaceShade");
+            var shade = ReadColor(colorMaterial);
+            renderer.sharedMaterial.SetColor("_BaseColor",
+                new Color(shade.r * FaceShade, shade.g * FaceShade,
+                          shade.b * FaceShade, shade.a));
+            if (renderer.sharedMaterial.HasProperty("_Color"))
+                renderer.sharedMaterial.color = renderer.sharedMaterial.GetColor("_BaseColor");
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = false;
             _wallFace = renderer;
@@ -1063,6 +1078,9 @@ namespace BlockOut.Runtime.View
         /// kapısının yüzü levhanın dibine yetişmez.
         /// </summary>
         const float OuterSkirtDepth = 0.70f;
+
+        /// <summary>Kapının dikey yüzünün ton çarpanı — ÖLÇÜM: 0,45.</summary>
+        const float FaceShade = 0.45f;
 
         void BuildMouthLight(float barLength, GateModel model, Vector3 outwardDir,
                              BlockOut.Runtime.Config.ColorPaletteSO palette)

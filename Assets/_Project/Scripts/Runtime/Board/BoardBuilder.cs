@@ -611,6 +611,33 @@ namespace BlockOut.Runtime.Board
             if (shader == null) return MakeMat(name, color);
             var mat = new Material(shader) { name = name };
             mat.SetColor("_BaseColor", color);
+
+            // ÇERÇEVE DÜZ AYDINLANIR — YÖNLÜ IŞIK YOK (10. tur).
+            //
+            // Kullanıcı: "dış duvarlar çok parlak görünüyor, kötü
+            // konumlandırılmış bir ışık gibi beyaz görünüyor."
+            //
+            // ÖLÇÜM: referansta çerçevenin üst yüzü (66,56,163) — yani
+            // yapılandırmadaki `frameColor`ın TA KENDİSİ, hiç aydınlatma
+            // uygulanmamış. Bizimki alt duvarda (127,122,198), sol duvarda
+            // (93,86,182) çıkıyordu: hem iki kat parlak hem de duvara göre
+            // değişken. Değişkenlik `BlockOut/Brick`in yönlü ışığından
+            // geliyor — bloklar için doğru (saplamaların üstündeki parlaklık
+            // referansın anahtarı) ama çerçeve için yanlış: referansın
+            // çerçevesinde ışık lekesi YOK, bütün derinlik vertex tonundan.
+            //
+            // `_Ambient = 1` yapınca `shade = lerp(ambient, 1, ndl)` sabit
+            // 1 oluyor; spekülar ve kenar parlaklığı da kapatılınca geriye
+            // tam olarak `taban × vertex rengi` kalıyor.
+            //
+            // DERS (aynı shader'ı ödünç alırken NİYETİNİ de alma): Brick
+            // shader'ı bloklar için yazılmıştı ve oradaki her terimin bir
+            // gerekçesi var. Çerçeveye takarken o gerekçelerin burada da
+            // geçerli olup olmadığını sormak gerekiyordu.
+            mat.SetFloat("_Ambient", 1f);
+            mat.SetFloat("_Specular", 0f);
+            mat.SetFloat("_RimStrength", 0f);
+            mat.SetFloat("_Saturation", 1f);
             return mat;
         }
 
