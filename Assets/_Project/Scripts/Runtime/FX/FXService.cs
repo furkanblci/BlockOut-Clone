@@ -171,7 +171,7 @@ namespace BlockOut.Runtime.FX
                 // Isinlar yalniz blok iceri girerken; blok bitince tek bir
                 // patlamayla kapaniyorlar (asagida).
                 if (elapsed <= duration)
-                    EmitShafts(gate, color, Random.value < 0.6f ? 4 : 3, 1f);
+                    EmitShafts(gate, color, Random.value < 0.6f ? 6 : 5, 1f);
 
                 if (elapsed >= AbsorbTiming.CubeDelay)
                 {
@@ -502,7 +502,7 @@ namespace BlockOut.Runtime.FX
             Color glow = new Color(
                 Mathf.Min(1f, color.r * 1.45f + 0.25f),
                 Mathf.Min(1f, color.g * 1.45f + 0.25f),
-                Mathf.Min(1f, color.b * 1.45f + 0.25f), 0.62f);
+                Mathf.Min(1f, color.b * 1.45f + 0.25f), 0.85f);
 
             for (int i = 0; i < count; i++)
             {
@@ -533,7 +533,7 @@ namespace BlockOut.Runtime.FX
                 _shafts.Emit(new ParticleSystem.EmitParams
                 {
                     position = at,
-                    velocity = dir * Random.Range(1.1f, 2.6f) * scale,
+                    velocity = dir * Random.Range(1.4f, 3.2f) * scale,
                     applyShapeToPosition = false,
                     startColor = glow,
                     startSize = Random.Range(0.026f, 0.046f),
@@ -926,7 +926,7 @@ namespace BlockOut.Runtime.FX
             // OLCUM (referans kare 1747): isin cekirdegi 2-3 piksel genis,
             // boyu 45 piksele kadar / 74 piksellik hucre -> boy/en orani
             // 15-20. Eskiden 5,5 idi ve isinlar "cubuk" gibi duruyordu.
-            renderer.lengthScale = 13f;
+            renderer.lengthScale = 17f;
             renderer.cameraVelocityScale = 0f;
             renderer.sharedMaterial = GlowParticleMaterial();
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;

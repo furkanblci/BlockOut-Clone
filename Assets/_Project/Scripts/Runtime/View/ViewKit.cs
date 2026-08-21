@@ -514,10 +514,27 @@ namespace BlockOut.Runtime.View
             var entry = palette != null ? palette.Get(color) : null;
             Color baseColor = entry != null ? entry.uiColor : Color.gray;
 
-            // Ölçülen (255,178,179), kapının (250,35,37) rengiyle beyaz
-            // arasında %72 beyaz karışıma denk geliyor.
-            var c = Color.Lerp(baseColor, Color.white, 0.72f);
-            c.a = 1f;
+            // TEMAS ŞERİDİ BEYAZA KARIŞMIYOR, IŞIK EKLİYOR (11. tur).
+            //
+            // İKİ RENK BİRLİKTE ÖLÇÜLDÜ (`Levels`, 59,47 fps):
+            //   turuncu kuzey kapısı (kare 1644, y=433): (255, 255,  90)
+            //   mavi güney kapısı    (kare 1741, y=878): (164, 246, 255)
+            //
+            // Karışım modeli bunları açıklamıyor: %72 beyaz karışım turuncuyu
+            // (235,225,184) yapıyor, yani B kanalı ölçülenin iki katı — ekranda
+            // "soluk şeftali" bir bant. TOPLAMA modeli ikisini de veriyor:
+            //   turuncu (1, 0.59, 0) + 0.50 → (255, 255, 128)
+            //   mavi    (0, 0.35, 1) + 0.50 → (128, 217, 255)
+            //
+            // DERS (bir sabiti TEK örnekten çıkarmak): Eski %72 tek bir
+            // KIRMIZI kapıdan ölçülmüştü ve kırmızıda iki model de aynı sonucu
+            // veriyor — o yüzden ölçüm doğru göründü. Model ancak İKİNCİ bir
+            // renk ölçülünce yanlışlandı. Bir sabit, onu üreten örneğin
+            // temsil ettiği kadar geneldir.
+            var c = new Color(
+                Mathf.Min(1f, baseColor.r + 0.50f),
+                Mathf.Min(1f, baseColor.g + 0.50f),
+                Mathf.Min(1f, baseColor.b + 0.50f), 1f);
             var mat = CreateTransparent("GateMouth_" + color, c, 3020);
             _gateMouth[color] = mat;
             return mat;

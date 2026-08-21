@@ -1245,9 +1245,14 @@ namespace BlockOut.Runtime.View
         void BuildMouthLight(float barLength, GateModel model, Vector3 outwardDir,
                              BlockOut.Runtime.Config.ColorPaletteSO palette)
         {
-            // Ölçülen bant hücrenin %8'i; bir tık geniş tutuluyor çünkü bandın
-            // yarısı bloğun, yarısı kapının üstüne düşüyor.
-            const float bandDepth = 0.10f;
+            // ÖLÇÜM (referans kare 1743, mavi güney kapısı): temas çizgisindeki
+            // parlak hat 4 piksel / 74 piksellik hücre = hücrenin %5,4'ü.
+            //
+            // Eskiden %10 yazıyordu ve referansla yan yana konunca fark
+            // görünür oldu: bizimki bir ÇİZGİ değil kapının altına yapışmış
+            // açık renkli bir BANT gibi duruyordu. Referansta o parlaklık
+            // kapının kendi alt kenarına ait ince bir hat.
+            const float bandDepth = 0.055f;
             const float bandHeight = 0.02f;
 
             var light = ViewKit.CreateShape(PrimitiveType.Cube, "MouthLight");
