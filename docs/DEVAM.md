@@ -6593,3 +6593,36 @@ konan sayı 268 ve gerekçesi bir alt satırda: *"tente 315 px -> GENİŞLİĞİ
 > ölçekleniyor; bir ölçüyü genişliğe oranlamak sessizce %10 hata veriyor.
 > Yorumda doğru sayı dururken yanlışının yazılmış olması ayrı bir uyarı —
 > hesabı yapıp sabiti güncellememek kolay.
+
+---
+
+## 13. tur (devam) — M3a: bölüm kurdeleleri
+
+Kullanıcı: *"special offers bu şerit şeklinde başlıkları da daha iyi hale
+getirmeliyiz; o panellerin görünümü, dış çizgisi, boyutu filan hesaplanıp
+daha iyi hale getirilmeli."*
+
+Bizimki üç düz katmandı: altın kapsül + turuncu yüz (dikeyde %10 içeride) +
+uçlardaki diller. Referansın dikey kesiti ise **altı bantlı**:
+
+```
+%0..%6    altin        (234,188,50) -> (255,238,68) -> (250,189,0)
+%9..%12   turuncuya gecis
+%14..%16  KOYU KIRMIZI (148,30,0) -> (95,0,0)      <- IC KENAR
+%20..%22  parlak       (255,136,62)
+%30..%85  govde        (247,106,34) -> (205,49,0)  gradyanli
+%90..%93  koyu         (179,39,4) -> (114,4,0)
+%95..%98  altin        (255,242,62) -> (245,186,0)
+```
+
+Kritik olan **altınla turuncu ARASINDAKİ koyu kırmızı iç kenar**. O olmayınca
+altın doğrudan turuncuya değiyor, ikisi tek yüzey gibi okunuyor ve kurdele
+"çerçevesiz" duruyor. Kullanıcının *"dış çizgisi"* dediği şey buydu.
+
+Uçların yarıçapı da düzeldi: tam kapsül değil, yüksekliğin **%30**'u — tam
+kapsül yapınca şerit "hap"a dönüşüyor. (`MenuPage.Capsule` yorumunda da yazan
+ders: bu tasarımda hiçbir yüzey tam kapsül değil.)
+
+9-dilimli tek prosedürel sprite oldu; profil yalnız dikey olduğu için orta
+yatayda güvenle esniyor. Bu turda aynı çözümün **beşinci** kullanımı
+(`PowerPad`, `RewardTag`, `CoinPad`, tente levhası, `SectionRibbon`).

@@ -840,11 +840,23 @@ namespace BlockOut.Runtime.UI
                 tailImage.raycastTarget = false;
             }
 
-            var rim = Capsule("Rim", row, rimTone);
+            // GÖVDE TEK PROSEDÜREL YÜZEY (13. tur, M3a).
+            //
+            // İki düz kapsül vardı: altın kontur + turuncu yüz (%10 içeride).
+            // Referansın dikey kesiti ALTI bantlı ve kritik olan şu: altın
+            // çerçeveyle turuncu gövde ARASINDA koyu kırmızı bir iç kenar
+            // (95,0,0) var. O olmayınca altın doğrudan turuncuya değiyor,
+            // ikisi tek yüzey gibi okunuyor ve kurdele "çerçevesiz"
+            // duruyordu. Gövdenin kendisi de gradyanlı: (255,136,62) ->
+            // (205,49,0).
+            //
+            // 9-dilim: profil yalnız dikey, o yüzden orta yatayda güvenle
+            // esniyor; yuvarlak uçlar kenar payında korunuyor.
+            var rim = UiKit.CreateIcon("Rim", row, UiSprites.SectionRibbon);
+            rim.type = Image.Type.Sliced;
+            rim.preserveAspect = false;
+            rim.raycastTarget = false;
             UiKit.Place(rim, 0f, 0f, 1f, 1f);
-
-            var fill = Capsule("Face", row, face);
-            UiKit.Place(fill, 0.008f, 0.10f, 0.992f, 0.90f);
 
             // PUNTO 56 → 70 (2026-08-22). Yazının yüksekliği ŞERİDE oranlandı:
             //     referans 52 px / 107 px şerit = %48.6

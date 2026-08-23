@@ -118,7 +118,7 @@ varlık kullanmak serbest.
 
       M2c (hazır varlık) gerekmedi. Ayrıntı: `docs/DEVAM.md`, 13. tur.
 
-- [ ] **M2e.** Tentenin hemen altındaki **mavilik**: sabit bir mavi arka
+- [x] **M2e.** Tentenin hemen altındaki **mavilik**: sabit bir mavi arka
       plan. **STATİK** olacak — aşağı kaydırınca içerikle birlikte
       gelmeyecek. Yalnız **"Mağaza" başlığı ile "Özel Teklifler" arasındaki
       alanda** kalacak. Daha önce eklenmişti ve sorun çıkarmıştı; bu sefer
@@ -129,13 +129,32 @@ varlık kullanmak serbest.
       > yine eklemeni istiyorum ama sadece mağaza ile özel teklifler
       > arasındaki yerde kalsın, aşağıya kaydırınca bizle gelmesin"*
 
+      **13. TURDA M2a/M2b İLE BİRLİKTE KAPANDI.** İstenen "mavilik" tam
+      olarak festonun çentiklerini dolduran koyu lacivert levha. Üç şart da
+      sağlanıyor:
+      - **statik**: levha tentenin DOKUSUNUN içinde, tente de `root`
+        altında (kaydırma alanının dışında) — içerikle gelmesi mümkün değil.
+      - **sınırlı**: doku tentenin dibinde bittiği için levha oradan aşağı
+        taşamıyor. Ölçüm: levhadan sonra doğrudan turuncu kurdele geliyor
+        (referansta da öyle; arada yalnız 4 birimlik bir şerit kalıyor).
+      - **daha önce sorun çıkarmıştı**: çünkü AYRI PANELDİ. 8. ve 11.
+        turlarda öyle eklenip iki kez kaldırılmıştı; dokuya çizilince
+        taşma ve sürüklenme sorunu ortadan kalkıyor.
+
 ## 3. Şerit başlıklar ve indirim bayrağı
 
-- [ ] **M3a.** "Special Offers" / "Packs" gibi **şerit başlıklar** daha iyi
+- [x] **M3a.** "Special Offers" / "Packs" gibi **şerit başlıklar** daha iyi
       hale getirilecek: panel görünümü, dış çizgi, boyut hesaplanacak.
       > *"special offers bu şerit şeklinde başlıkları da daha iyi hale
       > getirmeliyiz; o panellerin görünümü, dış çizgisi, boyutu filan
       > hesaplanıp daha iyi hale getirilmeli"*
+
+      **13. TURDA KAPATILDI.** Referansın dikey kesiti altı bantlı; kritik
+      olan altınla turuncu ARASINDAKİ koyu kırmızı iç kenar (95,0,0) —
+      kullanıcının "dış çizgisi" dediği şey o. Bizde altın doğrudan
+      turuncuya değiyordu, ikisi tek yüzey gibi okunuyordu. Gövde de
+      gradyanlı ((255,136,62) -> (205,49,0)) ve uçların yarıçapı tam
+      kapsül değil, yüksekliğin %30'u. 9-dilimli tek prosedürel sprite.
 
 - [ ] **M3b.** **"%90 OFF" indirim bayrağının modeli çok kötü.** Oyundan
       hazır alınabilir veya aynı dilde üretilebilir.

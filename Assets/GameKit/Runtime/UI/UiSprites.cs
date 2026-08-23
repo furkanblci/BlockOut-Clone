@@ -1006,6 +1006,114 @@ namespace GameKit.UI
             }
         }
 
+        /// <summary>
+        /// Mağazanın bölüm kurdelesi ("Special Offers" / "Packs") — M3a.
+        ///
+        /// Kullanıcı: *"special offers bu şerit şeklinde başlıkları da daha
+        /// iyi hale getirmeliyiz; o panellerin görünümü, dış çizgisi, boyutu
+        /// filan hesaplanıp daha iyi hale getirilmeli."*
+        ///
+        /// Bizimki üç düz katmandı: altın kapsül + turuncu yüz (dikeyde %10
+        /// içeride) + uçlardaki diller. Referansın dikey kesiti ise ALTI
+        /// bantlı:
+        ///
+        ///     %0..%6    altin        (234,188,50) -> (255,238,68) -> (250,189,0)
+        ///     %9..%12   turuncuya gecis
+        ///     %14..%16  KOYU KIRMIZI (148,30,0) -> (95,0,0)   <- ic kenar
+        ///     %20..%22  parlak       (255,136,62)
+        ///     %30..%85  govde        (247,106,34) -> (205,49,0)  gradyanli
+        ///     %90..%93  koyu         (179,39,4) -> (114,4,0)
+        ///     %95..%98  altin        (255,242,62) -> (245,186,0)
+        ///
+        /// Altın çerçeveyi çerçeve gibi gösteren şey, altınla turuncu
+        /// ARASINDAKİ koyu kırmızı kenar. Bizde o yoktu; altın doğrudan
+        /// turuncuya değdiği için ikisi tek bir yüzey gibi okunuyordu ve
+        /// kurdele "çerçevesiz" duruyordu.
+        ///
+        /// 9-DİLİM: profil yalnız dikey olduğu için ortayı yatayda esnetmek
+        /// güvenli; uçlardaki yuvarlaklık kenar payında korunuyor.
+        /// </summary>
+        static Sprite _sectionRibbon;
+
+        public static Sprite SectionRibbon
+        {
+            get
+            {
+                if (_sectionRibbon != null) return _sectionRibbon;
+
+                const int W = 160, H = 102;
+                var tex = new Texture2D(W, H, TextureFormat.RGBA32, false)
+                {
+                    name = "UiSectionRibbon",
+                    hideFlags = HideFlags.HideAndDontSave,
+                    wrapMode = TextureWrapMode.Clamp,
+                    filterMode = FilterMode.Bilinear
+                };
+
+                var durakT = new[]
+                {
+                    0.00f, 0.03f, 0.06f, 0.09f, 0.12f, 0.145f, 0.165f,
+                    0.21f, 0.30f, 0.85f, 0.90f, 0.93f, 0.955f, 0.975f, 1.00f
+                };
+                var durakC = new[]
+                {
+                    new Color32(234, 188,  50, 255),
+                    new Color32(255, 238,  68, 255),
+                    new Color32(250, 189,   0, 255),
+                    new Color32(245, 131,  19, 255),
+                    new Color32(226,  83,   5, 255),
+                    new Color32(148,  30,   0, 255),
+                    new Color32( 95,   0,   0, 255),
+                    new Color32(255, 136,  62, 255),
+                    new Color32(247, 106,  34, 255),
+                    new Color32(205,  49,   0, 255),
+                    new Color32(179,  39,   4, 255),
+                    new Color32(114,   4,   0, 255),
+                    new Color32(255, 242,  62, 255),
+                    new Color32(245, 186,   0, 255),
+                    new Color32( 60,  12,   0, 255),
+                };
+                var tf = new float[durakT.Length];
+                var cf = new Color[durakT.Length];
+                for (int i = 0; i < durakT.Length; i++)
+                {
+                    tf[i] = durakT[i];
+                    cf[i] = durakC[i];
+                }
+
+                // UÇLAR TAM YARIM DAİRE DEĞİL. Referansta kurdelenin ucu
+                // yüksekliğin ~%30'u yarıçapında; tam kapsül yapınca uçlar
+                // fazla oval kalıyor ve şerit "hap"a dönüşüyor. (Aynı ders
+                // `MenuPage.Capsule` yorumunda da var: bu tasarımda hiçbir
+                // yüzey tam kapsül değil.)
+                float r = H * 0.30f;
+                var px = new Color32[W * H];
+                for (int y = 0; y < H; y++)
+                    for (int x = 0; x < W; x++)
+                    {
+                        float fx = x + 0.5f, fy = y + 0.5f;
+                        float d = PadMesafe(fx, fy, 0f, 0f, W, H, r);
+                        if (d > 0.7f) { px[y * W + x] = new Color32(0, 0, 0, 0); continue; }
+
+                        float t = 1f - (float)y / (H - 1);
+                        Color c = PadTon(tf, cf, t);
+                        c.a = Mathf.Clamp01(0.7f - d);
+                        px[y * W + x] = c;
+                    }
+
+                tex.SetPixels32(px);
+                tex.Apply(false, true);
+
+                // Kenar payı: yuvarlak uçlar (yarıçap kadar) sabit kalsın.
+                var border = new Vector4(r + 2f, 0f, r + 2f, 0f);
+                _sectionRibbon = Sprite.Create(tex, new Rect(0f, 0f, W, H),
+                    new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, border);
+                _sectionRibbon.name = "UiSectionRibbon";
+                _sectionRibbon.hideFlags = HideFlags.HideAndDontSave;
+                return _sectionRibbon;
+            }
+        }
+
         /// <summary>Yuvarlak dikdörtgenin imzalı mesafesi; İÇİ negatif.</summary>
         static float PadMesafe(float x, float y, float x0, float y0, float x1, float y1, float r)
         {
