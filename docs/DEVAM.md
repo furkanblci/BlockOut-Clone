@@ -5969,3 +5969,111 @@ yakalandı.
 **Ders:** kaynak dosyada toplu dilimleme yapma; `Edit` ile tek tek değiştir
 (zaten kayıtlı bir tercih). Yapılacaksa kesme noktalarının SIRASINI doğrula
 — `a < b` varsayımı dosyanın gerçek düzeniyle uyuşmayabilir.
+
+---
+
+## 13. tur (devam) — A1, A2 ve P5: aç/kapa anahtarı ile ayar satırları
+
+Duraklat panelinin referansı elimizdeki videoların hiçbirinde yok. Ama
+`Block Out! menus,powerups,vs.mp4`in **54. saniyesindeki "Ayarlar" ekranı**
+BİREBİR aynı satır kurgusunu taşıyor (simge · etiket · ikili anahtar) ve o
+ekran hem A1/A2'nin hem P5'in kaynağı oldu. 53,6-55,4 sn arası **109 kare
+ortalanarak** `_Reference/notes/ayarlar_avg.png` üretildi.
+
+### A1 — kapalıyken KIRMIZI düğme
+
+Kullanıcı: *"ON iken yeşil, OFF iken KIRMIZI düğme."* Referansta kapalı bir
+satır yok (dört ayar da açık), yani bu bilinçli bir sapma.
+
+Çip artık yalnız renk değil **YER** de değiştiriyor: açıkken sağda yeşil,
+kapalıyken solda kırmızı. Kırmızı bir düğmeyi sağda, "On" yazısının üstünde
+bırakmak yazının söylediğinin tersini gösterirdi.
+
+Bu, dokunma kurgusunu da değiştirdi. Eskiden sağ yarının dokunma yüzeyi
+ÇİPİN dış konturuydu; çip sola gidince sağ yarı ölü alan kalırdı. Şimdi iki
+yarı da yuvanın içinde **sabit** birer yüzey, çip ve yazılar üstlerinde ve
+hiçbiri ışın hedefi değil.
+
+> **Ders:** hareket eden bir parçayı dokunma hedefi yapma. Tıklama alanı
+> kontrolün sabit yarısına aittir; görsel gösterge onun üstünde gezinen ayrı
+> bir katmandır.
+
+### A2 — "on/off yazıları fazla koyu"
+
+| | eski | ölçülen referans |
+|---|---|---|
+| sönük yarının yazısı | (71,57,208) | **(124,112,226)** |
+| yuva içi | (52,43,126) | **(39,30,105)** |
+| çip yeşili (gövde) | (40,191,13) | **(52,169,20)** |
+| çip yazısı | (28,64,25) | **(5,67,1)** |
+
+Eski değerler tek bir JPEG karesinden alınmıştı.
+
+> **Ders:** koyu zemindeki ince yazıyı tek kareden ölçme. Sıkıştırma en çok
+> düşük kontrastlı ince ayrıntıyı bozar; kare ortalaması bu yazıyı 53 birim
+> açığa çıkardı.
+
+### Ölçüm bir de eski bir "gerçeği" çürüttü
+
+Kodda "çip yuvanın sağ ucundan TAŞIYOR — referanstaki kabartma" yazıyordu ve
+çip 0,60..1,065'e konmuştu. Ortalanmış karede anahtar satırının yatay kesiti:
+
+```
+yuva (ray)  x %63,8..%92,2   genislik %28,4
+yesil cip   x %78,9..%91,7   genislik %12,8
+```
+
+Çip yuvanın **içinde** ve sağ ucuna dayalı (fark %0,5). Dikeyde de içeride:
+yuva %74,28..%79,33, çip %75,0..%79,1 — yuva yüksekliğinin %81'i.
+Yeni duraklar: sağ %53..%100, sol %0..%47, dikey %9,5..%90,5.
+
+> **Ders:** tek karelik bir JPEG'e dayanan "ölçüm" bir tahmindir. Çipin
+> parlak kenarı zemine taşınca dışarı çıkmış gibi görünüyordu.
+
+### P5 — satır düzeni
+
+**Etiketler ortalıymış, sola dayalı değil.** Referansta dört etiketin
+başlangıcı farklı (%25,5 / %31,5 / %31,8 / %30,7) ama merkezleri aynı
+(%40,6). Bizde dördü de %25,0'ten başlıyordu.
+Düzeltme sonrası bizim merkezler: %40,7-%40,8.
+
+> **Ders:** hizayı başlangıçtan değil DEĞİŞİMDEN oku. Tek bir satıra bakmak
+> sola dayalı ile ortalı arasındaki farkı göstermez.
+
+**Simge boyutları tutarsızdı.** Dördü de aynı kutuyu kullanıyordu ama
+çizilen yükseklikler farklıydı — sebep kutu değil, sprite'ların birbirinden
+farklı saydam dolgusu (`preserveAspect` opak içeriği değil dosyanın
+tamamını sığdırıyor). Aynı tuzak "Süre Doldu" jetonunda da çıkmıştı.
+
+| | ayarlar önce | ayarlar sonra | referans |
+|---|---|---|---|
+| zil | 73 | **76** | 76 |
+| hoparlör | 64 | **68** | 69 |
+| nota | 80 | **69** | 72 |
+| titreşim | 42 | **70** | 72 |
+
+Duraklat panelinde de aynı örüntü (50 / 64 / 34 birim) — ekran değil dosya
+sorunu olduğunun kanıtı. Hedef 61 birim (referansın satır adımına oranı
+%48); sonuç **62 / 61 / 61**.
+
+> **Ders:** aynı kutu, aynı boyut demek değil. Bir sprite kümesini tek kutuya
+> koyup "hepsi eşit" saymak ancak dolguları eşitse doğrudur.
+
+**Basılı tutunca hareket etme.** Geri bildirim, tıklanan yüzeye
+takılıydı — çipin ALTINDA kalan bir kapsül küçülüyordu, yani ekranda hiçbir
+şey olmuyordu. `UiPressFeedback`a `Target` alanı eklendi; anahtarda geri
+bildirim artık kontrolün TAMAMINA uygulanıyor.
+
+> **Ders:** geri bildirim, dokunulana değil GÖRÜLENE uygulanır. İkisi çoğu
+> düğmede aynı nesne olduğu için ayrım fark edilmiyor; ayrıştığı ilk
+> kontrolde geri bildirim sessizce kayboluyor.
+
+### Ölçüm aracının kendi hatası
+
+Simgeleri "dolu satır" arayarak bölütlüyordum; zilin gövdesiyle tokmağı
+arasındaki boşluk onu ikiye bölüp yalnız üst parçayı ölçtürdü (53 birim) ve
+çarpanı 1,30 hesapladım — sonuç 95 birim, hedefin %25 üstü. Kartı dört EŞİT
+dilime bölünce gerçek taban 73 çıktı, çarpan 1,04 oldu.
+
+> **Ders:** ölçüm bölütlemesi, ölçtüğün şeyi bozabilir. Bölütlemeyi verinin
+> kendisinden değil BİLİNEN düzenden (dört eşit satır) türet.

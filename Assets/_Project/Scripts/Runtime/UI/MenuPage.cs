@@ -30,8 +30,21 @@ namespace BlockOut.Runtime.UI
         // YEŞİLE kaçıyordu (G kanalı R'den büyüktü), oysa referansın her
         // menü zemini mora çalıyor.
         public static readonly Color Body       = new Color(0.118f, 0.094f, 0.345f);
-        public static readonly Color HeaderTop  = new Color(0.275f, 0.216f, 0.886f);
-        public static readonly Color HeaderLow  = new Color(0.216f, 0.173f, 0.698f);
+        // BANT REFERANSTAN ÖLÇÜLDÜ (12. tur, G1/N2 — `m_051.jpg`).
+        //
+        // Eski değerler (70,55,226) / (55,44,178) idi. Referansın bandı
+        // (66,39,196), üst kenarından alta doğru (60,35,179)'a iniyor.
+        // Fark küçük görünüyor ama SONUCU BOZUYORDU: referansın başlık
+        // halesi (98,71,228), yani bizim ESKİ BANDIMIZ kadar açıktı.
+        // Banttan açık bir hale çizmeye yer kalmıyordu; hale eklendiğinde
+        // bant içinde kayboluyordu.
+        //
+        // DERS (bir rengi tek başına doğrulama, KOMŞUSUYLA doğrula): Bandın
+        // rengi tek başına bakınca makuldü. Yanlış olan şey, üstüne
+        // çizilecek olan halenin ondan AÇIK olması gerektiğiydi — iki renk
+        // arasındaki İLİŞKİ ölçülmeden hiçbiri "doğru" sayılamaz.
+        public static readonly Color HeaderTop  = new Color(0.259f, 0.153f, 0.769f);
+        public static readonly Color HeaderLow  = new Color(0.216f, 0.129f, 0.639f);
         public static readonly Color Panel      = new Color(0.541f, 0.518f, 0.965f);
         public static readonly Color PanelDeep  = new Color(0.129f, 0.110f, 0.325f);
         public static readonly Color Ink        = new Color(1f, 0.99f, 0.96f);
@@ -43,7 +56,7 @@ namespace BlockOut.Runtime.UI
         public static readonly Color Red        = new Color(0.800f, 0.086f, 0.063f);
         public static readonly Color Blue       = new Color(0.173f, 0.545f, 0.996f);
         public static readonly Color CloseRed   = new Color(0.855f, 0.145f, 0.180f);
-        public static readonly Color TitleEdge  = new Color(0.45f, 0.42f, 0.92f);
+        public static readonly Color TitleEdge  = new Color(0.450f, 0.420f, 0.920f);
 
         public const float HeaderH = 240f;
 
@@ -180,11 +193,26 @@ namespace BlockOut.Runtime.UI
 
             // KONTUR — paylaşılan başlık materyali `CreateTitle`'a verilen
             // kontur rengini sessizce yok sayıyor (bu projede yedinci tuzak).
-            // Referanstan örneklendi (#322192); başlığa "baskılı" görünümünü
-            // veren şey bu. Aynı eksik Yolculuk ve Mağaza başlıklarında da
-            // vardı — burada düzeltmek Ayarlar, Profil, Liderlik ve
-            // Koleksiyon'u BİRDEN düzeltiyor.
-            UiKit.SetOutline(label, new Color(0.196f, 0.129f, 0.573f));
+            // Aynı eksik Yolculuk ve Mağaza başlıklarında da vardı — burada
+            // düzeltmek Ayarlar, Profil, Liderlik ve Koleksiyon'u BİRDEN
+            // düzeltiyor.
+            //
+            // 12. TUR (G1): kontur rengi #322192 idi ve YÖNÜ YANLIŞTI.
+            // Ölçüm (`m_051.jpg`, "Profil" başlığı):
+            //     bandın rengi        (66, 39, 196)
+            //     referans halesi     (98, 71, 228)  -> BANTTAN AÇIK
+            //     bizim konturumuz    (50, 33, 146)  -> BANTTAN KOYU
+            // Referans harfin çevresine IŞIK koyuyor, biz gölge koyuyorduk;
+            // bu yüzden bizimki "ince karanlık çizgi", referanstaki "kalın
+            // parlak hale" gibi okunuyordu. Üstelik tek katman yetmiyor:
+            // referansta harfin DİBİNDE ince koyu bir kenar da var.
+            //
+            // İkisini birden `UiTitleEmboss` veriyor (arkaya şişirilmiş bir
+            // kopya + öne ince koyu kenar). Kullanıcının "shader mı yazarsın
+            // üst üste text mi koyarsın" sorusunun cevabı: üst üste text.
+            GameKit.UI.UiTitleEmboss.Apply(label,
+                halo: new Color(0.384f, 0.278f, 0.894f),   // (98,71,228)
+                shadow: new Color(0.137f, 0.071f, 0.420f));
             return band;
         }
 
@@ -224,6 +252,7 @@ namespace BlockOut.Runtime.UI
             var button = root.gameObject.AddComponent<Button>();
             button.targetGraphic = ringImage;
             button.transition = Selectable.Transition.None;
+            GameKit.UI.UiPressFeedback.Attach(button);   // 12. tur, H7
             root.gameObject.AddComponent<GameKit.UI.UiButtonFeel>();
             button.onClick.AddListener(onClick);
             return button;
@@ -249,10 +278,19 @@ namespace BlockOut.Runtime.UI
         /// Ad korundu: otuzdan fazla çağrı yeri var ve hepsi "menünün standart
         /// yüzeyi" anlamında kullanıyor — değişen şey o yüzeyin şekli.
         /// </summary>
+        /// <param name="maxRadius">
+        /// Yarıçap TAVANI. Varsayılan <see cref="UiCornerFit.MaxRadius"/> (34
+        /// birim) panel ve kartlar için ölçülmüştü; büyük bir kapsülde o tavan
+        /// devreye girip şekli köşeli bırakıyor. Yolculuk'un kilometre taşı
+        /// kapsülleri gibi bilerek çok yuvarlak olan yüzeyler tavanı kaldırır.
+        /// Tavanı GENEL olarak yükseltmek yanlış olur — bkz. UiCornerFit'teki
+        /// "kapsam hatası" dersi.
+        /// </param>
         public static Image Capsule(string name, Transform parent, Color color,
-                                    float cornerShare = UiCornerFit.HouseShare)
+                                    float cornerShare = UiCornerFit.HouseShare,
+                                    float maxRadius = UiCornerFit.MaxRadius)
         {
-            var image = UiKit.CreateRoundedPanel(name, parent, color, cornerShare);
+            var image = UiKit.CreateRoundedPanel(name, parent, color, cornerShare, maxRadius);
             image.raycastTarget = false;
             return image;
         }
@@ -355,6 +393,7 @@ namespace BlockOut.Runtime.UI
             var button = root.gameObject.AddComponent<Button>();
             button.targetGraphic = root.GetComponentInChildren<Image>();
             button.transition = Selectable.Transition.None;
+            GameKit.UI.UiPressFeedback.Attach(button);   // 12. tur, H7
             root.gameObject.AddComponent<GameKit.UI.UiButtonFeel>();
             if (onClick != null) button.onClick.AddListener(onClick);
             return button;
@@ -470,6 +509,7 @@ namespace BlockOut.Runtime.UI
 
             var button = body.gameObject.AddComponent<Button>();
             button.transition = Selectable.Transition.None;
+            GameKit.UI.UiPressFeedback.Attach(button);   // 12. tur, H7
             body.gameObject.AddComponent<GameKit.UI.UiButtonFeel>();
             return button;
         }
@@ -520,36 +560,101 @@ namespace BlockOut.Runtime.UI
         // kapalıyken "Off" LEYLAK (71,57,208). Referansın kontrastı tersine
         // kurulu — parlak yeşilin üstüne beyaz değil, kendinden koyu yazı.
 
-        /// <summary>Yuvanın dış bileziği (#9081FE) ve içi (#342B7E).</summary>
+        // 13. TURDA VİDEODAN YENİDEN ÖLÇÜLDÜ. Yukarıdaki değerler tek bir
+        // JPEG ekran görüntüsünden alınmıştı; `Block Out! menus,powerups,vs.mp4`
+        // 53,6-55,4 sn arası 109 karenin ORTALAMASI (`_Reference/notes/
+        // ayarlar_avg.png`) kodek gürültüsünden arınmış bir "Ayarlar" ekranı
+        // verdi ve dört renk de kaydı.
+
+        /// <summary>Yuvanın dış bileziği (#9081FE) ve içi — ÖLÇÜM (39,30,105).</summary>
         static readonly Color SwitchRim  = new Color(0.565f, 0.506f, 0.996f);
-        static readonly Color SwitchDark = new Color(0.204f, 0.169f, 0.494f);
-        /// <summary>Çipin yüzeyi — ÖLÇÜM (40,191,13).</summary>
-        static readonly Color SwitchOn   = new Color(0.157f, 0.749f, 0.051f);
-        /// <summary>Açık çipin üstündeki yazı — ÖLÇÜM (28,64,25).</summary>
-        static readonly Color SwitchOnInk = new Color(0.110f, 0.251f, 0.098f);
-        /// <summary>Sönük yarının yazısı — ÖLÇÜM (71,57,208).</summary>
-        static readonly Color SwitchIdleInk = new Color(0.278f, 0.224f, 0.816f);
+        static readonly Color SwitchDark = new Color(0.153f, 0.118f, 0.412f);
+        /// <summary>Çipin yüzeyi — ÖLÇÜM: gövde medyanı (52,169,20).</summary>
+        static readonly Color SwitchOn   = new Color(0.204f, 0.663f, 0.078f);
+
+        /// <summary>
+        /// KAPALI çipin yüzeyi (A1). Referansta kapalı bir satır YOK — video
+        /// dört ayarı da açık gösteriyor — ama kullanıcı açıkça istedi:
+        /// *"On/Off anahtarı: ON iken yeşil, OFF iken KIRMIZI düğme"*.
+        /// Oyunun kendi kırmızısı kullanılıyor ki panel içinde yabancı
+        /// durmasın (aynı kırmızı "Quit" düğmesinde de var).
+        /// </summary>
+        static readonly Color SwitchOff  = Red;
+
+        /// <summary>Çipin üstündeki yazı — ÖLÇÜM (5,67,1), koyu yeşil.</summary>
+        static readonly Color SwitchOnInk = new Color(0.020f, 0.263f, 0.004f);
+        /// <summary>KAPALI çipin üstündeki yazı: kırmızının koyusu.</summary>
+        static readonly Color SwitchOffInk = new Color(0.259f, 0.020f, 0.012f);
+
+        /// <summary>
+        /// Sönük yarının yazısı — ÖLÇÜM (124,112,226).
+        ///
+        /// A2 (kullanıcı: *"'on / off' yazıları fazla koyu görünüyor"*).
+        /// Eski değer (71,57,208) koyu yuvanın üstünde zar zor okunuyordu;
+        /// referansta bu yazı belirgin biçimde daha AÇIK bir leylak.
+        /// Eski ölçüm tek bir JPEG karesinden alınmıştı ve kodek, koyu
+        /// zemindeki ince harfleri zemine doğru çekmişti.
+        ///
+        /// DERS (koyu zemindeki ince yazıyı TEK kareden ölçme): Sıkıştırma
+        /// en çok düşük kontrastlı ince ayrıntıyı bozar. Sabit bir sahnede
+        /// yüzlerce kareyi ortalamak bu yazıyı 53 birim açığa çıkardı.
+        /// </summary>
+        static readonly Color SwitchIdleInk = new Color(0.486f, 0.439f, 0.886f);
 
         /// <summary>Kurulan anahtarın parçaları; durumu <see cref="SetOn"/> çevirir.</summary>
         public sealed class SwitchView
         {
             public RectTransform Root;
+            /// <summary>Sol yarının dokunma yüzeyi (görsel olarak yuvanın kendisi).</summary>
             public Image OffFace;
-            /// <summary>Çipin dokunmayı yakalayan en dış katmanı.</summary>
+            /// <summary>Sağ yarının dokunma yüzeyi.</summary>
             public Image OnFace;
             public PillTint Chip;
+            public RectTransform ChipRect;
             public TMPro.TextMeshProUGUI OffText, OnText;
 
+            /// <summary>
+            /// Çip AÇIKKEN sağda yeşil, KAPALIYKEN solda KIRMIZI (A1).
+            ///
+            /// Eskiden çip hep sağda duruyor ve kapanınca yuvanın koyusuna
+            /// düşüyordu — yani "sönmüş" bir düğme. Kullanıcı bunun yerine
+            /// KIRMIZI istedi. Kırmızı bir düğme sağda, "On" yazısının
+            /// üstünde durursa yazının söylediğinin tersini gösterir; bu
+            /// yüzden çip yalnız renk değil YER de değiştiriyor.
+            /// </summary>
             public void SetOn(bool on)
             {
-                // Çip AÇIKKEN yeşil, KAPALIYKEN yuvanın kendi koyusuna
-                // düşüyor — yani "sönmüş" değil, yuvaya gömülmüş oluyor.
-                Chip.Color = on ? SwitchOn : SwitchDark;
-                OffFace.color = on ? SwitchDark : new Color(0.36f, 0.32f, 0.60f);
-                OnText.color = on ? SwitchOnInk : SwitchIdleInk;
-                OffText.color = on ? SwitchIdleInk : Ink;
+                UiKit.Place(ChipRect,
+                    on ? ChipRightX0 : ChipLeftX0, ChipY0,
+                    on ? ChipRightX1 : ChipLeftX1, ChipY1);
+                Chip.Color   = on ? SwitchOn      : SwitchOff;
+                OnText.color = on ? SwitchOnInk   : SwitchIdleInk;
+                OffText.color= on ? SwitchIdleInk : SwitchOffInk;
             }
         }
+
+        // ÇİPİN İKİ DURAĞI — 13. turda videodan yeniden ölçüldü.
+        //
+        // Eski değerler (0,60..1,065) çipi yuvanın sağ ucundan TAŞIRIYORDU;
+        // yorum bunu "referanstaki kabartma" diye açıklıyordu ve kaynak tek
+        // bir JPEG'di. `ayarlar_avg.png` üzerinde anahtar satırının yatay
+        // kesiti alınınca gerçek şu çıktı:
+        //
+        //     yuva (ray)  x %63,8..%92,2   ->  genişlik %28,4
+        //     yeşil çip   x %78,9..%91,7   ->  genişlik %12,8
+        //
+        // Yani çip yuvanın İÇİNDE ve sağ ucuna DAYALI (fark %0,5), taşmıyor.
+        // Yuvaya göre normalize edilince: %53..%100.
+        // Dikeyde de içeride: yuva y %74,28..%79,33, çip %75,0..%79,1 —
+        // yani yuva yüksekliğinin %81'i, ortalanmış.
+        //
+        // DERS (tek karelik bir JPEG'e dayanan "ölçüm" bir tahmindir):
+        // Taşma iddiası ölçülmüş gibi yazılmıştı ama kaynağı sıkıştırılmış
+        // tek bir kareydi; çipin parlak kenarı zemine taşınca dışarı çıkmış
+        // gibi görünüyor. Sabit sahnenin kare ortalaması bunu çözdü.
+        const float ChipRightX0 = 0.53f, ChipRightX1 = 1.00f;
+        const float ChipLeftX0  = 0.00f, ChipLeftX1  = 0.47f;
+        const float ChipY0 = 0.095f, ChipY1 = 0.905f;
 
         /// <summary>
         /// Oyunun tek aç/kapa anahtarı. Çağıran yalnız kökü yerleştiriyor.
@@ -570,24 +675,52 @@ namespace BlockOut.Runtime.UI
 
             var view = new SwitchView { Root = root };
 
+            // İKİ DOKUNMA YÜZEYİ ALTTA, ÇİP ÜSTTE (13. tur).
+            //
+            // Eskiden sağ yarının dokunma yüzeyi ÇİPİN dış konturuydu. Çip
+            // artık yer değiştirdiği için (A1) o kurgu çöküyordu: çip sola
+            // gidince sağ yarı ölü alan kalıyordu. Şimdi iki yarı da yuvanın
+            // içinde SABİT birer yüzey; çip ve yazılar onların üstünde
+            // duruyor ve hiçbiri ışın hedefi değil, yani dokunuş altlarındaki
+            // yarıya geçiyor.
+            //
+            // DERS (hareket eden bir parçayı DOKUNMA HEDEFİ yapma): Tıklama
+            // alanı kontrolün SABİT yarısına ait; görsel gösterge onun
+            // üstünde gezinen ayrı bir katman.
             view.OffFace = Capsule("Off", slot.transform, SwitchDark);
             view.OffFace.raycastTarget = true;
-            UiKit.Place(view.OffFace, 0.03f, 0.08f, 0.58f, 0.92f);
-            view.OffText = UiKit.CreateTitle("OffText", view.OffFace.transform, "Off",
-                fontSize, InkSoft, new Color(0.12f, 0.10f, 0.28f));
-            UiKit.Place(view.OffText, 0.04f, 0.06f, 0.96f, 0.94f);
+            UiKit.Place(view.OffFace, 0.02f, 0.06f, 0.50f, 0.94f);
+
+            view.OnFace = Capsule("On", slot.transform, SwitchDark);
+            view.OnFace.raycastTarget = true;
+            UiKit.Place(view.OnFace, 0.50f, 0.06f, 0.98f, 0.94f);
+
+            // Çip yuvayı yanda VE dikeyde AŞIYOR: referanstaki kabartma.
+            // İçine gömülü bir çip, anahtarı "iki renkli düz bir şerit"
+            // gibi gösteriyordu. Konumunu SetOn koyuyor.
+            var chip = PillBody("Chip", slot.transform, SwitchOn, out var layout, out view.Chip);
+            view.ChipRect = chip;
+            UiKit.Place(chip, ChipRightX0, ChipY0, ChipRightX1, ChipY1);
+            foreach (var g in chip.GetComponentsInChildren<Graphic>(true))
+                g.raycastTarget = false;
+
+            // Yazılar EN SON ve çipten BAĞIMSIZ: çip altlarında kayıyor,
+            // "Off" hep solda "On" hep sağda kalıyor.
+            //
+            // Kutular ÇİP DURAKLARIYLA AYNI MERKEZDE. İlk denemede sabit
+            // yarılara (0,04-0,46 / 0,54-0,96) konmuşlardı ve yazı çipin
+            // merkezinden %8 kayıyordu — kırmızı çipin üstünde "Off" sağa
+            // yaslanmış duruyordu. Referansta "Kapalı" da ray içinde
+            // %5,3..%41,2 aralığında, yani sol durağın merkezinde.
+            view.OffText = UiKit.CreateTitle("OffText", slot.transform, "Off",
+                fontSize, SwitchIdleInk, new Color(0.12f, 0.10f, 0.28f));
+            UiKit.Place(view.OffText, ChipLeftX0 + 0.03f, 0.06f, ChipLeftX1 - 0.03f, 0.94f);
+            view.OffText.characterSpacing = LabelTracking;
             view.OffText.raycastTarget = false;
 
-            // Çip yuvayı SAĞDA VE DİKEYDE AŞIYOR: referanstaki kabartma.
-            // İçine gömülü bir çip, anahtarı "iki renkli düz bir şerit"
-            // gibi gösteriyordu.
-            var chip = PillBody("On", slot.transform, SwitchOn, out var layout, out view.Chip);
-            UiKit.Place(chip, 0.60f, -0.06f, 1.065f, 1.06f);
-            view.OnFace = chip.Find("Outline").GetComponent<Image>();
-
-            view.OnText = UiKit.CreateTitle("OnText", chip, "On", fontSize,
+            view.OnText = UiKit.CreateTitle("OnText", slot.transform, "On", fontSize,
                 SwitchOnInk, new Color(0.63f, 1f, 0.45f));
-            UiKit.Place(view.OnText, 0.04f, 0f, 0.96f, 1f);
+            UiKit.Place(view.OnText, ChipRightX0 + 0.03f, 0.06f, ChipRightX1 - 0.03f, 0.94f);
             view.OnText.characterSpacing = LabelTracking;
             view.OnText.raycastTarget = false;
             layout.Bind(view.OnText, fontSize);

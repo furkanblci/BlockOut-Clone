@@ -161,9 +161,20 @@ namespace BlockOut.Runtime.UI
         static readonly Color HardPink = new Color(0.910f, 0.278f, 0.608f);
 
         // ---- Yeniden başlat onayı, `Game over .mp4` 15. sn'den ölçüldü -----
+        // ONAY PANELİNİN RENKLERİ.
+        //
+        // Üç ana renk REFERANSTAN ölçülmüştü (12. turda kısa bir süre
+        // `ContinueOffer`in renkleriyle değiştirildi, kullanıcı reddetti,
+        // geri alındı — bkz. BuildRetryConfirmPanel'deki not).
         static readonly Color RetryViolet = new Color(0.373f, 0.125f, 0.729f);  // #5F20BA
-        static readonly Color RetryWell   = new Color(0.184f, 0.078f, 0.353f);  // #2F145A
+        static readonly Color RetryWellC  = new Color(0.184f, 0.078f, 0.353f);  // #2F145A
         static readonly Color RetryLip    = new Color(0.443f, 0.208f, 0.827f);  // #7135D3
+
+        // Kenar katmanları (12. turda EKLENDİ — kullanıcı: "panelin boyutu,
+        // dış kısmı vs yok"). Bandın kendi renginden türetildi: pervaz onun
+        // koyu, ayak orta tonu. Ölçülmüş üç renge dokunulmadı.
+        static readonly Color RetryRim    = new Color(0.196f, 0.063f, 0.396f);
+        static readonly Color RetryFoot   = new Color(0.267f, 0.086f, 0.541f);
 
         // ---- OYUN İÇİ HUD, REFERANSTAN ÖLÇÜLDÜ (2026-08-18) ----------------
         //
@@ -178,7 +189,12 @@ namespace BlockOut.Runtime.UI
         // ayrı rol taşıyor, hepsini beyaz yapmak o ayrımı siliyordu.
         static readonly Color HudInk    = new Color(0.612f, 0.569f, 1.000f);  // #9C91FF
         static readonly Color HudPlate  = new Color(0.094f, 0.078f, 0.220f);  // #18143 8
-        static readonly Color HudClockInk = new Color(1.000f, 0.992f, 0.965f); // #FFFDF6
+        // SAYAÇ RENGİ ÖLÇÜLDÜ (2026-08-22, kayıpsız 1320×2868 referanstan;
+        // AA'sız çekirdek pikseller: medyan #FFFAEB, ortalama #FEF8EA).
+        // Eski #FFFDF6 daha SOĞUKTU; referansın rakamları belirgin biçimde
+        // krem. Sayaç puntosu da 58 -> 73 (yazı yüksekliği ekran genişliğinin
+        // referansta %3.9'u, bizde %3.1'di).
+        static readonly Color HudClockInk = new Color32(0xFF, 0xFA, 0xEB, 0xFF);
         static readonly Color HudGlyph  = new Color(0.816f, 0.784f, 1.000f);  // #D0C8FF
 
         /// <summary>
@@ -220,8 +236,36 @@ namespace BlockOut.Runtime.UI
         // yeniden kodlanmış bir ekran görüntüsüydü; kenarları bir-iki piksel
         // içeriden okunuyordu. Ham kareden kartın mor kütlesi x 29-564,
         // y 252-949 çıkıyor → %4,9-%95,3 ve alttan %25,9-%80,3.
-        const float WinCardX0 = 0.049f, WinCardX1 = 0.953f;
-        const float WinCardY0 = 0.259f, WinCardY1 = 0.803f;
+        const float WinCardX0 = 0.033f, WinCardX1 = 0.968f;
+        // KAZANMA KARTI YÜKSEKLİĞİ (2026-08-22). Referans karesi
+        // `_Reference/frames/m_041.jpg` ("MÜKEMMEL!" sonuç paneli):
+        //     referans kart 380×540 / 443 genişlik -> yükseklik %121.9, en-boy 0.70
+        //     bizim         856×1053 / 1080        -> %97.5, en-boy 0.81
+        // Yani kartımız genişliğine göre ALÇAKTI.
+        // 0.259-0.803 = 1045 birim (çizilen 1053, oran ~1.0).
+        // Hedef 1.219×1080 = 1317 birim -> Y aralığı 0.686; merkez (0.531)
+        // korunarak 0.188-0.874. IKINCI TUR: dis cerceve olculunce
+        // referans %93.5x%134.8 (en/boy 0.69), bizim %90.4x%121.9 (0.74)
+        // cikti -> X %93.5 (0.033-0.968), Y %134.8*1080/1920 = 0.758
+        // ekran merkezine oturtuldu (0.121-0.879).
+        // GENİŞLİĞE DOKUNULMADI: mor maskesi kartın koyu kenar bantlarını
+        // saymıyor (sabit %90.4 iken ölçüm %79.3 diyor), o ölçüm güvenilmez.
+        // 9. TUR, EKSEN DÜZELTMESİ. Bu değerler aynı turda 0,188-0,874'ten
+        // 0,121-0,879'a çıkarılmıştı; gerekçe "referans kart yüksekliği
+        // GENİŞLİĞİN %134,8'i" idi. Oran doğru ölçülmüş ama yanlış kenara
+        // bölünmüştü: `UiKit` kanvası `matchWidthOrHeight = 1`, yani dikey
+        // birim sabit ve bir Y ölçüsü ekran YÜKSEKLİĞİNE oranlanmalı.
+        //
+        // ÖLÇÜM (yakalama referansın en-boyunda, 886×1920):
+        //     referans  gen %93,5   yük %62,19   en/boy 0,69
+        //     bizim     gen %93,6   yük %75,83   en/boy 0,57
+        // Genişlik birebirdi, kart yalnız DİKEYDE şişmişti.
+        //     0,6219 × 1920 = 1194 birim -> Y aralığı 0,622
+        //     merkez 0,5 korunarak 0,189-0,811
+        // İNCE AYAR: 0,189-0,811 ile ölçüm %65,00 verdi (hedef %62,19) —
+        // aradaki fark kartın kenar bantlarından geliyor. Aralık ölçülen
+        // orana göre küçültüldü: 0,622 × (62,19/65,00) = 0,595.
+        const float WinCardY0 = 0.203f, WinCardY1 = 0.797f;
 
         GameSession _session;
 
@@ -637,12 +681,23 @@ namespace BlockOut.Runtime.UI
             // yuvarlak köşeli bir plakanın içinde duruyor ve jeton simgesi
             // plakanın SOL UCUNDAN taşıyor. Plaka olmayınca sayı, arkasındaki
             // tahtanın rengine göre bazen okunmuyordu.
+            // ÖLÇÜLER KAYIPSIZ REFERANSTAN YENİDEN ALINDI (2026-08-22).
+            // Kaynak: `_Reference/store/iphone_1_cleartheboard.png` (1320×2868,
+            // App Store'dan, SIKIŞTIRMASIZ) — daha önceki ölçümler 592×1280
+            // video karesinden yapılmıştı.
+            //
+            //     referans jeton  X 0.092-0.146 (genişliğin %5.5'i), yükseklik %4.5
+            //     bizim    jeton  X 0.039-0.121 (%8.2), yükseklik %7.3
+            //     referans sayı   yükseklik %2.8   /  bizim %2.3
+            //
+            // Yani jeton ~1.5 kat büyüktü ve fazla soldaydı; referansta jeton
+            // plakanın SOL UCUNA BİNİYOR, dışında durmuyor.
             var coinPlate = UiKit.CreateRoundedPanel("CoinPlate", root, HudPlate);
-            UiKit.Place(coinPlate, 0.075f, 0.944f, 0.365f, 0.986f);
+            UiKit.Place(coinPlate, 0.105f, 0.944f, 0.300f, 0.986f);
             coinPlate.raycastTarget = false;
 
             var coin = UiKit.CreateIcon("Coin", root, UiSkin.Get(Art.Coin));
-            UiKit.Place(coin, 0.035f, 0.940f, 0.125f, 0.990f);
+            UiKit.Place(coin, 0.089f, 0.951f, 0.149f, 0.979f);
 
             // PUNTO REFERANSTAN YENİDEN ÖLÇÜLDÜ (7. tur, U68 ile birlikte).
             //
@@ -658,7 +713,7 @@ namespace BlockOut.Runtime.UI
             // ölçümden çıkıyor: süre yazısı %38, seviye yazısı %50 küçüktü.
             // Jeton yazısı da 42'ye çıkıyor — referansta jeton ve seviye
             // AYNI puntoda ve biri büyüyüp diğeri kalsaydı satır bozulurdu.
-            _coinLabel = UiKit.CreateTitle("Coins", coinPlate.transform, "", 42, HudInk,
+            _coinLabel = UiKit.CreateTitle("Coins", coinPlate.transform, "", 51, HudInk,
                 new Color(0.10f, 0.07f, 0.24f));
             UiKit.Place(_coinLabel, 0.20f, 0.06f, 0.94f, 0.94f);
             _coinLabel.alignment = TextAlignmentOptions.Center;
@@ -741,7 +796,7 @@ namespace BlockOut.Runtime.UI
                 GameKit.UI.UiSprites.ClockFace, HudClockGlyph);
             UiKit.Place(clock, 0.062f, 0.20f, 0.252f, 0.80f);
 
-            _timerLabel = UiKit.CreateTitle("Timer", timer.transform, "", 58, HudClockInk,
+            _timerLabel = UiKit.CreateTitle("Timer", timer.transform, "", 73, HudClockInk,
                 new Color(0.12f, 0.09f, 0.30f));
             UiKit.Place(_timerLabel, 0.30f, 0.04f, 0.94f, 0.96f);
 
@@ -860,6 +915,7 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(body, x0, y0, x1, y1);
 
             var button = body.gameObject.AddComponent<Button>();
+            GameKit.UI.UiPressFeedback.Attach(button);   // 12. tur, H7
             button.transition = Selectable.Transition.None;
             body.gameObject.AddComponent<GameKit.UI.UiButtonFeel>();
             return button;
@@ -1290,8 +1346,41 @@ namespace BlockOut.Runtime.UI
             _retryPanel = UiKit.CreateRect("RetryConfirm", root);
             UiKit.Place(_retryPanel, 0f, 0f, 1f, 1f);
 
-            var scrim = UiKit.CreatePanel("Scrim", _retryPanel, new Color(0.02f, 0.02f, 0.05f, 0.72f));
+            // PERDE %72 -> %90 (12. tur, R1). En açık perde buydu ve tahtanın
+            // %28'i sızıyordu; küçük bir onay penceresinin arkasında bu,
+            // pencereyi "havada" gösteriyor.
+            var scrim = UiKit.CreatePanel("Scrim", _retryPanel, new Color(0.02f, 0.02f, 0.05f, 0.90f));
             scrim.raycastTarget = true;
+
+            // ÖLÇÜLMÜŞ DÜZEN GERİ GETİRİLDİ (12. tur, R1 — ikinci deneme).
+            //
+            // İlk denemede bu paneli `ContinueOffer` aşama 2'nin beş bantlı
+            // çerçevesine taşıdım. Gerekçem "ikisi aynı soruyu soruyor"du ve
+            // kullanıcı sonucu REDDETTİ: *"retry paneli 'can kaybediceksin'
+            // paneli daha kötü, referansa bak ona göre yap."*
+            //
+            // Hatam şuydu: aşağıdaki ölçüler ZATEN REFERANSTAN alınmıştı —
+            // yorumlarda açıkça yazıyor ("referansta y 236-414", "referansta
+            // y=183", "#7135D3, 4 piksel"). Ölçülmüş bir düzeni, başka bir
+            // ekranın ölçüsüyle değiştirdim; iki panel benzeşti ama ikisi de
+            // referansa uzaklaştı.
+            //
+            // DERS (ölçülmüş olanı, TUTARLILIK adına bozma): "İki ekran aynı
+            // şeyi söylüyorsa aynı görünsün" makul bir ilke ama ölçümün
+            // önüne geçemez. Bir düzeni değiştirmeden önce sor: bu değerler
+            // nereden geldi? Yorumda kaynak yazıyorsa, o kaynak benim
+            // benzetme isteğimden ağır basar.
+            //
+            // EKSİK OLAN ŞEY ÇERÇEVEYDİ: kullanıcının ilk turdaki sözü
+            // *"panelin boyutu, dış kısmı vs yok"*. Bant tek düz renkti;
+            // altında ve üstünde kenar yoktu. Ölçüler korundu, YALNIZ kenar
+            // katmanları eklendi.
+
+            // Üst kenar: bandın ÜSTÜNE binen koyu bir pervaz (aşama 2'deki
+            // "Rim" ile aynı rol). Panelin nerede başladığını söyleyen şey.
+            var rim = UiKit.CreatePanel("Rim", _retryPanel, RetryRim);
+            rim.raycastTarget = true;
+            UiKit.Place(rim, 0f, 0.769f, 1f, 0.793f);
 
             // Bant tam genişlik: referansta kart değil, ekranı kesen bir şerit.
             var band = UiKit.CreateRect("Band", _retryPanel);
@@ -1312,17 +1401,26 @@ namespace BlockOut.Runtime.UI
             lip.sizeDelta = new Vector2(0f, 9f);
             lip.anchoredPosition = Vector2.zero;
 
+            // Alt kenar: bandın ALTINA inen koyu ayak. Üstte pervaz varken
+            // altta hiçbir şey olmaması, şeridi ekrandan "kesilmiş" gösteriyordu.
+            var foot = UiKit.CreatePanel("Foot", _retryPanel, RetryFoot);
+            foot.raycastTarget = true;
+            UiKit.Place(foot, 0f, 0.278f, 1f, 0.302f);
+
             _retryTitle = UiKit.CreateTitle("Title", band, "", 54, Ink, TitleOutline);
             UiKit.Place(_retryTitle, 0.08f, 0.855f, 0.92f, 0.995f);
             UiKit.SetOutline(_retryTitle, TitleOutline);
 
             // KOYU GÖMME KUYU — referansta y 236-414, yani bandın %45-%88'i.
-            var well = UiKit.CreatePanel("Well", band, RetryWell);
+            var well = UiKit.CreatePanel("Well", band, RetryWellC);
             UiKit.Place(well, 0f, 0.428f, 1f, 0.855f);
             well.raycastTarget = false;
 
             _retryHeart = UiKit.CreateIcon("Heart", well.transform,
                 UiSkin.Get(Art.HeartBroken)).rectTransform;
+            // Oran korunuyor: `CreateIcon` preserveAspect kurmuyor ve kırık
+            // kalp kare değil (332x260) — kutusuna gerilince eziliyordu.
+            _retryHeart.GetComponent<Image>().preserveAspect = true;
             UiKit.Place(_retryHeart, 0.34f, 0.08f, 0.66f, 0.92f);
 
             var warning = UiKit.CreateTitle("Warning", band, "You will lose 1 life!", 38,
@@ -1417,21 +1515,90 @@ namespace BlockOut.Runtime.UI
             _pausePanel = UiKit.CreateRect("PausePanel", root);
             UiKit.Place(_pausePanel, 0f, 0f, 1f, 1f);
 
-            var scrim = UiKit.CreatePanel("Scrim", _pausePanel, new Color(0.05f, 0.03f, 0.14f, 0.82f));
+            // PERDE %82 -> %92 (12. tur, P2 — kullanıcı: "pause olduğunda
+            // arkaplan bir tık daha koyulaşması lazım"). Sonuç paneli (%94)
+            // ile aynı ailede ama bir tık açık: duraklatta oyuncu tahtaya
+            // dönecek, sonuçta dönmeyecek.
+            var scrim = UiKit.CreatePanel("Scrim", _pausePanel, new Color(0.05f, 0.03f, 0.14f, 0.92f));
             scrim.raycastTarget = true;
 
-            // Kart MOR — referansta krem değil. panel_card'ın alt dudağı
-            // sprite'ın kendisinde magenta; krem bırakılınca o pembe şerit
-            // ekranda kalıyordu. Mor tint hem referansa uyuyor hem dudağı
-            // kartın rengine katıyor.
-            _pauseCard = UiKit.CreateSlicedPanel("Card", _pausePanel,
-                UiSkin.Get(Art.PanelCard), CardPurple);
-            UiKit.Place(_pauseCard, 0.037f, 0.258f, 0.963f, 0.795f);
+            // KART PROSEDÜREL — SONUÇ KARTIYLA AYNI YÜZEY (9. tur).
+            //
+            // Burası `panel_card` sprite'ını kullanıyordu. Sonuç kartı 8.
+            // turda TAM OLARAK BU GÖRSELDEN vazgeçmişti (bkz. BuildResult'taki
+            // uzun not): sprite'ın içinde basılı ikinci bir çerçeve var,
+            // ekranda "çerçeve içinde çerçeve" okunuyor; ayrıca alt dudağı
+            // kartın gövdesinden kopuk bir bant bırakıyor.
+            //
+            // ÖLÇÜM (kendi yakalamalarımız, 1080×1920, kartın orta yüksekliği):
+            //   sonuç kartının kenarı   (49, 33,165)
+            //   duraklat kartının kenarı(46,  2,146)
+            // Aynı oyunda iki ayrı mor. Fark sabitten değil, sprite'ın kendi
+            // baskısından geliyordu — `CardPurple` ile boyanmasına rağmen.
+            //
+            // DERS (bir düzeltme, aynı görseli kullanan HER yeri kapsamalı):
+            // 8. turda sprite yalnız sonuç kartından kaldırılmıştı; duraklat
+            // paneli aynı hatayı bir tur daha taşıdı. Bir varlığı "kullanma"
+            // kararı verildiğinde o varlığın bütün çağrı yerleri taranmalı.
+            _pauseCard = UiKit.CreateRoundedPanel("Card", _pausePanel, CardEdge,
+                GameKit.UI.UiCornerFit.HouseShare, CardCornerRadius);
+            UiKit.Place(_pauseCard, WinCardX0, 0.258f, WinCardX1, 0.795f);
+
+            // Kenar profili sonuç kartıyla birebir aynı: dört bant, sonra yüz.
+            // Eş merkezli köşe kuralı (P56) — her bant içeri girdiği kadar
+            // küçük yarıçap alır.
+            float pauseInset = 0f;
+            PauseBand(CardGroove,    CardEdgeBand,   "Groove");
+            PauseBand(CardEdge,      CardGrooveBand, "Inner");
+            PauseBand(CardInnerLine, CardInnerBand,  "Line");
+            PauseBand(CardPurple,    CardLineBand,   "Face");
+
+            void PauseBand(Color color, float step, string name)
+            {
+                pauseInset += step;
+                var band = UiKit.CreateRoundedPanel(name, _pauseCard.transform,
+                    color, GameKit.UI.UiCornerFit.HouseShare, CardCornerRadius - pauseInset);
+                UiKit.Place(band, 0f, 0f, 1f, 1f, padding: pauseInset);
+                band.raycastTarget = false;
+            }
 
             // "Pause" kartın üst kenarına biner — PERFECT panelindeki gibi.
-            var title = UiKit.CreateTitle("Title", _pausePanel, "Pause", 88, Ink, TitleOutline);
-            UiKit.Place(title, 0.20f, 0.762f, 0.80f, 0.832f);
-            UiKit.SetOutline(title, TitleOutline);
+            //
+            // YAZI ARTIK KARTIN ÇOCUĞU (12. tur, P3 — kullanıcının "EN
+            // KRİTİK" dediği madde): *"pause yazısı panele bağlı değil;
+            // panel açılıyor oynuyor hareket ediyor ama pause texti ondan
+            // önce geliyor ve alakası yok."*
+            //
+            // Sebep tam olarak buydu: `title` ve `close` `_pausePanel`in
+            // çocuğuydu, oysa giriş animasyonu (`Juice.CardEntrance`) yalnız
+            // `_pauseCard`a uygulanıyor. Kart büyürken yazı ve çarpı ilk
+            // karede son yerlerinde beliriyordu.
+            //
+            // Kutular EKRAN-göreliden KART-göreliye çevrildi; ekrandaki yer
+            // birebir aynı kalıyor, yalnız hangi kutuya bağlı oldukları
+            // değişiyor:
+            //     kart x %3,3..%96,8 (genişlik 0,935), y %25,8..%79,5 (0,537)
+            //     Pause  x 0,20..0,80  -> 0,179..0,820
+            //            y 0,762..0,832 -> 0,939..1,069   (üstten taşıyor: bilerek)
+            //     Close  x 0,861..0,963 -> 0,886..0,995
+            //            y 0,732..0,778 -> 0,883..0,968
+            //
+            // DERS (animasyon, HİYERARŞİYİ ortaya çıkarır): Durağan bir
+            // ekranda yazının hangi kutuya bağlı olduğu görünmez — iki kutu
+            // da doğru yerde durur. Kart oynamaya başladığı anda fark
+            // ortaya çıkıyor. Bir öğe bir panelin PARÇASIysa o panelin
+            // ÇOCUĞU olmalı; aynı yerde durmaları yetmiyor.
+            var title = UiKit.CreateTitle("Title", _pauseCard.transform, "Pause", 88, Ink, TitleOutline);
+            UiKit.Place(title, 0.179f, 0.939f, 0.820f, 1.069f);
+
+            // KABARTMA (12. tur, P4): menü başlıklarıyla aynı muamele.
+            // Kullanıcı: *"tasarım olarak da pause textini düzelt, bahsettiğim
+            // o kabartma kontürü gibi olan text yapısında yap."*
+            // `SetOutline` yerine `UiTitleEmboss` — tek kontur yerine
+            // arkada kalın parlak hale + önde ince koyu kenar.
+            GameKit.UI.UiTitleEmboss.Apply(title,
+                halo: new Color(0.384f, 0.278f, 0.894f),
+                shadow: new Color(0.137f, 0.071f, 0.420f));
 
             // ÇARPI: GÖLGE + KOYU KENAR + PARLAK YÜZ (7. tur, S63).
             //
@@ -1447,8 +1614,9 @@ namespace BlockOut.Runtime.UI
             // DERS (bu ekranda beşinci tekrar): Bu arayüzün her yüzeyi üç
             // katmanlı — gölge, koyu kenar, yüz. Tek katmanlı her öğe, ne
             // kadar doğru renkte olursa olsun, yüzeyden kopuk görünüyor.
-            var close = UiKit.CreateRect("Close", _pausePanel);
-            UiKit.Place(close, 0.861f, 0.732f, 0.963f, 0.778f);
+            // Çarpı da karta bağlandı — gerekçe yukarıda (P3).
+            var close = UiKit.CreateRect("Close", _pauseCard.transform);
+            UiKit.Place(close, 0.886f, 0.883f, 0.995f, 0.968f);
 
             var closeShadow = UiKit.CreateIcon("Shadow", close, UiSprites.Circle,
                 new Color(0f, 0f, 0f, 0.38f));
@@ -1469,11 +1637,20 @@ namespace BlockOut.Runtime.UI
 
             // Üç ayar satırı. Referanstaki sıra: Sounds, Musics, Haptics.
             BuildSettingRow(0, UiSprites.Speaker, "Sounds:", 0.785f, 0.869f,
-                on => SettingsBinder.SetSounds(on, _session.Audio, _session.Haptics));
-            BuildSettingRow(1, UiSprites.MusicNote, "Musics:", 0.660f, 0.744f,
-                on => SettingsBinder.SetMusic(on, _session.Audio, _session.Haptics));
+                on => SettingsBinder.SetSounds(on, _session.Audio, _session.Haptics),
+                iconScale: 1.22f);   // hoparlor: cizilen 50 birim -> hedef 61
+            // "Musics:" DEĞİL (11. tur): "music" İngilizce'de sayılamayan bir
+            // isim, çoğulu yok. Ayarlar ekranı aynı satıra zaten "Music"
+            // diyordu (SettingsScreen.cs:222) — aynı kontrol iki ekranda iki
+            // farklı adla duruyordu. Muhtemelen Türkçe "Müzikler"den birebir
+            // çevrilmiş; "Sounds" (sesler) çoğul doğru olduğu için yanındaki
+            // de çoğullanmış.
+            BuildSettingRow(1, UiSprites.MusicNote, "Music:", 0.660f, 0.744f,
+                on => SettingsBinder.SetMusic(on, _session.Audio, _session.Haptics),
+                iconScale: 0.95f);   // nota: 64 -> 61
             BuildSettingRow(2, UiSprites.Haptics, "Haptics:", 0.535f, 0.619f,
-                on => SettingsBinder.SetHaptics(on, _session.Audio, _session.Haptics));
+                on => SettingsBinder.SetHaptics(on, _session.Audio, _session.Haptics),
+                iconScale: 1.79f);   // titresim: 34 -> 61 (en cok dolgusu olan)
 
             // DÜĞMELER KARTIN İÇ YÜZEYİNE SIĞDIRILDI (7. tur, S62).
             //
@@ -1535,19 +1712,48 @@ namespace BlockOut.Runtime.UI
         /// şu an açık mı, yoksa basınca mı açılacak" diye tereddüt eder.
         /// İki etiketten biri vurguluysa soru kalmaz.
         /// </summary>
+        /// <param name="iconScale">
+        /// Simge kutusunun merkezden büyütme çarpanı (13. tur, P5).
+        ///
+        /// Üç satır aynı kutuyu kullanıyordu ama ekranda çizilen yükseklikler
+        /// 50 / 64 / 34 birim çıkıyordu — sebebi kutu değil SPRITE'LARIN
+        /// birbirinden farklı saydam dolgusu. Ayarlar ekranında da birebir
+        /// aynı örüntü ölçüldü (hoparlör küçük, nota büyük, titreşim çok
+        /// küçük), yani sorun ekranda değil dosyalarda.
+        ///
+        /// Hedef 61 birim: referansın satır düzeninde simge, satır adımının
+        /// %48'i (69-72 birim / 148 birimlik adım). Bizim duraklat adımımız
+        /// 128 birim -> 0,48 x 128 = 61.
+        /// </param>
         void BuildSettingRow(int index, Sprite icon, string label,
-            float y0, float y1, System.Action<bool> apply)
+            float y0, float y1, System.Action<bool> apply, float iconScale = 1f)
         {
             var card = _pauseCard.transform;
 
             // Simge KOYU MOR — gerekçe ve ölçüm için bkz. PauseGlyph (S64).
             var glyph = UiKit.CreateIcon($"Icon_{index}", card, icon, PauseGlyph);
             glyph.raycastTarget = false;
-            UiKit.Place(glyph, 0.151f, y0, 0.252f, y1);
+            glyph.preserveAspect = true;   // UiKit.CreateIcon bunu kurmuyor
+            float icx = (0.151f + 0.252f) * 0.5f, icy = (y0 + y1) * 0.5f;
+            float ihw = (0.252f - 0.151f) * 0.5f * iconScale;
+            float ihh = (y1 - y0) * 0.5f * iconScale;
+            UiKit.Place(glyph, icx - ihw, icy - ihh, icx + ihw, icy + ihh);
 
+            // ETİKET ORTALANIYOR, sola dayanmıyor (13. tur, P5).
+            //
+            // ÖLÇÜM (`ayarlar_avg.png`, aynı satır kurgusunun referansı):
+            // dört etiketin başlangıcı FARKLI (%25,5 / %31,5 / %31,8 / %30,7)
+            // ama merkezleri AYNI (%40,6). Yani referans bu etiketleri
+            // simgeyle anahtar arasındaki boşluğa ORTALIYOR.
+            //
+            // DERS (hizayı BAŞLANGIÇTAN değil, DEĞİŞİMDEN oku): Farklı
+            // uzunluktaki üç etiketin sol kenarı tutuyorsa sola dayalı,
+            // merkezi tutuyorsa ortalıdır. Tek bir satıra bakmak ikisini
+            // ayırt ettirmez — bizde dördü de sola dayalıydı ve fark ancak
+            // uzun/kısa etiketler yan yana ölçülünce görüldü.
             var text = UiKit.CreateTitle($"Label_{index}", card, label, 40, Ink, TitleOutline);
-            text.alignment = TextAlignmentOptions.Left;
-            UiKit.Place(text, 0.279f, y0, 0.526f, y1);
+            text.alignment = TextAlignmentOptions.Center;
+            UiKit.Place(text, 0.265f, y0, 0.540f, y1);
 
             // OYUNUN TEK ANAHTARI (8. tur).
             //
@@ -1562,13 +1768,19 @@ namespace BlockOut.Runtime.UI
 
             // Her iki yarı da tıklanabilir: oyuncu istediği duruma DOĞRUDAN
             // basıyor. Tek düğmeli "değiştir" davranışı bir fazladan adım.
-            AddToggleClick(view.OffFace, index, false, apply);
-            AddToggleClick(view.OnFace, index, true, apply);
+            AddToggleClick(view.OffFace, index, false, apply, view.Root);
+            AddToggleClick(view.OnFace, index, true, apply, view.Root);
         }
 
-        void AddToggleClick(Image face, int index, bool value, System.Action<bool> apply)
+        void AddToggleClick(Image face, int index, bool value, System.Action<bool> apply,
+                            Transform feel)
         {
             var button = face.gameObject.AddComponent<Button>();
+            // Geri bildirim ANAHTARIN TAMAMINA uygulanıyor (13. tur, P5).
+            // Tıklanan yüzey çipin ALTINDA kalan bir kapsül; onu küçültmek
+            // ekranda hiçbir şey değiştirmiyordu.
+            var feedback = GameKit.UI.UiPressFeedback.Attach(button);   // 12. tur, H7
+            if (feedback != null) feedback.Target = feel;
             button.targetGraphic = face;
             button.transition = Selectable.Transition.None;
 
@@ -1623,8 +1835,57 @@ namespace BlockOut.Runtime.UI
             }
         }
 
-        /// <summary>Süre hapının ekran dışına çıkacağı mesafe (kanvas birimi).</summary>
+        /// <summary>
+        /// Süre hapının kayacağı EN AZ mesafe (kanvas birimi).
+        ///
+        /// 12. TURA KADAR BU SABİT TEK BAŞINA KULLANILIYORDU ve kullanıcı
+        /// bunu bir cihazda yakaladı: *"başka bir telefonda denedim, süre
+        /// yukarı gidiyor ama ekrandan kaybolmuyor, yukarıda duruyordu."*
+        ///
+        /// Sebep: hap `SafeArea`nın çocuğu. Çentiği büyük bir telefonda
+        /// güvenli alan HUD'u aşağı itiyor, yani hap daha ALÇAK bir yerden
+        /// yola çıkıyor; sabit 210 birim o cihazda ekranı terk etmeye
+        /// yetmiyor ve hap tepede asılı kalıyor.
+        ///
+        /// Artık gereken mesafe <see cref="RiseToClearTop"/> ile
+        /// HESAPLANIYOR; bu sabit yalnız alt sınır (ve hesap yapılamazsa
+        /// yedek) olarak duruyor.
+        ///
+        /// DERS (sabit bir mesafe, DEĞİŞKEN bir başlangıçtan işe yaramaz):
+        /// "Kanvas her cihazda 1920 birim yüksek" doğru ama yetersiz — güvenli
+        /// alan o 1920'nin ne kadarını kullanabildiğini cihaza göre
+        /// değiştiriyor. Ekran dışına çıkmak isteyen her animasyon, mesafeyi
+        /// ekranın kendisinden okumalı.
+        /// </summary>
         const float TimerHideRise = 210f;
+
+        /// <summary>
+        /// Hapın ALT kenarını kanvasın ÜST kenarına taşıyacak mesafe.
+        /// Dünya biriminden yerel birime çevriliyor; `anchoredPosition`
+        /// ebeveynin yerel birimiyle çalışıyor.
+        /// </summary>
+        float RiseToClearTop()
+        {
+            if (_timerPill == null) return TimerHideRise;
+
+            var canvas = _timerPill.GetComponentInParent<Canvas>();
+            if (canvas == null) return TimerHideRise;
+            var canvasRect = canvas.transform as RectTransform;
+            if (canvasRect == null) return TimerHideRise;
+
+            var c = new Vector3[4];
+            _timerPill.GetWorldCorners(c);
+            float pillBottom = c[0].y;
+            float canvasTop = canvasRect.TransformPoint(
+                new Vector3(0f, canvasRect.rect.yMax, 0f)).y;
+
+            float scale = Mathf.Abs(_timerPill.lossyScale.y);
+            if (scale < 0.0001f) return TimerHideRise;
+
+            // +32: hapın gölgesi ve konturu da tamamen çıksın.
+            float need = (canvasTop - pillBottom) / scale + 32f;
+            return Mathf.Max(TimerHideRise, need);
+        }
 
         /// <summary>
         /// SÜRE GÖSTERGESİ DURAKLATINCA YUKARI KAYAR (7. tur, S61).
@@ -1650,7 +1911,16 @@ namespace BlockOut.Runtime.UI
             if (_timerPill == null) return;
 
             float from = _timerPill.anchoredPosition.y;
-            float to = hidden ? TimerHideRise : 0f;
+
+            // MESAFE HESAPLANIYOR, SABİT DEĞİL (12. tur, P1). Gizlerken
+            // ekranın üst kenarı ölçülüyor; geri gelirken hep 0'a dönüyor.
+            //
+            // ÖNEMLİ: ölçüm hap HÂLÂ YERİNDEYKEN yapılmalı. Zaten yukarı
+            // kaymışsa `GetWorldCorners` kaymış hâli verir ve mesafe yanlış
+            // çıkar — bu yüzden `from` sıfırdan farklıysa yeniden ölçmüyoruz.
+            float to = hidden
+                ? (Mathf.Approximately(from, 0f) ? RiseToClearTop() : Mathf.Max(from, TimerHideRise))
+                : 0f;
             if (Mathf.Approximately(from, to)) return;
 
             GameKit.FX.Juice.Replace(_timerPill, hidden
@@ -1811,7 +2081,22 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(_resultPanel, 0f, 0f, 1f, 1f);
 
             // Perde: altındaki tahtaya dokunmayı da yutar.
-            var scrim = UiKit.CreatePanel("Scrim", _resultPanel, new Color(0.05f, 0.03f, 0.14f, 0.84f));
+            // PERDE %84 -> %94 (12. tur, F1 — kullanıcı: "level failed ekranı
+            // da çok kötü patlamış").
+            //
+            // Ekran görüntüsünde kartın üstünde hizasız koyu bir bant ve
+            // içinde kırmızı bir dikdörtgen görünüyordu. O bant bir arayüz
+            // öğesi DEĞİLDİ: %16 geçirgen perdenin arkasından sızan OYUN
+            // TAHTASIydı, kırmızı dikdörtgen de tahtadaki gerçek bir bloktu.
+            // `ContinueOffer` aynı sahnede %94 kullanıyor ve orada tahta
+            // görünmüyor — iki panel aynı sahneyi kapatıyorsa aynı opaklıkta
+            // olmalı.
+            //
+            // DERS (arkadan sızan şey, ÖN PLANIN kusuru sanılır): Kullanıcı
+            // bunu "panel patlamış" diye bildirdi çünkü sızan tahta tesadüfen
+            // bir panel gibi duruyordu. Aynı hata bu turda iki ayrı ekranda
+            // (F1 ve O1) aynı sebeple çıktı.
+            var scrim = UiKit.CreatePanel("Scrim", _resultPanel, new Color(0.05f, 0.03f, 0.14f, 0.94f));
             scrim.raycastTarget = true;
 
             // KART ARTIK PROSEDÜREL — HAZIR GÖRSEL ÇİFT ÇERÇEVE ÜRETİYORDU.
@@ -1879,9 +2164,20 @@ namespace BlockOut.Runtime.UI
                 return band;
             }
 
-            // "PERFECT!" kartın DIŞINDA, üst kenarına binerek duruyor. Kartın
-            // içine alınırsa başlık kutunun bir satırı olur; referansta kartı
-            // taşıyan bir tabela gibi davranıyor.
+            // "PERFECT!" kartın ÜST KENARINA YAKIN, kartın İÇİNDE duruyor.
+            //
+            // 9. TURDA DÜZELTİLDİ: burada eskiden "kartın DIŞINDA, üst
+            // kenarına binerek duruyor" yazıyordu. Kart referans oranına
+            // büyütülünce (bkz. WinCardY0/Y1) başlık kartın içinde kaldı ve
+            // yorum kodla çelişir hâle geldi. Ölçüm mevcut hâli doğruluyor:
+            // başlığın üstü, kartın üst kenarından aşağıda —
+            //     referans +%8,8   bizim +%8,2   (genişliğe oranla)
+            // Yani referansta da başlık kartın içinde; "tabela" izlenimini
+            // veren şey konum değil, başlığın kalın pembe konturu.
+            //
+            // DERS (yorum da bayatlar): Bir sabiti değiştirdiğinde onu
+            // gerekçelendiren yorum artık başka bir düzeni anlatıyor
+            // olabilir. Yanlış yorum, yanlış koddan daha uzun yaşar.
             // PUNTOLAR ÖLÇÜLDÜ (6. tur; kullanıcı: "PERFECT yazısı özensiz,
             // kötü; yeri ve boyutu referanstan bakıp ayarlanmalı").
             //
@@ -2125,7 +2421,24 @@ namespace BlockOut.Runtime.UI
             // Kalp başlığın ALTINDA. Başlık 8. turda büyüyünce kalp
             // harflerin üstüne bindi ve "FAILED"in ortasını kapattı; iki
             // öğe aynı kutuya sığmıyordu.
-            UiKit.Place(_failHeart, 0.430f, 0.700f, 0.573f, 0.752f);
+            //
+            // KALP HİÇBİR ŞEYE DEĞMİYORDU (11. tur). Yukarıdaki "kartın
+            // kesiştiği yere biner" cümlesi koda uymuyordu: kalbin kutusu
+            // %70,0'da bitiyor, kaybetme kartının üstü de tam %70,0'da
+            // başlıyordu. Render'dan ölçüldü — sprite'ın kendi saydam payıyla
+            // birlikte kalbin GÖRÜNÜR alt kenarı %70,8'de kalıyor, yani karla
+            // arasında 13 birim boşluk var. Üstünde de başlığa 38 birim
+            // mesafe olduğu için kalp karanlık perdede asılı duruyordu:
+            // ne başlığın ne kartın parçası.
+            //
+            // %1,5 aşağı alındı; alt üçte biri artık kartın üst kenarına
+            // biniyor (kalp kartın SONRA kurulan kardeşi olduğu için üstte
+            // çiziliyor). Kapatma düğmesi kartın köşesine nasıl biniyorsa
+            // kalp de üst kenarına öyle biniyor — aynı dil.
+            //
+            // Alt sınır: kartın içindeki zorluk etiketi %67,8'de başlıyor,
+            // kalbin yeni alt kenarı %68,5 — arada 13 birim kalıyor.
+            UiKit.Place(_failHeart, 0.430f, 0.685f, 0.573f, 0.737f);
 
             // Zorluk etiketi bölüm numarasının ÜSTÜNDE, küçük ve sade.
             _failDifficulty = UiKit.CreateTitle("Difficulty", _resultCard.transform, "", 30,
@@ -2141,8 +2454,24 @@ namespace BlockOut.Runtime.UI
             // ÖLÇÜM (`Game over .mp4` 18. saniye): rozet TURUNCU bir hap,
             // yazısı beyaz — koyu lacivert değil. Koyu rozet yeşil düğmenin
             // üstünde bir "ikinci gölge" gibi duruyordu.
-            _rewardsTag = UiKit.CreateSlicedPanel("RewardsTag", _resultCard.transform,
-                UiSkin.Get(Art.PanelDark), TagOrange);
+            // ROZET TURUNCU DEĞİL, SİYAHTI (11. tur).
+            //
+            // Yukarıdaki ölçüm doğruydu ama EKRANA ULAŞMIYORDU: rozet
+            // `Art.PanelDark` sprite'ıyla kuruluyor ve `TagOrange` ona TINT
+            // olarak veriliyordu. uGUI tint'i sprite'la ÇARPAR; koyu bir
+            // sprite'ı turuncuyla çarpınca turuncu değil koyu kahve çıkar.
+            // Render'dan ölçüldü: rozetin ortanca rengi (49,26,6) — yani
+            // TagOrange'ın (246,157,33) beşte biri. Ekranda tam olarak
+            // yorumun kaldırmak istediği "ikinci gölge" görünüyordu.
+            //
+            // DERS (tint bir BOYA değil, ÇARPAN): Bir rengi sabit olarak
+            // tanımlamak onu ekranda göreceğin anlamına gelmiyor — hangi
+            // sprite'la çarpıldığını da bilmek gerekiyor. Beyaz olmayan her
+            // zemin, verdiğin rengi koyultur. Kart nasıl prosedürel
+            // kuruluyorsa (bkz. BuildResultPanel) rozet de öyle kuruluyor:
+            // yuvarlak panel beyaz bir maskedir, tint ona birebir işler.
+            _rewardsTag = UiKit.CreateRoundedPanel("RewardsTag", _resultCard.transform,
+                TagOrange, 0.5f);
             UiKit.Place(_rewardsTag, 0.370f, 0.260f, 0.641f, 0.312f);
             var tagLabel = UiKit.CreateTitle("Label", _rewardsTag.transform, "Rewards x3", 24,
                 Color.white, TagOrangeDark);
@@ -2382,7 +2711,7 @@ namespace BlockOut.Runtime.UI
                 .Append((total % 60) / 10).Append(total % 10).ToString();
 
             bool warning = total <= _session.WarningSeconds;
-            _timerLabel.color = warning ? Warning : Ink;
+            _timerLabel.color = warning ? Warning : HudClockInk;
 
             // DERS (uyarı SÜREKLİ değil ANLIK olmalı): Sayacı kırmızıya boyayıp
             // bırakmak ilk saniyede fark edilir, sonra göz alışır ve uyarı
@@ -2705,6 +3034,25 @@ namespace BlockOut.Runtime.UI
         /// kalıyor — bu yüzden anahtarlara BASILAMAZ; önizleme yalnız
         /// GÖRÜNÜM içindir.
         /// </summary>
+        /// <summary>
+        /// EDİTÖR ÖNİZLEMESİ: "can kaybedeceksin" onay paneli (12. tur, R1).
+        ///
+        /// Sonuç ve duraklat önizlemelerindeki gerekçenin aynısı: panel
+        /// yalnız oyun sırasında, yeniden başlat düğmesine basınca açılıyor;
+        /// düzenleyicide ölçülebilmesi için yan etkisiz bir yol gerekiyor.
+        /// </summary>
+        public static GameplayScreen CreateRetryPreview(Transform parent)
+        {
+            var host = UiKit.CreateRect("RetryPreview", parent);
+            UiKit.Place(host, 0f, 0f, 1f, 1f);
+            var screen = host.gameObject.AddComponent<GameplayScreen>();
+
+            screen.BuildRetryConfirmPanel(host);
+            screen._retryPanel.gameObject.SetActive(true);
+            screen._retryTitle.text = "Restart?";
+            return screen;
+        }
+
         public static GameplayScreen CreatePausePreview(Transform parent)
         {
             var host = UiKit.CreateRect("PausePreview", parent);
@@ -2714,6 +3062,22 @@ namespace BlockOut.Runtime.UI
             screen.BuildPausePanel(host);
             screen._pausePanel.gameObject.SetActive(true);
             return screen;
+        }
+
+        /// <summary>
+        /// EDİTÖR ÖNİZLEMESİ: bir anahtarı açıp kapatır.
+        ///
+        /// NEDEN VAR (13. tur, P5/A1): Kapalı durumun KIRMIZI çipi (A1)
+        /// ancak kapalı bir anahtarda görünüyor ve önizleme her şeyi açık
+        /// kuruyor. Yakalama betiği rengi ELLE yazarak da kapatabilirdi ama
+        /// o zaman ölçülen şey KODUN ÜRETTİĞİ şey olmazdı — betiğin kendi
+        /// yazdığı rengi ölçüp "doğru" demek, doğrulamanın kendisini
+        /// geçersiz kılar. Bu kanca gerçek <c>SwitchView.SetOn</c>'u çağırıyor.
+        /// </summary>
+        public void PreviewSetToggle(int index, bool on)
+        {
+            if (index < 0 || index >= _toggles.Length) return;
+            _toggles[index]?.SetOn(on);
         }
 
         /// <summary>

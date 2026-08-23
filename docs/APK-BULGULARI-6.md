@@ -332,10 +332,10 @@ varlık kullanmak serbest.
 
 # AYARLAR
 
-- [ ] **A1.** On/Off anahtarı: **ON iken yeşil, OFF iken KIRMIZI** düğme
+- [x] **A1.** On/Off anahtarı: **ON iken yeşil, OFF iken KIRMIZI** düğme
       olacak. (Şu an OFF tarafı nötr mor.)
 
-- [ ] **A2.** "on / off" **yazıları fazla koyu** görünüyor. Orijinal rengin
+- [x] **A2.** "on / off" **yazıları fazla koyu** görünüyor. Orijinal rengin
       biraz daha düşük opaklıklı hâli gibi olmalı; daha çok benzetilecek.
       > *"ayarlar kısmında on off var ya, on iken yeşil buton, off olduğunda
       > kırmızı renk buton olmalı; ve o on off yazıları fazla koyu
@@ -452,12 +452,29 @@ varlık kullanmak serbest.
       **NE YAPILDI:** `SetOutline` yerine `UiTitleEmboss` (aşağıda G1).
       **NASIL DOĞRULANDI:** `_Reference/notes/pause_title.png` — arkada kalın
       parlak hale, önde ince koyu kenar.
-- [ ] **P5.** Duraklat panelinde **düğmelerin boyutu ve görünümü,
+- [x] **P5.** Duraklat panelinde **düğmelerin boyutu ve görünümü,
       ikonların boyutu, kapat düğmesinin yeri**, ve **üzerine basılı
       tutunca hareket etmesi** — hepsine dikkat edilecek.
       > *"yine duraklat kısmında butonların boyutuna görünümüne ikonların
       > boyutuna kapat butonunun yerine, üzerine basılı tuttuğumuzda hareket
       > etmesine vs dikkat edelim, bunların hepsini yapıcaz"*
+
+      **13. TURDA KAPATILDI.** Duraklat panelinin referansı elimizdeki
+      videolarda YOK; ama `menus,powerups,vs.mp4` 54. sn'deki "Ayarlar"
+      ekranı birebir aynı satır kurgusunu taşıyor (109 kare ortalandı:
+      `_Reference/notes/ayarlar_avg.png`). Oradan ölçülerek:
+      - **simge boyutları** eşitlendi (50/64/34 -> 62/61/61 birim); sorun
+        kutuda değil sprite'ların farklı saydam dolgusundaydı
+      - **etiketler ortalandı** (referansta dört etiketin merkezi aynı,
+        başlangıçları farklı — yani ortalı, sola dayalı değil)
+      - **anahtar yuvası** referans ölçüsüne döndü: eski kod çipi yuvadan
+        taşırıyordu, ölçüm çipin yuvanın İÇİNDE olduğunu gösterdi
+      - **basılı tutunca hareket** düzeltildi: geri bildirim çipin altındaki
+        görünmez yüzeye takılıydı, artık kontrolün tamamına uygulanıyor
+      - **kapat düğmesi** yeri zaten referansla birebirdi (12. turda
+        karta bağlanmıştı), dokunulmadı
+
+      Ayrıntı ve dersler: `docs/DEVAM.md`, 13. tur.
 
 ---
 
