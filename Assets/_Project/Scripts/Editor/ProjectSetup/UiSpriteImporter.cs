@@ -133,6 +133,7 @@ namespace BlockOut.Editor.ProjectSetup
             // Bölüm kurdelesi (13. tur, M3a): altın-turuncu geçişi ince ve
             // bantlanmaya çok açık.
             "ribbon_section",
+            "ribbon_tail",
         };
 
         /// <summary>

@@ -863,8 +863,14 @@ namespace BlockOut.Runtime.UI
                 tail.anchorMax = new Vector2(x1, 0.76f);
                 tail.offsetMin = Vector2.zero;
                 tail.offsetMax = Vector2.zero;
+                // DİL DE ORİJİNALDEN (13. tur). Referansta düz altın değil,
+                // dikey gradyanlı — üstte açık sarı (250,246,123), altta
+                // turuncu (199,77,0). Tek renk verince dil kurdelenin
+                // yanında yassı bir şerit gibi duruyordu.
                 var tailImage = tail.gameObject.AddComponent<Image>();
-                tailImage.color = PillRimGold;
+                var tailArt = UiSkin.Get(Art.RibbonTail);
+                if (tailArt != null) { tailImage.sprite = tailArt; tailImage.type = Image.Type.Simple; }
+                else tailImage.color = PillRimGold;
                 tailImage.raycastTarget = false;
             }
 

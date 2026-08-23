@@ -196,6 +196,14 @@ namespace BlockOut.Runtime.UI
         /// </summary>
         public const string SectionRibbon = "ribbon_section";
 
+        /// <summary>
+        /// Bölüm kurdelesinin UÇLARINDAKİ DİL. Referansta düz altın değil,
+        /// dikey gradyanlı: (250,246,123) -> (247,191,6) -> (199,77,0).
+        /// Bizimki tek renkti ve kurdelenin yanında yassı duruyordu.
+        /// `market.jpeg` y 354..392, x=12 (temiz sütun).
+        /// </summary>
+        public const string RibbonTail = "ribbon_tail";
+
         public const string Coin    = "icon_coin";
         public const string Heart   = "icon_heart";
         public const string HeartBroken = "icon_heart_broken";
