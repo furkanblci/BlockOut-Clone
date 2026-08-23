@@ -744,7 +744,7 @@ namespace BlockOut.Runtime.UI
             // --- Paketler ---
             sectionTop = y;
             y += PadTop;
-            SectionPill(content, y, "Packs", PillPacks);
+            SectionPill(content, y, "Packs", PillPacks, null, packsTemasi: true);
             y += PillH + PillGap;
 
             for (int i = 0; i < Packs.Length; i++)
@@ -844,7 +844,7 @@ namespace BlockOut.Runtime.UI
         /// renk — fark yalnız o küçük çıkıntıda.
         /// </summary>
         static void SectionPill(Transform content, float top, string text, Color face,
-                                Color? rimColor = null)
+                                Color? rimColor = null, bool packsTemasi = false)
         {
             var row = Row("Pill_" + text, content, top, PillH, MarginX, 1f - MarginX);
 
@@ -886,7 +886,11 @@ namespace BlockOut.Runtime.UI
                 // turuncu (199,77,0). Tek renk verince dil kurdelenin
                 // yanında yassı bir şerit gibi duruyordu.
                 var tailImage = tail.gameObject.AddComponent<Image>();
-                var tailArt = UiSkin.Get(Art.RibbonTail);
+                // DİL, KURDELENİN ÇERÇEVESİYLE AYNI RENK (14. tur, M4i).
+                // Paketler'in çerçevesi krem, Teklifler'inki altın; tek dil
+                // görselini ikisine de takınca krem kurdele sarı bir uçla
+                // bitiyordu ve şerit başkasından ödünç alınmış gibi duruyordu.
+                var tailArt = UiSkin.Get(packsTemasi ? Art.RibbonTailCream : Art.RibbonTail);
                 if (tailArt != null) { tailImage.sprite = tailArt; tailImage.type = Image.Type.Simple; }
                 else tailImage.color = PillRimGold;
                 tailImage.raycastTarget = false;
@@ -908,7 +912,7 @@ namespace BlockOut.Runtime.UI
             // doğru çiziyordu ama kenarı tutmadı; tentede öğrenilen kural
             // ("üç tur yaklaşamayan çizim, çizilmemeli") burada bir turda
             // uygulandı. Görsel yoksa prosedürel olana düşülüyor.
-            var ribbonArt = UiSkin.Get(Art.SectionRibbon);
+            var ribbonArt = UiSkin.Get(packsTemasi ? Art.SectionRibbonPacks : Art.SectionRibbon);
             var rim = UiKit.CreateIcon("Rim", row, ribbonArt ?? UiSprites.SectionRibbon);
             rim.type = Image.Type.Sliced;
             rim.preserveAspect = false;
@@ -921,8 +925,13 @@ namespace BlockOut.Runtime.UI
             // ×1.24. Şerit bu turda 104'ten 122'ye çıktığı için yazı ONUNLA
             // BİRLİKTE büyümemişti — sabit punto, şerit büyüyünce oransal
             // olarak küçüldü. (Punto ile kutu birlikte düşünülmeli.)
+            // KONTUR DA KURDELEYE AİT: altın kurdelede koyu kahve (24,13,5),
+            // mor kurdelede koyu mor (46,5,70) — ikisi de referanstan
+            // ölçüldü. Kahverengi kontur morun üstünde kirli bir kenar
+            // bırakıyordu.
             var label = UiKit.CreateTitle("Label", row, text, 70,
-                new Color(1f, 0.99f, 0.96f), new Color(0.24f, 0.05f, 0.02f));
+                packsTemasi ? new Color(0.992f, 0.980f, 0.992f) : new Color(1f, 0.99f, 0.96f),
+                packsTemasi ? new Color(0.180f, 0.020f, 0.275f) : new Color(0.24f, 0.05f, 0.02f));
             UiKit.Place(label, 0.06f, 0.04f, 0.94f, 0.96f);
         }
 

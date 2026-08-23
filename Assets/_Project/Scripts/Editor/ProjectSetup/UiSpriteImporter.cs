@@ -57,6 +57,11 @@ namespace BlockOut.Editor.ProjectSetup
             // DİKEY, o yüzden yatay pay köşe yarıçapı (38) + 2, dikey pay
             // sıfır — orta yalnız yatayda esniyor.
             { "ribbon_section", new Vector4(40, 0, 40, 0) },
+
+            // Paketler kurdelesi (14. tur, M4i): yarıçap 34 ölçüldü,
+            // pay 36. Genişlik 76 olduğu için ortada yalnız 4 piksel
+            // esneyecek alan kalıyor; profil dikey olduğundan bu yeterli.
+            { "ribbon_packs", new Vector4(36, 0, 36, 0) },
         };
 
         // Varsayılan 512; bunlar ondan büyük olmalı.
@@ -134,6 +139,10 @@ namespace BlockOut.Editor.ProjectSetup
             // bantlanmaya çok açık.
             "ribbon_section",
             "ribbon_tail",
+            // Paketler kurdelesi ve krem dili (14. tur, M4i): mordan
+            // kreme geçiş dar bir aralıkta oluyor, ASTC bunu bantlıyor.
+            "ribbon_packs",
+            "ribbon_packs_tail",
         };
 
         /// <summary>

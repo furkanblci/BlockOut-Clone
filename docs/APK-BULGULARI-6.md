@@ -214,13 +214,24 @@ varlık kullanmak serbest.
       > *"aralarındaki kahverengi arkaplanın deseni daha çok benzetilmeli,
       > orjinal oyundaki gibi olmalı"*
 
-- [ ] **M4i.** Şerit başlıklarda **dış çizgi rengi, ait olduğu başlığın
+- [x] **M4i.** Şerit başlıklarda **dış çizgi rengi, ait olduğu başlığın
       rengiyle aynı** olacak. Örnek: "Packs" krem dış çizgili ama sarı
       şeritle bağlanmış — aynı renkte bağlanmalı.
       > *"yine bu şerit başlıklarda dış çizgiler, hangi başlığın dış çizgisi
       > neyse onla aynı olmalı; örneğin packs kısmı krem rengi dış çizgisi
       > var ama sarıyla bağlanmış şerit, ondan bahsediyorum, aynı renkte
       > bağlanmalı"*
+      >
+      > **YAPILDI (14. tur).** Tek kurdele görselini iki bölümde de
+      > kullanıyorduk. Referansta ikisi ayrı: Teklifler altın çerçeve +
+      > turuncu gövde, Paketler KREM çerçeve + mor gövde — dil de kurdelenin
+      > çerçevesiyle aynı renk. `ribbon_packs.png` (76x109) ve
+      > `ribbon_packs_tail.png` `market_ref.png`ten kesildi; renk profili
+      > yazı olmayan bir sütundan (x=150) alınıp KENAR MESAFESİNE göre
+      > uygulandı (`y`'ye göre değil — yoksa çerçeve yuvarlak uçlarda
+      > kesiliyor). Başlığın konturu da bölüme bağlandı: altında koyu kahve,
+      > morda koyu mor (46,5,70). Ölçüm: yazı/kurdele %38,4 (ref %36,7),
+      > dil rengi (230,196,159) vs ref (229,197,159).
 
 ## 5. Paket kutucuklarının zemini
 

@@ -204,6 +204,37 @@ namespace BlockOut.Runtime.UI
         /// </summary>
         public const string RibbonTail = "ribbon_tail";
 
+        /// <summary>
+        /// PAKETLER bölümünün kurdelesi — Teklifler'inkinden AYRI bir görsel
+        /// (14. tur, M4i).
+        ///
+        /// Kullanıcı: *"bu şerit başlıklarda dış çizgiler, hangi başlığın dış
+        /// çizgisi neyse onunla aynı olmalı; örneğin packs kısmının krem
+        /// rengi dış çizgisi var ama sarıyla bağlanmış şerit."*
+        ///
+        /// Tek bir kurdele görselini iki bölümde de kullanıyorduk. Referansta
+        /// ikisi ayrı: Teklifler altın çerçeve + turuncu gövde, Paketler ise
+        /// KREM çerçeve + mor gövde. Dil de kurdelenin çerçevesiyle aynı
+        /// renk olduğu için altın dili krem kurdeleye takınca şerit
+        /// başkasından ödünç alınmış gibi duruyordu.
+        ///
+        /// `market_ref.png`ten kesildi: gövde y 1027..1125, krem çerçeve
+        /// dahil y 1022..1130, köşe yarıçapı 34 (sol uçta kumaş x=36'da
+        /// açılıp x=70'te tam yüksekliğe ulaşıyor). Renk profili yazı
+        /// olmayan bir sütundan (x=150) alındı ve KENAR MESAFESİNE göre
+        /// uygulandı — `y`'ye göre değil. Fark yuvarlak uçlarda çıkıyor:
+        /// `y` ile boyanınca çerçeve uçlarda kesiliyor ve yanların dış
+        /// çizgisi birleşmiyor (12. turda tam bu hataya düşülmüştü).
+        /// </summary>
+        public const string SectionRibbonPacks = "ribbon_packs";
+
+        /// <summary>
+        /// Paketler kurdelesinin dili — krem, dikey gradyanlı:
+        /// (255,250,226) -> (229,197,159) -> (167,91,65).
+        /// `market_ref.png` y 1058..1097, x=14 (temiz sütun).
+        /// </summary>
+        public const string RibbonTailCream = "ribbon_packs_tail";
+
         public const string Coin    = "icon_coin";
         public const string Heart   = "icon_heart";
         public const string HeartBroken = "icon_heart_broken";
