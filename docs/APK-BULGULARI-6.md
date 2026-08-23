@@ -37,13 +37,28 @@ varlık kullanmak serbest.
 
 # 0. UYGULAMA İKONU
 
-- [ ] **U1.** Uygulama ikonu orijinal oyundan zaten alınmıştı; doğrudan
+- [x] **U1.** Uygulama ikonu orijinal oyundan zaten alınmıştı; doğrudan
       kurulacak.
       > *"uygulama ikonu orjinal oyundan aldık zaten onu koyalım direkt"*
 
       Not: `AppIconTool.cs` var ve `PlayerSettings.SetPlatformIcons`
       kullanıyor (obsolete uyarıları veriyor, çalışıyor). Kaynak dosyanın
       hangisi olduğu bulunacak.
+
+      **13. TURDA DOĞRULANDI — ZATEN YERİNDEYMİŞ.** Kaynak
+      `Assets/_Project/Art/Icons/icon_app.png` (1024x1024) ve uyarlanabilir
+      ikon için `icon_app_bg` / `icon_app_fg`.
+
+      `AppIconTool.Apply()` çalıştırılıp Android yuvaları tek tek sayıldı:
+      **Adaptive (API 26) 6/6, Round (API 25) 6/6, Legacy 6/6** — hepsi
+      doluydu ve araç hiçbir şeyi değiştirmedi (`ProjectSettings.asset`
+      farkı yalnız derleme numarası).
+
+      **Kendi hatam, not düşülüyor:** Önce "Android yuvaları boş" dedim.
+      `m_BuildTargetPlatformIcons` altında gördüğüm boş `m_Textures: []`
+      bloğu **iPhone**'a aitmiş; Android bloğu daha aşağıdaydı ve doluydu.
+      Uzun bir YAML'de bir alanı okurken hangi platformun altında olduğunu
+      da okumak gerekiyor.
 
 ---
 
