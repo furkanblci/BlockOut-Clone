@@ -6216,3 +6216,74 @@ etiket        37/37/46 br     35/38/47 br
 Surdur        %41,8..%49,6    %41,9..%49,5
 Cikis         %30,5..%38,2    %30,6..%38,4
 ```
+
+---
+
+## 13. tur (devam) — F1: başarısız ekranı gerçek referansla yeniden kuruldu
+
+F1 daha önce "kapatıldı" sayılmıştı ama yapılan tek şey PERDEYİ koyulaştırmaktı
+(sızan tahta). Panelin kendisi hiç ölçülmemişti. Referans:
+`Game over .mp4` 17,4-19,8 sn, **144 kare ortalandı**
+(`_Reference/notes/basarisiz_avg.png`).
+
+### Kartın boyu: bir önceki tur onu BOZMUŞ
+
+Kodda "referans y 0,254..0,700" yazıyordu ve o ölçüme dayanarak kart
+0,255..0,786'dan 0,700'e **kısaltılmıştı**. Yani "düzeltilen" şey aslında
+bozulmuş. Doğru değer 0,257..0,789 — yani eski hâli.
+
+Kartın üst kenarı **satır genişliği profiliyle** bulundu:
+
+```
+y %84,6..%83,4   genislik 0,20 -> 0,63 -> 0,22   <- BASLIGIN MOR HALESI
+y %78,9..%72,7   genislik 0,42 -> 0,93           <- kartin yuvarlak kosesi
+y %72,7 ve alti  genislik 0,93                   <- kartin tam genisligi
+```
+
+Dikey kesit burada YETMEDİ: x=%16'da kesince başlığın halesini kartın üstü
+sanıp %83,9 okumuştum.
+
+> **Ders:** bir kabın sınırını KESİTLE değil PROFİLLE bul. Tek bir sütun, o
+> sütunda ne varsa onu gösterir — başlık, hale, gölge. Satır genişliği
+> profili kabın gerçek biçimini veriyor ve üstündeki yazıyı kendiliğinden
+> ayırıyor (dar bant = yazı, geniş bant = kap).
+
+### Ölçüm maskesi ikinci kez yanılttı
+
+"60" hapını renk maskesiyle 557x219 birim ölçtüm; maske kartın gölgesini ve
+düğmenin koyu konturunu da içine almıştı. İki görüntünün ORTA BANDINI kırpıp
+yan yana koyunca gerçek çıktı: referans **230x94**, bizim **395x142** — hap
+kartı bir uçtan diğerine geçiyordu.
+
+> **Ders:** maske şüpheli bir sayı verdiğinde KIRP. Renk maskesi "bulduğu her
+> şeyi" tek kutuya topluyor ve komşu koyu öğeler sessizce içeri giriyor.
+
+### Sayılar tuttuğu hâlde görsel yanlış olabilir
+
+Kırık kalbi referansla birebir aynı yere koydum (y %72,8..%82,1 vs
+%73,1..%82,3) ve ekranda başlığın ORTASINI kapattı. Sebep: referansın başlığı
+"BAŞARISIZ" 720 birim geniş, bizim "FAILED" 375. Aynı örtüşme kısa kelimede
+farklı görünüyor. Kalp başlığın alt kenarına indirildi.
+
+> **Ders:** referanstan alınan bir ÖRTÜŞME, metin uzunluğu değişince aynı
+> görünmez. Sayı tuttuğu hâlde ekrana bakmak gerekiyor.
+
+### Sonuç
+
+```
+                referans        bizim
+kart y          %25,7..%78,9    %25,4..%78,7
+baslik          106 br          103 br
+kirik kalp      183x178 br      239x179 br   (bizim gorsel daha genis)
+"60" hapi       230x94 br       ~235x95 br
+jeton yigini    470x367 br      ~490x345 br
+Try Again       565x166 br      564x164 br
+```
+
+Ayrıca "Rewards x3" rozeti hapın İÇİNDEN çıkarılıp referanstaki yerine —
+yeşil düğmenin üst kenarına — alındı, ve `preserveAspect` varsayımım
+yüzünden ilk denemede %22 büyük çıkan kalp ölçülerek kapatıldı.
+
+> **Ders:** `preserveAspect` sprite'ı kutunun TAMAMINA sığdırıyor; "kutunun
+> içinde bir miktar boşluk kalır" varsayımı yanlış. Kutuyu hedef çizim
+> kutusuna eşitlemek doğrudan doğru sonucu vermiyor, ölçüp kapatmak gerek.

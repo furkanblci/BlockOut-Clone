@@ -86,7 +86,20 @@ namespace BlockOut.Runtime.UI
         // gerekçesi BuildResultPanel'de.
         const int TitlePoint = 250;
         /// <summary>"FAILED" altı harf ve kartın DIŞINDA duruyor.</summary>
-        const int LoseTitlePoint = 160;
+        /// <summary>
+        /// "FAILED" puntosu. 160 -> 206 (13. tur, F1).
+        ///
+        /// ÖLÇÜM (`basarisiz_avg.png` vs bizim yakalama, kapak yüksekliği):
+        /// referans 106 birim, bizim 82 -> x1,29. Alt kenarlar zaten
+        /// örtüşüyordu (%78,1 / %78,0), yalnız boy küçüktü.
+        ///
+        /// 206 YETMEDİ (97 birim çizdi), 225 oldu. Sebep: bu başlığa
+        /// `TitleCondense` (0,70) ölçeği uygulanıyor, yani YAZILAN punto
+        /// ekrana %70 olarak gidiyor ve çarpanı ham puntoya uygulamak eksik
+        /// kalıyor. Bu projede tekrarlayan ders: yazılan punto ile çizilen
+        /// punto aynı şey değil, ölçtükten sonra kapat.
+        /// </summary>
+        const int LoseTitlePoint = 225;
         /// <summary>Harf arası (em/100). Referansta harfler 2-5 piksel arayla.</summary>
         const float TitleTracking = -16f;
         /// <summary>Yatay sıkıştırma: referansın tipi Baloo2'den dar.</summary>
@@ -341,8 +354,34 @@ namespace BlockOut.Runtime.UI
         // DERS (oranı bozan tek sayı, her şeyi bozar): İçerideki öğeler kart
         // GÖRELİ yerleştirildiği için kartın yüksekliği yanlış olunca hepsi
         // birden kayıyor. Önce kabı ölç, sonra içindekileri.
+        //
+        // ---- 13. TURDA GERİ ALINDI: 0,700 YANLIŞTI ----
+        //
+        // Yukarıdaki "referans y 0,254..0,700" ölçümü hatalıydı ve kartı
+        // %19 KISALTTI — yani düzeltilen şey aslında bozulmuş. Eski hâl
+        // (0,255..0,786) doğruymuş.
+        //
+        // Yeni kaynak: `Game over .mp4` 17,4-19,8 sn, 144 kare ortalandı
+        // (`_Reference/notes/basarisiz_avg.png`). Kartın ÜST KENARI, satır
+        // genişliği profiliyle bulundu:
+        //
+        //     y %84,6..%83,4   genislik 0,20 -> 0,63 -> 0,22   <- BASLIGIN HALESI
+        //     y %78,9..%72,7   genislik 0,42 -> 0,93           <- kartin yuvarlak kosesi
+        //     y %72,7 ve alti  genislik 0,93                   <- kartin tam genisligi
+        //
+        // Yani kart y %25,7..%78,9. Dikey kesit almak burada YETMEDİ: x=%16'da
+        // kesince başlığın mor halesini kartın üstü sanıp %83,9 okumuştum.
+        //
+        // DERS (bir kabın sınırını KESİTLE değil PROFİLLE bul): Tek bir
+        // sütun, o sütunda ne varsa onu gösterir — başlık, hale, gölge.
+        // Satır genişliği profili kabın gerçek biçimini veriyor ve üstündeki
+        // yazıyı kendiliğinden ayırıyor (dar bant = yazı, geniş bant = kap).
+        //
+        // Doğrulama: bu değişiklikle içerideki üç öğe de referansa oturuyor —
+        // düğme x1,32, başlık x1,29, kart x1,19 gerekiyordu ve kart-göreli
+        // yerleşim farkı kapatıyor.
         const float LoseCardX0 = 0.049f, LoseCardY0 = 0.254f;
-        const float LoseCardX1 = 0.951f, LoseCardY1 = 0.700f;
+        const float LoseCardX1 = 0.951f, LoseCardY1 = 0.787f;
 
         readonly (Button button, Image face, TextMeshProUGUI badge)[] _powerButtons =
             new (Button, Image, TextMeshProUGUI)[3];
@@ -2516,7 +2555,28 @@ namespace BlockOut.Runtime.UI
             //
             // Alt sınır: kartın içindeki zorluk etiketi %67,8'de başlıyor,
             // kalbin yeni alt kenarı %68,5 — arada 13 birim kalıyor.
-            UiKit.Place(_failHeart, 0.430f, 0.685f, 0.573f, 0.737f);
+            // KALP 2,6 KAT BÜYÜDÜ VE YUKARI ÇIKTI (13. tur, F1).
+            //
+            // ÖLÇÜM (`basarisiz_avg.png`, saf kırmızı maskesiyle — başlığın
+            // koyu kırmızı konturunu kapsamayacak şekilde daraltıldı):
+            //     referans  183x173 birim   x %40,9..%57,8  y %73,1..%82,1
+            //     bizim     111x66  birim   x %44,9..%55,2  y %70,0..%73,4
+            // Referansta kalp KARTIN ÜST KENARINA oturuyor ve başlıkla
+            // örtüşüyor; bizde kartın içinde, bölüm adının üstüne biniyordu.
+            // İlk denemede kutuyu doğrudan hedef ÇİZİM kutusuna eşitledim
+            // ve %22 büyük çıktı (290x217, hedef 183x178): `preserveAspect`
+            // sprite'ı kutuya sığdırırken kutunun tamamını kullanıyor, benim
+            // varsaydığım iç boşluk yoktu. Ölçülüp x0,82 ile kapatıldı.
+            // Kutu 0,043 AŞAĞI: ölçüler referansla birebir tutuyordu ama
+            // görsel yanlış duruyordu — referansta başlık "BAŞARISIZ" 720
+            // birim geniş, bizim "FAILED" 375; aynı yerdeki kalp kısa
+            // kelimenin ORTASINI kapatıyor. Kalp başlığın alt kenarına
+            // indirildi.
+            //
+            // DERS (aynı ölçü, farklı metinle farklı sonuç verir):
+            // Referanstan alınan bir örtüşme, kelime uzunluğu değişince
+            // aynı görünmüyor. Sayı tuttuğu hâlde ekrana bakmak gerekiyor.
+            UiKit.Place(_failHeart, 0.340f, 0.671f, 0.647f, 0.783f);
 
             // Zorluk etiketi bölüm numarasının ÜSTÜNDE, küçük ve sade.
             _failDifficulty = UiKit.CreateTitle("Difficulty", _resultCard.transform, "", 30,
@@ -3211,26 +3271,64 @@ namespace BlockOut.Runtime.UI
             // da tasiyor (kirmizi, gorselin %79,6'si). Eski kurguda kutuyu
             // duz kirmizi bir daire dolduruyordu; sprite'a gecince ayni
             // kutuda gorunen kirmizi %20 kuculuyordu. 1 / 0,796 = 1,256.
-            UiKit.Place(_closeButton, won ? 0.8556f : 0.8486f, won ? 0.7468f : 0.6528f,
-                                      won ? 0.9674f : 0.9804f, won ? 0.7982f : 0.7042f);
+            // Kaybetme y'si kart 0,700 -> 0,787'ye uzayınca yeniden ölçüldü
+            // (referansta çarpı kartın sağ üst köşesinde, y %73,3..%77,9).
+            UiKit.Place(_closeButton, won ? 0.8556f : 0.8486f, won ? 0.7468f : 0.7330f,
+                                      won ? 0.9674f : 0.9804f, won ? 0.7982f : 0.7844f);
 
             // Kart İÇİ yerleşim (kart-göreli oranlar); kaybetme düzeni
             // `Game over .mp4` 18. saniyeden ölçüldü.
             // Kaybetme oranları yukarıdaki ölçümden kart-göreliye çevrildi
-            // (kart x 0.049..0.951 → genişlik 0.902; y 0.254..0.700 → 0.446).
+            // (kart x 0.049..0.951 → genişlik 0.902; y 0.254..0.787 → 0.533;
+            // 13. turda kart 0,700'den 0,787'ye uzadı, oranlar yeniden çevrildi).
             // Bölüm adı: plakasız, doğrudan kartın üstünde (bkz.
             // BuildResultPanel — plakanın neden kaldırıldığı orada).
-            UiKit.Place(_perfectBadge, won ? 0.290f : 0.212f, won ? 0.740f : 0.788f,
-                                       won ? 0.708f : 0.788f, won ? 0.845f : 0.880f);
-            UiKit.Place(_rewardArt, won ? 0.234f : 0.278f, won ? 0.438f : 0.513f,
-                                    won ? 0.775f : 0.744f, won ? 0.700f : 0.794f);
-            UiKit.Place(_rewardBadge, won ? 0.358f : 0.327f, won ? 0.333f : 0.377f,
-                                      won ? 0.646f : 0.734f, won ? 0.436f : 0.513f);
-            UiKit.Place(_resultPrimary, won ? 0.221f : 0.241f, won ? 0.114f : 0.121f,
-                                        won ? 0.787f : 0.759f, won ? 0.275f : 0.303f);
+            UiKit.Place(_perfectBadge, won ? 0.290f : 0.212f, won ? 0.740f : 0.6835f,
+                                       won ? 0.708f : 0.788f, won ? 0.845f : 0.7755f);
+            // Yığın YÜKSEKLİĞE göre ölçeklendi (x1,27): kutu hedef çizim
+            // kutusuna eşitlenince yığın 278x288 çiziliyordu, hedef 470x367.
+            // Genişlik ve yükseklik çarpanları farklı (1,69 / 1,27) çünkü
+            // bizim yığın görselimizin en-boyu referanstakinden dar; şekli
+            // bozmamak için yükseklik seçildi.
+            // Yığın x0,92 ve 0,02 YUKARI: boyu referansla tutuyordu (374 br
+            // vs 367) ama bizim yığın görselimiz %13 daha GENİŞ ve alt-sağ
+            // jetonları "Rewards x3" rozetinin üstüne düşüyordu. Referansta
+            // rozet, yığınla düğme arasındaki temiz şeritte duruyor.
+            UiKit.Place(_rewardArt, won ? 0.234f : 0.211f, won ? 0.438f : 0.285f,
+                                    won ? 0.775f : 0.775f, won ? 0.700f : 0.684f);
+            // SAYI HAPI REFERANSA GÖRE BÜYÜDÜ VE İNDİ (13. tur, F1). Ölçüm:
+            // referans 492x159 birim (y %41,1..%49,4), bizim 385x81
+            // (y %45,8..%50,0). Yani hem yarı yükseklikte hem yukarıdaydı;
+            // referansta hap jeton yığınının ALT UCUNA biniyor.
+            // "60" HAPI 2,4 KAT KÜÇÜLDÜ (13. tur, F1).
+            //
+            // Renk maskesiyle yaptığım ölçüm burada YANILDI: koyu-ve-maviye
+            // çalan maske kartın gölgesini ve düğmenin koyu konturunu da
+            // yakalayıp hapı 557x219 birim gösterdi. İki görüntünün ORTA
+            // BANDINI kırpıp yan yana koyunca gerçek çıktı:
+            //     referans  230x94 birim   x %37,8..%59,1  y %44,4..%49,3
+            //     bizim     395x142 birim  x %27,1..%63,7  y %43,7..%51,1
+            // Bizim hap kartı bir uçtan diğerine geçiyordu.
+            //
+            // DERS (maske yanlış cevap verdiğinde KIRP): Renk maskesi
+            // "bulduğu her şeyi" tek kutuya topluyor ve komşu koyu öğeler
+            // sessizce içeri giriyor. Şüphelenince iki görüntünün aynı
+            // bandını kırpıp yan yana koymak saniyeler sürüyor.
+            UiKit.Place(_rewardBadge, won ? 0.358f : 0.336f, won ? 0.333f : 0.345f,
+                                      won ? 0.646f : 0.630f, won ? 0.436f : 0.461f);
+            // KAYBETME DÜĞMESİ REFERANSA GÖRE BÜYÜDÜ (13. tur, F1).
+            // Ölçüm: referans 565x166 birim, bizim 492x151.
+            // Kart-göreli hedef x %21,2..%79,2, y %9,8..%26,1; kutu ile
+            // çizilen arasındaki fark (gölge/kontur payı) düşülerek:
+            UiKit.Place(_resultPrimary, won ? 0.221f : 0.206f, won ? 0.114f : 0.069f,
+                                        won ? 0.787f : 0.798f, won ? 0.275f : 0.268f);
             // "Ödüller x3" rozeti yeşil düğmenin hemen ÜSTÜNDE.
             if (_rewardsTag != null)
-                UiKit.Place(_rewardsTag, 0.356f, 0.312f, 0.642f, 0.368f);
+                // Etiket YEŞİL DÜĞMENİN ÜST KENARINDA (13. tur, F1).
+                // Referansta "Ödüller x3" hapın içinde değil, düğmenin üst
+                // kenarına binen ayrı bir turuncu rozet: x %40,9..%63,7,
+                // y %39,2..%42,0 -> kart-göreli 0,399..0,652 / 0,259..0,311.
+                UiKit.Place(_rewardsTag, 0.399f, 0.259f, 0.652f, 0.311f);
         }
 
         void RefreshResult()
