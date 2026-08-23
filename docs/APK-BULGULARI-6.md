@@ -87,23 +87,36 @@ varlık kullanmak serbest.
 
 ## 2. Tente (awning)
 
-- [ ] **M2a.** Orijinal tentenin alt kenarına doğru **gölge şeklinde bir
+- [x] **M2a.** Orijinal tentenin alt kenarına doğru **gölge şeklinde bir
       çizgi** var; bizde yok.
       > *"orjinal oyundaki tente çok daha güzel, alt kısmına doğru bir gölge
       > şeklinde çizgisi var"*
 
-- [ ] **M2b.** Tentenin **ucu aşağıya düşmüş** gibi duruyor, bu derinlik
+- [x] **M2b.** Tentenin **ucu aşağıya düşmüş** gibi duruyor, bu derinlik
       katıyor. Bizde bu yok.
       > *"tentenin ucu aşağıya düşmüş gibi gözüküyor bu da derinlik katıyor
       > bunu da istiyorum"*
 
-- [ ] **M2c.** Gerekirse tentenin **hazır varlığı** kullanılabilir.
+- [x] **M2c.** Gerekirse tentenin **hazır varlığı** kullanılabilir.
       > *"bunun hazır halini de alabiliyorsan al gerekirse"*
 
-- [ ] **M2d.** Tentedeki **yazının yeri ve boyutu** yanlış: bizde yukarı
+- [x] **M2d.** Tentedeki **yazının yeri ve boyutu** yanlış: bizde yukarı
       kaçıyor. Orijinalde doğru konumda.
       > *"tentede textin olduğu yer de çok doğru, bizde yukarıda kaçıyor
       > text; o textin yeri boyutu da iyi ayarlanmalı"*
+
+      **M2a-M2d 13. TURDA KAPATILDI.** Asıl fark yapısaldı: referansta
+      tentenin alt kenarı DÜZ — festonun çentiklerini koyu lacivert bir
+      levha dolduruyor ve yaylar onun üstünde kumaşın sarkması olarak
+      okunuyor. Bizde çentikler saydamdı, kahverengi duvar görünüyordu.
+      Levha DOKUYA çizildi (ayrı panel olarak 8. ve 11. turlarda iki kez
+      eklenip kaldırılmıştı).
+
+      Ölçümler: yay derinliği 18 -> 41 br (referans 41), kumaş altı payı
+      11 -> 32 (29), tente yüksekliği %13,9 -> %15,3 (%15,4), başlık
+      103 -> 84 br (84), başlık merkezi %57,9 -> %41,5 (%43,2).
+
+      M2c (hazır varlık) gerekmedi. Ayrıntı: `docs/DEVAM.md`, 13. tur.
 
 - [ ] **M2e.** Tentenin hemen altındaki **mavilik**: sabit bir mavi arka
       plan. **STATİK** olacak — aşağı kaydırınca içerikle birlikte

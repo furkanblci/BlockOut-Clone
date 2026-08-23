@@ -6537,3 +6537,59 @@ tam olarak o kenardı.
 
 Üç katman tek prosedürel dokuya indi (`UiSprites.CoinPad`) — bu turda aynı
 çözümün dördüncü kullanımı (`PowerPad`, `RewardTag`, `CoinPad`).
+
+---
+
+## 13. tur (devam) — M2: tente
+
+### M2a/M2b — asıl fark: referansın alt kenarı DÜZ
+
+Kullanıcı iki şey söylemişti: *"alt kısmına doğru bir gölge şeklinde çizgisi
+var"* ve *"tentenin ucu aşağıya düşmüş gibi gözüküyor, bu derinlik katıyor"*.
+İkisi de tek bir yapısal farkın sonucuymuş:
+
+Referansta tentenin alt kenarı **düz bir çizgi**. Festonun çentiklerini koyu
+lacivert bir levha dolduruyor ve yaylar o levhanın üstünde kumaşın sarkması
+olarak okunuyor. Bizde çentikler SAYDAMDI, arkadaki kahverengi duvar
+görünüyordu ve alt kenar taraklı bir siluetti — "sarkan kumaş" değil
+"dalgalı kenar" gibi.
+
+Levha DOKUYA çizildi, ayrı bir panel olarak değil. Bu bilerek: aynı levha
+**8. ve 11. turlarda ayrı panel olarak eklenip iki kez kaldırılmıştı**, çünkü
+ayrı panel tentenin altından taşıyor, kaydırmada sürükleniyor ve turuncu
+şeridin üstüne gölge düşürüyordu.
+
+> **Ders (bir öğe iki kez kaldırıldıysa, üçüncüsünde YERİNİ değiştir):**
+> Levhanın kendisi doğruydu; yanlış olan ayrı bir katman olmasıydı. Dokunun
+> içinde tam olarak festonun bittiği yerde bitiyor, taşamıyor.
+
+### Ölçümler
+
+| | önce | sonra | referans |
+|---|---|---|---|
+| yay derinliği | 18 br | **41** | 41 |
+| kumaş altı ↔ tente dibi | 11 br | **32** | 29 |
+| tente yüksekliği | %13,9 | **%15,3** | %15,4 |
+| başlık kapak boyu | 103 br | **84** | 84 |
+| başlık merkezi (tente içinde) | %57,9 | **%41,5** | %43,2 |
+
+**9. turdaki geri alma açıklandı:** o turda derinlik %21,6'ya çıkarılmış,
+kullanıcı *"tente daha kötü oldu"* demiş ve %10,3'e dönülmüştü. O sırada
+çentikler saydamdı — derin yaylar kahverengi duvarın önünde uzun parmaklar
+gibi sarkıyordu.
+
+> **Ders (bir sayı tek başına değil, KOMŞUSUYLA birlikte yanlıştı):**
+> Derinlik hep doğruydu; eksik olan altındaki levhaydı. Yalnız derinliği
+> değiştirip geri almak iki turluk bir döngüye mal oldu.
+
+### M2d — tente yüksekliği yorumla çelişiyordu
+
+`AwningH = 268` idi. Kodun kendi yorumu doğru hedefi zaten yazmış:
+*"referans tente 315 px / 2048 = %15,38 -> 1920x0,1538"* = **295**. Ama
+konan sayı 268 ve gerekçesi bir alt satırda: *"tente 315 px -> GENİŞLİĞİN
+%33,3'ü, bizimki 268/1080"*.
+
+> **Ders (bu projede tekrarlayan tuzak):** kanvas YÜKSEKLİĞE göre
+> ölçekleniyor; bir ölçüyü genişliğe oranlamak sessizce %10 hata veriyor.
+> Yorumda doğru sayı dururken yanlışının yazılmış olması ayrı bir uyarı —
+> hesabı yapıp sabiti güncellememek kolay.

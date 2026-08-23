@@ -110,7 +110,20 @@ namespace BlockOut.Runtime.UI
         //     0,1390 × 1920 = 267 px çizim; çizim/sabit oranı 0,995 -> 268
         // "En derin nokta 351 px" iddiası da tutmuyor: sol kenar %13,75,
         // en derin nokta %13,96 — tente neredeyse düz, feston sığ.
-        const float AwningH   = 268f;
+        // 268 -> 295 (13. tur). Yukarıdaki yorum doğru hedefi zaten yazmış:
+        // "referans tente 315 px / 2048 = %15,38 -> 1920x0,1538" = 295. Ama
+        // konan sayı 268 ve gerekçesi bir alt satırda: "tente 315 px ->
+        // GENİŞLİĞİN %33,3'ü, bizimki 268/1080". Yani hedef yükseklikten
+        // hesaplanmış, sabit ise GENİŞLİKTEN — iki farklı en-boydaki ekranda
+        // aynı şeyi anlatmıyorlar.
+        //
+        // Ölçüm: referans tente ekran yüksekliğinin %15,4'ü, bizimki %13,9.
+        //
+        // DERS (bu projede tekrarlayan tuzak): kanvas YÜKSEKLİĞE göre
+        // ölçekleniyor; bir ölçüyü genişliğe oranlamak sessizce %10 hata
+        // veriyor. Yorumda doğru sayı dururken yanlışı yazılmış olması da
+        // ayrı bir uyarı — hesabı yapıp sabiti yazmamak kolay.
+        const float AwningH   = 295f;
         // Tentenin hemen altı: referansta içerik festona neredeyse değiyor.
         const float PadTop    = 4f;
         // BÖLÜM BAŞLIĞI YÜKSEKLİĞİ 104 → 122 (2026-08-22).
@@ -622,9 +635,16 @@ namespace BlockOut.Runtime.UI
             //     bizim    başlık 72 px / tente 357 px = %20.2
             // 1.42 kat büyütüldü. Kutu da 0.32 → 0.40'a açıldı, yoksa
             // UiTextFit puntoyu geri kısardı.
-            var title = UiKit.CreateTitle("Title", bar, "Shop", 128,
+            // PUNTO VE KONUM ÖLÇÜLDÜ (13. tur, M2d — kullanıcı: *"tentede
+            // textin olduğu yer de çok doğru, bizde yukarıda kaçıyor text;
+            // o textin yeri boyutu da iyi ayarlanmalı"*).
+            //
+            //     baslik kapak yuksekligi   referans  84 br   bizim 103
+            //     merkezi TENTE icinde      referans %43,2    bizim %57,9
+            // Yani hem %23 büyüktü hem de tentenin üst yarısına kaçmıştı.
+            var title = UiKit.CreateTitle("Title", bar, "Shop", 104,
                 new Color(1f, 0.99f, 0.96f), TitleShade);
-            UiKit.Place(title, 0.290f, 0.40f, 0.760f, 0.80f);
+            UiKit.Place(title, 0.290f, 0.232f, 0.760f, 0.632f);
 
             // KONTUR — Yolculuk başlığındaki aynı tuzak burada da vardı:
             // `CreateTitle`'a verilen kontur rengi paylaşılan materyal

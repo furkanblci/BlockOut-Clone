@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace BlockOut.Runtime.UI
 {
@@ -98,7 +98,14 @@ namespace BlockOut.Runtime.UI
             // göründüğü renk değil — üstüne dikey parlaklık rampası (`shade`)
             // biniyor. Referansla kıyaslanacak şey ekrandaki piksel; taban
             // renk ondan GERİ hesaplanmalı (burada ÷0.945).
-            var dark  = new Color(0.000f, 0.424f, 0.914f);   // ekranda ≈ #0066DC
+            // KOYU ŞERİT AÇILDI (2026-08-22). Üstünde başlık/kapsül olmayan
+            // sağ bölgeden, tentenin %55 yüksekliğinden ölçüldü:
+            //     referans koyu #0375F8 / açık #019FFA  -> oran 1.11
+            //     bizim    koyu #0068E1 / açık #01A4F6  -> oran 1.25
+            // Açık şerit zaten tutuyordu; koyu şerit fazla koyuydu ve kontrast
+            // referanstan YÜKSEK çıkıyordu (gözle tam tersini sanmıştım —
+            // ölçmeden karar vermemek gerekiyor). Taban ×1.11 açıldı.
+            var dark  = new Color(0.012f, 0.472f, 1.000f);   // ekranda ≈ #0375F8
             var light = new Color(0.004f, 0.667f, 1.000f);   // ekranda ≈ #01A1F5
 
             float stripeW = AwningW / (float)Scallops;
@@ -117,7 +124,56 @@ namespace BlockOut.Runtime.UI
             // 40 piksel iniyor, tentenin toplam yüksekliği 286 → %14.
             // (İlk ölçüm %23 demişti; o rakam tentenin dışındaki bir mavi
             // pikselden kirlenmişti — periyot içinde ölçmek doğrusu.)
-            float depth = AwningH * 0.140f;
+            // DERİNLİK YENİDEN ÖLÇÜLDÜ (2026-08-22, `market.jpeg`).
+            // Eski %14 değeri "bir feston periyodunda alt kenar 40 px iniyor,
+            // tente 286" hesabından geliyordu. Üstünde başlık/kapsül OLMAYAN
+            // sütunlardan (ekranın sağ %70-%98'i) yeniden ölçüldü:
+            //     referans: tente 315 px, feston derinliği 68 px = %21.6
+            //     bizim   : tente 266 px, feston derinliği 37 px = %13.9
+            // Festonlarımız referansın üçte ikisi kadar sığdı; kumaş "asılı"
+            // değil "kesilmiş şerit" gibi duruyordu.
+            // DERİNLİK ÜÇÜNCÜ KEZ ÖLÇÜLDÜ (2026-08-22). Önceki iki ölçüm de
+            // KİRLİYDİ: mavi maskesi tenteden aşağı taşıyor ve x aralığı
+            // başlığa/kapsüle denk geliyordu. %14 -> %21.6 değişikliği bir
+            // REGRESYONDU; kullanıcı "tente daha kötü oldu" dedi ve haklıydı.
+            //
+            // Doğru ölçüm: y arama sınırı tentenin hemen altında bitirilerek,
+            // x aralığı sağın %55-%99'u:
+            //     referans alt kenar 315..351 -> derinlik 36 px = tentenin %10.3'ü
+            //     bizim (%21.6 iken)  302..357 -> 55 px = %15.4
+            // Referansın festonları GENİŞ ve SIĞ; bizimkiler parmak gibi
+            // sarkıyordu.
+            //
+            // DERS: aynı büyüklüğü üç farklı pencereyle ölçüp üç farklı sonuç
+            // aldım. Ölçümün kendisi doğrulanmadan sabit değiştirilmemeli —
+            // GÖZLE kontrol (kenarı büyütüp bakmak) ölçümü yakaladı.
+            // DERİNLİK VE LEVHA PAYI YENİDEN ÖLÇÜLDÜ (13. tur, M2b).
+            //
+            // Artık çentikler levhayla dolu olduğu için yayın derinliği
+            // DOĞRUDAN ölçülebiliyor: her sütunda PARLAK mavinin en alt
+            // satırı = kumaşın kenarı.
+            //
+            //     referans  yay derinligi 41 br | kumas alti - tente dibi 29 br
+            //     bizim     yay derinligi 18 br | 11 br
+            //
+            // Yayımız referansın %44'üydü ve kumaşın altında levha payı
+            // neredeyse yoktu — bu yüzden "sarkan kumaş" değil "dalgalı
+            // kenar" gibi duruyordu.
+            //
+            // NOT (geçmişteki geri alma): 9. turda derinlik %21,6'ya
+            // çıkarılmış, kullanıcı *"tente daha kötü oldu"* demiş ve %10,3'e
+            // dönülmüştü. O zaman çentikler SAYDAMDI: derin yaylar kahverengi
+            // duvarın önünde uzun parmaklar gibi sarkıyordu. Levha eklendiği
+            // için aynı derinlik artık referanstaki gibi okunuyor.
+            //
+            // DERS (bir sayı tek başına değil, KOMŞUSUYLA birlikte yanlıştı):
+            // Derinlik hep doğruydu; eksik olan altındaki levhaydı. Yalnız
+            // derinliği değiştirip geri almak, iki turluk bir döngüye mal
+            // oldu.
+            // Bir tur ölçüp düzeltildi: 0,108/0,155 ile yay 33 br ve levha
+            // 39 br çıktı (hedef 41 ve 29).
+            float plateH = AwningH * 0.080f;         // kumaşın altındaki levha: 29 br
+            float depth = AwningH * 0.192f;          // yay: 41 br
             float scallopR = (chord * chord + depth * depth) / (2f * depth);
 
             for (int y = 0; y < AwningH; y++)
@@ -149,17 +205,71 @@ namespace BlockOut.Runtime.UI
 
                     // Feston: alt banttaki kumaş yalnız yayın içinde var.
                     // Daire merkezi y = R'de; en alçak noktası y = 0'a değiyor.
+                    // Yay merkezleri LEVHANIN ÜSTÜNDEN başlıyor: kumaşın en
+                    // alçak noktası y = plateH, altındaki şerit hep levha.
                     float cx = (stripe + 0.5f) * stripeW;
                     float d = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f),
-                                               new Vector2(cx, scallopR));
+                                               new Vector2(cx, plateH + scallopR));
 
-                    float alpha = y >= depth ? 1f : 1f - Step(scallopR - 1.2f, scallopR, d);
+                    // ÇENTİKLER SAYDAM DEĞİL, KOYU LACİVERT (13. tur, M2a+M2b).
+                    //
+                    // Bizde festonun çentikleri saydamdı ve arkadaki
+                    // KAHVERENGİ duvar görünüyordu; tentenin alt kenarı bu
+                    // yüzden taraklı bir siluetti. Referansta ise alt kenar
+                    // DÜZ: çentikleri koyu lacivert bir levha dolduruyor ve
+                    // yaylar o levhanın üstünde kumaşın sarkması olarak
+                    // okunuyor. Kullanıcının *"ucu aşağıya düşmüş gibi
+                    // gözüküyor, bu da derinlik katıyor"* dediği şey bu.
+                    //
+                    // ÖLÇÜM (`market.jpeg`, feston ortasından yukarı):
+                    //     0..27 birim   (0,28,103)..(6,35,135)  KOYU LACIVERT
+                    //     27 birim ustu (0,83,213)              parlak mavi
+                    // Yani levha ~27 birim ve neredeyse düz bir renk.
+                    //
+                    // Levha DOKUYA çiziliyor, ayrı bir panel olarak değil.
+                    // Bu bilerek: aynı levha 8. ve 11. turlarda ayrı bir
+                    // panel olarak eklenip iki kez KALDIRILMIŞTI — çünkü
+                    // ayrı panel tentenin altından taşıyor, kaydırmada
+                    // sürükleniyor ve turuncu şeridin üstüne gölge
+                    // düşürüyordu. Dokunun içinde ise tam olarak festonun
+                    // bittiği yerde biter, taşamaz.
+                    //
+                    // DERS (bir öğe iki kez kaldırıldıysa, ÜÇÜNCÜSÜNDE
+                    // yerini değiştir): Levhanın kendisi doğruydu, yanlış
+                    // olan AYRI BİR KATMAN olmasıydı. Aynı şeyi tekrar
+                    // eklerken önce "neden kaldırılmıştı" diye bakmak, aynı
+                    // şikâyeti üçüncü kez almayı önlüyor.
+                    float kumas = y < plateH ? 0f
+                        : y >= plateH + depth ? 1f
+                        : 1f - Step(scallopR - 1.2f, scallopR, d);
+                    float alpha = 1f;
 
-                    // Alt kenarda ince koyu bir çizgi: kumaşa kalınlık verir.
-                    float rim = y >= depth ? 1f
-                        : Mathf.Clamp01((scallopR - d) / 5f);
+                    // ALT KENARDAKİ GÖLGE GÜÇLENDİ (13. tur, M2a — kullanıcı:
+                    // *"orijinal oyundaki tente çok daha güzel, alt kısmına
+                    // doğru bir gölge şeklinde çizgisi var"*).
+                    //
+                    // ÖLÇÜM (`market.jpeg`, feston ortasından dikey kesit):
+                    //     referans  (1,93,226) -> (0,28,103)   ~7 px, %30'a
+                    //     bizim     (1,122,184) -> hemen kahverengi duvar
+                    // Yani bizde de bir koyulaşma vardı ama 5 pikselde
+                    // %62'de kalıyordu; ekranda "gölge" olarak okunmuyordu.
+                    // Referansta kumaşın alt kenarı belirgin biçimde
+                    // KARARIYOR ve tenteyi duvardan ayıran şey bu.
+                    //
+                    // DERS (var olan bir efekt YETERSİZ de olabilir): "Gölge
+                    // yok" diye bakınca kodda gölge bulunca "var, tamam"
+                    // demek kolay. Ölçüm iki değeri yan yana koyunca farkın
+                    // %62'ye karşı %30 olduğu görüldü — efekt vardı, ama
+                    // görünmüyordu.
+                    float rim = y >= plateH + depth ? 1f
+                        : Mathf.Clamp01((scallopR - d) / 8f);
 
-                    var c = baseColor * shade * Mathf.Lerp(0.62f, 1f, rim);
+                    var c = baseColor * shade * Mathf.Lerp(0.34f, 1f, rim);
+
+                    // Çentiğin içi: levhanın koyu laciverti.
+                    var levha = new Color(0.008f, 0.122f, 0.435f);   // (2,31,111)
+                    c = Color.Lerp(levha, c, kumas);
+
                     pixels[y * AwningW + x] = new Color(c.r, c.g, c.b, alpha);
                 }
             }
