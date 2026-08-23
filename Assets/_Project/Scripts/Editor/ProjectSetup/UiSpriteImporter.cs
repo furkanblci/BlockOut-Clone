@@ -71,6 +71,52 @@ namespace BlockOut.Editor.ProjectSetup
             { "region_3", 1024 }, { "region_4", 1024 },
             { "frame_avatar", 1024 }, { "avatar_player", 1024 },
             { "badge_reward", 1024 }, { "bar_tabs", 1024 },
+
+            // LOGO PARÇALARI (12. tur, W1). Kutlamada logo ekranın %69,5'ini
+            // kaplıyor, yani 1080 birimlik tuvalde ~750 birim. `logo_out`
+            // dosyada 588 piksel ama 512'ye kırpılıyordu ve sonra 666 birime
+            // büyütülüyordu — yumuşama ve merdivenlenme oradan geliyor.
+            { "logo_game", 2048 }, { "logo_out", 2048 }, { "logo_out_back", 2048 },
+            { "logo_b", 2048 }, { "logo_l", 2048 }, { "logo_o", 2048 },
+            { "logo_c", 2048 }, { "logo_k", 2048 },
+            { "logo_b_back", 2048 }, { "logo_l_back", 2048 },
+            { "logo_o_back", 2048 }, { "logo_c_back", 2048 }, { "logo_k_back", 2048 },
+
+            // "Süre Doldu" ekranının altın kronometresi: ekranın yarısına
+            // yakınını kaplıyor ve baştan sona gradyan (12. tur, O1).
+            { "icon_stopwatch", 1024 },
+        };
+
+        /// <summary>
+        /// SIKIŞTIRILMAYACAK görseller.
+        ///
+        /// NEDEN VAR (12. tur, W1 — kullanıcı: *"block out yazısı çok kesik
+        /// kesik... daha iyi bir yöntem bul"*): Bütün UI sprite'ları Android'de
+        /// ASTC_6x6 ile sıkıştırılıyordu. ASTC 6x6 blok tabanlı: her 6x6
+        /// pikselde renk sayısını kısıtlıyor. Düz renkli ikonlarda bu
+        /// görünmüyor ama LOGO baştan sona gradyan ve yumuşak kenar — orada
+        /// blok sınırları basamak basamak çıkıyor.
+        ///
+        /// Ayrıca logo ekranın ortasında ve büyük duruyor, yani artefaktın
+        /// en çok görüneceği yer.
+        ///
+        /// MALİYET: on üç parça RGBA32 olarak ~2,9 MB. Kutlama ekranının tek
+        /// varlığı olduğu için kabul edilebilir; ASTC'de ~0,4 MB olurdu.
+        ///
+        /// DERS (sıkıştırma, İÇERİĞE göre seçilir): "Bütün UI'da ASTC" makul
+        /// bir varsayılan ama istisnasız uygulanınca gradyanlı tek varlığı
+        /// bozuyor. Bir kuralın doğru olması, istisnasının olmaması demek
+        /// değil.
+        static readonly HashSet<string> Uncompressed = new HashSet<string>
+        {
+            "logo_game", "logo_b", "logo_l", "logo_o", "logo_c", "logo_k", "logo_out",
+            "logo_b_back", "logo_l_back", "logo_o_back", "logo_c_back",
+            "logo_k_back", "logo_out_back",
+            "icon_stopwatch",
+            // Kapat çarpısı (13. tur, G3): küçük bir daire, kenarındaki
+            // yumuşak alfa ASTC blok sınırlarına denk geliyor ve çember
+            // tırtıklı çıkıyor.
+            "icon_close",
         };
 
         /// <summary>
@@ -122,13 +168,19 @@ namespace BlockOut.Editor.ProjectSetup
             importer.SetTextureSettings(settings);
 
             // Android'de ASTC: alfalı UI'da ETC2'den belirgin daha temiz.
+            // İSTİSNA: gradyanlı varlıklar (bkz. `Uncompressed`).
+            bool ham = Uncompressed.Contains(name);
+            if (ham) importer.textureCompression = TextureImporterCompression.Uncompressed;
+
             importer.SetPlatformTextureSettings(new TextureImporterPlatformSettings
             {
                 name = "Android",
                 overridden = true,
                 maxTextureSize = importer.maxTextureSize,
-                format = TextureImporterFormat.ASTC_6x6,
-                textureCompression = TextureImporterCompression.Compressed,
+                format = ham ? TextureImporterFormat.RGBA32 : TextureImporterFormat.ASTC_6x6,
+                textureCompression = ham
+                    ? TextureImporterCompression.Uncompressed
+                    : TextureImporterCompression.Compressed,
             });
         }
     }

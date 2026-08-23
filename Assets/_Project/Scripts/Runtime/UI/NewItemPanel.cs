@@ -1,4 +1,4 @@
-using BlockOut.Core;
+﻿using BlockOut.Core;
 using BlockOut.Runtime.Flow;
 using TMPro;
 using UnityEngine;
@@ -141,28 +141,71 @@ namespace BlockOut.Runtime.UI
             _canvas = UiKit.CreateCanvas("NewItemCanvas");
             _canvas.transform.SetParent(transform, worldPositionStays: false);
             _canvas.sortingOrder = 25;                  // öğreticinin de üstünde
-            var root = UiKit.CreateSafeArea(_canvas);
+            BuildContent(UiKit.CreateSafeArea(_canvas), item, animate: true);
 
+            // Tanıtımın kendi sesi var: bu panel "bir şey açıldı" diyor,
+            // sıradan bir panel açılışından daha görkemli olmalı.
+            Services.AudioService.Unlock();
+
+            PlayerPrefs.SetInt(SeenKey(item), 1);
+            PlayerPrefs.Save();
+        }
+
+        /// <summary>
+        /// Düzenleyici önizlemesi: paneli YAN ETKİSİZ kurar.
+        ///
+        /// `Begin` üç şeye bağlı ve üçü de düzenleyici kipinde çalışmıyor:
+        /// `GameSession` (duraklatma), `UiKit.CreateCanvas` (`DontDestroyOnLoad`
+        /// düzenleyicide patlıyor) ve `PlayerPrefs` (bir kez önizlemek mekaniği
+        /// "görüldü" işaretliyor, panel bir daha hiç açılmıyor).
+        ///
+        /// DERS (önizleme, YAN ETKİLERİ olmayan bir yol ister): Bu panel
+        /// yakalanamıyordu çünkü tek girişi oyun durumunu değiştiriyordu.
+        /// İçerik kurulumunu ayırmak hem önizlemeyi mümkün kıldı hem `Begin`i
+        /// okunur yaptı — kurulum ile yan etki artık ayrı yerlerde.
+        /// </summary>
+        public static RectTransform CreatePreview(Transform parent, int variant = 0)
+        {
+            var host = UiKit.CreateRect("NewItemPreview", parent);
+            UiKit.Place(host, 0f, 0f, 1f, 1f);
+            var panel = host.gameObject.AddComponent<NewItemPanel>();
+            var items = (Item[])System.Enum.GetValues(typeof(Item));
+            var pick = items[Mathf.Clamp(variant, 0, items.Length - 1)];
+            panel.BuildContent(host, pick, animate: false);
+            return host;
+        }
+
+        /// <summary>
+        /// Panelin GÖRSEL içeriği. `animate` kapalıyken giriş animasyonu
+        /// çalışmaz — `PlayEntrance` ölçekleri 0'dan başlattığı için
+        /// düzenleyicide ilk kare boş çıkardı.
+        /// </summary>
+        void BuildContent(RectTransform root, Item item, bool animate)
+        {
             // Perde tahtayı karartıyor ve altındaki dokunuşu yutuyor.
             var scrim = UiKit.CreatePanel("Scrim", root, Scrim);
             scrim.raycastTarget = true;
 
+            // İÇERİK BLOĞU 0,07 AŞAĞI ALINDI (10. tur). Eski yerleşimde
+            // içerik 0,27-0,91 arasındaydı, yani optik merkezi 0,59: panel
+            // tepeye yapışık duruyor ve ekranın alt %27'si boş kalıyordu.
+            // Kapat düğmesi yerinde bırakıldı — o köşede durmalı.
             var (title, hint) = TextFor(item);
 
             var titleLabel = UiKit.CreateTitle("Title", root, title, 84, Ink, TitleShadow);
-            UiKit.Place(titleLabel, 0.06f, 0.758f, 0.94f, 0.820f);
+            UiKit.Place(titleLabel, 0.06f, 0.688f, 0.94f, 0.750f);
             titleLabel.textWrappingMode = TextWrappingModes.NoWrap;
             UiKit.SetOutline(titleLabel, TitleShadow);
 
             var subtitle = UiKit.CreateTitle("Subtitle", root, "New Item Unlocked!", 40,
                 Ink, TitleShadow);
-            UiKit.Place(subtitle, 0.06f, 0.700f, 0.94f, 0.740f);
+            UiKit.Place(subtitle, 0.06f, 0.630f, 0.94f, 0.670f);
             UiKit.SetOutline(subtitle, TitleShadow);
 
             // Spot ışığı: öğenin arkasında, öğeden ÖNCE ekleniyor ki arkada kalsın.
             var glow = UiKit.CreateIcon("Glow", root, UiSprites.Burst, GlowWarm);
             glow.raycastTarget = false;
-            UiKit.Place(glow, 0.06f, 0.360f, 0.94f, 0.690f);
+            UiKit.Place(glow, 0.06f, 0.290f, 0.94f, 0.620f);
 
             // GÖRSEL ALANI BÜYÜTÜLDÜ (4. tur, L44).
             //
@@ -179,7 +222,7 @@ namespace BlockOut.Runtime.UI
             // ayrıntı gürültüye dönüşür; büyütmeden yapılan her ekleme
             // durumu kötüleştirirdi.
             var art = UiKit.CreateRect("Art", root);
-            UiKit.Place(art, 0.255f, 0.398f, 0.745f, 0.648f);
+            UiKit.Place(art, 0.255f, 0.328f, 0.745f, 0.578f);
             BuildArt(art, item);
 
             var sparkles = BuildSparkles(root);
@@ -189,30 +232,35 @@ namespace BlockOut.Runtime.UI
             // boyanınca magentaya kayıyor ve oyunun hiçbir yerinde olmayan bir
             // şerit bırakıyordu.
             var hintCard = UiKit.CreateOutlinedBox("Hint", root, HintCream, HintInk);
-            UiKit.Place(hintCard, 0.084f, 0.270f, 0.917f, 0.340f);
+            UiKit.Place(hintCard, 0.084f, 0.200f, 0.917f, 0.270f);
 
             var hintLabel = UiKit.CreateLabel("Text", hintCard.transform, hint, 34, HintInk);
             hintLabel.fontStyle = FontStyles.Bold;
             hintLabel.textWrappingMode = TextWrappingModes.Normal;
             UiKit.Place(hintLabel, 0.05f, 0.08f, 0.95f, 0.92f);
 
-            var close = UiKit.CreateIconButton("Close", root, UiSprites.Circle, CloseRed);
-            UiKit.Place(close, 0.845f, 0.867f, 0.946f, 0.910f);
+            // GÖRSEL ORİJİNALDEN (13. tur, G3); yoksa eski prosedürel çarpı.
+            var closeArt = MenuPage.CloseArt;
+            var close = UiKit.CreateIconButton("Close", root,
+                closeArt != null ? closeArt : UiSprites.Circle,
+                closeArt != null ? Color.white : CloseRed);
+            // KUTU %25,6 BUYUDU (13. tur, G3): gorsel kendi KOYU HALKASINI
+            // da tasiyor (kirmizi, gorselin %79,6'si). Eski kurguda kutuyu
+            // duz kirmizi bir daire dolduruyordu; sprite'a gecince ayni
+            // kutuda gorunen kirmizi %20 kuculuyordu. 1 / 0,796 = 1,256.
+            UiKit.Place(close, 0.8321f, 0.8615f, 0.9589f, 0.9155f);
             close.onClick.AddListener(Dismiss);
 
-            var crossMark = UiKit.CreateIcon("Mark", close.transform, UiSprites.Cross, Ink);
-            crossMark.raycastTarget = false;
-            UiKit.Place(crossMark, 0.24f, 0.24f, 0.76f, 0.76f);
+            if (closeArt == null)
+            {
+                var crossMark = UiKit.CreateIcon("Mark", close.transform, UiSprites.Cross, Ink);
+                crossMark.raycastTarget = false;
+                UiKit.Place(crossMark, 0.24f, 0.24f, 0.76f, 0.76f);
+            }
 
-            PlayEntrance(titleLabel.transform, subtitle.transform, glow.transform,
-                art, hintCard.transform, close.transform, sparkles);
-
-            // Tanıtımın kendi sesi var: bu panel "bir şey açıldı" diyor,
-            // sıradan bir panel açılışından daha görkemli olmalı.
-            Services.AudioService.Unlock();
-
-            PlayerPrefs.SetInt(SeenKey(item), 1);
-            PlayerPrefs.Save();
+            if (animate)
+                PlayEntrance(titleLabel.transform, subtitle.transform, glow.transform,
+                    art, hintCard.transform, close.transform, sparkles);
         }
 
         // ---------------------------------------------------------------- görsel

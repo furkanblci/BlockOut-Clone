@@ -1434,13 +1434,24 @@ namespace BlockOut.Runtime.UI
 
             // Çarpı bandın sağ ÜST köşesine biner (referansta y=183, bandın
             // üst kenarının hemen üstü).
-            var close = UiKit.CreateIconButton("Close", _retryPanel, UiSprites.Circle, CloseRed);
-            UiKit.Place(close, 0.845f, 0.742f, 0.955f, 0.804f);
+            // GÖRSEL ORİJİNALDEN (13. tur, G3); yoksa eski prosedürel çarpı.
+            var retryArt = MenuPage.CloseArt;
+            var close = UiKit.CreateIconButton("Close", _retryPanel,
+                retryArt != null ? retryArt : UiSprites.Circle,
+                retryArt != null ? Color.white : CloseRed);
+            // KUTU %25,6 BUYUDU (13. tur, G3): gorsel kendi KOYU HALKASINI
+            // da tasiyor (kirmizi, gorselin %79,6'si). Eski kurguda kutuyu
+            // duz kirmizi bir daire dolduruyordu; sprite'a gecince ayni
+            // kutuda gorunen kirmizi %20 kuculuyordu. 1 / 0,796 = 1,256.
+            UiKit.Place(close, 0.8309f, 0.7341f, 0.9691f, 0.8119f);
             close.onClick.AddListener(CancelRetry);
 
-            var closeMark = UiKit.CreateIcon("Mark", close.transform, UiSprites.Cross, Ink);
-            closeMark.raycastTarget = false;
-            UiKit.Place(closeMark, 0.24f, 0.24f, 0.76f, 0.76f);
+            if (retryArt == null)
+            {
+                var closeMark = UiKit.CreateIcon("Mark", close.transform, UiSprites.Cross, Ink);
+                closeMark.raycastTarget = false;
+                UiKit.Place(closeMark, 0.24f, 0.24f, 0.76f, 0.76f);
+            }
 
             _retryPanel.gameObject.SetActive(false);
         }
@@ -1618,20 +1629,18 @@ namespace BlockOut.Runtime.UI
             var close = UiKit.CreateRect("Close", _pauseCard.transform);
             UiKit.Place(close, 0.886f, 0.883f, 0.995f, 0.968f);
 
+            // Gölge KALIYOR: görselin kendi içinde gölgesi yok, karta
+            // oturduğunu gösteren şey bu.
             var closeShadow = UiKit.CreateIcon("Shadow", close, UiSprites.Circle,
                 new Color(0f, 0f, 0f, 0.38f));
             UiKit.Place(closeShadow, 0.03f, -0.10f, 1.03f, 0.90f);
 
-            var closeRim = UiKit.CreateIcon("Rim", close, UiSprites.Circle, CloseRimDark);
-            UiKit.Place(closeRim, 0f, 0f, 1f, 1f);
-            closeRim.raycastTarget = true;
-
-            var closeFace = UiKit.CreateIcon("Face", close, UiSprites.Circle, CloseRed);
-            UiKit.Place(closeFace, 0.115f, 0.145f, 0.885f, 0.915f);
-
-            var closeMark = UiKit.CreateIcon("Mark", close, UiSprites.Cross, CloseInk);
-            closeMark.raycastTarget = false;
-            UiKit.Place(closeMark, 0.26f, 0.28f, 0.74f, 0.76f);
+            // GÖRSEL ORİJİNALDEN (13. tur, G3). Bu daireyi üç prosedürel
+            // katmanla kuruyorduk; kullanıcı *"klasik kapat X işareti
+            // orijinalden alınacak, bizdeki çok kötü"* dedi. Ortak yardımcı
+            // `MenuPage.CloseGlyph` görseli kullanıyor, görsel yoksa eski
+            // katmanlara düşüyor.
+            var closeRim = MenuPage.CloseGlyph(close);
 
             UiKit.MakeClickable(close.gameObject, closeRim, () => SetPaused(false));
 
@@ -2257,21 +2266,31 @@ namespace BlockOut.Runtime.UI
             // koyu zeminde çarpı okunmuyordu ve düğme kartın köşesine
             // "yapıştırılmış" gibi duruyordu. Koyu halka, düğmeye kartın
             // üstünde durduğu hissini veren şey.
+            // GÖRSEL ORİJİNALDEN (13. tur, G3); yoksa eski prosedürel çarpı.
+            var resultArt = MenuPage.CloseArt;
             _closeButton = UiKit.CreateIconButton("Close", _resultPanel,
-                UiSprites.Circle, CloseRim);
-            UiKit.Place(_closeButton, 0.867f, 0.752f, 0.956f, 0.793f);
+                resultArt != null ? resultArt : UiSprites.Circle,
+                resultArt != null ? Color.white : CloseRim);
+            // KUTU %25,6 BUYUDU (13. tur, G3): gorsel kendi KOYU HALKASINI
+            // da tasiyor (kirmizi, gorselin %79,6'si). Eski kurguda kutuyu
+            // duz kirmizi bir daire dolduruyordu; sprite'a gecince ayni
+            // kutuda gorunen kirmizi %20 kuculuyordu. 1 / 0,796 = 1,256.
+            UiKit.Place(_closeButton, 0.8556f, 0.7468f, 0.9674f, 0.7982f);
             _closeButton.onClick.AddListener(AppRouter.GoHome);
 
-            var closeFace = UiKit.CreateIcon("Face", _closeButton.transform,
-                UiSprites.Circle, CloseRed);
-            closeFace.raycastTarget = false;
-            UiKit.Place(closeFace, 0.10f, 0.10f, 0.90f, 0.90f);
+            if (resultArt == null)
+            {
+                var closeFace = UiKit.CreateIcon("Face", _closeButton.transform,
+                    UiSprites.Circle, CloseRed);
+                closeFace.raycastTarget = false;
+                UiKit.Place(closeFace, 0.10f, 0.10f, 0.90f, 0.90f);
 
-            // Çarpı, kırmızı yuvarlağın ÜSTÜNE ayrı bir görsel olarak biniyor.
-            var crossMark = UiKit.CreateIcon("Mark", _closeButton.transform,
-                UiSprites.Cross, CloseInk);
-            crossMark.raycastTarget = false;
-            UiKit.Place(crossMark, 0.27f, 0.27f, 0.73f, 0.73f);
+                // Çarpı, kırmızı yuvarlağın ÜSTÜNE ayrı bir görsel olarak biniyor.
+                var crossMark = UiKit.CreateIcon("Mark", _closeButton.transform,
+                    UiSprites.Cross, CloseInk);
+                crossMark.raycastTarget = false;
+                UiKit.Place(crossMark, 0.27f, 0.27f, 0.73f, 0.73f);
+            }
 
             // ZORLUK ETİKETİ KARTIN İÇİNDE, BÖLÜM ADININ ÜSTÜNDE (4. tur, J41).
             //
@@ -3129,8 +3148,12 @@ namespace BlockOut.Runtime.UI
             // Kapatma çarpısı KARTIN köşesine biner — kaybetme kartı daha
             // alçak olduğu için ayrı bir y gerekiyor. Eskiden ikisinde de
             // aynı yükseklikteydi ve kaybetme ekranında boşlukta duruyordu.
-            UiKit.Place(_closeButton, won ? 0.867f : 0.862f, won ? 0.752f : 0.658f,
-                                      won ? 0.956f : 0.967f, won ? 0.793f : 0.699f);
+            // KUTU %25,6 BUYUDU (13. tur, G3): gorsel kendi KOYU HALKASINI
+            // da tasiyor (kirmizi, gorselin %79,6'si). Eski kurguda kutuyu
+            // duz kirmizi bir daire dolduruyordu; sprite'a gecince ayni
+            // kutuda gorunen kirmizi %20 kuculuyordu. 1 / 0,796 = 1,256.
+            UiKit.Place(_closeButton, won ? 0.8556f : 0.8486f, won ? 0.7468f : 0.6528f,
+                                      won ? 0.9674f : 0.9804f, won ? 0.7982f : 0.7042f);
 
             // Kart İÇİ yerleşim (kart-göreli oranlar); kaybetme düzeni
             // `Game over .mp4` 18. saniyeden ölçüldü.

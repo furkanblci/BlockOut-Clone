@@ -164,19 +164,12 @@ namespace BlockOut.Runtime.UI
             var root = UiKit.CreateRect("Close", card);
             UiKit.Place(root, 0.880f, 0.908f, 1.018f, 1.018f);
 
-            // DAİRE `CreateIcon` İLE: düz bir `Image` sprite'ı kutuya gerer ve
-            // kutu kare olmadığı anda daire elipse döner (bkz. MenuPage.Close).
-            var ringImage = UiKit.CreateIcon("Ring", root, UiSprites.Circle,
-                new Color(0.42f, 0.05f, 0.09f));
-            ringImage.raycastTarget = true;
-            UiKit.Place(ringImage, 0f, 0f, 1f, 1f);
-
-            var faceImage = UiKit.CreateIcon("Face", root, UiSprites.Circle, MenuPage.CloseRed);
-            UiKit.Place(faceImage, 0.07f, 0.09f, 0.93f, 0.95f);
-            var faceRect = faceImage.rectTransform;
-
-            var cross = UiKit.CreateIcon("Cross", faceRect, UiSprites.Cross);
-            UiKit.Place(cross, 0.26f, 0.26f, 0.74f, 0.74f);
+            // GÖRSEL ORİJİNALDEN (13. tur, G3). Bu daireyi üç prosedürel
+            // katmanla kuruyorduk; kullanıcı *"klasik kapat X işareti
+            // orijinalden alınacak, bizdeki çok kötü"* dedi. Ortak yardımcı
+            // `MenuPage.CloseGlyph` görseli kullanıyor, görsel yoksa eski
+            // katmanlara düşüyor.
+            var ringImage = MenuPage.CloseGlyph(root);
 
             UiKit.MakeClickable(root.gameObject, ringImage, onClick);
         }

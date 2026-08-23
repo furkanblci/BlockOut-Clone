@@ -220,7 +220,7 @@ varlık kullanmak serbest.
 
 ## 9. Kapatma (X) düğmesi
 
-- [ ] **G3.** Klasik kapat X işareti orijinalden alınacak; bizdeki çok
+- [x] **G3.** Klasik kapat X işareti orijinalden alınacak; bizdeki çok
       kötü. Grand Games varlığından çözülecek.
       > *"yine bu klasik kapat X işareti orjinal oyundan alınabilir,
       > bizdeki çok kötü, grand games assetinden çöz"*

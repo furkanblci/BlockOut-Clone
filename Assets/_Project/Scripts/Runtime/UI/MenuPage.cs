@@ -234,20 +234,27 @@ namespace BlockOut.Runtime.UI
             // Daire çizen her yerde ikincisi kullanılmalı — kutu kare
             // olmadığında hatanın görünmesi için ekranın ölçülmesi gerekiyor,
             // oysa doğru bileşen seçilirse hata hiç doğmuyor.
+            // KUTU %21 BÜYÜDÜ (13. tur, G3). Görsele geçince koyu halka artık
+            // KUTUNUN İÇİNDE — eskiden ayrı bir katmandı ve kutuyu doldurup
+            // taşabiliyordu. Aynı kutuda görünen kırmızı %20 küçüldü.
+            //
+            // ÖLÇÜM EKRAN YÜZDESİYLE DEĞİL, BANT YÜKSEKLİĞİYLE yapıldı:
+            // ekran yüzdesi ×1,51, ekran yüksekliği ×1,17 diyordu — çelişki
+            // referans karesinin (384x832) bizim tuvalden (1080x1920) farklı
+            // en-boyda olmasından geliyor. İki bandın yüksekliği neredeyse
+            // aynı (%18,6 / %19,3), o yüzden "çarpı / bant" oranı ikisinden
+            // de bağımsız tek doğru ölçü:
+            //     referans %25,2   bizim %20,8   ->  x1,21
+            //
+            // Yatay merkez de düzeltildi: referans %86,2, bizimki %86,85'ti.
+            //
+            // DERS (iki ekran farklı en-boydaysa, ORTAK BİR ÜÇÜNCÜ ŞEYE
+            // oranla): Ekranın kendisi ortak değil; ama iki tasarımda da olan
+            // ve boyu tutan bir öge (burada başlık bandı) ortak cetvel olur.
             var root = UiKit.CreateRect("Close", band);
-            UiKit.Place(root, 0.823f, 0.117f, 0.913f, 0.529f);
+            UiKit.Place(root, 0.8075f, 0.0733f, 0.9165f, 0.5727f);
 
-            var ringImage = UiKit.CreateIcon("Ring", root, GameKit.UI.UiSprites.Circle,
-                new Color(0.42f, 0.05f, 0.09f));
-            ringImage.raycastTarget = true;
-            UiKit.Place(ringImage, 0f, 0f, 1f, 1f);
-
-            var faceImage = UiKit.CreateIcon("Face", root, GameKit.UI.UiSprites.Circle, CloseRed);
-            UiKit.Place(faceImage, 0.07f, 0.09f, 0.93f, 0.95f);
-            var face = faceImage.rectTransform;
-
-            var cross = UiKit.CreateIcon("Cross", face.transform, GameKit.UI.UiSprites.Cross);
-            UiKit.Place(cross, 0.26f, 0.26f, 0.74f, 0.74f);
+            var ringImage = CloseGlyph(root);
 
             var button = root.gameObject.AddComponent<Button>();
             button.targetGraphic = ringImage;
@@ -256,6 +263,61 @@ namespace BlockOut.Runtime.UI
             root.gameObject.AddComponent<GameKit.UI.UiButtonFeel>();
             button.onClick.AddListener(onClick);
             return button;
+        }
+
+        /// <summary>
+        /// Kapat çarpısının GÖRÜNEN yüzü — verilen kökü tamamen doldurur ve
+        /// ışın hedefi olarak döndürülür.
+        ///
+        /// NEDEN TEK YERDE (13. tur, G3): Bu çarpı altı ayrı yerde ayrı ayrı
+        /// kuruluyordu (menü başlığı, duraklat, sonuç, yeniden dene, günlük
+        /// ödül, yeni eşya) ve hepsi aynı üç prosedürel katmanı tekrar
+        /// yazıyordu. Kullanıcı *"klasik kapat X işareti orijinalden
+        /// alınacak, bizdeki çok kötü"* deyince altı yeri birden değiştirmek
+        /// gerekti — o yüzden önce tek yere indirildi.
+        ///
+        /// Görsel varsa o kullanılıyor; yoksa eski üç katman çiziliyor, yani
+        /// varlık eksikse ekran boş kalmıyor.
+        ///
+        /// DERS (aynı kontrolü altı yere kopyalamak, altı kat değişiklik
+        /// demek): Tekrar eden bir görsel parçayı ilk kopyalarken değil,
+        /// ilk DEĞİŞTİRİRKEN pahalıya alıyorsun.
+        /// </summary>
+        /// <summary>
+        /// Kapat çarpısının görseli; yoksa null (çağıran prosedürel çizime
+        /// düşer). `CreateIconButton` kullanan yerler kökü kendisi kurduğu
+        /// için <see cref="CloseGlyph"/> yerine bunu kullanıyor.
+        /// </summary>
+        public static Sprite CloseArt => UiSkin.Get(Art.Close);
+
+        public static Image CloseGlyph(Transform root)
+        {
+            var sprite = UiSkin.Get(Art.Close);
+            if (sprite != null)
+            {
+                var img = UiKit.CreateIcon("Ring", root, sprite);
+                img.preserveAspect = true;
+                img.raycastTarget = true;
+                UiKit.Place(img, 0f, 0f, 1f, 1f);
+                return img;
+            }
+
+            // YEDEK: görsel yoksa eski prosedürel çarpı.
+            //
+            // DERS (bu projede aynı hata ÜÇÜNCÜ kez): Düz bir `Image`
+            // sprite'ı kutuya GERER; `CreateIcon` en-boy oranını KORUR.
+            // Daire çizen her yerde ikincisi kullanılmalı.
+            var ringImage = UiKit.CreateIcon("Ring", root, GameKit.UI.UiSprites.Circle,
+                new Color(0.42f, 0.05f, 0.09f));
+            ringImage.raycastTarget = true;
+            UiKit.Place(ringImage, 0f, 0f, 1f, 1f);
+
+            var faceImage = UiKit.CreateIcon("Face", root, GameKit.UI.UiSprites.Circle, CloseRed);
+            UiKit.Place(faceImage, 0.07f, 0.09f, 0.93f, 0.95f);
+
+            var cross = UiKit.CreateIcon("Cross", faceImage.transform, GameKit.UI.UiSprites.Cross);
+            UiKit.Place(cross, 0.26f, 0.26f, 0.74f, 0.74f);
+            return ringImage;
         }
 
         /// <summary>Tam kapsül yüzey — kabuğun her yerinde aynı biçim.</summary>

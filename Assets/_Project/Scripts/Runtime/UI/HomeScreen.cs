@@ -32,7 +32,14 @@ namespace BlockOut.Runtime.UI
 
         TextMeshProUGUI _coinLabel;
         TextMeshProUGUI _livesLabel;
-        Image _livesInfinity;
+
+        /// <summary>
+        /// Can simgesinin KENDİSİ — sınırsız can hakkı sürerken sprite'ı
+        /// değişiyor (üstüne ikinci bir kalp konmuyor, bkz. <see cref="Refresh"/>).
+        /// </summary>
+        Image _heartIcon;
+        Sprite _heartNormal, _heartInfinite;
+
         TextMeshProUGUI _livesTimer;
         TextMeshProUGUI _levelLabel;
         TextMeshProUGUI _difficultyLabel;
@@ -59,6 +66,7 @@ namespace BlockOut.Runtime.UI
 
         RectTransform _livesPopup;
         TextMeshProUGUI _livesPopupCount, _livesPopupTimer;
+        Image _livesPopupHeart;
 
         DailyRewardPanel _daily;
 
@@ -83,6 +91,30 @@ namespace BlockOut.Runtime.UI
             if (_slideCover != null)
                 GameKit.FX.Juice.Replace(_slideCover,
                     GameKit.FX.Juice.SlideX(_slideCover, fromX, toX, duration));
+        }
+
+        /// <summary>
+        /// EDİTÖR ÖNİZLEMESİ — oyunu başlatmadan ana ekranı kurar.
+        ///
+        /// Diğer menü ekranlarının statik <c>Build(Transform)</c>'u var ve
+        /// referansla karşılaştırma bunun üzerinden yapılıyor; ana ekran ise
+        /// kendini <see cref="Start"/> içinde kuruyordu, yani düzenleyici
+        /// kipinde yakalanamıyordu. Aynı desen buraya da eklendi
+        /// (bkz. <c>GameplayScreen.CreateHudPreview</c>).
+        ///
+        /// <see cref="Refresh"/> ÇAĞRILMIYOR: jeton/can sayıları
+        /// <c>MetaServices</c>'e bağlı ve o servis düzenleyici kipinde ayakta
+        /// değil. Önizleme yalnız YERLEŞİMİ ve GÖRSELLERİ gösterir; sayılar
+        /// varsayılan değerlerinde kalır. Ölçüm için gereken de budur.
+        /// </summary>
+        public static HomeScreen CreatePreview(Transform parent)
+        {
+            var host = new GameObject("HomePreview", typeof(RectTransform));
+            host.transform.SetParent(parent, worldPositionStays: false);
+            var canvas = parent.GetComponentInParent<Canvas>();
+            var screen = host.AddComponent<HomeScreen>();
+            screen.BuildInto(canvas);
+            return screen;
         }
 
         void Start()
@@ -117,6 +149,20 @@ namespace BlockOut.Runtime.UI
         {
             var canvas = UiKit.CreateCanvas("HomeCanvas");
             canvas.transform.SetParent(transform, worldPositionStays: false);
+            BuildInto(canvas);
+        }
+
+        /// <summary>
+        /// Ekranı VERİLEN kanvasa kurar.
+        ///
+        /// <see cref="BuildUi"/>'dan ayrıldı çünkü <c>UiKit.CreateCanvas</c>
+        /// bir EventSystem kurup <c>DontDestroyOnLoad</c> çağırıyor ve o
+        /// düzenleyici kipinde ÇALIŞMIYOR — önizleme orada patlıyordu.
+        /// Diğer menü ekranlarının <c>Build(Transform)</c>'u da kanvası
+        /// dışarıdan alıyor; ana ekran artık aynı sözleşmede.
+        /// </summary>
+        void BuildInto(Canvas canvas)
+        {
             var root = UiKit.CreateSafeArea(canvas);
             GameKit.UI.UiTweak.Mark(root, "HomeScreen");
 
@@ -209,8 +255,24 @@ namespace BlockOut.Runtime.UI
             // yanlış ölçmüştüm. Ölçmek, doğru yeri ölçmek demek.
             Image ResourceBar(string name, float x0, float x1)
             {
+                // ALFA 0,50 -> 0,72 (9. tur). Çubuğun rengi doğruydu ama
+                // YARI SAYDAM olduğu için ekrandaki sonucu ARKA PLAN
+                // belirliyor; referansın arkasında koyu bir köy var, bizim
+                // arkamızda açık bir gökyüzü.
+                //
+                // ÖLÇÜM (çubuğun içi, ikon/yazı olmayan hizada):
+                //     referans (64, 28, 98)
+                //     bizim    (93, 73,170)   -> belirgin solgun
+                // Çubuğun kendi rengi (14,9,37); arka plan buradan (172,137,~)
+                // olarak geri hesaplandı ve kırmızı/yeşil kanallardan gereken
+                // alfa 0,68-0,85 çıktı, ortası 0,72.
+                //
+                // DERS (yarı saydam bir rengi SABİTİNDEN yargılama): Aynı
+                // renk ve aynı alfa, iki farklı arka planda iki farklı ekran
+                // rengi verir. Referanstan alınacak olan sabit değil, EKRANDA
+                // OKUNAN sonuçtur.
                 var panel = UiKit.CreateRoundedPanel(name, root,
-                    new Color(0.055f, 0.035f, 0.145f, 0.50f));
+                    new Color(0.055f, 0.035f, 0.145f, 0.72f));
                 UiKit.Place(panel, x0, bottom, x1, top);
                 // ppu BÜYÜDÜKÇE köşe KÜÇÜLÜR: 0.16 kapsül yapıyordu,
                 // 1.4 referanstaki dikdörtgen köşeyi veriyor.
@@ -241,10 +303,10 @@ namespace BlockOut.Runtime.UI
             // Güvenli kural: çubuk ikonun ORTASINDAN başlasın — siluet o
             // noktada her zaman dolu.
             //
-            // Kalbin ortası (0.529+0.628)/2 = 0.579, jetonunki 0.264.
+            // Kalbin ortası (0.544+0.643)/2 = 0.594, jetonunki 0.264.
             // Çubuklar ikonlardan ÖNCE kuruluyor, yani ikon üstünü örtüyor.
             var coinTrack = ResourceBar("Track_Coin", 0.262f, 0.511f);
-            var livesTrack = ResourceBar("Track_Lives", 0.574f, 0.825f);
+            var livesTrack = ResourceBar("Track_Lives", 0.589f, 0.840f);
 
             // TÜM SAYAÇ DOKUNULABİLİR, yalnız artı değil.
             //
@@ -275,7 +337,14 @@ namespace BlockOut.Runtime.UI
 
             _coinLabel = UiKit.CreateTitle("Value_Coin", root, "", 40, CoinInk,
                 new Color(0.10f, 0.07f, 0.24f));
-            UiKit.Place(_coinLabel, 0.330f, bottom + 0.003f, 0.445f, top - 0.003f);
+            // KUTU SAYININ EN UZUN HÂLİNE GÖRE (11. tur). Eski kutu %11,5
+            // genişti (124 birim); "33 340" 40 puntoda 136 birim çiziyor, yani
+            // altı haneden itibaren <see cref="GameKit.UI.UiTextFit"/> puntoyu
+            // 37,2'ye indiriyordu. Yazı küçülünce taşma OLMUYOR ama sayı
+            // komşusundan görünür biçimde ufalıyor ve şerit dengesizleşiyor.
+            // Kutu soldaki boşluğa (simge %30,8'de bitiyor) doğru genişletildi:
+            // %14,0 = 151 birim, yedi haneye kadar tam puntoda sığar.
+            UiKit.Place(_coinLabel, 0.312f, bottom + 0.003f, 0.452f, top - 0.003f);
 
             // ARTI ARTIK GÖRSEL DEĞİL (10. tur): `icon_plus.png` komple
             // YUVARLAK yeşil bir düğme görseliydi, referansta ise yuvarlak
@@ -286,8 +355,16 @@ namespace BlockOut.Runtime.UI
             coinPlus.onClick.AddListener(() => MenuShell.Instance?.ShowStepped("store"));
 
             // --- can ---
+            // CAN GRUBU %1,5 SAĞA KAYDIRILDI (11. tur — kullanıcı bulgusu
+            // "kalp üst üste bindi"). Eski yerleşimde jetonun artı düğmesi
+            // %51,1'de bitiyor, kalp %52,9'da başlıyordu: 19 birim. Aşağıdaki
+            // nabız kalbi %105'e büyütüyor, yani tepe noktasında sol kenar
+            // %52,65'e iniyor ve boşluk 17 birime düşüyor — kalbin yumuşak
+            // gölgesiyle birlikte düğmeye YAPIŞIK okunuyor. Sağda dişliye
+            // kadar %4,5 boşluk boştaydı; grubun tamamı oraya kaydırıldı.
+            // Yeni boşluklar: jeton→kalp %3,3, kalp→dişli %3,0.
             var heart = UiKit.CreateIcon("Icon_Heart", root, UiSkin.Get(Art.Heart));
-            UiKit.Place(heart, 0.529f, bottom - 0.005f, 0.628f, top + 0.005f);
+            UiKit.Place(heart, 0.544f, bottom - 0.005f, 0.643f, top + 0.005f);
             UiKit.MakeClickable(heart, ShowLivesPopup);
             _heartRect = heart.rectTransform;
 
@@ -309,11 +386,11 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(_livesLabel, 0f, 0.04f, 1f, 0.92f);
 
             _livesTimer = UiKit.CreateLabel("Status_Heart", root, "", 39, CoinInk);
-            UiKit.Place(_livesTimer, 0.640f, bottom + 0.003f, 0.762f, top - 0.003f);
+            UiKit.Place(_livesTimer, 0.655f, bottom + 0.003f, 0.777f, top - 0.003f);
 
             var lifePlus = MenuPage.IconButton("Plus_Heart", root,
                 GameKit.UI.UiSprites.Plus, MenuPage.Green, iconInset: 0.14f);
-            UiKit.Place(lifePlus, 0.772f, bottom + 0.002f, 0.827f, top - 0.002f);
+            UiKit.Place(lifePlus, 0.787f, bottom + 0.002f, 0.842f, top - 0.002f);
             lifePlus.onClick.AddListener(() => MenuShell.Instance?.ShowStepped("store"));
 
             // Sınırsız can hakkı sürerken sayının yerini ∞ GÖRSELİ alır.
@@ -321,15 +398,20 @@ namespace BlockOut.Runtime.UI
             // DERS (simge YAZI DEĞİLDİR): "∞" karakteri Baloo 2'de yok, TMP
             // onun yerine boş kutu çizer — bu projede beşinci tekrar. Mağazada
             // zaten kullandığımız `icon_infinite` sprite'ı kullanılıyor.
-            _livesInfinity = UiKit.CreateIcon("Infinite", _livesLabel.transform.parent,
-                UiSkin.Get(Art.Infinite) ?? MenuSprites.Infinity);
-            var number = _livesLabel.rectTransform;
-            var badge = _livesInfinity.rectTransform;
-            badge.anchorMin = number.anchorMin;
-            badge.anchorMax = number.anchorMax;
-            badge.offsetMin = number.offsetMin;
-            badge.offsetMax = number.offsetMax;
-            _livesInfinity.enabled = false;
+            //
+            // DERS (üst üste koyma, DEĞİŞTİR — 11. tur, kullanıcı bulgusu
+            // "normal kalp ikonunun üstünde sınırsız kalp ikonu kaldı"):
+            // `icon_infinite.png` yalnız ∞ işareti değil, İÇİNDE ∞ olan TAM
+            // BİR KALP. Önceki sürüm onu sade kalbin ÜSTÜNE ayrı bir nesne
+            // olarak koyuyordu; üstelik kutusunu sayının kutusundan (%4 alt,
+            // %8 üst girinti) kopyaladığı için üstteki kalp daha küçüktü ve
+            // alttakinin kenarları çepeçevre dışarı taşıyordu — iki kalp
+            // iç içe görünüyordu. İki durum aynı yeri kaplıyorsa çözüm ikinci
+            // bir nesne değil, TEK nesnenin sprite'ını değiştirmek: nabız,
+            // dokunma alanı ve ölçüler tek yerde kalıyor.
+            _heartIcon = heart;
+            _heartNormal = heart.sprite;
+            _heartInfinite = UiSkin.Get(Art.Infinite) ?? MenuSprites.Infinity;
 
             var gear = SquareButton(root, "Gear", Art.Gear, 0.872f, 0.962f, bottom, top);
             gear.onClick.AddListener(() => MenuShell.Instance?.Show("settings"));
@@ -422,6 +504,7 @@ namespace BlockOut.Runtime.UI
             var body = MenuPage.PillBody("Play", root, MenuPage.Green,
                                          out _, out _playPill);
             _playButton = body.gameObject.AddComponent<Button>();
+            GameKit.UI.UiPressFeedback.Attach(_playButton);   // 12. tur, H7
             _playButton.transition = Selectable.Transition.None;
             body.gameObject.AddComponent<GameKit.UI.UiButtonFeel>();
             // DERS (düğme ekranı yemez): İlk hâli genişliğin %68'i ve
@@ -438,7 +521,36 @@ namespace BlockOut.Runtime.UI
             // gibi görünüyor ve parmak yanlış olana basıyordu. Sekme kartı
             // çubuğun üstüne %8 kadar taşıyor, düğme %17'den başlamalı ki
             // arada gerçek bir nefes payı kalsın.
-            UiKit.Place(_playButton, 0.280f, 0.158f, 0.720f, 0.263f);
+            // DÜĞME REFERANS BOYUNA BÜYÜTÜLDÜ (9. tur).
+            //
+            // ÖLÇÜM (aynı yeşil maskesi iki tarafa, genişliğe oranla):
+            //     referans  gen %52,9  yük %18,8  en/boy 2,82
+            //     bizim     gen %42,8  yük %15,0  en/boy 2,85
+            // En/boy zaten birebirdi — oran doğru, yalnız ÖLÇEK %19 küçüktü.
+            //
+            // ALT KENAR SABİT TUTULDU. Yukarıdaki ders "düğme %17'den
+            // başlamalı" diyor ama o kural mutlak bir sayı; ölçülen şey ise
+            // düğme ile sekme çubuğu ARASINDAKİ pay ve o zaten doğruydu:
+            //     referans boşluk %13,8   bizim %12,8
+            // Bu yüzden düğme aşağı değil, YUKARI ve yanlara büyüdü.
+            //
+            // DERS (mutlak sınır değil, İLİŞKİ korunur): "0,17'den başlasın"
+            // gibi bir eşik, komşusu değiştiğinde anlamını yitirir. Korunması
+            // gereken şey sayının kendisi değil, iki öğe arasındaki nefes payı.
+            //
+            // Yazı puntosuna DOKUNULMADI: referans ölçüsü (%3,27 ekran
+            // yüksekliği) düğmeye değil EKRANA göre alınmıştı, düğme
+            // büyüyünce geçerliliğini koruyor.
+            // 9. TUR, EKSEN DÜZELTMESİ: üst kenar 0,290'dan 0,265'e indi.
+            // Genişlik (%52,8) doğruydu; yükseklik genişliğe oranlandığı için
+            // şişmişti. Referansın en-boyunda (886×1920) ölçüm:
+            //     referans  gen %52,9  yük %8,65  en/boy 2,82
+            //     bizim     gen %52,6  yük %10,62 en/boy 2,28
+            // Hedef 0,0865 × 1920 = 166 piksel; yeşil maske alt gölgeyi
+            // saymadığı için sabit karşılığı 206 birim -> aralık 0,107.
+            // Alt kenar 0,158 SABİT kaldı: sekme çubuğuyla arasındaki pay
+            // ölçülüp doğrulanmıştı (%13,5 / %13,8).
+            UiKit.Place(_playButton, 0.228f, 0.158f, 0.772f, 0.265f);
             _playButton.onClick.AddListener(PlayCurrent);
 
             // Yazılar YÜZÜN üstüne: dipteki koyu etek yazının altında kalsın.
@@ -526,6 +638,18 @@ namespace BlockOut.Runtime.UI
             ribbonRoot.SetAsFirstSibling();      // düğmenin ARKASINDA kalsın
             _rewardRibbon = ribbonRoot;
 
+            // KAPALI BAŞLIYOR (9. tur). Şeridi yalnız `Refresh` açıyor
+            // (`showRibbon = multiplier > 1`) ama kurulum onu AÇIK bırakıyordu.
+            // Sonuç: ilk karede — ve Refresh'in hiç çalışmadığı her durumda —
+            // oyna düğmesinin üstünde İÇİ BOŞ turuncu bir şerit duruyordu.
+            // Edit-mode önizlemesinde bu apaçık görülüyor.
+            //
+            // DERS (varsayılan durum, YAYIN durumudur): Bir öğeyi yalnız
+            // tazeleme açıp kapatıyorsa, kurulumdaki hâli "tazeleme hiç
+            // gelmezse ekranda ne dursun" sorusunun cevabı olmalı. Boş bir
+            // ödül şeridi, olmayan bir ödülü vaat ediyor.
+            ribbonRoot.gameObject.SetActive(false);
+
             // Koyu kahve kenarlık + turuncu yüzey + üstte açık bir ışık.
             // Renkler referanstan örneklendi: kenar #5B2A08, yüzey #FBA40A,
             // üst ışık #FFC93C.
@@ -605,6 +729,7 @@ namespace BlockOut.Runtime.UI
 
             var heart = UiKit.CreateIcon("Heart", card.transform, UiSkin.Get(Art.Heart));
             UiKit.Place(heart, 0.36f, 0.50f, 0.64f, 0.94f);
+            _livesPopupHeart = heart;   // şeritteki gibi sprite'ı değişiyor
 
             _livesPopupCount = UiKit.CreateTitle("Count", heart.transform, "", 52,
                 CoinInk, new Color(0.42f, 0.03f, 0.03f));
@@ -618,14 +743,24 @@ namespace BlockOut.Runtime.UI
                 MenuPage.Green, 38, () => { HideLivesPopup(); MenuShell.Instance?.ShowStepped("store"); });
             UiKit.Place(shop, 0.20f, 0.06f, 0.80f, 0.26f);
 
+            // GÖRSEL ORİJİNALDEN (13. tur, G3); yoksa eski prosedürel çarpı.
+            var closeArt = MenuPage.CloseArt;
             var close = UiKit.CreateIconButton("Close", card.transform,
-                GameKit.UI.UiSprites.Circle, MenuPage.CloseRed);
-            UiKit.Place(close, 0.845f, 0.80f, 1.015f, 1.09f);
+                closeArt != null ? closeArt : GameKit.UI.UiSprites.Circle,
+                closeArt != null ? Color.white : MenuPage.CloseRed);
+            // KUTU %25,6 BUYUDU (13. tur, G3): gorsel kendi KOYU HALKASINI
+            // da tasiyor (kirmizi, gorselin %79,6'si). Eski kurguda kutuyu
+            // duz kirmizi bir daire dolduruyordu; sprite'a gecince ayni
+            // kutuda gorunen kirmizi %20 kuculuyordu. 1 / 0,796 = 1,256.
+            UiKit.Place(close, 0.8232f, 0.7629f, 1.0368f, 1.1271f);
             close.onClick.AddListener(HideLivesPopup);
-            var mark = UiKit.CreateIcon("Mark", close.transform,
-                GameKit.UI.UiSprites.Cross, CoinInk);
-            mark.raycastTarget = false;
-            UiKit.Place(mark, 0.26f, 0.26f, 0.74f, 0.74f);
+            if (closeArt == null)
+            {
+                var mark = UiKit.CreateIcon("Mark", close.transform,
+                    GameKit.UI.UiSprites.Cross, CoinInk);
+                mark.raycastTarget = false;
+                UiKit.Place(mark, 0.26f, 0.26f, 0.74f, 0.74f);
+            }
 
             _livesPopup.gameObject.SetActive(false);
         }
@@ -706,7 +841,16 @@ namespace BlockOut.Runtime.UI
 
             // Sınırsız can hakkı varken geri sayım yanıltıcı olur: can zaten
             // eksilmiyor. O durumda hakkın kalan süresi yazılıyor.
-            if (MetaServices.Progress.HasInfiniteLives)
+            bool unlimited = MetaServices.Progress.HasInfiniteLives;
+
+            // Kalbin ÜSTÜNDEKİ SAYI da yanıltıcıydı: altta "Unlimited" yazarken
+            // kalpte "0" duruyordu. Şeritteki kalple aynı kural — sprite değişir,
+            // sayı gizlenir (bkz. <see cref="Refresh"/>).
+            if (_livesPopupHeart != null && _heartInfinite != null)
+                _livesPopupHeart.sprite = unlimited ? _heartInfinite : _heartNormal;
+            _livesPopupCount.enabled = !unlimited;
+
+            if (unlimited)
             {
                 var left = MetaServices.Progress.InfiniteLivesLeft;
                 _livesPopupTimer.text = left.TotalHours >= 1d
@@ -733,6 +877,7 @@ namespace BlockOut.Runtime.UI
                                          out _, out _);
             UiKit.Place(body, 0f, 0f, 1f, 1f);
             var button = body.gameObject.AddComponent<Button>();
+            GameKit.UI.UiPressFeedback.Attach(button);   // 12. tur, H7
             button.transition = Selectable.Transition.None;
             body.gameObject.AddComponent<GameKit.UI.UiButtonFeel>();
 
@@ -793,7 +938,8 @@ namespace BlockOut.Runtime.UI
             // Sınırsız can hakkı varsa sayaç yerini ∞'a ve KALAN SÜREYE bırakır.
             // Süre her saniye değiştiği için buradaki dal önbelleğe takılmıyor.
             bool infinite = progress.HasInfiniteLives;
-            if (_livesInfinity != null) _livesInfinity.enabled = infinite;
+            if (_heartIcon != null && _heartInfinite != null)
+                _heartIcon.sprite = infinite ? _heartInfinite : _heartNormal;
             _livesLabel.enabled = !infinite;
 
             if (infinite)

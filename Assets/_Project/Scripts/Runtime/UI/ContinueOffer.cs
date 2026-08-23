@@ -379,26 +379,12 @@ namespace BlockOut.Runtime.UI
             var root = UiKit.CreateRect("Close", page);
             UiKit.Place(root, 0.854f, y0, 0.958f, y1);
 
-            // DAİRE `CreateIcon` İLE: düz bir `Image` sprite'ı kutuya gerer ve
-            // kutu kare olmadığı anda daire elipse döner (bkz. MenuPage.Close).
-            // RENKLER REFERANSTAN (12. tur — kullanıcı: *"referans görselin
-            // kapat butonu daha iyi"*). Ölçüm (y=67 yatay kesiti):
-            //     koyu halka  (163, 0, 0)     bizde (107, 13, 23)  <- ÇOK KOYU
-            //     parlak yüz  (245, 45, 50)   bizde (218, 37, 46)
-            //     çarpı       (253,248,240) krem, saf beyaz değil
-            // Bizimki hem koyu hem donuktu; referansın halkası kırmızının
-            // KOYU tonu, siyaha kaçanı değil.
-            var ringImage = UiKit.CreateIcon("Ring", root, UiSprites.Circle,
-                new Color(0.639f, 0f, 0f));
-            UiKit.Place(ringImage, 0f, 0f, 1f, 1f);
-
-            var faceImage = UiKit.CreateIcon("Face", root, UiSprites.Circle,
-                new Color(0.961f, 0.176f, 0.196f));
-            UiKit.Place(faceImage, 0.07f, 0.09f, 0.93f, 0.95f);
-
-            var cross = UiKit.CreateIcon("Cross", faceImage.transform, UiSprites.Cross,
-                new Color(0.992f, 0.973f, 0.941f));
-            UiKit.Place(cross, 0.26f, 0.26f, 0.74f, 0.74f);
+            // GÖRSEL ORİJİNALDEN (13. tur, G3). Bu daireyi üç prosedürel
+            // katmanla kuruyorduk; kullanıcı *"klasik kapat X işareti
+            // orijinalden alınacak, bizdeki çok kötü"* dedi. Ortak yardımcı
+            // `MenuPage.CloseGlyph` görseli kullanıyor, görsel yoksa eski
+            // katmanlara düşüyor.
+            var ringImage = MenuPage.CloseGlyph(root);
 
             UiKit.MakeClickable(root.gameObject, ringImage, onClick);
         }

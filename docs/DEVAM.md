@@ -6077,3 +6077,70 @@ dilime bölünce gerçek taban 73 çıktı, çarpan 1,04 oldu.
 
 > **Ders:** ölçüm bölütlemesi, ölçtüğün şeyi bozabilir. Bölütlemeyi verinin
 > kendisinden değil BİLİNEN düzenden (dört eşit satır) türet.
+
+---
+
+## 13. tur (devam) — G3: kapat çarpısı orijinalden alındı
+
+Kullanıcı: *"Klasik kapat X işareti orijinalden alınacak; bizdeki çok kötü."*
+
+Bizimki üç prosedürel katmandı (koyu halka + kırmızı yüz + ayrı çarpı) ve
+referansın hacmini vermiyordu.
+
+**Kaynak seçimi:** video kareleri 384x832; çarpı orada 42 piksel. Ama
+OneDrive'daki ekran görüntüleri **946x2048**, yani 2,5 kat büyük — çarpı
+orada 120 piksel. Kesme `WhatsApp Image 2026-08-17 ... (2).jpeg` üzerinden
+yapıldı.
+
+**Kesme yöntemi:** düğme bir DAİRE olduğu için alfa eşikten değil
+**yarıçaptan** kuruldu; kenardaki karışım da bilinen panel moruyla çözüldü
+(`gozlenen = a*renk + (1-a)*zemin`).
+
+Yarıçaplar yatay kesitle ölçüldü: kırmızı 0-53, koyu indigo halka **54-60**,
+panel 61+. İlk denemede dış yarıçapı 66 alıp panelin morunu da içeri
+almıştım — çıktının halkası leylak oluyordu.
+
+**GÖZ YANILDI, ÖLÇÜM DOĞRU SÖYLEDİ.** İkinci kesimden sonra da halka bana
+"parlak mavi" göründü ve tekrar düzeltmeye kalkacaktım. Çıktının piksellerini
+ölçünce halka **(37,17,94) → (43,31,122)**, kaynak **(37,18,97) → (51,38,144)**
+çıktı: birebir. Koyu indigo, kırmızının yanında maviye kaçık okunuyor.
+
+> **Ders:** bu projedeki "gözle değil piksel ölçerek yargıla" kuralı yalnız
+> karanlık bölgeler için değil, KOMŞU renklerin birbirini itmesi için de
+> geçerli.
+
+### Altı yer, tek bileşen
+
+Çarpı altı ayrı yerde ayrı ayrı kuruluyordu: menü başlığı, duraklat, sonuç,
+yeniden dene, günlük ödül, yeni eşya. Önce `MenuPage.CloseGlyph` /
+`MenuPage.CloseArt` altında toplandı, sonra hepsi ona bağlandı. Görsel
+yoksa eski prosedürel çizime düşülüyor.
+
+> **Ders:** tekrar eden bir görsel parçayı ilk KOPYALARKEN değil, ilk
+> DEĞİŞTİRİRKEN pahalıya alıyorsun.
+
+### Boy: iki farklı en-boydaki ekranı ORTAK BİR ÜÇÜNCÜ ŞEYE oranla
+
+Görsel kendi koyu halkasını taşıyor (kırmızı, görselin %79,6'sı), yani aynı
+kutuda görünen kırmızı %20 küçüldü. Ne kadar büyütmeli?
+
+```
+ekran GENISLIGINE gore   x1,51
+ekran YUKSEKLIGINE gore  x1,17
+```
+
+İkisi de yanlış — çelişki referansın 384x832 (en-boy 0,462), bizim tuvalin
+1080x1920 (0,5625) olmasından. İki tasarımda da olan ve boyu tutan bir öge
+ortak cetvel oldu: **başlık bandı** (referans %18,6, bizde %19,3 — neredeyse
+aynı).
+
+```
+carpi / bant yuksekligi:  referans %25,2   bizim %20,8   ->  x1,21
+```
+
+Sonuç: %24,8 (referans %25,2), yatay merkez %86,25 (referans %86,20).
+
+`CreateIconButton` kullanan dört yerde (sonuç, yeniden dene, yeni eşya, ana
+ekran can kutusu) kutu 1/0,796 = **×1,256** büyütüldü; oralarda eski kurguda
+kutuyu düz kırmızı bir daire dolduruyordu, yani görünen kırmızıyı korumak
+için halkanın payı eklendi.

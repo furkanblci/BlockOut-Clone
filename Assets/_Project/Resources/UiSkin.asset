@@ -79,8 +79,12 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: 4c0cd0f8d3c31bd4e9398065ce0ed976, type: 3}
   - name: icon_clock
     sprite: {fileID: 21300000, guid: 96cbe445043182c4fac6f5422e91f03d, type: 3}
+  - name: icon_close
+    sprite: {fileID: 21300000, guid: 0dadfe6052019444ea6e8ef2c46710fa, type: 3}
   - name: icon_coin
     sprite: {fileID: 21300000, guid: e593ff9b0d078fd449ab1a2229613953, type: 3}
+  - name: icon_flag
+    sprite: {fileID: 21300000, guid: c61a8b8523b2cca49acfe8595d8fea62, type: 3}
   - name: icon_gear
     sprite: {fileID: 21300000, guid: 5c37f275326bfc54a8d2fcc32335b9a1, type: 3}
   - name: icon_globe
@@ -95,8 +99,12 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: 011c2d64827db414bb105aebef535391, type: 3}
   - name: icon_infinite
     sprite: {fileID: 21300000, guid: 82cf5f6bb9918de4d951ae7403221033, type: 3}
+  - name: icon_league
+    sprite: {fileID: 21300000, guid: 29e2313ef7cc1f94c8e4ecdaba4e23cf, type: 3}
   - name: icon_lock
     sprite: {fileID: 21300000, guid: 07732edba91e5ab419f1d76ab7620509, type: 3}
+  - name: icon_medal
+    sprite: {fileID: 21300000, guid: bc7f11566425c0f49a54d452b232f642, type: 3}
   - name: icon_noads
     sprite: {fileID: 21300000, guid: eab8d24c3bbc28048bfc6a9a957c54d6, type: 3}
   - name: icon_plus
@@ -105,16 +113,44 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: 709ee46971e847c4ba2e8e23c2d9a2b3, type: 3}
   - name: icon_rocket
     sprite: {fileID: 21300000, guid: 6cf2baa78159469418178a639e8067b3, type: 3}
+  - name: icon_saucer
+    sprite: {fileID: 21300000, guid: 7230b573ecc9ce3428900a2c85da367f, type: 3}
   - name: icon_shop
     sprite: {fileID: 21300000, guid: efc8f430903e13a409597ad859d6bc87, type: 3}
   - name: icon_star
     sprite: {fileID: 21300000, guid: c72bc81066d9bcf4fad1a4c9648f692a, type: 3}
+  - name: icon_stopwatch
+    sprite: {fileID: 21300000, guid: 586098da06a0d7c42b2162e356cb074b, type: 3}
   - name: icon_trophy
     sprite: {fileID: 21300000, guid: 9825628e5a1f50346b482390ba5fc3cb, type: 3}
   - name: icon_ufo
     sprite: {fileID: 21300000, guid: 7407bc207dbed814b9fb8882a6039604, type: 3}
+  - name: logo_b
+    sprite: {fileID: 21300000, guid: bdb09d350eb97124593ab2f0cd40ee31, type: 3}
+  - name: logo_b_back
+    sprite: {fileID: 21300000, guid: cec08c43429a9804bbf06e9228c8c08e, type: 3}
+  - name: logo_c
+    sprite: {fileID: 21300000, guid: d9279030f3fad474c9dc899edf904ed5, type: 3}
+  - name: logo_c_back
+    sprite: {fileID: 21300000, guid: 1621df44f05417645b38f7925c8de4a4, type: 3}
   - name: logo_game
     sprite: {fileID: 21300000, guid: 025f52b6deccbcb409eab138dfcd0e28, type: 3}
+  - name: logo_k
+    sprite: {fileID: 21300000, guid: dbc0ac23246075744a7db69d7aaf249b, type: 3}
+  - name: logo_k_back
+    sprite: {fileID: 21300000, guid: 8483e4959ef03e443afe02b97fa72856, type: 3}
+  - name: logo_l
+    sprite: {fileID: 21300000, guid: f8c8b7b91b1a2954f91b3ee0798b9853, type: 3}
+  - name: logo_l_back
+    sprite: {fileID: 21300000, guid: 603c852a1163f014d9f0666f11c38b05, type: 3}
+  - name: logo_o
+    sprite: {fileID: 21300000, guid: b37a7c92d1caf184bb2be2b2c27e448a, type: 3}
+  - name: logo_o_back
+    sprite: {fileID: 21300000, guid: 057ac26e6a8591a4bbca59f3c14b2119, type: 3}
+  - name: logo_out
+    sprite: {fileID: 21300000, guid: 9a9392efab073f44c9cf75dbdd31e243, type: 3}
+  - name: logo_out_back
+    sprite: {fileID: 21300000, guid: 300877419d470a343a2d38a48085dab6, type: 3}
   - name: logo_studio
     sprite: {fileID: 21300000, guid: cc58af8ef0eeade49a262eef993c9557, type: 3}
   - name: node_level

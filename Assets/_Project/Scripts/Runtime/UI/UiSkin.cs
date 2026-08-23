@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace BlockOut.Runtime.UI
@@ -143,6 +143,24 @@ namespace BlockOut.Runtime.UI
         public const string NoAds    = "icon_noads";
         public const string Infinite = "icon_infinite";
 
+        /// <summary>
+        /// KAPAT ÇARPISI (13. tur, G3).
+        ///
+        /// Kullanıcı: *"Klasik kapat X işareti orijinalden alınacak; bizdeki
+        /// çok kötü."* Bizimki üç prosedürel katmandı (koyu halka + kırmızı
+        /// yüz + çarpı) ve referansın hacmini vermiyordu.
+        ///
+        /// `WhatsApp Image 2026-08-17 ... (2).jpeg` (946x2048, videodan 2,5
+        /// kat büyük) üzerinden kesildi. Düğme bir DAİRE olduğu için alfa
+        /// eşikten değil YARIÇAPTAN kuruldu; kenardaki karışım da bilinen
+        /// panel moruyla çözüldü.
+        ///
+        /// Yarıçaplar yatay kesitle ölçüldü: kırmızı 0-53, koyu indigo halka
+        /// 54-60, panel 61+. İlk denemede dış yarıçapı 66 alıp panelin morunu
+        /// da içeri almıştım.
+        /// </summary>
+        public const string Close   = "icon_close";
+
         public const string Coin    = "icon_coin";
         public const string Heart   = "icon_heart";
         public const string HeartBroken = "icon_heart_broken";
@@ -151,6 +169,17 @@ namespace BlockOut.Runtime.UI
         public const string Lock    = "icon_lock";
         public const string Chest   = "icon_chest";
         public const string Clock   = "icon_clock";
+
+        /// <summary>
+        /// "Süre Doldu" ekranının ALTIN KRONOMETRESİ (12. tur, O1).
+        ///
+        /// Orada eskiden <see cref="Clock"/> (süre yardımcısının yeşil çalar
+        /// saati) kullanılıyordu — kod yorumu bunu "elimizdeki en yakın
+        /// görsel" diye açıklıyordu. `Game over .mp4` 8. saniyeyle yan yana
+        /// konunca yakın değil, YANLIŞ NESNE olduğu görüldü.
+        /// `_Reference/draw_stopwatch.py` ile çizildi.
+        /// </summary>
+        public const string Stopwatch = "icon_stopwatch";
         public const string Rocket  = "icon_rocket";
         public const string Ufo     = "icon_ufo";
         public const string Plus    = "icon_plus";
@@ -160,6 +189,16 @@ namespace BlockOut.Runtime.UI
         public const string Globe   = "icon_globe";
         public const string Restart = "icon_restart";
         public const string Album   = "icon_album";
+
+        // --- profil istatistikleri (11. tur) ---
+        // Referansın profil ekranında sekiz kutucuğun sekizinde de FARKLI bir
+        // simge var; bizde beş simge tekrar ediyordu (kupa, roket ve UFO
+        // ikişer kez). Bu dördü `_Reference/draw_stat_icons.py` ile, menü
+        // simgeleriyle aynı palet ve bitirişte çizildi.
+        public const string Medal   = "icon_medal";    // ilk denemede kazanıldı
+        public const string Flag    = "icon_flag";     // seri yarışı
+        public const string League  = "icon_league";   // blok ligi
+        public const string Saucer  = "icon_saucer";   // gökyüzü atlayışı
 
         /// <summary>
         /// Oyunun logosu ve stüdyo yazısı (49. ve 35. madde).
@@ -171,6 +210,26 @@ namespace BlockOut.Runtime.UI
         /// </summary>
         public const string GameLogo   = "logo_game";
         public const string StudioLogo = "logo_studio";
+
+        /// <summary>
+        /// Logonun HARF HARF parçaları — kazanma kutlaması bunları tek tek
+        /// getiriyor (bkz. WinCelebration).
+        ///
+        /// Bunlar elle çizilmedi, `tools/slice_logo.py` tek parça logodan
+        /// üretiyor: harfler renklerinden bulunuyor, kalan her piksel en
+        /// yakın harfe veriliyor ve her parçaya KENDİ mor konturu geri
+        /// büyütülüyor. Sıra ÇİZİM SIRASI — soldaki harf sağdakinin altında
+        /// kalıyor; hepsi açıkken sonuç piksel piksel `logo_game`.
+        /// </summary>
+        /// Her harf İKİ görsel: `logo_b` harfin kendisi, `logo_b_back` mor
+        /// zemini. Kutlamada önce bütün zeminler, sonra bütün harfler
+        /// çiziliyor (bkz. WinCelebration.BuildLetters).
+        public static readonly string[] GameLogoLetters =
+        {
+            "logo_b", "logo_l", "logo_o", "logo_c", "logo_k", "logo_out",
+            "logo_b_back", "logo_l_back", "logo_o_back",
+            "logo_c_back", "logo_k_back", "logo_out_back",
+        };
 
         /// <summary>Liderlik kürsüsü — 1., 2., 3. için ayrı kaide.</summary>
         public static string Podium(int rank) =>
