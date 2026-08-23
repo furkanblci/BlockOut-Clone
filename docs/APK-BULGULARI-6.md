@@ -175,23 +175,31 @@ varlık kullanmak serbest.
 
 ## 4. Paket kartı (Starter Pack / teklif kartı)
 
-- [ ] **M4a.** Booster **ikonlarının boyutu çok fazla**; orijinaldekiyle
+- [x] **M4a.** Booster **ikonlarının boyutu çok fazla**; orijinaldekiyle
       kıyaslanıp küçültülecek.
       > *"paket kısmında ikonların boyutu çok fazla, orjinaldekiyle
       > kıyaslanıp düzenlenmeli"*
 
-- [ ] **M4b.** İkonların altındaki **"1s" / "x1" yazılarının boyutu**
+- [x] **M4b.** İkonların altındaki **"1s" / "x1" yazılarının boyutu**
       ayarlanacak.
 
-- [ ] **M4c.** İkonların **alt kısımları kesilmiş gibi** görünüyor; net ve
+- [x] **M4c.** İkonların **alt kısımları kesilmiş gibi** görünüyor; net ve
       düzgün görünmeliler.
       > *"ikonların alt kısımları kesilmiş gibi gözüküyor onu da düzeltelim,
       > net düzgün bir şekilde gözüksünler"*
 
-- [ ] **M4d.** Jetonun **dış parlaması (glow) rahatsız edici**; düzeltilecek.
+- [x] **M4d.** Jetonun **dış parlaması (glow) rahatsız edici**; düzeltilecek.
       > *"yine o goldun dış parlaması rahatsız edici gözüküyor düzeltilmeli"*
 
-- [ ] **M4e.** **"10 000" yazısının konumu ve görünümü** ayarlanacak.
+- [x] **M4e.** **"10 000" yazısının konumu ve görünümü** ayarlanacak.
+
+      **M4a-M4e 13. TURDA KAPATILDI.** Ayrıntı: `docs/DEVAM.md`, 13. tur.
+      Özet: booster kutusu 0,36 -> 0,295 (gözle "%35 büyük" sanmıştım,
+      ölçüm %12 dedi) ve alt kenarı maskeden içeri alındı; "x1" puntosu
+      32 -> 40; jeton sprite'larının İÇİNE pişmiş beyaz hale dokuz dosyada
+      temizlendi; "2 000"un konumu zaten doğruydu, konturunun KALINLIĞI
+      yanlıştı ve `CreateTitle` ortak materyal yüzünden verilen rengi
+      yok sayıyordu.
 
 - [ ] **M4f.** Kartın **"Starter Pack" kısmına geçmeden önceki ara çizgi /
       görünüm geçişi** daha iyi hale getirilecek.

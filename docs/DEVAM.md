@@ -6800,3 +6800,59 @@ Ayrıca bandın altına gölge eklendi (referansta var; onsuz kurdele karta
 > **Ders (bir bandın profilini TEK kesitten okuma):** Sıkıştırılmış bir
 > kaynakta tek dik kesit gürültüdür. Görüntüyü döndürüp bandı eksenlerden
 > birine oturtmak, ortalama almayı ve gerçek profili görmeyi mümkün kılıyor.
+
+---
+
+## 13. tur (devam) — M4a-M4e: paket kartı
+
+İki kartı aynı ölçeğe getirip yan yana koydum
+(`_Reference/notes/paket_cmp.png`). Kart yüzleri 138'e karşı 136 birim, yani
+ölçek doğru — farklar gerçek.
+
+### M4a + M4c — booster ikonları
+
+**Gözle iki kez yanlış tahmin ettim.** Önce "%35 büyük" deyip ×0,73
+uyguladım, sonuç fazla küçük oldu. Kompozit üzerinden ölçünce booster satırı
+referansta **66 piksel**, bizde **59** — yalnız %12 fark. Kutu 0,263 → 0,295.
+
+> **Ders (küçültme oranını da ÖLÇ):** Aynı kompozit iki turda iki farklı
+> gözle-tahmin verdi; ölçüm ise tek bir sayı.
+
+**Alttan kesilme (M4c)** aynı düzeltmeyle çözüldü ama sebebi ayrı: kutunun
+ALT KENARI kartın `RectMask2D`'ine teğetti. Önceki turda bu, kutuyu
+KÜÇÜLTEREK çözülmeye çalışılmış ve regresyon olmuştu.
+
+> **Ders (kesilme, boyut değil KONUM sorunudur):** Bir öğe kenarından
+> kesiliyorsa küçültmek onu kenardan uzaklaştırmaz — kutu aynı yerde durur,
+> içerik ortalanır. Kutuyu maskeden İÇERİ almak gerekir.
+
+### M4b — "x1" yazısı
+
+Punto 32 → 40 (ölçüm: referansta ~26 birim, bizde ~20).
+
+### M4d — jetonun dış parlaması
+
+Sprite'ların İÇİNE pişmiş beyaz bir hale varmış: `coin_pile_2`'de piksellerin
+**%13,7'si yarı saydam** ve bunların ortalama rengi (169,155,140) — yani
+beyazımsı bir çelenk. Kullanıcının *"rahatsız edici"* dediği şey buydu.
+
+Temizleme ölçütü: yarı saydam (alfa<200) **VE** doygunluğu düşük (<45) **VE**
+açık (parlaklık>110) pikseller. Altın jetonlar doygun olduğu için kenarları
+korunuyor; yalnız beyazımsı hale siliniyor. Dokuz dosyada %0,2-%6,2 arası
+piksel kaldırıldı.
+
+### M4e — "2 000" yazısı
+
+**Konumu zaten doğruymuş:** iki tarafta da x %18,0..%45,0. Yanlış olan
+konturdu — ama rengi değil, KALINLIĞI: referansta neredeyse yok, bizde kalın
+lacivert.
+
+Rengi üç kez değiştirdim ve ekranda hiçbir şey olmadı. Sebep:
+`UiKit.CreateTitle`, ortak bir `TitleMaterial` varsa çağrıya verilen kontur
+rengini **sessizce yok sayıyor** — bütün başlıklar tek materyalden geliyor.
+Bu iki etikete kendi materyal örneği verildi (`InceKontur`).
+
+> **Ders (bir parametre işe yaramıyorsa, ONU OKUYAN kodu aç):** Değerin
+> yanlış olduğunu sanıp üç kez değiştirdim; oysa hiç kullanılmıyordu. Ortak
+> materyale geçen bir sistemde eski parametreler görünüşte yerinde durmaya
+> devam ediyor.

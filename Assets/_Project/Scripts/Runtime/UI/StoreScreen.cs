@@ -74,6 +74,24 @@ namespace BlockOut.Runtime.UI
         static readonly Color CoinInk    = new Color32(0x1B, 0x25, 0x5C, 0xFF);
         static readonly Color TitleShade = new Color(0.086f, 0.129f, 0.365f);
 
+        /// <summary>
+        /// Kart üstündeki jeton sayısının konturu (M4e).
+        ///
+        /// `TitleShade` LACİVERT (22,33,93) ve mağazanın mavi tentesinde
+        /// doğru; ama sıcak turuncu/krem bir kartın üstünde yabancı duruyor.
+        /// Referansta "2 000" yazısının konturu KOYU KIRMIZI-KAHVE (101,1,15)
+        /// — kartın kendi renk ailesinden.
+        ///
+        /// Ölçüm ayrıca şunu gösterdi: yazının YERİ ve GENİŞLİĞİ zaten
+        /// birebirdi (x %18,0..%45,0 iki tarafta da). Yani M4e'de düzelecek
+        /// tek şey renkti.
+        ///
+        /// DERS (bir kusuru raporlarken hangi ÖZELLİĞİN yanlış olduğunu ayır):
+        /// "konumu ve görünümü ayarlanacak" notunda konum zaten doğruydu;
+        /// ölçmeden başlansaydı doğru olan da kurcalanacaktı.
+        /// </summary>
+        static readonly Color AmountShade = new Color(0.396f, 0.004f, 0.059f);
+
         // ---- Referanstan ölçülen yükseklikler (kanvas birimi) --------------
 
         // Tentenin en alçak noktası referansta y=286 (946×2048) → ekranın
@@ -996,8 +1014,9 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(pile, 0.06f, 0.14f, 0.46f, 0.98f);
 
             var amount = UiKit.CreateTitle("Amount", art.transform, Amount(offer.Coins), 72,
-                new Color(1f, 1f, 1f), TitleShade);
+                new Color(1f, 1f, 1f), AmountShade);
             UiKit.Place(amount, 0.16f, 0.04f, 0.56f, 0.34f);
+            InceKontur(amount);
 
             RewardIcons(art.transform, showNoAds: false, offer.Hours, offer.Helpers);
 
@@ -1183,8 +1202,9 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(art, 0.03f, 0.06f, 0.52f, 0.98f);
 
             var amount = UiKit.CreateTitle("Amount", clip, Amount(pack.Coins), 70,
-                new Color(1f, 1f, 1f), TitleShade);
+                new Color(1f, 1f, 1f), AmountShade);
             UiKit.Place(amount, 0.14f, 0.02f, 0.55f, 0.30f);
+            InceKontur(amount);
 
             RewardIcons(clip, showNoAds: true, hours: pack.Hours, helpers: pack.Helpers);
 
@@ -1484,14 +1504,71 @@ namespace BlockOut.Runtime.UI
                 // Kutu 0.14-0.50'ye alındı (yükseklik 0.36 korunuyor) ve
                 // preserveAspect AÇILDI — `CreateIcon` bunu varsayılan olarak
                 // kurmuyor, yani ikon kutuyu doldurmak için GERİLİYORDU.
+                // BOYUT REFERANSA İNDİ (13. tur, M4a — kullanıcı: *"paket
+                // kısmında ikonların boyutu çok fazla"*).
+                //
+                // İki kart aynı ölçeğe getirilip yan yana konunca
+                // (`_Reference/notes/paket_cmp.png`; kart yüzleri 138'e
+                // karşı 136 birim, yani ölçek doğru):
+                //     referans booster ~78 birim genis
+                //     bizim         ~107 birim
+                // Kutu yüksekliği 0,36 -> 0,263 (x0,73).
+                //
+                // ALTTAN KESİLME (M4c) de bununla düzeliyor: kutunun ALTI
+                // 0,14'ten 0,22'ye çıktı, yani ikon artık kartın alt
+                // maskesine değmiyor. Önceki turda bu, kutuyu KÜÇÜLTEREK
+                // çözülmeye çalışılmış ve regresyon olmuştu — sorun kutunun
+                // boyu değil, ALT KENARININ maskeye teğet geçmesiydi.
+                //
+                // DERS (kesilme, boyut değil KONUM sorunudur): Bir öğe
+                // kenarından kesiliyorsa küçültmek onu kenardan uzaklaştırmaz
+                // (kutu aynı yerde durur, içerik ortalanır). Kutuyu maskeden
+                // İÇERİ almak gerekir.
                 var icon = UiKit.CreateIcon("Helper" + i, parent, UiSkin.Get(icons[i]));
                 icon.preserveAspect = true;
-                UiKit.Place(icon, centers[i] - 0.080f, 0.14f, centers[i] + 0.080f, 0.50f);
+                // x0,73 FAZLAYDI. Gözle "referans daha büyük" göründü ama
+                // kompozit üzerinden ölçülünce booster satırı referansta 66
+                // piksel, bizde 59 — yani yalnız %12 fark. Kutu 0,263 ->
+                // 0,295, genişlik ±0,058 -> ±0,065.
+                //
+                // DERS (küçültme oranını da ÖLÇ): İlk turda "%35 büyük"
+                // tahmini gözle yapıldı ve x0,73 uygulandı; sonuç bu sefer
+                // fazla küçük oldu. Aynı kompozit iki turda iki farklı
+                // gözle-tahmin verdi, ölçüm ise tek bir sayı.
+                UiKit.Place(icon, centers[i] - 0.065f, 0.212f, centers[i] + 0.065f, 0.507f);
 
-                var count = UiKit.CreateTitle("Count" + i, parent, "x" + helpers, 32,
+                // "x1" BÜYÜDÜ (M4b): ölçüm, referansta ~26 birim, bizde ~20.
+                var count = UiKit.CreateTitle("Count" + i, parent, "x" + helpers, 40,
                     new Color(1f, 1f, 1f), TitleShade);
-                UiKit.Place(count, centers[i] - 0.005f, 0.03f, centers[i] + 0.105f, 0.20f);
+                UiKit.Place(count, centers[i] + 0.010f, 0.105f, centers[i] + 0.120f, 0.265f);
             }
+        }
+
+
+        /// <summary>
+        /// Kart üstündeki jeton sayısının konturunu İNCELTİR (M4e).
+        ///
+        /// `UiKit.CreateTitle`, ortak bir `TitleMaterial` varsa çağrıya
+        /// verilen kontur rengini SESSİZCE YOK SAYIYOR — bütün başlıklar tek
+        /// materyalden geliyor ve o materyalin konturu kalın lacivert.
+        /// Mağazanın mavi tentesinde doğru, ama sıcak krem bir kartın
+        /// üstündeki "2 000" için yanlış: referansta o yazının konturu
+        /// neredeyse YOK, ince ve koyu kırmızıya çalıyor.
+        ///
+        /// Bu yüzden yalnız bu iki etikete kendi materyal örneği veriliyor.
+        ///
+        /// DERS (bir parametre işe yaramıyorsa, ONU OKUYAN kodu aç): Rengi
+        /// üç kez değiştirdim ve ekranda hiçbir şey olmadı; sebep değerin
+        /// yanlış olması değil, hiç kullanılmamasıydı. Ortak materyale geçen
+        /// bir sistemde eski parametreler görünüşte yerinde durmaya devam
+        /// ediyor.
+        /// </summary>
+        static void InceKontur(TMPro.TextMeshProUGUI label)
+        {
+            if (label == null || label.fontSharedMaterial == null) return;
+            var mat = label.fontMaterial;              // örnek üretir
+            mat.SetFloat(TMPro.ShaderUtilities.ID_OutlineWidth, 0.08f);
+            mat.SetColor(TMPro.ShaderUtilities.ID_OutlineColor, AmountShade);
         }
 
         // ---- Satın alma ------------------------------------------------------
