@@ -6385,3 +6385,46 @@ referansın kendi dikey kesiti de zaten basamaklı.
 > Maske onları komşularından ayıramıyor. Böyle ögelerde iki görüntüyü aynı
 > genişliğe ölçekleyip alt alta koymak saniyeler sürüyor ve doğru cevabı
 > tek bakışta veriyor.
+
+---
+
+## 13. tur (devam) — Try Again paneli: yakın plan farkları
+
+Kullanıcı: *"try again paneline geri dön, orada hâlâ içime sinmeyen kısımlar
+var"*. Panelin İKİ BÖLGESİ referansla aynı ölçekte kırpılıp alt alta konuldu
+(`fail_baslik.png`, `fail_dugme.png`) ve dört fark çıktı:
+
+1. **Başlığın iç konturu MOR değil KOYU TURUNCU.** Referansta altın harflerle
+   mor hale ARASINDA ince, koyu turuncu bir kenar var (ölçüm (139,45,0)) ve
+   harfleri haleden ayıran şey o. Mor gölge verince altın doğrudan moru
+   sınırlıyor ve yazı "yapıştırılmış" duruyordu.
+
+2. **Harflerin kendi dikey gradyanı yok.** Referansta altın düz değil: tepede
+   açık sarı (255,245,107), dipte turuncu (251,163,7). TMP'nin köşe gradyanı
+   bunu ayrı bir katman olmadan veriyor.
+
+3. **"Try Again" tek kelime gibi okunuyordu.** `PillButton` harf aralığını
+   -16 veriyor (referanstan ölçülmüştü) ve bu KELİME BOŞLUĞUNU da kapatıyor.
+   > **Ders:** negatif harf aralığı kelime boşluğunu da yer. Tek kelimelik
+   > etiketlerde fark edilmiyor; ilk iki kelimelik etikette ortaya çıkıyor.
+
+4. **Düğmenin dış kenarı çok açık.** `PillBody` dış çizgiyi düğmenin KENDİ
+   renginin %15'i olarak kuruyor; yeşil için bu (13,34,0), yani koyu YEŞİL.
+   Referansın kaybetme kartındaki düğmesinde ölçüm (7,6,23) — neredeyse
+   siyah.
+
+   İlginç olan: duraklat panelindeki AYNI aileden düğmenin konturu referansta
+   kendi renginin koyusu ((59,22,60) kırmızı için). Yani bu bir kural değil,
+   BU EKRANA ait bir karar — düğme parlak mor bir kartın üstünde duruyor ve
+   renkli bir kontur orada zemine karışıyor.
+   > **Ders:** aynı bileşen, farklı zeminde farklı ayar isteyebilir. Ortak
+   > reçeteyi bozmadan yalnız o çağrı yerinde geçersiz kılmak doğru olan;
+   > `PillBody`yi değiştirmek oyundaki otuz düğmeyi birden etkilerdi.
+
+   Kalınlık üç denemede oturdu (0,010 → 0,005 → 0,002):
+   > **Ders:** bir kenarı KALINLAŞTIRMAKLA ÇERÇEVE eklemek aynı şey değil.
+   > Arkaya konan daha büyük bir panel, kendi köşe yarıçapı da büyüdüğü için
+   > köşelerde şişiyor ve düğmenin etrafında ikinci bir hat gibi görünüyor.
+
+Ayrıca "Rewards x3" rozetinin koyu konturu 5 → 7 birime çıkarıldı (5'te
+ekranda neredeyse görünmüyordu) ve rozet biraz uzatıldı.

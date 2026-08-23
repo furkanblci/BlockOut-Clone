@@ -332,6 +332,8 @@ namespace BlockOut.Runtime.UI
 
         // Yalnız kaybetme panelinde görünenler (bkz. BuildFailExtras).
         Image _failHeart, _failDenied, _rewardsTag;
+        /// <summary>"Try Again" düğmesinin arkasındaki kalın koyu kenar (13. tur).</summary>
+        Image _primaryRim;
         /// <summary>Kalbin mor konturu — kalbin büyütülmüş kopyası (13. tur).</summary>
         RectTransform _failHeartRim;
         TextMeshProUGUI _failDifficulty;
@@ -2395,9 +2397,24 @@ namespace BlockOut.Runtime.UI
             // yüzünü yiyor. `UiTitleEmboss` haleyi N kaydırılmış kopyayla
             // çiziyor, o yüzden sınır yok (12. turda menü başlıkları için
             // kurulmuştu — aynı ihtiyaç burada da varmış).
+            // İÇ KONTUR KOYU TURUNCU, MOR DEĞİL. Referansı yakın plandan
+            // kırpınca görüldü: altın harflerle mor hale ARASINDA ince, koyu
+            // turuncu bir kenar var (ölçüm (139,45,0)) ve harfleri haleden
+            // ayıran şey o. Mor bir gölge verince altın doğrudan moru
+            // sınırlıyor ve yazı "yapıştırılmış" duruyordu.
             GameKit.UI.UiTitleEmboss.Apply(_resultTitle,
                 halo: new Color(0.573f, 0.290f, 1f),
-                shadow: new Color(0.184f, 0.055f, 0.376f));
+                shadow: new Color(0.545f, 0.176f, 0f));
+
+            // HARFLERİN KENDİ DİKEY GRADYANI. Referansta altın düz değil:
+            // tepede açık sarı (255,245,107), dipte turuncu (251,163,7).
+            // Düz altın, harfleri "boyanmış" gösteriyordu; geçiş onlara
+            // hacim veriyor. TMP'nin köşe gradyanı bunu bedavaya yapıyor,
+            // ayrı bir katman gerekmiyor.
+            _resultTitle.enableVertexGradient = true;
+            _resultTitle.colorGradient = new TMPro.VertexGradient(
+                new Color(1f, 0.961f, 0.420f), new Color(1f, 0.961f, 0.420f),
+                new Color(0.984f, 0.639f, 0.027f), new Color(0.984f, 0.639f, 0.027f));
 
             // BAŞLIK REFERANSA GÖRE YENİDEN DÖKÜLDÜ (8. tur).
             //
@@ -2603,8 +2620,58 @@ namespace BlockOut.Runtime.UI
             // Yeşil "Continue" kartın tek ve büyük eylemi. Hazır btn_green
             // sprite'ı var; boyamaya gerek yok.
             _resultPrimary = CreateGreenButton("Primary", _resultCard.transform);
+
+            // DIŞ KONTUR NEREDEYSE SİYAH (13. tur — kullanıcı: *"try again
+            // panelinde hâlâ içime sinmeyen kısımlar var"*).
+            //
+            // `PillBody` dış çizgiyi düğmenin KENDİ renginin %15'i olarak
+            // kuruyor; yeşil için bu (13,34,0), yani koyu YEŞİL. Referansın
+            // kaybetme kartındaki düğmesinde ölçüm (7,6,23) — neredeyse
+            // siyah ve belirgin biçimde daha kalın.
+            //
+            // İlginç olan: duraklat panelindeki AYNI aileden düğmenin
+            // konturu referansta kendi renginin koyusu ((59,22,60) kırmızı
+            // için). Yani bu bir kural değil, BU EKRANA ait bir karar —
+            // düğme parlak mor bir kartın üstünde duruyor ve renkli bir
+            // kontur orada zemine karışıyor.
+            //
+            // DERS (aynı bileşen, farklı zeminde farklı ayar isteyebilir):
+            // Ortak reçeteyi bozmadan yalnız bu çağrı yerinde geçersiz
+            // kılmak doğru olan; `PillBody`yi değiştirmek oyundaki otuz
+            // düğmeyi birden etkilerdi.
+            var primaryOutline = _resultPrimary.transform.Find("Outline") as RectTransform;
+            if (primaryOutline != null)
+            {
+                var img = primaryOutline.GetComponent<Image>();
+                if (img != null) img.color = new Color(0.027f, 0.024f, 0.090f);
+            }
+
+            // Rengi değiştirmek YETMEDİ: `PillBody`nin dış çizgisi yalnız
+            // kabuğun kaydığı kadar (birkaç birim) görünüyor, referansınki
+            // ise belirgin kalın. Kalınlığı `PillBody` içinde artırmak
+            // oyundaki otuz düğmeyi birden etkilerdi; bunun yerine düğmenin
+            // ARKASINA biraz büyük, koyu bir panel konuyor.
+            // Renk saf siyah DEĞİL, siyaha çalan koyu yeşil. Referansın
+            // kesitinde kenar tek renk değil: önce (7,6,23) neredeyse siyah,
+            // hemen ardından (0,61,0) koyu yeşil geliyor. Saf siyah bir
+            // panel bu yumuşak geçişi veremiyor ve düğmenin etrafında ayrı
+            // bir çerçeve gibi okunuyordu.
+            _primaryRim = UiKit.CreateRoundedPanel("PrimaryRim", _resultCard.transform,
+                new Color(0.031f, 0.086f, 0.020f), MenuPage.ButtonCornerShare);
+            _primaryRim.raycastTarget = false;
+            _primaryRim.transform.SetSiblingIndex(_resultPrimary.transform.GetSiblingIndex());
+
+            // "Try Again" İKİ KELİME: `PillButton` harf aralığını -16
+            // veriyor (referanstan ölçülmüştü) ve bu KELİME BOŞLUĞUNU da
+            // kapatıyordu — ekranda "TryAgain" okunuyordu. Boşluk, harf
+            // aralığının kapattığı kadar geri açılıyor.
+            //
+            // DERS (negatif harf aralığı, kelime boşluğunu da yer):
+            // Tek kelimelik etiketlerde fark edilmiyor; ilk iki kelimelik
+            // etiketde ortaya çıkıyor.
             UiKit.Place(_resultPrimary, 0.221f, 0.114f, 0.787f, 0.275f);
             _resultPrimaryLabel = _resultPrimary.GetComponentInChildren<TextMeshProUGUI>();
+            if (_resultPrimaryLabel != null) _resultPrimaryLabel.wordSpacing = 22f;
             _resultPrimary.onClick.AddListener(OnPrimary);
 
             // Reklam düğmesi kartın DIŞINDA, altında. Referans kartında yok;
@@ -2780,7 +2847,10 @@ namespace BlockOut.Runtime.UI
 
             var tagFace = UiKit.CreateRoundedPanel("Face", tagRim.transform, TagOrange, 0.5f);
             tagFace.raycastTarget = false;
-            UiKit.Place(tagFace, 0f, 0f, 1f, 1f, padding: 5f);
+            // Kontur 5 -> 9 birim: referansta rozetin koyu kenarı belirgin
+            // (rozet 50 birim yüksek ve kenar ~9 birim). 5'te ekranda
+            // neredeyse görünmüyordu.
+            UiKit.Place(tagFace, 0f, 0f, 1f, 1f, padding: 7f);
 
             var tagLabel = UiKit.CreateTitle("Label", tagRim.transform, "Rewards x3", 34,
                 Color.white, TagOrangeDark);
@@ -3594,13 +3664,35 @@ namespace BlockOut.Runtime.UI
             // çizilen arasındaki fark (gölge/kontur payı) düşülerek:
             UiKit.Place(_resultPrimary, won ? 0.221f : 0.206f, won ? 0.114f : 0.069f,
                                         won ? 0.787f : 0.798f, won ? 0.275f : 0.268f);
+
+            // Koyu kenar düğmeden 0,010 (yatay) / 0,013 (dikey) dışarıda.
+            if (_primaryRim != null)
+            {
+                float px0 = won ? 0.221f : 0.206f, py0 = won ? 0.114f : 0.069f;
+                float px1 = won ? 0.787f : 0.798f, py1 = won ? 0.275f : 0.268f;
+                // 0,010/0,013 fazlaydı: kenar siyah bir levha gibi
+                // okunuyordu. Referansta kenar belirgin ama ince.
+                // 0,005/0,007 hâlâ ÇERÇEVE gibi okunuyordu. Referansta koyu
+                // kenar düğmeye YAPIŞIK, ayrı bir hat değil. Panel artık
+                // yalnız mevcut kenarı derinleştiriyor.
+                //
+                // DERS (bir kenarı kalınlaştırmakla ÇERÇEVE eklemek aynı şey
+                // değil): Arkaya konan daha büyük bir panel, kendi köşe
+                // yarıçapı da büyüdüğü için köşelerde şişiyor ve düğmenin
+                // etrafında ikinci bir hat gibi görünüyor. İnce tutulunca
+                // kenarın rengini koyulaştırmaktan öteye gitmiyor — istenen
+                // de bu.
+                UiKit.Place(_primaryRim, px0 - 0.002f, py0 - 0.003f,
+                                         px1 + 0.002f, py1 + 0.003f);
+                _primaryRim.gameObject.SetActive(!won);
+            }
             // "Ödüller x3" rozeti yeşil düğmenin hemen ÜSTÜNDE.
             if (_rewardsTag != null)
                 // Etiket YEŞİL DÜĞMENİN ÜST KENARINDA (13. tur, F1).
                 // Referansta "Ödüller x3" hapın içinde değil, düğmenin üst
                 // kenarına binen ayrı bir turuncu rozet: x %40,9..%63,7,
                 // y %39,2..%42,0 -> kart-göreli 0,399..0,652 / 0,259..0,311.
-                UiKit.Place(_rewardsTag, 0.356f, 0.259f, 0.647f, 0.308f);
+                UiKit.Place(_rewardsTag, 0.348f, 0.253f, 0.655f, 0.316f);
         }
 
         void RefreshResult()
