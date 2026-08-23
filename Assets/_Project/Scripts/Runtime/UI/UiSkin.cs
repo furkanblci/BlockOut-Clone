@@ -161,6 +161,24 @@ namespace BlockOut.Runtime.UI
         /// </summary>
         public const string Close   = "icon_close";
 
+        /// <summary>
+        /// MAĞAZA TENTESİ (13. tur, M2 — kullanıcı: *"mağaza tentesi çok
+        /// kötü olmuş, yeniden yap, aynısını yap, gerekirse direkt oyundan
+        /// al"*).
+        ///
+        /// Prosedürel tente (`MenuSprites.Awning`) üç turdur yaklaşamadı;
+        /// son denemede yarım daire taraklar çizilmişti ama referansın
+        /// gerçek biçimi o değil: alt köşeleri yuvarlatılmış GENİŞ DİKEY
+        /// ŞERİTLER, hepsi aynı yükseklikte bitiyor ve altlarında koyu
+        /// lacivert bir levha var.
+        ///
+        /// `market.jpeg`ten (946x2048) kesildi. Üstündeki jeton kapsülü ve
+        /// "Mağaza" başlığı, TEMİZ BİR PERİYODUN (x 658..926, iki şerit)
+        /// aynı fazla döşenmesiyle silindi — yani geometri referansın
+        /// kendisi, yalnız kaplayan öğeler kaldırıldı.
+        /// </summary>
+        public const string Awning  = "awning_shop";
+
         public const string Coin    = "icon_coin";
         public const string Heart   = "icon_heart";
         public const string HeartBroken = "icon_heart_broken";

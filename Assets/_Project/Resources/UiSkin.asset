@@ -29,6 +29,8 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: 6f7530cb19bc5dc4fa31e0ba1bf2a1d1, type: 3}
   - name: avatar_player
     sprite: {fileID: 21300000, guid: b0cab17779831204ba0203d71751b4ff, type: 3}
+  - name: awning_shop
+    sprite: {fileID: 21300000, guid: b5607d365be4e3d428409a77d2faeb98, type: 3}
   - name: badge_reward
     sprite: {fileID: 21300000, guid: e0b04c67c4fbde6498a314a4c2fc889c, type: 3}
   - name: banner_region

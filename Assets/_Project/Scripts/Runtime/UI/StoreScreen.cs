@@ -483,7 +483,11 @@ namespace BlockOut.Runtime.UI
             // bir telefonda ikisi arasında görünür bir dikiş kalır. Tentenin
             // üst satırı taban rengin %80'i (dikey parlaklık rampası), iki
             // şeridin ortalaması ≈ #016FC3.
-            bleedImage.color = new Color(0.004f, 0.435f, 0.765f);
+            // Renk artık KESİLEN tentenin üst satırından: (0,97,230).
+            // Eski değer (1,111,195) prosedürel tentenin taban renginden
+            // hesaplanmıştı; görsele geçince ikisi arasında görünür bir
+            // dikiş kalırdı.
+            bleedImage.color = new Color(0f, 0.380f, 0.902f);
             bleedImage.raycastTarget = false;
 
             // TENTENIN ALTINDAKI KOYU BANT (4. tur, E15/E16).
@@ -548,8 +552,32 @@ namespace BlockOut.Runtime.UI
 
             var bar = Row("Awning", root, 0f, AwningH);
 
+            // TENTE ARTIK ORİJİNALİN KENDİSİ (13. tur — kullanıcı: *"mağaza
+            // tentesi çok kötü olmuş, yeniden yap, aynısını yap, gerekirse
+            // direkt oyundan al"*).
+            //
+            // Prosedürel tente (`MenuSprites.Awning`) ÜÇ turdur yaklaşamadı
+            // ve her turda başka bir sayı ölçülüp değiştirildi (feston
+            // derinliği %14 -> %21,6 -> %10,3 -> %19,2). Son turda gerçek
+            // biçim de yanlış anlaşılmıştı: referansı 2 kat büyütünce
+            // görüldü ki yarım daire "feston" yok — alt köşeleri
+            // YUVARLATILMIŞ GENİŞ DİKEY ŞERİTLER var, hepsi aynı hizada
+            // bitiyor.
+            //
+            // `market.jpeg`ten kesildi: periyot 268 piksel (iki şerit),
+            // tentenin dibi y=316. Üstündeki jeton kapsülü ve "Mağaza"
+            // başlığı, TEMİZ BİR PERİYODUN (x 658..926) aynı fazla
+            // döşenmesiyle silindi. Yani geometri referansın kendisi;
+            // yalnız kaplayan öğeler kaldırıldı.
+            //
+            // DERS (üç tur yaklaşamayan bir çizim, ÇİZİLMEMELİ): Prosedürel
+            // üretim ölçülebilir biçimler için doğru araç. Referansın
+            // biçimini üç turda hâlâ yanlış okuyorsam sorun sayılarda değil,
+            // BİÇİMİ tarif etme yeteneğimde — o noktada kesmek hem daha
+            // hızlı hem birebir. (Aynı karar logo ve kronometre için de
+            // verilmişti.)
             var cloth = bar.gameObject.AddComponent<Image>();
-            cloth.sprite = MenuSprites.Awning;
+            cloth.sprite = UiSkin.Get(Art.Awning) ?? MenuSprites.Awning;
             cloth.type = Image.Type.Simple;
             cloth.raycastTarget = true;      // tenteye dokunmak içeriği kaydırmasın
 

@@ -85,6 +85,11 @@ namespace BlockOut.Editor.ProjectSetup
             // "Süre Doldu" ekranının altın kronometresi: ekranın yarısına
             // yakınını kaplıyor ve baştan sona gradyan (12. tur, O1).
             { "icon_stopwatch", 1024 },
+
+            // Mağaza tentesi (13. tur, M2): 946 piksel genişliğinde ve tam
+            // ekran genişliğine geriliyor. Varsayılan 512'de yatay
+            // çözünürlüğün yarısı gidiyor ve şerit kenarları yumuşuyor.
+            { "awning_shop", 1024 },
         };
 
         /// <summary>
@@ -117,6 +122,9 @@ namespace BlockOut.Editor.ProjectSetup
             // yumuşak alfa ASTC blok sınırlarına denk geliyor ve çember
             // tırtıklı çıkıyor.
             "icon_close",
+            // Mağaza tentesi (13. tur, M2): baştan sona dikey gradyan;
+            // ASTC bunu bantlıyor ve şeritler kademeli görünüyor.
+            "awning_shop",
         };
 
         /// <summary>

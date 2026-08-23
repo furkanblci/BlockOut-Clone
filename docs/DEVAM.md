@@ -6626,3 +6626,57 @@ ders: bu tasarımda hiçbir yüzey tam kapsül değil.)
 9-dilimli tek prosedürel sprite oldu; profil yalnız dikey olduğu için orta
 yatayda güvenle esniyor. Bu turda aynı çözümün **beşinci** kullanımı
 (`PowerPad`, `RewardTag`, `CoinPad`, tente levhası, `SectionRibbon`).
+
+---
+
+## 13. tur (devam) — TENTE ORİJİNALDEN KESİLDİ (M2 yeniden)
+
+Kullanıcı: *"mağaza tentesi çok kötü olmuş, yeniden yap, aynısını yap,
+gerekirse direkt oyundan al."*
+
+### Prosedürel tente üç tur boyunca yaklaşamadı
+
+Feston derinliği turdan tura değişti: **%14 → %21,6 → %10,3 → %19,2**. Her
+turda yeni bir ölçüm yapıldı, biri geri alındı, kullanıcı iki kez
+beğenmedi. Bu turda levhayı ekleyip derinliği referansla eşitledim
+(41 birim = 41) ve sayılar tuttuğu hâlde sonuç yine beğenilmedi.
+
+Sebebi son adımda anlaşıldı: referansı 2 kat büyütünce görüldü ki
+**yarım daire "feston" diye bir şey yok**. Referansta alt köşeleri
+YUVARLATILMIŞ GENİŞ DİKEY ŞERİTLER var, hepsi aynı hizada bitiyor. Ben üç
+turdur yanlış bir BİÇİMİ doğru sayılarla çizmeye çalışmışım.
+
+> **Ders (üç tur yaklaşamayan bir çizim, ÇİZİLMEMELİ):** Prosedürel üretim
+> ölçülebilir biçimler için doğru araç. Referansın biçimini üç turda hâlâ
+> yanlış okuyorsam sorun sayılarda değil, BİÇİMİ tarif etme yeteneğimde.
+> O noktada kesmek hem daha hızlı hem birebir — aynı karar logo, kronometre
+> ve kapat çarpısı için de verilmişti.
+
+### Kesme yöntemi
+
+`market.jpeg` (946x2048) üzerinden:
+- tentenin dibi **y=316** (kurdeleden hemen önce)
+- şerit periyodu **268 piksel** (iki şerit) — otokorelasyonla bulundu
+- temiz periyot **x 658..926**: jeton kapsülü (x 107..275) ve "Mağaza"
+  başlığı (x 294..651) dışında kalan tek tam periyot
+
+Üstteki iki öğe, o temiz periyodun **aynı fazla** tüm genişliğe döşenmesiyle
+silindi: `out[:,x] = tile[:, (x-658) % 268]`. Yani geometri referansın
+kendisi; yalnız kaplayan öğeler kaldırıldı. Doğrulama: kesilen dokuda açık
+piksel sayısı **0**.
+
+### Sonuç (hepsi ölçüldü)
+
+| | referans | bizim |
+|---|---|---|
+| tentenin dibi | %84,62 | %84,69 |
+| şerit ucu derinliği | 41 br | **41 br** |
+| şerit periyodu | genişliğin %28,33'ü | **%28,33** |
+| üst satır rengi | (0,97,230) | **(0,97,230)** |
+
+Çentik şeridinin (`AwningBleed`) rengi de kesilen dokunun üst satırından
+alındı; eski değer prosedürel tentenin taban renginden hesaplanmıştı ve
+görsele geçince arada görünür bir dikiş kalırdı.
+
+Prosedürel tente `MenuSprites.Awning` yedek olarak duruyor (görsel
+bulunamazsa devreye giriyor).
