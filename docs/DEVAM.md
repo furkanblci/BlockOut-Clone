@@ -6428,3 +6428,30 @@ var"*. Panelin İKİ BÖLGESİ referansla aynı ölçekte kırpılıp alt alta k
 
 Ayrıca "Rewards x3" rozetinin koyu konturu 5 → 7 birime çıkarıldı (5'te
 ekranda neredeyse görünmüyordu) ve rozet biraz uzatıldı.
+
+### Koyu kenar denemesi GERİ ALINDI + basış geri bildirimi yumuşadı
+
+Kullanıcı: *"butonun o arkasındaki siyahlık kötü; basılı tuttuğunda çıkan
+siyahlık öyle olacak ama onun için bile fazla."*
+
+Bir önceki adımda referansın kaybetme kartındaki düğme kenarını ölçüp
+((7,6,23), neredeyse siyah) düğmenin arkasına koyu bir panel koymuştum.
+Ölçüm doğruydu ama sonuç yanlıştı: eklenen koyuluk DURAĞAN hâlde bir basış
+geri bildirimi gibi okunuyor, düğme hep basılıymış gibi duruyordu.
+
+> **Ders (bir DURUMA ait görsel dili durağan hâle taşıma):** Koyulaşma bu
+> oyunda "basılı" demek (`UiPressFeedback`). Aynı sinyali dinlenme hâlinde
+> kullanmak, basış geri bildirimini de anlamsızlaştırıyor — iki hâl
+> birbirine benziyor. Ölçüm doğruydu ama ölçtüğüm şeyin ARAYÜZDEKİ ANLAMI
+> yanlıştı.
+
+Panel tamamen kaldırıldı, kenar `PillBody`nin kendi reçetesinde bırakıldı.
+
+Aynı yargı basış efektinin kendisi için de geçerliydi: `PressDim` 0,84 → 0,92.
+%16 koyulaşma parlak yeşil/kırmızı düğmelerde renk değişimi gibi okunuyor,
+"basıldı" gibi değil. Ölçüldü: dinlenme (88,191,64) → basılı (81,178,56),
+çarpan **0,918**.
+
+> **Ders:** geri bildirim FARK EDİLECEK kadar, DİKKAT ÇEKMEYECEK kadar
+> olmalı. Basış efektinin işi düğmeyi değiştirmek değil, dokunuşun
+> ulaştığını söylemek.

@@ -332,8 +332,6 @@ namespace BlockOut.Runtime.UI
 
         // Yalnız kaybetme panelinde görünenler (bkz. BuildFailExtras).
         Image _failHeart, _failDenied, _rewardsTag;
-        /// <summary>"Try Again" düğmesinin arkasındaki kalın koyu kenar (13. tur).</summary>
-        Image _primaryRim;
         /// <summary>Kalbin mor konturu — kalbin büyütülmüş kopyası (13. tur).</summary>
         RectTransform _failHeartRim;
         TextMeshProUGUI _failDifficulty;
@@ -2621,45 +2619,26 @@ namespace BlockOut.Runtime.UI
             // sprite'ı var; boyamaya gerek yok.
             _resultPrimary = CreateGreenButton("Primary", _resultCard.transform);
 
-            // DIŞ KONTUR NEREDEYSE SİYAH (13. tur — kullanıcı: *"try again
-            // panelinde hâlâ içime sinmeyen kısımlar var"*).
+            // KOYU KENAR DENEMESİ GERİ ALINDI (13. tur).
             //
-            // `PillBody` dış çizgiyi düğmenin KENDİ renginin %15'i olarak
-            // kuruyor; yeşil için bu (13,34,0), yani koyu YEŞİL. Referansın
-            // kaybetme kartındaki düğmesinde ölçüm (7,6,23) — neredeyse
-            // siyah ve belirgin biçimde daha kalın.
+            // Referansın kaybetme kartındaki düğmesinin dış kenarı ölçümde
+            // (7,6,23) çıkmıştı — neredeyse siyah — ve `PillBody`nin verdiği
+            // koyu yeşilden (13,34,0) belirgin koyuydu. Düğmenin arkasına
+            // koyu bir panel konup kenar kalınlaştırıldı.
             //
-            // İlginç olan: duraklat panelindeki AYNI aileden düğmenin
-            // konturu referansta kendi renginin koyusu ((59,22,60) kırmızı
-            // için). Yani bu bir kural değil, BU EKRANA ait bir karar —
-            // düğme parlak mor bir kartın üstünde duruyor ve renkli bir
-            // kontur orada zemine karışıyor.
+            // KULLANICI HAKLI OLARAK REDDETTİ: *"butonun o arkasındaki
+            // siyahlık kötü; basılı tuttuğunda çıkan siyahlık öyle olacak
+            // ama onun için bile fazla."* Yani eklenen koyuluk DURAĞAN
+            // hâlde bir basış geri bildirimi gibi okunuyor — düğme hep
+            // basılıymış gibi duruyor.
             //
-            // DERS (aynı bileşen, farklı zeminde farklı ayar isteyebilir):
-            // Ortak reçeteyi bozmadan yalnız bu çağrı yerinde geçersiz
-            // kılmak doğru olan; `PillBody`yi değiştirmek oyundaki otuz
-            // düğmeyi birden etkilerdi.
-            var primaryOutline = _resultPrimary.transform.Find("Outline") as RectTransform;
-            if (primaryOutline != null)
-            {
-                var img = primaryOutline.GetComponent<Image>();
-                if (img != null) img.color = new Color(0.027f, 0.024f, 0.090f);
-            }
-
-            // Rengi değiştirmek YETMEDİ: `PillBody`nin dış çizgisi yalnız
-            // kabuğun kaydığı kadar (birkaç birim) görünüyor, referansınki
-            // ise belirgin kalın. Kalınlığı `PillBody` içinde artırmak
-            // oyundaki otuz düğmeyi birden etkilerdi; bunun yerine düğmenin
-            // ARKASINA biraz büyük, koyu bir panel konuyor.
-            // Renk saf siyah DEĞİL, siyaha çalan koyu yeşil. Referansın
-            // kesitinde kenar tek renk değil: önce (7,6,23) neredeyse siyah,
-            // hemen ardından (0,61,0) koyu yeşil geliyor. Saf siyah bir
-            // panel bu yumuşak geçişi veremiyor ve düğmenin etrafında ayrı
-            // bir çerçeve gibi okunuyordu.
-            _primaryRim = UiKit.CreateRoundedPanel("PrimaryRim", _resultCard.transform,
-                new Color(0.031f, 0.086f, 0.020f), MenuPage.ButtonCornerShare);
-            _primaryRim.raycastTarget = false;
-            _primaryRim.transform.SetSiblingIndex(_resultPrimary.transform.GetSiblingIndex());
+            // DERS (bir DURUMA ait görsel dili durağan hâle taşıma):
+            // Koyulaşma bu oyunda "basılı" demek (bkz. UiPressFeedback).
+            // Aynı sinyali dinlenme hâlinde kullanmak, basış geri
+            // bildirimini de anlamsızlaştırıyor: iki hâl birbirine benziyor.
+            // Ölçüm doğruydu ama ölçtüğüm şeyin ARAYÜZDEKİ ANLAMI yanlıştı.
+            //
+            // Kenar `PillBody`nin kendi reçetesinde bırakıldı.
 
             // "Try Again" İKİ KELİME: `PillButton` harf aralığını -16
             // veriyor (referanstan ölçülmüştü) ve bu KELİME BOŞLUĞUNU da
@@ -3665,27 +3644,111 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(_resultPrimary, won ? 0.221f : 0.206f, won ? 0.114f : 0.069f,
                                         won ? 0.787f : 0.798f, won ? 0.275f : 0.268f);
 
-            // Koyu kenar düğmeden 0,010 (yatay) / 0,013 (dikey) dışarıda.
-            if (_primaryRim != null)
-            {
-                float px0 = won ? 0.221f : 0.206f, py0 = won ? 0.114f : 0.069f;
-                float px1 = won ? 0.787f : 0.798f, py1 = won ? 0.275f : 0.268f;
-                // 0,010/0,013 fazlaydı: kenar siyah bir levha gibi
-                // okunuyordu. Referansta kenar belirgin ama ince.
-                // 0,005/0,007 hâlâ ÇERÇEVE gibi okunuyordu. Referansta koyu
-                // kenar düğmeye YAPIŞIK, ayrı bir hat değil. Panel artık
-                // yalnız mevcut kenarı derinleştiriyor.
-                //
-                // DERS (bir kenarı kalınlaştırmakla ÇERÇEVE eklemek aynı şey
-                // değil): Arkaya konan daha büyük bir panel, kendi köşe
-                // yarıçapı da büyüdüğü için köşelerde şişiyor ve düğmenin
-                // etrafında ikinci bir hat gibi görünüyor. İnce tutulunca
-                // kenarın rengini koyulaştırmaktan öteye gitmiyor — istenen
-                // de bu.
-                UiKit.Place(_primaryRim, px0 - 0.002f, py0 - 0.003f,
-                                         px1 + 0.002f, py1 + 0.003f);
-                _primaryRim.gameObject.SetActive(!won);
-            }
+            // Kart İÇİ yerleşim (kart-göreli oranlar); kaybetme düzeni
+            // `Game over .mp4` 18. saniyeden ölçüldü.
+            // Kaybetme oranları yukarıdaki ölçümden kart-göreliye çevrildi
+            // (kart x 0.049..0.951 → genişlik 0.902; y 0.254..0.787 → 0.533;
+            // 13. turda kart 0,700'den 0,787'ye uzadı, oranlar yeniden çevrildi).
+            // Bölüm adı: plakasız, doğrudan kartın üstünde (bkz.
+            // BuildResultPanel — plakanın neden kaldırıldığı orada).
+            UiKit.Place(_perfectBadge, won ? 0.290f : 0.212f, won ? 0.740f : 0.6835f,
+                                       won ? 0.708f : 0.788f, won ? 0.845f : 0.7755f);
+            // Yığın YÜKSEKLİĞE göre ölçeklendi (x1,27): kutu hedef çizim
+            // kutusuna eşitlenince yığın 278x288 çiziliyordu, hedef 470x367.
+            // Genişlik ve yükseklik çarpanları farklı (1,69 / 1,27) çünkü
+            // bizim yığın görselimizin en-boyu referanstakinden dar; şekli
+            // bozmamak için yükseklik seçildi.
+            // Yığın x0,92 ve 0,02 YUKARI: boyu referansla tutuyordu (374 br
+            // vs 367) ama bizim yığın görselimiz %13 daha GENİŞ ve alt-sağ
+            // jetonları "Rewards x3" rozetinin üstüne düşüyordu. Referansta
+            // rozet, yığınla düğme arasındaki temiz şeritte duruyor.
+            // JETON YIĞINI REFERANS KUTUSUNA (13. tur — kullanıcı:
+            // *"goldların boyutu da yanlış"*). Ölçüm: referans 470x254 birim,
+            // x %27,6..%71,1 y %45,0..%58,2 -> kart-göreli 0,252..0,734 /
+            // 0,368..0,615. Önceki kutu hem daha büyük hem daha alçaktı ve
+            // yığın kartın yarısını kaplıyordu.
+            // x1,39: kutu referansın çizim kutusuna eşitlenince yığın
+            // 303x248 birim çiziliyordu, referans 470x254. Yükseklik tutuyor
+            // ama BİZİM yığın görselimiz referanstakinden %35 DAR (en-boy
+            // 1,22 / 1,85), o yüzden yükseklik kutuya değince genişlik
+            // yetişemiyor. Şekli bozmamak için kutu bütün olarak büyütüldü;
+            // sonuç referansla arada kalıyor (~420 birim).
+            // Jetonlar da kırpmadan okundu: x %26,8..%72,5, y %48,5..%58,6
+            // -> kart-göreli 0,243..0,750 / 0,433..0,623. Bizim yığın
+            // görselimiz dar olduğu için kutu genişliğe göre büyütülüyor.
+            UiKit.Place(_rewardArt, won ? 0.234f : 0.180f, won ? 0.438f : 0.400f,
+                                    won ? 0.775f : 0.813f, won ? 0.700f : 0.656f);
+
+            // IŞIN ÇELENGİ YALNIZ KAZANIRKEN (13. tur, F1 — kullanıcı:
+            // *"failed ekranına geri dön, orayı beğenmedim"*).
+            //
+            // Jetonların arkasındaki ışınlar + sıcak hale + parıltılar
+            // KAYBETME ekranında da çiziliyordu. Referansta kaybetme kartında
+            // hiçbiri yok: jetonlar düz mor zeminin üstünde duruyor.
+            // Mantığı da bu — kaybetmiş bir oyuncuya kutlama ışığı yakmak
+            // ekranın söylediği şeyle çelişiyor.
+            //
+            // Beyaz hale ayrıca ÖLÇÜMLERİ de kirletiyordu: "bölüm adı" ve
+            // "ödül rozeti" kutuları hale yüzünden iki kat büyük çıkıyordu.
+            //
+            // DERS (kutlama efekti, SONUCA bağlıdır): Aynı kart iki sonucu da
+            // gösteriyorsa, kutlamaya ait her katmanın açık/kapalı durumu
+            // düzenle birlikte kurulmalı — yoksa "başarısız" ekranı zafer
+            // ışığıyla açılıyor.
+            SetRewardGlow(won);
+            // SAYI HAPI REFERANSA GÖRE BÜYÜDÜ VE İNDİ (13. tur, F1). Ölçüm:
+            // referans 492x159 birim (y %41,1..%49,4), bizim 385x81
+            // (y %45,8..%50,0). Yani hem yarı yükseklikte hem yukarıdaydı;
+            // referansta hap jeton yığınının ALT UCUNA biniyor.
+            // "60" HAPI 2,4 KAT KÜÇÜLDÜ (13. tur, F1).
+            //
+            // Renk maskesiyle yaptığım ölçüm burada YANILDI: koyu-ve-maviye
+            // çalan maske kartın gölgesini ve düğmenin koyu konturunu da
+            // yakalayıp hapı 557x219 birim gösterdi. İki görüntünün ORTA
+            // BANDINI kırpıp yan yana koyunca gerçek çıktı:
+            //     referans  230x94 birim   x %37,8..%59,1  y %44,4..%49,3
+            //     bizim     395x142 birim  x %27,1..%63,7  y %43,7..%51,1
+            // Bizim hap kartı bir uçtan diğerine geçiyordu.
+            //
+            // DERS (maske yanlış cevap verdiğinde KIRP): Renk maskesi
+            // "bulduğu her şeyi" tek kutuya topluyor ve komşu koyu öğeler
+            // sessizce içeri giriyor. Şüphelenince iki görüntünün aynı
+            // bandını kırpıp yan yana koymak saniyeler sürüyor.
+            // "60" HAPI: REFERANS ÖLÇÜSÜNE VE SAYDAMLIĞINA (13. tur —
+            // kullanıcı: *"o 60 yazısı ve arkaplanı goldu kaplıyor, biraz
+            // altta kalmalı ve arkaplan biraz transparan olmalı"*).
+            //
+            // ÖLÇÜM (`basarisiz_avg.png`):
+            //     hap      x %29,9..%69,8  y %42,2..%48,8   (430x127 br)
+            //     jetonlar x %27,6..%71,1  y %45,0..%58,2   (470x254 br)
+            // Yani hap jetonların ALT UCUNA biniyor, ortasına değil: hapın
+            // üst kenarı (%48,8) yığının alt üçte birinde kalıyor.
+            //
+            // Zemin rengi (45,20,90); kartın yüzü (95,30,185). Opak bir
+            // lacivert bu değeri veremez — hap SAYDAM ve kartın morunu
+            // geçiriyor. Kaybetmede tek katman, saydam; kazanmada eski
+            // opak plaka kalıyor.
+            //
+            // Kart-göreli: x 0,277..0,720   y 0,315..0,439
+            // HAP YİNE KÜÇÜLDÜ. Renk maskesi bu ögede ÜÇÜNCÜ kez yanılttı
+            // (430 birim gösterdi); kırpılmış görüntüden okunan gerçek değer
+            // x %38,7..%59,5, y %43,4..%48,7 — yani 225x102 birim, kartın
+            // yarısı kadar. Kart-göreli: 0,375..0,605 / 0,338..0,437.
+            //
+            // DERS (aynı ölçüm aracı aynı ögede tekrar tekrar yanılıyorsa,
+            // aracı değiştir): Bu hap koyu bir zemin üstünde koyu bir öge;
+            // renk maskesi onu komşularından ayıramıyor. Kırpıp bakmak
+            // burada tek güvenilir yol ve üç turdur bunu geç öğreniyorum.
+            UiKit.Place(_rewardBadge, won ? 0.358f : 0.375f, won ? 0.333f : 0.338f,
+                                      won ? 0.646f : 0.605f, won ? 0.436f : 0.437f);
+            SetRewardPlateStyle(won);
+            // KAYBETME DÜĞMESİ REFERANSA GÖRE BÜYÜDÜ (13. tur, F1).
+            // Ölçüm: referans 565x166 birim, bizim 492x151.
+            // Kart-göreli hedef x %21,2..%79,2, y %9,8..%26,1; kutu ile
+            // çizilen arasındaki fark (gölge/kontur payı) düşülerek:
+            UiKit.Place(_resultPrimary, won ? 0.221f : 0.206f, won ? 0.114f : 0.069f,
+                                        won ? 0.787f : 0.798f, won ? 0.275f : 0.268f);
+
             // "Ödüller x3" rozeti yeşil düğmenin hemen ÜSTÜNDE.
             if (_rewardsTag != null)
                 // Etiket YEŞİL DÜĞMENİN ÜST KENARINDA (13. tur, F1).

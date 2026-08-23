@@ -36,8 +36,23 @@ namespace GameKit.UI
         /// <summary>Basılıyken ölçek. Referanstaki his: belirgin ama zıplatmayan.</summary>
         public float PressScale = 0.955f;
 
-        /// <summary>Basılıyken renk çarpanı.</summary>
-        public float PressDim = 0.84f;
+        /// <summary>
+        /// Basılıyken renk çarpanı.
+        ///
+        /// 0,84 -> 0,92 (13. tur). Kullanıcı, sonuç düğmesinin arkasına
+        /// denediğim koyu kenar için *"basılı tuttuğunda çıkan siyahlık öyle
+        /// olacak ama ONUN İÇİN BİLE FAZLA"* dedi. O kenar kaldırıldı; aynı
+        /// yargı basış geri bildiriminin kendisi için de geçerliydi.
+        ///
+        /// %16 koyulaşma parlak yeşil/kırmızı düğmelerde renk değişimi gibi
+        /// okunuyor, "basıldı" gibi değil. %8 dokunuşu hissettirmeye yetiyor
+        /// ve düğmenin kimliğini bozmuyor.
+        ///
+        /// DERS (geri bildirim FARK EDİLECEK kadar, DİKKAT ÇEKMEYECEK kadar):
+        /// Basış efektinin işi düğmeyi değiştirmek değil, dokunuşun
+        /// ulaştığını söylemek.
+        /// </summary>
+        public float PressDim = 0.92f;
 
         /// <summary>
         /// Geri bildirimin UYGULANDIĞI kök. Boşsa bileşenin kendi nesnesi.
