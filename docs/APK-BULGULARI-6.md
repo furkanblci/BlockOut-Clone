@@ -557,12 +557,20 @@ varlık kullanmak serbest.
 
       **NASIL DOĞRULANDI:** Sızma %16 -> %6, yani 2,7 kat azaldı. Aynı
       sahneyi kapatan iki panel artık aynı opaklıkta.
-- [ ] **F2.** **Alt kısım (booster şeridi):** power-up'ların arka planı,
+- [x] **F2.** **Alt kısım (booster şeridi):** power-up'ların arka planı,
       düğmeleri, **ikon boyutu**, altındaki **para göstergesi** — toparlanıp
       düzgün hâle getirilecek.
       > *"yine alt kısım poweruplar arkaplanı, butonlar, ikon boyutu,
       > altındaki para kısmı göstergesi vs onları da toparla düzgün hale
       > getir"*
+
+      **13. TURDA KAPATILDI.** `CreatePowerUpPreview` eklenip şerit tek
+      başına yakalandı; referans `Game over .mp4` 2,3-3,1 sn (48 kare
+      ortalandı). Düğme 157x137 -> 194x138 (referansınki KAREYE YAKIN
+      DEĞİL, yatay), şerit aralığı %23,9-%73,8 -> %18,1-%81,8, fiyat hapı
+      80 -> 43 birim, ikon küçültülüp kuyunun içine alındı ve yeşilin
+      yukarıdan aşağı düşüşü (%15 -> ~%47) iki tonlu kuyuyla verildi.
+      Ayrıntı: `docs/DEVAM.md`, 13. tur.
 
 ---
 

@@ -984,7 +984,16 @@ namespace BlockOut.Runtime.UI
 
             for (int i = 0; i < 3; i++)
             {
-                float x0 = 0.235f + i * 0.180f;
+                // ŞERİT REFERANSTAN YENİDEN ÖLÇÜLDÜ (13. tur, F2).
+                //
+                // İki şerit AYNI GENİŞLİĞE ölçeklenip alt alta konunca
+                // (`_Reference/notes/booster_cmp.png`) fark net çıktı:
+                //     dugme       referans 194x138 br   bizim 157x137
+                //     serit       referans x %18,1..%81,8   bizim %23,9..%73,8
+                // Yükseklik zaten tutuyordu; düğme %24 DAR ve şerit %20
+                // sıkışıktı. Referansın düğmesi kareye yakın değil, YATAY
+                // (en-boy 1,41).
+                float x0 = 0.181f + i * 0.2325f;
 
                 // REFERANS: yardımcılar YEŞİL kare düğme, adet sağ altta
                 // KIRMIZI yuvarlak rozette. Bizde koyu mor düğmenin altında
@@ -1021,7 +1030,7 @@ namespace BlockOut.Runtime.UI
                 // Yarıçap referansta kısa kenarın %22'si; `UiCornerFit`
                 // varsayılanı zaten o.
                 var button = UiKit.CreateSpriteButton($"Power_{i}", root, null, null, 0, Ink);
-                UiKit.Place(button, x0, 0.028f, x0 + 0.150f, 0.122f);
+                UiKit.Place(button, x0, 0.042f, x0 + 0.180f, 0.136f);
 
                 // ÜÇ YEŞİL, REFERANSTAN ÖLÇÜLDÜ (4. tur, F18).
                 //
@@ -1046,16 +1055,42 @@ namespace BlockOut.Runtime.UI
                 // Gövde alt kenardan 12% pay bırakıyor: koyu bant orada doğuyor.
                 var body = UiKit.CreateRoundedPanel("Body", button.transform, PowerBody);
                 body.raycastTarget = false;
-                UiKit.Place(body, 0.045f, 0.115f, 0.955f, 0.965f);
+                // Gövde 0,045 -> 0,065: referansta düğmenin DÖRT YANINDA da
+                // görünür koyu yeşil bir kenar var, bizde yalnız altta
+                // belirgindi.
+                UiKit.Place(body, 0.065f, 0.115f, 0.935f, 0.945f);
 
                 // Parlak üst alan: ikonun oturduğu yuva.
+                // YEŞİL AŞAĞI DOĞRU SÖNÜYOR (13. tur, F2 — kullanıcı:
+                // *"poweruplar arkaplanı"*).
+                //
+                // ÖLÇÜM (düğmenin ortasından dikey kesit, yeşil kanal):
+                //     referans  216 -> 195 -> 174 -> 115   (%47 düşüş)
+                //     bizim     236 -> 200                 (%15 düşüş)
+                // Yani bizim düğme neredeyse DÜZ bir yeşil lekeydi; kuyu ile
+                // gövde arasında görünür bir fark yoktu.
+                //
+                // Elimizde dikey gradyan sprite'ı yok; düşüş İKİ TONLU kuyuyla
+                // veriliyor — alta koyu bir orta ton, üste parlak kuyu. 138
+                // birimlik bir düğmede iki basamak sürekli bir geçiş gibi
+                // okunuyor, üstelik referansın kendi kesiti de zaten basamaklı.
+                var wellLow = UiKit.CreateRoundedPanel("WellLow", button.transform,
+                    new Color(0.133f, 0.682f, 0.051f));
+                wellLow.raycastTarget = false;
+                UiKit.Place(wellLow, 0.10f, 0.30f, 0.90f, 0.925f);
+
                 var well = UiKit.CreateRoundedPanel("Well", button.transform, PowerWell);
                 well.raycastTarget = false;
-                UiKit.Place(well, 0.10f, 0.30f, 0.90f, 0.925f);
+                UiKit.Place(well, 0.10f, 0.46f, 0.90f, 0.925f);
 
                 var icon = UiKit.CreateIcon("Icon", button.transform, UiSkin.Get(icons[i]));
                 icon.raycastTarget = false;
-                UiKit.Place(icon, 0.10f, 0.16f, 0.90f, 0.94f);
+                // İKON KÜÇÜLDÜ (13. tur, F2 — kullanıcı: *"ikon boyutu"*).
+                // Bizde ikon düğmeyi tamamen dolduruyor, hatta üstünden
+                // TAŞIYORDU; referansta açık yeşil kuyunun içinde ve her
+                // yanında yeşil pay var. Kuyu, ikonu "oturtan" şey — ikon
+                // onu kaplayınca düğme düz bir ikon lekesine dönüyor.
+                UiKit.Place(icon, 0.18f, 0.30f, 0.82f, 0.87f);
 
                 // ADET ROZETİ: sağ alt KÖŞEDEN taşan, koyu kenarlı KIRMIZI
                 // YUVARLAK KARE.
@@ -1135,13 +1170,21 @@ namespace BlockOut.Runtime.UI
                 // içinde kaybolyordu.
                 var priceRim = UiKit.CreateRoundedPanel("PriceRim", button.transform,
                     PriceEdge);
-                UiKit.Place(priceRim, 0.10f, -0.24f, 1.06f, 0.20f);
+                // FİYAT HAPI YARIYA İNDİ (13. tur, F2 — kullanıcı:
+                // *"altındaki para kısmı göstergesi"*). Ölçüm: referans 43
+                // birim yüksek, bizim 80. Düğme-göreli hedef -0,015..0,225.
+                // Jeton hapın çocuğu olduğu için onunla birlikte küçülüyor
+                // (referansta jeton 54 birim, bizde 70'ti).
+                UiKit.Place(priceRim, 0.10f, -0.015f, 1.00f, 0.225f);
 
                 var price = UiKit.CreateRoundedPanel("Price", priceRim.transform,
                     PriceFill);
                 UiKit.Place(price, 0f, 0f, 1f, 1f, padding: 4f);
 
-                var priceText = UiKit.CreateTitle("PriceText", price.transform, "", 28,
+                // Punto 28 -> 34: hap 42 birim yüksek, 28 punto orada ~20
+                // birim çiziyordu; referansta rakam hapın üçte ikisini
+                // kaplıyor.
+                var priceText = UiKit.CreateTitle("PriceText", price.transform, "", 34,
                     PriceInk, new Color(0f, 0f, 0f, 0f));
                 UiKit.Place(priceText, 0.30f, 0.04f, 0.94f, 0.96f);
 

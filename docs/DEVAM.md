@@ -6345,3 +6345,43 @@ Referans yakın plandan incelendi (`_Reference/notes/ref_ust.png` ve
   "60" hapını renk maskesiyle üç kez ölçtüm, üçünde de yanlış (557, 430,
   ...). Hap koyu zemin üstünde koyu bir öge; maske onu komşularından
   ayıramıyor. Kırpıp bakmak tek güvenilir yoldu ve bunu üç turda öğrendim.
+
+---
+
+## 13. tur (devam) — F2: alt yardımcı (booster) şeridi
+
+Kullanıcı: *"yine alt kısım poweruplar arkaplanı, butonlar, ikon boyutu,
+altındaki para kısmı göstergesi vs onları da toparla düzgün hale getir"*
+
+Bu şerit oynanış sırasında ekranın en altında duruyor ve tek başına
+yakalanamıyordu — `GameplayScreen.CreatePowerUpPreview` eklendi.
+Referans: `Game over .mp4` 2,3-3,1 sn, 48 kare ortalandı
+(`_Reference/notes/oyun_avg.png`).
+
+### Ölçüm (iki şerit AYNI GENİŞLİĞE ölçeklenip alt alta konarak)
+
+| | referans | bizim (önce) | sonra |
+|---|---|---|---|
+| düğme | 194x138 br | 157x137 | ~194x138 |
+| şerit aralığı | x %18,1..%81,8 | %23,9..%73,8 | %18,1..%81,8 |
+| fiyat hapı yük. | 43 br | 80 br | ~43 br |
+| yeşilin düşüşü | 216→115 (%47) | 236→200 (%15) | iki tonlu kuyu |
+
+Düğme referansta kareye yakın değil, **YATAY** (en-boy 1,41); bizimki
+neredeyse kareydi (1,05).
+
+**İkon**, düğmeyi tamamen dolduruyor hatta üstünden taşıyordu; referansta
+açık yeşil kuyunun içinde her yanında yeşil pay var. Kuyu ikonu "oturtan"
+şey — ikon onu kaplayınca düğme düz bir ikon lekesine dönüyor.
+
+**Yeşilin düşüşü** en görünür farktı. Elimizde dikey gradyan sprite'ı yok;
+düşüş iki tonlu kuyuyla verildi (altta orta ton, üstte parlak kuyu).
+138 birimlik bir düğmede iki basamak sürekli bir geçiş gibi okunuyor —
+referansın kendi dikey kesiti de zaten basamaklı.
+
+> **Ders (ölçüm aracını ÖGE ÖGE seçmek gerekiyor):** Bu turda renk maskesi
+> üç ayrı ögede yanılttı ("60" hapı üç kez, booster fiyat hapı bir kez).
+> Hepsi ortak bir özelliği paylaşıyor: **koyu zemin üstünde koyu öge**.
+> Maske onları komşularından ayıramıyor. Böyle ögelerde iki görüntüyü aynı
+> genişliğe ölçekleyip alt alta koymak saniyeler sürüyor ve doğru cevabı
+> tek bakışta veriyor.
