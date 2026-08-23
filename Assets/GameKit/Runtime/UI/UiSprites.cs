@@ -899,6 +899,113 @@ namespace GameKit.UI
             }
         }
 
+        /// <summary>
+        /// Mağazanın jeton kapsülünün yüzeyi — tek prosedürel görsel (M1).
+        ///
+        /// Kullanıcı: *"bizdeki çok düz ve dış rengi siyah, kontürü çok; onu
+        /// düzeltelim birebir orijinal hâle getirelim."*
+        ///
+        /// İki ayrı kusur vardı ve ikisi de ölçümle doğrulandı
+        /// (`market.jpeg` üzerinde kapsülün dikey kesiti):
+        ///
+        ///   DOLGU  referans (245,248,255) -> (224,226,249)   SOĞUK BEYAZ,
+        ///                                                     üstten alta sönen
+        ///          bizim    (255,249,236) düz                 SICAK KREM
+        ///
+        ///   KENAR  referans (4,5,70)      koyu LACİVERT
+        ///          bizim    (35,19,9)     neredeyse SİYAH-KAHVE
+        ///
+        /// Kahverengiye çalan siyah bir kenar, tentenin mavisinin üstünde
+        /// yabancı duruyordu; referansın laciverti aynı aileden olduğu için
+        /// kapsülü kesmiyor, oturtuyor.
+        ///
+        /// Üç düz katman (gölge + kenar + yüz) yerine tek doku: gradyan
+        /// basamaksız ve kenar kalınlığı piksel piksel ayarlanabiliyor.
+        /// (Bu turda aynı çözüm <see cref="PowerPad"/> ve
+        /// <see cref="RewardTag"/> için de gerekmişti.)
+        /// </summary>
+        static Sprite _coinPad;
+
+        public static Sprite CoinPad
+        {
+            get
+            {
+                if (_coinPad != null) return _coinPad;
+
+                const int W = 256, H = 72;
+                var tex = new Texture2D(W, H, TextureFormat.RGBA32, false)
+                {
+                    name = "UiCoinPad",
+                    hideFlags = HideFlags.HideAndDontSave,
+                    wrapMode = TextureWrapMode.Clamp,
+                    filterMode = FilterMode.Bilinear
+                };
+
+                // İLK ÖLÇÜM YANLIŞTI, DÜZELTİLDİ.
+                //
+                // Kapsülün dikey kesitini x=%36'da almıştım; oysa kapsül
+                // %11,9..%28,2 arasında — yani o sütun kapsülün DIŞINDAYDI
+                // ve okuduğum "koyu lacivert kenar" ile "soğuk beyaz dolgu"
+                // aslında tentenin bandıydı.
+                //
+                // Temiz bir sütundan (x=%26,5, rakamların sağı) gerçek yapı:
+                //
+                //     ust kenar   yumusak gecis, KOYU HALKA YOK
+                //     govde       (254,243,237)  SICAK KREM, duz
+                //     alt %8      (255,249,246)  bir tik acik
+                //     en alt      (233,166,149) -> (125,91,89)  SICAK DUDAK
+                //
+                // Yani referansta kapsülün konturu hiç yok; hacmi veren şey
+                // alttaki sıcak dudak.
+                //
+                // DERS (bir kesit almadan önce ÖGENİN NEREDE olduğunu ölç):
+                // Yanlış sütundan alınan kesit yine de "makul" sayılar
+                // veriyor ve insan onları öğenin kendisi sanıyor. Bu turda
+                // ikinci kez oldu.
+                var durakT = new[] { 0.00f, 0.86f, 0.94f, 1.00f };
+                var durakC = new[]
+                {
+                    new Color(254f / 255f, 243f / 255f, 237f / 255f),
+                    new Color(254f / 255f, 243f / 255f, 237f / 255f),
+                    new Color(255f / 255f, 249f / 255f, 246f / 255f),
+                    new Color(208f / 255f, 132f / 255f, 116f / 255f),
+                };
+
+                var kenar = new Color(254f / 255f, 243f / 255f, 237f / 255f);
+
+                float rDis = H * 0.5f;            // tam kapsül
+                float kalin = 0f;                 // KONTUR YOK (referansta da yok)
+                float rIc = rDis;
+
+                var px = new Color32[W * H];
+                for (int y = 0; y < H; y++)
+                    for (int x = 0; x < W; x++)
+                    {
+                        float fx = x + 0.5f, fy = y + 0.5f;
+                        float dDis = PadMesafe(fx, fy, 0f, 0f, W, H, rDis);
+                        if (dDis > 0.7f) { px[y * W + x] = new Color32(0, 0, 0, 0); continue; }
+
+                        float t = 1f - (float)y / (H - 1);
+                        Color c = PadTon(durakT, durakC, t);
+
+                        float dIc = PadMesafe(fx, fy, kalin, kalin, W - kalin, H - kalin, rIc);
+                        if (dIc > -0.5f)
+                            c = Color.Lerp(c, kenar, Mathf.Clamp01(dIc + 1f));
+
+                        c.a = Mathf.Clamp01(0.7f - dDis);
+                        px[y * W + x] = c;
+                    }
+
+                tex.SetPixels32(px);
+                tex.Apply(false, true);
+                _coinPad = Sprite.Create(tex, new Rect(0f, 0f, W, H),
+                    new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
+                _coinPad.name = "UiCoinPad";
+                _coinPad.hideFlags = HideFlags.HideAndDontSave;
+                return _coinPad;
+            }
+        }
+
         /// <summary>Yuvarlak dikdörtgenin imzalı mesafesi; İÇİ negatif.</summary>
         static float PadMesafe(float x, float y, float x0, float y0, float x1, float y1, float r)
         {

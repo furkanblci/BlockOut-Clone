@@ -6489,3 +6489,51 @@ ve üst iç parlaklığı TEK dokuya çiziyor — aynı çözüm bu turda
 > doğru araç; ötesinde her yeni panel hem basamak ekliyor hem de sonucu
 > "sade" bırakıyor. Bundan sonra bu tür bir yüzey istendiğinde doğrudan
 > doku üretmek daha kısa yol.
+
+---
+
+## 13. tur (devam) — M1: mağazanın jeton kapsülü
+
+Kullanıcı: *"bizdeki çok düz ve dış rengi siyah, kontürü çok; onu düzeltelim
+birebir orijinal hâle getirelim."*
+
+### Önce YANLIŞ ölçtüm — ve yanlış ölçüm "makul" göründü
+
+Kapsülün dikey kesitini x=%36'da aldım ve şunu okudum: koyu lacivert kenar
+(4,5,70), soğuk beyaz dolgu (245,248,255), üstten alta sönen bir gradyan.
+Bu değerlerle `CoinPad` dokusunu kurdum.
+
+Kapsül **%11,9..%28,2** arasındaymış — yani o sütun kapsülün DIŞINDAYDI ve
+okuduğum şey tentenin bandıydı.
+
+> **Ders (bu turda İKİNCİ kez):** bir kesit almadan önce ÖĞENİN NEREDE
+> olduğunu ölç. Yanlış sütundan alınan kesit yine de makul sayılar veriyor
+> ve insan onları öğenin kendisi sanıyor. (Aynı hatayı `basarisiz_avg`de
+> başlığın halesini kartın üstü sanarak da yapmıştım.)
+
+### Temiz sütundan (x=%26,5, rakamların sağı) gerçek yapı
+
+```
+ust kenar   yumusak gecis, KOYU HALKA YOK
+govde       (254,243,237)  SICAK KREM, DUZ
+alt %8      (255,249,246)  bir tik acik
+en alt      (233,166,149) -> (125,91,89)   SICAK DUDAK
+```
+
+Yani referansta kapsülün konturu **hiç yok**; hacmi veren şey alttaki sıcak
+dudak. Bizde ise üç katman vardı: gölge + **(35,19,9) siyaha çalan kahve
+kenar** + krem yüz. Kullanıcının *"dış rengi siyah, kontürü çok"* dediği şey
+tam olarak o kenardı.
+
+### Sonuç
+
+| | önce | sonra | referans |
+|---|---|---|---|
+| kapsül | 158x45 br | **179x58** | 176x60 |
+| kenar | (35,19,9) kalın | **yok** | yok |
+| dolgu | (255,249,236) düz | sıcak krem + alt dudak | (254,243,237) |
+| jeton | 56 br | **83 br** | 83 br |
+| rakam | punto 40 | **52** | ~%60 kapsül boyu |
+
+Üç katman tek prosedürel dokuya indi (`UiSprites.CoinPad`) — bu turda aynı
+çözümün dördüncü kullanımı (`PowerPad`, `RewardTag`, `CoinPad`).

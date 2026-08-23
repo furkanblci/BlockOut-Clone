@@ -64,26 +64,130 @@ namespace BlockOut.Runtime.UI
         static readonly Color BadgeRed   = new Color(0.949f, 0.200f, 0.204f);
 
         /// <summary>Krem kartın üstünde beyaz okunmaz; referans da koyu kahve kullanıyor.</summary>
-        static readonly Color Cocoa      = new Color(0.322f, 0.169f, 0.051f);
+        /// <summary>
+        /// Jeton sayacının rakam rengi. ESKİDEN KAHVERENGİYDİ (Cocoa,
+        /// 0.322/0.169/0.051 = #522B0D) — ÖLÇÜM (2026-08-22, `market.jpeg`
+        /// üzerinde "142" rakamlarının koyu piksellerinin ortancası):
+        /// referansta **#1B255C**, yani LACİVERT. Kahverengi bir yanlıştı.
+        /// Adı da değişti: "Cocoa" artık rengi anlatmıyordu.
+        /// </summary>
+        static readonly Color CoinInk    = new Color32(0x1B, 0x25, 0x5C, 0xFF);
         static readonly Color TitleShade = new Color(0.086f, 0.129f, 0.365f);
 
         // ---- Referanstan ölçülen yükseklikler (kanvas birimi) --------------
 
         // Tentenin en alçak noktası referansta y=286 (946×2048) → ekranın
         // %13.96'sı → 268 birim.
+        // TENTE YÜKSEKLİĞİ 268 → 360 (2026-08-22).
+        // ⚠ BU GEREKÇE YANLIŞTI (9. turda bulundu). Burada "kanvas GENİŞLİKLE
+        // ölçekleniyor (matchWidthOrHeight = 0)" deniyor; oysa
+        // `UiKit.cs`teki kanvas `matchWidthOrHeight = 1`, yani YÜKSEKLİĞE
+        // eşli — bu dosyanın kendi başındaki not da öyle diyor (satır 33).
+        // Dolayısıyla ESKİ değer ("ekran yüksekliğinin %13,96'sı" = 268)
+        // doğru eksendeydi ve tente 360'a, sonra 400'e çıkarılırken şişti.
+        // Doğru hedef: referans tente 315 px / 2048 = %15,38 -> 1920×0,1538
+        // = 295 birim. `m_001`-`m_005` kareleriyle yeniden ölçülecek.
+        // (Eski, yanlış gerekçe aşağıda bırakıldı:)
+        // Eski değer "ekran YÜKSEKLİĞİNİN %13.96'sı" diye hesaplanmıştı, ama
+        // kanvas GENİŞLİKLE ölçekleniyor, yani
+        // karşılaştırılacak oran genişliğe göre olmalı. Referans ekranı
+        // 946×2048 ve tente 315 px → genişliğin %33.3'ü. Bizimki 268/1080 =
+        // %24.8'di, yani dörtte bir kısa.
+        // DERS (oranı DOĞRU eksene göre al): yükseklik yüzdesi iki farklı en/boy
+        // oranında aynı şeyi anlatmıyor; ölçek hangi eksenden geliyorsa oran da
+        // ondan alınmalı.
+        // 360 -> 400 (2026-08-22). Sıkı y sınırıyla yeniden ölçüldü:
+        // referansta tentenin EN DERİN noktası 351 px / 946 = genişliğin
+        // %37.1'i. Önceki ölçüm 315 px demişti (arama penceresi festonun
+        // dibini kesiyordu). 0.371 × 1080 = 400.
+        // ⚠ 9. TUR: 400 -> 268, YANİ EN BAŞTAKİ DEĞERE GERİ DÖNÜLDÜ.
+        // Yukarıdaki iki büyütme (268->360->400) de yanlış eksene dayanıyordu.
+        //
+        // ÖLÇÜM (`m_001` ve `m_003`, yakalama referansın en-boyunda 886×1920;
+        // tentenin EN DERİN noktası tüm sütunlar taranarak bulundu):
+        //     referans %13,96 ve %13,85 (yüksekliğe)  -> ortalama %13,90
+        //     bizim    %20,73
+        //     0,1390 × 1920 = 267 px çizim; çizim/sabit oranı 0,995 -> 268
+        // "En derin nokta 351 px" iddiası da tutmuyor: sol kenar %13,75,
+        // en derin nokta %13,96 — tente neredeyse düz, feston sığ.
         const float AwningH   = 268f;
         // Tentenin hemen altı: referansta içerik festona neredeyse değiyor.
         const float PadTop    = 4f;
-        const float PillH     = 104f;
-        const float PillGap   = 54f;
-        const float OfferArtH = 340f;
-        const float OfferBandH = 140f;
-        const float OfferLipH = 26f;
-        const float DotsH     = 62f;
-        const float PackCreamH = 330f;
-        const float PackBandH = 165f;
+        // BÖLÜM BAŞLIĞI YÜKSEKLİĞİ 104 → 122 (2026-08-22).
+        // Ölçüm: başlığın altın üst ve alt kenarları satır kümesi olarak
+        // tespit edildi (yüzün içindeki koyu bant "sıcak renk" koşusunu
+        // kırdığı için doğrudan taramak çalışmıyordu):
+        //     referans altın kümeler 318-323 ve 418-424 -> başlık 107 px
+        //                                                = genişliğin %11.3'ü
+        //     bizim   altın kümeler 364-373 ve 458-467 -> 104 px = %9.63
+        // 0.113 × 1080 = 122.
+        // ⚠ 9. TUR: 122 -> 105, yine ilk değere (104) dönüş. Yukarıdaki
+        // "genişliğin %11,3'ü" hesabı yanlış eksende.
+        //     referans başlık %4,38 (yüksekliğe), bizim %5,10
+        //     0,0438 × 1920 = 84 px çizim; çizim/sabit oranı 0,803 -> 105
+        const float PillH     = 105f;
+        // BÖLÜM BAŞLIĞI İLE İÇERİK ARASI (9. tur, `m_001`, yüksekliğe):
+        //     referans başlık altı 193 -> kart üstü 225 = 32 px = %3,33
+        //     0,0333 × 1920 = 64
+        // Bizimki 54'tü (%2,81). `PackGap` ise ÖLÇÜLDÜ VE DOĞRU ÇIKTI:
+        // kart adımı referans %23,33 ↔ bizim %23,39, dokunulmadı.
+        const float PillGap   = 64f;
+        // TEKLİF KARTI 9. TURDA ÖLÇÜLDÜ (`m_001`, kart sınırı sıcak-renk
+        // bloğu olarak, oranlar YÜKSEKLİĞE):
+        //     referans kart %20,62   bizim %16,77  -> bizimki %19 KÜÇÜK
+        // Üç parça aynı oranla büyütüldü (bant/toplam payı zaten doğruydu:
+        // referans 64/225 = 0,284, bizim 140/506 = 0,277):
+        //     506 × (20,62/16,77) = 622
+        const float OfferArtH = 418f;
+        const float OfferBandH = 172f;
+        const float OfferLipH = 32f;
+        // Karusel noktaları: referansta nokta çapı 14 px = %1,46 -> 28 birim.
+        // Nokta satırın 0,30-0,70 aralığını kapladığına göre satır 28/0,40 = 70.
+        const float DotsH     = 70f;
+        // KREM ALAN 330 → 290 (2026-08-22). ÖLÇÜM, referans ve bizim
+        // yakalamamıza AYNI kod uygulanarak (krem maskesi ile kart kutusu,
+        // sonra kart-göreli oranlar):
+        //
+        //     referans kart 885×268  -> en/boy 3.30
+        //     bizim    kart 1002×346 -> en/boy 2.90
+        //
+        // Yardımcı ikon şeridinin yüksekliği İKİSİNDE DE 0.448 çıktı — yani
+        // ikonlar karta göre doğru orandaydı. Küçük görünmelerinin sebebi
+        // kartın kendisinin fazla yüksek olmasıydı: fazladan dikey boşluk
+        // genişliğe kıyasla her şeyi küçültüyordu. 330 × (2.90/3.30) = 290.
+        // ⚠ 9. TUR, EKSEN DÜZELTMESİ. Yukarıdaki "en/boy" hesabı iki farklı
+        // en-boy oranındaki ekranda aynı şeyi anlatmıyor: kartın genişliği
+        // ekran GENİŞLİĞİNE, yüksekliği ekran YÜKSEKLİĞİNE oranlı olduğu için
+        // "en/boy"u eşitlemek eksenleri karıştırıyor.
+        //
+        // ÖLÇÜM (`m_001`, kartın sol kenarına yakın sütundan dikey tarama —
+        // içerik oraya uzanmıyor; oranlar YÜKSEKLİĞE):
+        //     referans  krem %13,02   bant %6,77   toplam %19,79
+        //     bizim     krem %15,68   bant %5,78   toplam %21,46
+        // Yani krem fazla UZUN, bant ise fazla KISAYDI — ikisi birbirini
+        // kısmen gizlediği için toplamda fark küçük görünüyordu.
+        //     krem: 0,1302 × 1920 = 250 px çizim; çizim/sabit 1,038 -> 241
+        //     bant: 0,0677 × 1920 = 130 px çizim; çizim/sabit 0,673 -> 193
+        const float PackCreamH = 241f;
+        // İNCE AYAR, İKİ ÖLÇÜM NOKTASIYLA. Tek orandan tahmin iki kez şaştı
+        // (0,673 sonra 0,829), çünkü bandın ölçülen yüksekliği kartlar arası
+        // boşluktan etkileniyor. İki sabit ölçülüp doğrusal ilişki kuruldu:
+        //     193 -> %8,33      157 -> %7,45      129 -> %5,99
+        // Üç nokta ilişkinin DOĞRUSAL OLMADIĞINI gösterdi (ilk aralıkta
+        // 36 birim 0,88 puan, ikincisinde 28 birim 1,46 puan). Hedef %6,77
+        // iki alt nokta arasında; ara değer alındı:
+        //     129 + 0,534 × 28 = 144
+        const float PackBandH = 144f;
         const float PackGap   = 64f;
-        const float TileCreamH = 320f;
+        // JETON KUTUCUKLARI REFERANSTAN (10. tur, `m_004`, oranlar YÜKSEKLİĞE).
+        //
+        // Yeşil fiyat düğmeleri çapa alındı (iki satır, güvenilir): satır adımı
+        // 197 px = %20,52 -> bizim tuvalde 394 birim.
+        // Krem alan kutucuğun sol kenarına yakın sütundan (jeton görselinin
+        // uzanmadığı yer) ölçüldü: 118 px -> 236 birim.
+        //     krem 236  +  taban 122  +  boşluk 36  =  394  ✔
+        // Eskisi 320 + 176 + 50 = 546 birim, yani %39 fazla uzundu.
+        const float TileCreamH = 236f;
         // KIRMIZI TABAN 132 → 176 (7. tur, N53). Kullanıcı: "en alttaki
         // kırmızı kısım çok küçük kalmış, alan bir tık aşağıya genişletilecek
         // (fiyat butonları çok büyük görünmesin)."
@@ -94,8 +198,13 @@ namespace BlockOut.Runtime.UI
         // çerçeve kalıyordu ve göz onu "taban" değil "kenarlık" okuyordu.
         // Taban 176'ya çıkarken düğme 90 birimde bırakıldı: aynı düğme, artık
         // altında ve üstünde nefes payı olan bir tabanın üstünde duruyor.
-        const float TileBaseH = 176f;
-        const float TileGap   = 50f;
+        // ⚠ 176 -> 122. Yukarıdaki "132 -> 176" büyütmesi de yanlış eksene
+        // dayanıyordu; referans 61 px = 122 birim, yani İLK değere (132) çok
+        // yakın. Kullanıcının "kırmızı kısım küçük kalmış" bulgusu gerçekti
+        // ama sebebi taban değil, KREM ALANIN fazla uzun olmasıydı — oran
+        // referansta 118/61 = 1,93, bizde 320/176 = 1,82 ile zaten yakındı.
+        const float TileBaseH = 122f;
+        const float TileGap   = 36f;   // referans 18 px = 36 birim
         const float RestoreH  = 110f;
         const float SectionEnd = 46f;
 
@@ -444,41 +553,92 @@ namespace BlockOut.Runtime.UI
             // Üç katman: koyu gölge (bir tık aşağıda), koyu kenar, krem yüz.
             // Tek katmanlı krem kapsül tentenin mavisinde "kesilmiş kâğıt"
             // gibi duruyordu; kenar ve gölge onu yüzeyden KALDIRIYOR.
-            const float PillX0 = 0.088f, PillX1 = 0.352f;
+            // X1 YENİDEN ÖLÇÜLDÜ (2026-08-22): yukarıdaki yorum referans için
+            // 0.338 diyor, ama aynı `market.jpeg` üzerinde krem kapsülün
+            // bitişik koşusu taranınca sağ kenar 0.288 çıkıyor (kapsül
+            // X 0.118-0.288). Referansta üç haneli "142" varken bile o kadar;
+            // bizimki tek haneli "0" ile 0.344'e kadar uzuyordu.
+            // Ölçüm yöntemi: satır satır soldan ilk bitişik krem koşusu —
+            // elle kutu seçmek bu turda üç kez yanlış sonuç verdi.
+            // PillX0 0,088 -> 0,069: ölçüm, referansın sol kenarı %11,9,
+            // bizimki %13,8 — kapsül 0,019 sağda başlıyordu.
+            const float PillX0 = 0.069f, PillX1 = 0.296f;
 
-            var pillShadow = Capsule("CoinPillShadow", bar, new Color(0f, 0f, 0f, 0.32f));
-            UiKit.Place(pillShadow, PillX0, 0.485f, PillX1, 0.685f);
-
-            var pillRim = Capsule("CoinPillRim", bar, new Color(0.137f, 0.075f, 0.035f));
-            UiKit.Place(pillRim, PillX0, 0.50f, PillX1, 0.70f);
-
-            var pill = Capsule("CoinPill", bar, new Color(1f, 0.976f, 0.925f));
-            UiKit.Place(pill, PillX0 + 0.008f, 0.516f, PillX1 - 0.008f, 0.684f);
+            // TEK PROSEDÜREL YÜZEY (13. tur, M1a+M1b).
+            //
+            // Üç düz katman vardı: gölge + koyu kenar + krem yüz. İki kusuru
+            // birden taşıyordu ve ikisi de ölçüldü:
+            //
+            //   DOLGU  referans (245,248,255) -> (224,226,249)  SOĞUK BEYAZ,
+            //          bizim    (255,249,236) DÜZ               sıcak krem
+            //   KENAR  referans (4,5,70)   koyu LACİVERT
+            //          bizim    (35,19,9)  neredeyse SİYAH-KAHVE
+            //
+            // Kullanıcının *"çok düz"* dediği şey birincisi, *"dış rengi
+            // siyah, kontürü çok"* dediği şey ikincisi. Kahveye çalan siyah
+            // bir kenar tentenin mavisinde yabancı duruyordu; referansın
+            // laciverti aynı renk ailesinden.
+            //
+            // Gölge katmanı da kalktı: `UiSprites.CoinPad` kenarı zaten
+            // kapsülün içine çiziyor, ayrıca gölge koymak konturu
+            // kalınlaştırıyordu — kullanıcının şikâyetinin bir kısmı buydu.
+            //
+            // Yükseklik 45 -> 58 birim (referans 60): kutu 0,50-0,70 yerine
+            // 0,46-0,72.
+            var pill = UiKit.CreateIcon("CoinPill", bar, UiSprites.CoinPad);
+            pill.type = Image.Type.Simple;
+            pill.preserveAspect = false;
+            pill.raycastTarget = false;
+            UiKit.Place(pill, PillX0, 0.46f, PillX1, 0.72f);
 
             // Rakam jetonun SAĞINDA: jeton artık kapsülün başlangıcında
             // duruyor, yazı da ona göre kaydı.
-            _coinLabel = UiKit.CreateLabel("Coins", pill.transform, "0", 40, Cocoa);
-            UiKit.Place(_coinLabel, 0.34f, 0.04f, 0.94f, 0.96f);
+            // Punto 40 -> 52: kapsül 45'ten 58 birime çıktı, yazı da onunla
+            // büyümeliydi. Referansta rakam kapsül yüksekliğinin ~%60'ı.
+            _coinLabel = UiKit.CreateLabel("Coins", pill.transform, "0", 52, CoinInk);
+            UiKit.Place(_coinLabel, 0.30f, 0.04f, 0.95f, 0.96f);
 
             // Jeton kapsülün BAŞLANGIÇ noktasında ve ondan büyük: sol kenarı
             // kapsülün sol kenarıyla aynı hizada başlayıp yukarı-aşağı taşıyor.
+            // JETON x1,48. Ölçüm: referansta jeton 83 birim genişliğinde
+            // (x %4,3..%12,0), bizimki 56. Referansta jeton kapsülden
+            // belirgin biçimde TAŞIYOR — kapsülün soluna da, üstüne ve
+            // altına da. Bizimki kapsülün içine sığıyordu, yani "kapsülün
+            // başlangıcındaki jeton" değil "kapsüle konmuş jeton" gibi
+            // duruyordu.
             var coin = UiKit.CreateIcon("Coin", bar, UiSkin.Get(Art.Coin));
-            UiKit.Place(coin, PillX0 - 0.028f, 0.462f, PillX0 + 0.086f, 0.738f);
+            coin.preserveAspect = true;
+            UiKit.Place(coin, PillX0 - 0.042f, 0.395f, PillX0 + 0.126f, 0.805f);
 
             // Başlık ekranın ortasında DEĞİL: referansta merkezi 0.524'te,
             // yani jeton kapsülünün sağında kalan alanın ortasında. Bizimki
             // 0.575'teydi — sağa kaçmış görünüyordu.
             // Punto referanstan: "M" harfinin yüksekliği ekranın %3.37'si;
             // 84 punto %3.15 veriyordu.
-            var title = UiKit.CreateTitle("Title", bar, "Shop", 90,
+            // PUNTO 90 → 128 (2026-08-22). Eski gerekçe "M harfinin yüksekliği
+            // ekranın %3.37'si" idi; ama ekran yüzdesi iki farklı en/boy
+            // oranında aynı şeyi anlatmıyor. TENTEYE oranlayınca:
+            //     referans başlık 90 px / tente 315 px = %28.6
+            //     bizim    başlık 72 px / tente 357 px = %20.2
+            // 1.42 kat büyütüldü. Kutu da 0.32 → 0.40'a açıldı, yoksa
+            // UiTextFit puntoyu geri kısardı.
+            var title = UiKit.CreateTitle("Title", bar, "Shop", 128,
                 new Color(1f, 0.99f, 0.96f), TitleShade);
-            UiKit.Place(title, 0.300f, 0.44f, 0.748f, 0.76f);
+            UiKit.Place(title, 0.290f, 0.40f, 0.760f, 0.80f);
 
             // KONTUR — Yolculuk başlığındaki aynı tuzak burada da vardı:
             // `CreateTitle`'a verilen kontur rengi paylaşılan materyal
             // yüzünden sessizce yok sayılıyor, başlık düz beyaz kalıyor.
             // Referansta kalın lacivert kontur var (#0A0F55, örneklendi) ve
             // başlığa "baskılı" görünümünü veren şey o.
+            // KABARTMA BURAYA UYGULANMAZ (12. tur, kullanıcı kararı):
+            // *"shop kısmında o outline kabartma yok, onu kaldır shop
+            // kısmından."* Referansta tentenin üstündeki başlık ince konturlu;
+            // kalın mor hale menü bantlarına ait bir muamele, mağazaya değil.
+            //
+            // DERS (ortak bir stil, HER YERE uygulanmaz): "Nerede varsa
+            // kullanalım" talimatını "her başlığa uygula" diye okudum ve
+            // mağazayı da kattım. Ortak stilin sınırı da stilin parçası.
             UiKit.SetOutline(title, new Color(0.039f, 0.059f, 0.333f));
 
             // Satın alma sonucu: referansta böyle bir satır yok, ama sonucu
@@ -666,9 +826,15 @@ namespace BlockOut.Runtime.UI
             var fill = Capsule("Face", row, face);
             UiKit.Place(fill, 0.008f, 0.10f, 0.992f, 0.90f);
 
-            var label = UiKit.CreateTitle("Label", row, text, 56,
+            // PUNTO 56 → 70 (2026-08-22). Yazının yüksekliği ŞERİDE oranlandı:
+            //     referans 52 px / 107 px şerit = %48.6
+            //     bizim    48 px / 122 px şerit = %39.3
+            // ×1.24. Şerit bu turda 104'ten 122'ye çıktığı için yazı ONUNLA
+            // BİRLİKTE büyümemişti — sabit punto, şerit büyüyünce oransal
+            // olarak küçüldü. (Punto ile kutu birlikte düşünülmeli.)
+            var label = UiKit.CreateTitle("Label", row, text, 70,
                 new Color(1f, 0.99f, 0.96f), new Color(0.24f, 0.05f, 0.02f));
-            UiKit.Place(label, 0.06f, 0.06f, 0.94f, 0.94f);
+            UiKit.Place(label, 0.06f, 0.04f, 0.94f, 0.96f);
         }
 
         // ---- Özel teklif taşıyıcısı -----------------------------------------
@@ -717,11 +883,30 @@ namespace BlockOut.Runtime.UI
             var card = UiKit.CreateRect("Card", page);
             UiKit.Place(card, MarginX, 0f, 1f - MarginX, 1f);
 
+            // ALTIN ÇERÇEVE GERİ ALINDI (2026-08-22, aynı gün).
+            //
+            // `market.jpeg`'te teklif kartının çevresi kalın altın çerçeveydi
+            // ve bunu BÜTÜN teklif kartlarına uygulamıştım. YANLIŞTI:
+            // videodan çıkarılan yeni bir karede ("Başlangıç Paketi", yani
+            // bizim Starter Pack'in ta kendisi) kartın altın çerçevesi YOK —
+            // düz turuncu, yuvarlak köşeli.
+            //
+            // `market.jpeg`'teki çerçeveli kart "Blok Bileti" adlı PREMIUM
+            // paketti. Yani altın çerçeve teklif kartının değil, o özel
+            // paketin muamelesi.
+            //
+            // DERS (tek örnekten kural çıkarma): bir referans karesinde
+            // görülen bir muameleyi "bu kart tipinin dili" sanmak, o karenin
+            // hangi İÇERİĞİ gösterdiğine bakmamaktan geliyor. İkinci bir
+            // örnek görene kadar genelleme yapılmamalı.
+            var inner = UiKit.CreateRect("Inner", card);
+            UiKit.Place(inner, 0f, 0f, 1f, 1f);
+
             // Alt kalınlık + isim bandı tek panelde; üstüne turuncu sanat alanı.
-            var body = UiKit.CreateRoundedPanel("Body", card, Darken(OfferBand, 0.72f));
+            var body = UiKit.CreateRoundedPanel("Body", inner, Darken(OfferBand, 0.72f));
             UiKit.Place(body, 0f, 0f, 1f, 1f);
 
-            var band = UiKit.CreateRoundedPanel("Band", card, OfferBand);
+            var band = UiKit.CreateRoundedPanel("Band", inner, OfferBand);
             UiKit.Place(band, 0f, OfferLipH / height, 1f, (OfferLipH + OfferBandH) / height);
 
             // Dikey degrade: alta doğru koyulaşan turuncu.
@@ -730,7 +915,7 @@ namespace BlockOut.Runtime.UI
             // dikdörtgen kartın yuvarlak köşesini kesiyordu — köşelerde düz
             // bir turuncu kenar görünüyordu. Geçiş artık yüzeyin kendi köşe
             // noktalarının rengi, dolayısıyla silüet neyse o (bkz. 8. tur).
-            var art = UiKit.CreateRoundedPanel("Art", card, Color.white);
+            var art = UiKit.CreateRoundedPanel("Art", inner, Color.white);
             UiKit.Place(art, 0f, (OfferLipH + OfferBandH) / height - 0.04f, 1f, 1f);
             art.gameObject.AddComponent<GameKit.UI.UiVerticalTint>()
                .Set(OfferTop, OfferLow);
@@ -933,9 +1118,15 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(name, 0.042f, 0.02f, 0.62f, PackBandH / height * 0.92f);
             name.alignment = TextAlignmentOptions.Left;
 
+            // FİYAT DÜĞMESİ ORANI (2026-08-22). Yeşil dolgusu ölçüldü:
+            //     referans 263x86 -> en/boy 3.06 (ekranın %27.8'i geniş, %9.09'u yüksek)
+            //     bizim    319x83 -> en/boy 3.84 (%29.5 geniş, %7.69 yüksek)
+            // Yani hem fazla geniş hem fazla alçaktı. Genişlik ×0.94
+            // (0.33 -> 0.311 kart oranı), yükseklik ×1.18; dikey MERKEZ
+            // korunarak açıldı, böylece bandın içindeki dengesi bozulmuyor.
             var buy = PriceButton("Buy", band.transform, pack.Price, 44);
-            UiKit.Place(buy, 0.63f, PackBandH / height * 0.18f,
-                             0.96f, PackBandH / height * 0.80f);
+            UiKit.Place(buy, 0.649f, PackBandH / height * 0.124f,
+                             0.96f, PackBandH / height * 0.858f);
 
             var captured = pack;
             buy.onClick.AddListener(() => Purchase(
@@ -959,6 +1150,48 @@ namespace BlockOut.Runtime.UI
             // görünmesi için şerit köşeden yeterince İÇERİ alınmalı — ilk
             // denemede 18 birim kalmıştı ve "Popüler" yazısının yalnız "pül"ü
             // görünüyordu.
+            // HAZIR FLAMA GÖRSELİ (2026-08-22). Havuzdaki `ribbon_popular`
+            // altın kenarlı, gölgeli bir KÖŞE flaması; bizim prosedürel
+            // şeridimiz düz pembe + koyu rim idi ve yanında sönük kalıyordu.
+            // Görsel `ribbon_reward.png` yuvasına yazıldı (`Art.Ribbon` sabiti
+            // vardı ama hiçbir yerden kullanılmıyordu — boş yuvaydı).
+            //
+            // Görsel VARSA prosedürel katmanlar hiç kurulmuyor: hazır görselin
+            // üstüne kendi konturumuzu çizmek "AADSS" hatasının aynısı olurdu.
+            var ribbonArt = UiSkin.Get(Art.Ribbon);
+            if (ribbonArt != null)
+            {
+                const float size = 210f;                 // kart kremine göre ölçüldü
+                var holder = UiKit.CreateRect("Ribbon", clip);
+                holder.anchorMin = holder.anchorMax = new Vector2(0f, 1f);
+                holder.pivot = new Vector2(0f, 1f);
+                holder.sizeDelta = new Vector2(size, size * 204f / 186f);
+                holder.anchoredPosition = Vector2.zero;
+
+                var art = holder.gameObject.AddComponent<Image>();
+                art.sprite = ribbonArt;
+                art.preserveAspect = true;               // CreateIcon değil, elle
+                art.raycastTarget = false;
+
+                // Yazı bandın üstünde, bandla aynı açıda (45°, sol-alttan
+                // sağ-üste). Bandın orta çizgisi holder'ın (0.38, 0.62)
+                // noktasından geçiyor.
+                var band = UiKit.CreateRect("Text", holder);
+                band.anchorMin = band.anchorMax = new Vector2(0.38f, 0.62f);
+                band.pivot = new Vector2(0.5f, 0.5f);
+                band.sizeDelta = new Vector2(size * 1.15f, 46f);
+                band.anchoredPosition = Vector2.zero;
+                band.localRotation = Quaternion.Euler(0f, 0f, 45f);
+
+                // Ad `label` DEĞİL: aynı metotta prosedürel yedeğin `label`ı
+                // var ve C# iç içe kapsamda aynı adı kabul etmiyor (CS0136).
+                var ribbonText = UiKit.CreateTitle("Label", band, text, 30,
+                    new Color(1f, 0.99f, 0.96f), new Color(0.32f, 0.04f, 0.13f));
+                UiKit.Place(ribbonText, 0f, 0f, 1f, 1f);
+                ribbonText.raycastTarget = false;
+                return;
+            }
+
             const float inset = 88f;
 
             // ÜÇ KATMANLI ŞERİT (4. tur, E13).
@@ -1084,20 +1317,36 @@ namespace BlockOut.Runtime.UI
         {
             if (showNoAds)
             {
+                // AYNI DERS, İKİNCİ KEZ (bkz. aşağıdaki sonsuz kalp):
+                // hazır görselin İÇİNDE zaten "ADS" yazıyorsa üstüne ikinci
+                // bir yazı koyma. Eski `icon_noads` düz bir yasak halkasıydı
+                // ve harfleri kod çiziyordu; yenisinde harfler görselin
+                // içinde. İkisi birden çizilince ekranda "AADSS" çıktı.
+                var skinned = UiSkin.Get(Art.NoAds);
+
                 var badge = UiKit.CreateRect("NoAds", parent);
                 var ring = badge.gameObject.AddComponent<Image>();
-                ring.sprite = UiSkin.Get(Art.NoAds) ?? MenuSprites.NoAds;
+                ring.sprite = skinned ?? MenuSprites.NoAds;
                 ring.preserveAspect = true;
                 ring.raycastTarget = false;
-                ring.color = UiSkin.Get(Art.NoAds) != null
+                ring.color = skinned != null
                     ? Color.white : new Color(0.85f, 0.10f, 0.12f);
-                UiKit.Place(badge, 0.570f, 0.46f, 0.726f, 0.98f);
+                // ÖLÇÜM (referans ve bizim yakalamamıza AYNI kod):
+                // rozetin yüksekliği kart boyunun referansta 0.440'ı, bizde
+                // 0.538'iydi; genişliği referansta 0.141, bizde 0.184.
+                // Yeni kutu ikisini de referans oranına indiriyor ve X ekseni
+                // referansta ölçülen 0.574-0.715 aralığına oturuyor.
+                UiKit.Place(badge, 0.578f, 0.542f, 0.719f, 1.00f);
 
-                // Referansta harfler halkanın dışına TAŞIYOR; halka bir çerçeve
-                // değil, yazının üstünü çizen bir işaret.
-                var word = UiKit.CreateTitle("Word", parent, "ADS", 40,
-                    new Color(1f, 1f, 1f), new Color(0.35f, 0.03f, 0.03f));
-                UiKit.Place(word, 0.548f, 0.62f, 0.748f, 0.84f);
+                if (skinned == null)
+                {
+                    // Görsel yoksa harfleri kod çizer. Referansta harfler
+                    // halkanın dışına TAŞIYOR; halka bir çerçeve değil,
+                    // yazının üstünü çizen bir işaret.
+                    var word = UiKit.CreateTitle("Word", parent, "ADS", 40,
+                        new Color(1f, 1f, 1f), new Color(0.35f, 0.03f, 0.03f));
+                    UiKit.Place(word, 0.548f, 0.62f, 0.748f, 0.84f);
+                }
             }
 
             // Sınırsız can.
@@ -1125,21 +1374,36 @@ namespace BlockOut.Runtime.UI
                 UiKit.Place(infinite, 0.772f, 0.64f, 0.864f, 0.84f);
             }
 
+            // "3s" KALBİN ALTINDA, ORTALANMIŞ. Eskiden 0.845-0.955'teydi,
+            // yani kalbin sağına kaçmış ve UFO'nun yanında uçuşuyordu.
+            // Referansta sonsuz kalbin tam altında ve onunla aynı eksende:
+            // kalp X 0.745-0.890 → merkez 0.8175.
             var span = UiKit.CreateTitle("Span", parent, hours + "s", 30,
                 new Color(1f, 1f, 1f), TitleShade);
-            UiKit.Place(span, 0.845f, 0.44f, 0.955f, 0.62f);
+            UiKit.Place(span, 0.762f, 0.50f, 0.873f, 0.68f);
 
             // Üç yardımcı, referanstaki sırayla: roket, çalar saat, ufo.
             string[] icons = { Art.Rocket, Art.Clock, Art.Ufo };
             float[] centers = { 0.606f, 0.732f, 0.883f };
             for (int i = 0; i < 3; i++)
             {
+                // Yardımcılar büyütüldü: referansta ADS rozetiyle karşılaştırınca
+                // belirgin biçimde daha iriler. Kutu ±0.070 → ±0.080,
+                // dikeyde 0.34 → 0.39.
+                // ALTTAN KESİLME DÜZELTMESİ (kullanıcı bulgusu, 2026-08-22).
+                // Kutuyu 0.14 -> 0.09'a indirmek REGRESYON olmuştu: çizilen
+                // ikon kartın alt maskesine (RectMask2D) taşıyor ve roketin
+                // alevi / saatin kaidesi / UFO'nun altı kesiliyordu.
+                // Kutu 0.14-0.50'ye alındı (yükseklik 0.36 korunuyor) ve
+                // preserveAspect AÇILDI — `CreateIcon` bunu varsayılan olarak
+                // kurmuyor, yani ikon kutuyu doldurmak için GERİLİYORDU.
                 var icon = UiKit.CreateIcon("Helper" + i, parent, UiSkin.Get(icons[i]));
-                UiKit.Place(icon, centers[i] - 0.070f, 0.14f, centers[i] + 0.070f, 0.48f);
+                icon.preserveAspect = true;
+                UiKit.Place(icon, centers[i] - 0.080f, 0.14f, centers[i] + 0.080f, 0.50f);
 
                 var count = UiKit.CreateTitle("Count" + i, parent, "x" + helpers, 32,
                     new Color(1f, 1f, 1f), TitleShade);
-                UiKit.Place(count, centers[i] - 0.005f, 0.06f, centers[i] + 0.105f, 0.24f);
+                UiKit.Place(count, centers[i] - 0.005f, 0.03f, centers[i] + 0.105f, 0.20f);
             }
         }
 

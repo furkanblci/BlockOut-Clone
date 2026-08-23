@@ -66,7 +66,7 @@ varlık kullanmak serbest.
 
 ## 1. Jeton kapsülü (üstteki "gold" göstergesi)
 
-- [ ] **M1.** Kapsülün arka planı bizde **çok düz**, dış konturu **çok
+- [x] **M1.** Kapsülün arka planı bizde **çok düz**, dış konturu **çok
       siyah**. Orijinaldeki hâline getirilecek; Grand Games oyunundan
       aldığımız arka plan işimize yararsa kullanılacak.
       > *"görsel o gold kısmının arkaplanı — bunun için grand gamesin
@@ -75,8 +75,15 @@ varlık kullanmak serbest.
       > orjinal hale getirelim o kısımı düzeltelim"*
 
       Alt kalemler:
-      - **M1a** — kapsül dolgusu düz; orijinaldeki doku/gradyan verilecek.
-      - **M1b** — dış kontur fazla siyah ve fazla kalın; incelt/renklendir.
+      - [x] **M1a** — kapsül dolgusu düz; orijinaldeki doku/gradyan verilecek.
+      - [x] **M1b** — dış kontur fazla siyah ve fazla kalın; incelt/renklendir.
+
+      **13. TURDA KAPATILDI.** Referansta kapsülün konturu HİÇ YOK; hacmi
+      veren şey alttaki sıcak pembe-kahve dudak. Bizdeki (35,19,9) siyaha
+      çalan kahve kenar kaldırıldı, üç katman (gölge+kenar+yüz) tek
+      prosedürel dokuya indi. Kapsül 158x45 -> 179x58 (referans 176x60),
+      jeton 56 -> 83 birim, rakam puntosu 40 -> 52.
+      Ayrıntı: `docs/DEVAM.md`, 13. tur.
 
 ## 2. Tente (awning)
 
