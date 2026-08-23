@@ -6287,3 +6287,61 @@ yüzünden ilk denemede %22 büyük çıkan kalp ölçülerek kapatıldı.
 > **Ders:** `preserveAspect` sprite'ı kutunun TAMAMINA sığdırıyor; "kutunun
 > içinde bir miktar boşluk kalır" varsayımı yanlış. Kutuyu hedef çizim
 > kutusuna eşitlemek doğrudan doğru sonucu vermiyor, ölçüp kapatmak gerek.
+
+---
+
+## 13. tur (devam) — Failed ekranı: kullanıcının altı maddesi
+
+Kullanıcı: *"Failed yazısı boyutu dış çizgisi referanstaki gibi olmalı /
+kalp dış mor çizgisi yok alakasız duruyor / seviye yazısının kaplaması yok /
+o 60 yazısı ve arkaplanı goldu kaplıyor, biraz altta kalmalı, arkaplan biraz
+transparan olmalı / goldların boyutu da yanlış / rewards paneli de çok kötü
+eksik"*
+
+Referans yakın plandan incelendi (`_Reference/notes/ref_ust.png` ve
+`ref_orta.png`, 4-5x büyütme) ve altı maddenin altısı da doğrulandı:
+
+1. **Başlığın mor halesi.** Referansta "BAŞARISIZ" harflerinin çevresinde
+   KALIN parlak mor bir şerit var: hale (146,74,255), kartın yüzü
+   (95,30,185) — hale karttan belirgin AÇIK. Bizde ince bir kontur vardı.
+   `SetOutline` bunu veremiyor (TMP konturu atlas dolgusuna takılıyor ve
+   harfin yüzünü yiyor); 12. turda menü başlıkları için kurulan
+   `UiTitleEmboss` buraya da uygulandı.
+
+2. **Kalbin mor konturu.** Referansta kırık kalp bir çıkartma gibi mor
+   şeritle çevrili. Kalbin BÜYÜTÜLMÜŞ ve mora boyanmış kopyası arkaya
+   çizildi. İlk denemede %9 verdim, ekranda görünmedi; %18 oldu.
+
+3. **Bölüm adının kaplaması.** Aynı hale "Seviye 54"te de var.
+
+4. **"60" hapı.** Referansta hap jetonların ALT UCUNA biniyor, ortasına
+   değil; zemini de saydam (ölçülen (45,20,90), kartın yüzü (95,30,185) —
+   opak bir lacivert bu değeri veremez). Alfa önce 0,80 verildi, jetonların
+   üstünde altın sızdı ve "60" okunmadı; 0,92 oldu.
+   *"Biraz saydam", "içi görünen" demek değil.*
+
+5. **Jetonların boyutu.** Yeniden ölçüldü.
+
+6. **Rewards rozeti.** Referansta tek düz turuncu şerit değil: kalın koyu
+   dış kontur + turuncu iç yüz + iki renkli yazı. Bizdeki tek katman yeşil
+   düğmenin üstünde eriyordu. İki katmana çıkarıldı, punto 24 → 34.
+
+### Üç ders
+
+- **Kabartma katmanları, metin SONRADAN atanıyorsa tazelenmeli.**
+  `UiTitleEmboss` haleyi `LateUpdate`te eşitliyor. Bu panelin yazısı
+  kurulumda BOŞ, gösterilirken atanıyor — hale ilk karede boş metni
+  kopyalıyordu ve düzenleyici yakalamasında `LateUpdate` hiç çalışmadığı
+  için hale HİÇ görünmüyordu (ölçüm: 27x18 birim, olması gereken 759x159).
+  Artık metnin atandığı yerde `Sync()` çağrılıyor.
+
+- **Hangi ekseni eşitleyeceğine ÇAKIŞMA karar verir.** Kalbin yüksekliğini
+  referansla birebir tutturunca (178 birim) genişlik 239 çıkıyordu
+  (referans 183) — bizim görselimiz daha basık. Fazla genişlik "FAILED"
+  yazısının ortasını kapatıyordu, yani çakışma YATAY; genişliğe göre
+  eşitlendi.
+
+- **Aynı ölçüm aracı aynı ögede tekrar tekrar yanılıyorsa, aracı değiştir.**
+  "60" hapını renk maskesiyle üç kez ölçtüm, üçünde de yanlış (557, 430,
+  ...). Hap koyu zemin üstünde koyu bir öge; maske onu komşularından
+  ayıramıyor. Kırpıp bakmak tek güvenilir yoldu ve bunu üç turda öğrendim.

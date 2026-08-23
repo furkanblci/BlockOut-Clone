@@ -332,6 +332,8 @@ namespace BlockOut.Runtime.UI
 
         // Yalnız kaybetme panelinde görünenler (bkz. BuildFailExtras).
         Image _failHeart, _failDenied, _rewardsTag;
+        /// <summary>Kalbin mor konturu — kalbin büyütülmüş kopyası (13. tur).</summary>
+        RectTransform _failHeartRim;
         TextMeshProUGUI _failDifficulty;
 
         // Kaybetme kartı referanstan ölçüldü: `Game over .mp4` 18. sn, 384x832.
@@ -2141,6 +2143,43 @@ namespace BlockOut.Runtime.UI
         /// </summary>
         const float SparkleHalf = 0.017f;
 
+        /// <summary>
+        /// Ödül hapının katmanları. Kaybetmede TEK ve SAYDAM bir plaka
+        /// (referansta kartın moru içinden geçiyor), kazanmada eski opak
+        /// çift katman.
+        /// </summary>
+        void SetRewardPlateStyle(bool won)
+        {
+            if (_rewardBadge == null) return;
+            _rewardBadge.color = won
+                ? RewardPlateRim
+                // Alfa 0,80 -> 0,92. 0,80'de hap JETONLARIN üstüne
+                // geldiğinde altındaki altın görünüyor ve "60" okunmuyordu;
+                // referansta hap kartın morunu hafifçe geçiriyor ama
+                // jetonları KAPATIYOR. "Biraz saydam", "içi görünen" demek
+                // değil.
+                : new Color(0.090f, 0.045f, 0.200f, 0.92f);
+            var face = _rewardBadge.transform.Find("Face") as RectTransform;
+            if (face != null) face.gameObject.SetActive(won);
+        }
+
+        /// <summary>
+        /// Ödül yığınının ışık katmanlarını (ışınlar, hale, parıltılar)
+        /// açar/kapatır. Kaybetme kartında hepsi kapalı.
+        /// </summary>
+        void SetRewardGlow(bool on)
+        {
+            if (_rewardArt == null) return;
+            for (int i = 0; i < _rewardArt.childCount; i++)
+            {
+                var c = _rewardArt.GetChild(i);
+                if (c.name == "Rays" || c.name == "Glow" || c.name.StartsWith("Sparkle"))
+                    c.gameObject.SetActive(on);
+            }
+            var field = _rewardArt.GetComponent<SparkleField>();
+            if (field != null) field.enabled = on;
+        }
+
         static void BuildGlow(RectTransform parent)
         {
             // IŞIN ÇELENGİ GERİ GELDİ (8. tur).
@@ -2301,6 +2340,24 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(_resultTitle, 0.10f, 0.772f, 0.90f, 0.856f);
             _resultTitle.textWrappingMode = TextWrappingModes.NoWrap;
 
+            // KABARTMA HALE (13. tur — kullanıcı: *"Failed yazısı boyutu dış
+            // çizgisi referanstaki gibi olmalı"*).
+            //
+            // Referansta "BAŞARISIZ" harflerinin çevresinde KALIN ve PARLAK
+            // bir mor şerit var; bizde ince bir kontur vardı ve yazı kartın
+            // üstünde yüzüyordu. Ölçüm (`basarisiz_avg.png`, harflerin
+            // üstündeki bant): hale (146,74,255), kartın yüzü (95,30,185) —
+            // yani hale karttan BELİRGİN AÇIK.
+            //
+            // `SetOutline` bunu veremiyor: TMP konturu font atlasının
+            // `atlasPadding` sınırına takılıyor ve kalınlaştıkça harfin
+            // yüzünü yiyor. `UiTitleEmboss` haleyi N kaydırılmış kopyayla
+            // çiziyor, o yüzden sınır yok (12. turda menü başlıkları için
+            // kurulmuştu — aynı ihtiyaç burada da varmış).
+            GameKit.UI.UiTitleEmboss.Apply(_resultTitle,
+                halo: new Color(0.573f, 0.290f, 1f),
+                shadow: new Color(0.184f, 0.055f, 0.376f));
+
             // BAŞLIK REFERANSA GÖRE YENİDEN DÖKÜLDÜ (8. tur).
             //
             // Yan yana konunca (ikisi de aynı genişliğe ölçeklenerek) fark
@@ -2441,6 +2498,14 @@ namespace BlockOut.Runtime.UI
             // yazıyı ayakta tutan şey; incesiyle yazı zemine gömülüyor.
             UiKit.SetOutline(_perfectBadge, TitleOutline, 0.30f);
 
+            // BÖLÜM ADINA DA KABARTMA (13. tur — kullanıcı: *"seviye yazısı
+            // textinin yine kaplaması yok"*). Referansta "Seviye 54" beyaz
+            // harflerin çevresinde başlıktakiyle AYNI mor hale var; kalın
+            // kontur onu yaklaşık veriyordu ama parlaklığı yoktu.
+            GameKit.UI.UiTitleEmboss.Apply(_perfectBadge,
+                halo: new Color(0.573f, 0.290f, 1f),
+                shadow: new Color(0.184f, 0.055f, 0.376f));
+
             // Jeton yığını: tek bir "coin_pile" görselimiz yok, bu yüzden
             // icon_coin'lerden kuruyoruz. Gerçek yığın görseli gelince burası
             // tek bir Image'a iner — düzen değişmez.
@@ -2533,8 +2598,30 @@ namespace BlockOut.Runtime.UI
         /// </summary>
         void BuildFailExtras()
         {
+            // KALBİN MOR KONTURU (13. tur — kullanıcı: *"kalp dış mor
+            // çizgisi yok, alakasız duruyor orada"*).
+            //
+            // Referansta kırık kalp çıplak bir görsel değil: çevresinde
+            // başlığın halesiyle AYNI parlak mor şerit var — bir çıkartma
+            // gibi. Bizde kalp doğrudan kartın üstünde duruyordu ve karta
+            // ait olmayan bir parça gibi görünüyordu.
+            //
+            // Kontur, kalbin BÜYÜTÜLMÜŞ ve mora boyanmış bir kopyası olarak
+            // ARKAYA çiziliyor. Sprite dolu bir siluet olduğu için tek bir
+            // ölçekli kopya her yönde eşit kalınlıkta bir kenar veriyor;
+            // "Süre Doldu" başlığındaki gibi N kaydırılmış kopyaya gerek yok.
+            //
+            // DERS (bir görselin konturu, görselin KENDİSİNDEN yapılır):
+            // Elde kontur sprite'ı yoksa şeklin büyütülmüş kopyası her zaman
+            // doğru kenarı verir — el çizimi bir maskeye gerek kalmıyor.
+            var heartRim = UiKit.CreateIcon("FailHeartRim", _resultPanel,
+                UiSkin.Get(Art.HeartBroken), new Color(0.573f, 0.290f, 1f));
+            heartRim.raycastTarget = false;
+            heartRim.preserveAspect = true;
+
             // Kırık kalp: başlıkla kartın kesiştiği yere biner.
             _failHeart = UiKit.CreateIcon("FailHeart", _resultPanel, UiSkin.Get(Art.HeartBroken));
+            _failHeartRim = heartRim.rectTransform;
             // Kalp başlığın ALTINDA. Başlık 8. turda büyüyünce kalp
             // harflerin üstüne bindi ve "FAILED"in ortasını kapattı; iki
             // öğe aynı kutuya sığmıyordu.
@@ -2576,7 +2663,32 @@ namespace BlockOut.Runtime.UI
             // DERS (aynı ölçü, farklı metinle farklı sonuç verir):
             // Referanstan alınan bir örtüşme, kelime uzunluğu değişince
             // aynı görünmüyor. Sayı tuttuğu hâlde ekrana bakmak gerekiyor.
-            UiKit.Place(_failHeart, 0.340f, 0.671f, 0.647f, 0.783f);
+            // KALP GENİŞLİĞE GÖRE ÖLÇEKLENDİ (x0,77).
+            //
+            // Yüksekliği referansla birebir tutturunca (178 birim) genişlik
+            // 239 çıkıyordu, referansta 183 — bizim kırık kalp görselimiz
+            // referanstakinden BASIK. Fazla genişlik "FAILED" yazısının
+            // ortasını kapatıyordu, yani çakışma YATAY. Çakışmanın olduğu
+            // eksende eşitlemek doğru olan.
+            //
+            // DERS (hangi ekseni eşitleyeceğine ÇAKIŞMA karar verir): İki
+            // öge üst üste biniyorsa, en-boyu farklı bir görseli çakışmanın
+            // olduğu eksende eşitle; öbür eksendeki fark görünmüyor.
+            UiKit.Place(_failHeart, 0.375f, 0.684f, 0.612f, 0.770f);
+
+            // Kontur kalbin %9 büyütülmüş kopyası, aynı merkezde.
+            if (_failHeartRim != null)
+            {
+                // %18: %9 denendi ve ekranda görünmedi (kalp 178 birim
+                // yüksek, %9 tek yönde ~8 birim veriyor ve kalbin kendi
+                // koyu kenarında kayboluyor). Referansta mor şerit kalbin
+                // yüksekliğinin yaklaşık %8'i, yani iki yandan %16-18.
+                const float k = 0.18f;
+                float hw = (0.612f - 0.375f) * 0.5f, hh = (0.770f - 0.684f) * 0.5f;
+                float cx = 0.375f + hw, cy = 0.684f + hh;
+                UiKit.Place(_failHeartRim, cx - hw * (1f + k), cy - hh * (1f + k),
+                                           cx + hw * (1f + k), cy + hh * (1f + k));
+            }
 
             // Zorluk etiketi bölüm numarasının ÜSTÜNDE, küçük ve sade.
             _failDifficulty = UiKit.CreateTitle("Difficulty", _resultCard.transform, "", 30,
@@ -2608,10 +2720,28 @@ namespace BlockOut.Runtime.UI
             // zemin, verdiğin rengi koyultur. Kart nasıl prosedürel
             // kuruluyorsa (bkz. BuildResultPanel) rozet de öyle kuruluyor:
             // yuvarlak panel beyaz bir maskedir, tint ona birebir işler.
-            _rewardsTag = UiKit.CreateRoundedPanel("RewardsTag", _resultCard.transform,
-                TagOrange, 0.5f);
-            UiKit.Place(_rewardsTag, 0.370f, 0.260f, 0.641f, 0.312f);
-            var tagLabel = UiKit.CreateTitle("Label", _rewardsTag.transform, "Rewards x3", 24,
+            // ROZET İKİ KATMAN OLDU (13. tur — kullanıcı: *"rewards paneli
+            // de çok kötü, eksik"*).
+            //
+            // Referansta "Ödüller x3" tek düz bir turuncu şerit değil:
+            // KALIN koyu bir dış kontur, içinde turuncu yüz, üstünde iki
+            // renkli yazı ("Ödüller" koyu kahve, "x3" beyaz). Bizdeki tek
+            // katmanlı turuncu şerit yeşil düğmenin üstünde eriyip
+            // kayboluyordu — koyu kontur onu ayakta tutan şey.
+            //
+            // Punto 24 -> 34: rozet 50 birim yüksek, 24 punto orada 17 birim
+            // kalıyordu; referansta yazı rozetin yarısından fazlasını
+            // kaplıyor.
+            var tagRim = UiKit.CreateRoundedPanel("RewardsTag", _resultCard.transform,
+                new Color(0.129f, 0.078f, 0.286f), 0.5f);
+            _rewardsTag = tagRim;
+            UiKit.Place(tagRim, 0.356f, 0.259f, 0.647f, 0.308f);
+
+            var tagFace = UiKit.CreateRoundedPanel("Face", tagRim.transform, TagOrange, 0.5f);
+            tagFace.raycastTarget = false;
+            UiKit.Place(tagFace, 0f, 0f, 1f, 1f, padding: 5f);
+
+            var tagLabel = UiKit.CreateTitle("Label", tagRim.transform, "Rewards x3", 34,
                 Color.white, TagOrangeDark);
             UiKit.Place(tagLabel, 0.04f, 0.06f, 0.96f, 0.94f);
         }
@@ -3144,6 +3274,8 @@ namespace BlockOut.Runtime.UI
             screen._resultPrimaryLabel.text = won ? "Continue" : "Try Again";
             screen._resultDifficulty.gameObject.SetActive(false);
             screen._failHeart.gameObject.SetActive(!won);
+            if (screen._failHeartRim != null)
+                screen._failHeartRim.gameObject.SetActive(!won);
             screen._rewardsTag.gameObject.SetActive(!won);
             screen._failDenied.gameObject.SetActive(!won);
             screen._failDifficulty.gameObject.SetActive(false);
@@ -3216,6 +3348,36 @@ namespace BlockOut.Runtime.UI
         {
             if (index < 0 || index >= _toggles.Length) return;
             _toggles[index]?.SetOn(on);
+        }
+
+        /// <summary>
+        /// EDİTÖR ÖNİZLEMESİ: yalnız alt yardımcı çubuğu (F2).
+        ///
+        /// Bu şerit oynanış sırasında ekranın en altında duruyor ve tek
+        /// başına yakalanamıyordu; F2'yi ölçmek için gerekti.
+        /// <paramref name="counts"/> sıfırsa fiyat kapsülü, sıfırdan büyükse
+        /// kırmızı adet rozeti görünür — referansta iki durum ayrı biçimde.
+        /// </summary>
+        public static GameplayScreen CreatePowerUpPreview(Transform parent, int[] counts = null)
+        {
+            var host = UiKit.CreateRect("PowerUpPreview", parent);
+            UiKit.Place(host, 0f, 0f, 1f, 1f);
+            var screen = host.gameObject.AddComponent<GameplayScreen>();
+            screen.BuildPowerUpBar(host);
+
+            for (int i = 0; i < 3; i++)
+            {
+                int adet = counts != null && i < counts.Length ? counts[i] : 0;
+                if (screen._powerBadge[i] != null)
+                    screen._powerBadge[i].gameObject.SetActive(adet > 0);
+                if (screen._powerPrice[i] != null)
+                    screen._powerPrice[i].gameObject.SetActive(adet <= 0);
+                if (screen._powerPriceText[i] != null)
+                    screen._powerPriceText[i].text = (300 * (i + 1) * (i == 2 ? 2 : 1)).ToString();
+                if (screen._powerButtons[i].badge != null)
+                    screen._powerButtons[i].badge.text = adet.ToString();
+            }
+            return screen;
         }
 
         /// <summary>
@@ -3294,8 +3456,40 @@ namespace BlockOut.Runtime.UI
             // vs 367) ama bizim yığın görselimiz %13 daha GENİŞ ve alt-sağ
             // jetonları "Rewards x3" rozetinin üstüne düşüyordu. Referansta
             // rozet, yığınla düğme arasındaki temiz şeritte duruyor.
-            UiKit.Place(_rewardArt, won ? 0.234f : 0.211f, won ? 0.438f : 0.285f,
-                                    won ? 0.775f : 0.775f, won ? 0.700f : 0.684f);
+            // JETON YIĞINI REFERANS KUTUSUNA (13. tur — kullanıcı:
+            // *"goldların boyutu da yanlış"*). Ölçüm: referans 470x254 birim,
+            // x %27,6..%71,1 y %45,0..%58,2 -> kart-göreli 0,252..0,734 /
+            // 0,368..0,615. Önceki kutu hem daha büyük hem daha alçaktı ve
+            // yığın kartın yarısını kaplıyordu.
+            // x1,39: kutu referansın çizim kutusuna eşitlenince yığın
+            // 303x248 birim çiziliyordu, referans 470x254. Yükseklik tutuyor
+            // ama BİZİM yığın görselimiz referanstakinden %35 DAR (en-boy
+            // 1,22 / 1,85), o yüzden yükseklik kutuya değince genişlik
+            // yetişemiyor. Şekli bozmamak için kutu bütün olarak büyütüldü;
+            // sonuç referansla arada kalıyor (~420 birim).
+            // Jetonlar da kırpmadan okundu: x %26,8..%72,5, y %48,5..%58,6
+            // -> kart-göreli 0,243..0,750 / 0,433..0,623. Bizim yığın
+            // görselimiz dar olduğu için kutu genişliğe göre büyütülüyor.
+            UiKit.Place(_rewardArt, won ? 0.234f : 0.180f, won ? 0.438f : 0.400f,
+                                    won ? 0.775f : 0.813f, won ? 0.700f : 0.656f);
+
+            // IŞIN ÇELENGİ YALNIZ KAZANIRKEN (13. tur, F1 — kullanıcı:
+            // *"failed ekranına geri dön, orayı beğenmedim"*).
+            //
+            // Jetonların arkasındaki ışınlar + sıcak hale + parıltılar
+            // KAYBETME ekranında da çiziliyordu. Referansta kaybetme kartında
+            // hiçbiri yok: jetonlar düz mor zeminin üstünde duruyor.
+            // Mantığı da bu — kaybetmiş bir oyuncuya kutlama ışığı yakmak
+            // ekranın söylediği şeyle çelişiyor.
+            //
+            // Beyaz hale ayrıca ÖLÇÜMLERİ de kirletiyordu: "bölüm adı" ve
+            // "ödül rozeti" kutuları hale yüzünden iki kat büyük çıkıyordu.
+            //
+            // DERS (kutlama efekti, SONUCA bağlıdır): Aynı kart iki sonucu da
+            // gösteriyorsa, kutlamaya ait her katmanın açık/kapalı durumu
+            // düzenle birlikte kurulmalı — yoksa "başarısız" ekranı zafer
+            // ışığıyla açılıyor.
+            SetRewardGlow(won);
             // SAYI HAPI REFERANSA GÖRE BÜYÜDÜ VE İNDİ (13. tur, F1). Ölçüm:
             // referans 492x159 birim (y %41,1..%49,4), bizim 385x81
             // (y %45,8..%50,0). Yani hem yarı yükseklikte hem yukarıdaydı;
@@ -3314,8 +3508,34 @@ namespace BlockOut.Runtime.UI
             // "bulduğu her şeyi" tek kutuya topluyor ve komşu koyu öğeler
             // sessizce içeri giriyor. Şüphelenince iki görüntünün aynı
             // bandını kırpıp yan yana koymak saniyeler sürüyor.
-            UiKit.Place(_rewardBadge, won ? 0.358f : 0.336f, won ? 0.333f : 0.345f,
-                                      won ? 0.646f : 0.630f, won ? 0.436f : 0.461f);
+            // "60" HAPI: REFERANS ÖLÇÜSÜNE VE SAYDAMLIĞINA (13. tur —
+            // kullanıcı: *"o 60 yazısı ve arkaplanı goldu kaplıyor, biraz
+            // altta kalmalı ve arkaplan biraz transparan olmalı"*).
+            //
+            // ÖLÇÜM (`basarisiz_avg.png`):
+            //     hap      x %29,9..%69,8  y %42,2..%48,8   (430x127 br)
+            //     jetonlar x %27,6..%71,1  y %45,0..%58,2   (470x254 br)
+            // Yani hap jetonların ALT UCUNA biniyor, ortasına değil: hapın
+            // üst kenarı (%48,8) yığının alt üçte birinde kalıyor.
+            //
+            // Zemin rengi (45,20,90); kartın yüzü (95,30,185). Opak bir
+            // lacivert bu değeri veremez — hap SAYDAM ve kartın morunu
+            // geçiriyor. Kaybetmede tek katman, saydam; kazanmada eski
+            // opak plaka kalıyor.
+            //
+            // Kart-göreli: x 0,277..0,720   y 0,315..0,439
+            // HAP YİNE KÜÇÜLDÜ. Renk maskesi bu ögede ÜÇÜNCÜ kez yanılttı
+            // (430 birim gösterdi); kırpılmış görüntüden okunan gerçek değer
+            // x %38,7..%59,5, y %43,4..%48,7 — yani 225x102 birim, kartın
+            // yarısı kadar. Kart-göreli: 0,375..0,605 / 0,338..0,437.
+            //
+            // DERS (aynı ölçüm aracı aynı ögede tekrar tekrar yanılıyorsa,
+            // aracı değiştir): Bu hap koyu bir zemin üstünde koyu bir öge;
+            // renk maskesi onu komşularından ayıramıyor. Kırpıp bakmak
+            // burada tek güvenilir yol ve üç turdur bunu geç öğreniyorum.
+            UiKit.Place(_rewardBadge, won ? 0.358f : 0.375f, won ? 0.333f : 0.338f,
+                                      won ? 0.646f : 0.605f, won ? 0.436f : 0.437f);
+            SetRewardPlateStyle(won);
             // KAYBETME DÜĞMESİ REFERANSA GÖRE BÜYÜDÜ (13. tur, F1).
             // Ölçüm: referans 565x166 birim, bizim 492x151.
             // Kart-göreli hedef x %21,2..%79,2, y %9,8..%26,1; kutu ile
@@ -3328,7 +3548,7 @@ namespace BlockOut.Runtime.UI
                 // Referansta "Ödüller x3" hapın içinde değil, düğmenin üst
                 // kenarına binen ayrı bir turuncu rozet: x %40,9..%63,7,
                 // y %39,2..%42,0 -> kart-göreli 0,399..0,652 / 0,259..0,311.
-                UiKit.Place(_rewardsTag, 0.399f, 0.259f, 0.652f, 0.311f);
+                UiKit.Place(_rewardsTag, 0.356f, 0.259f, 0.647f, 0.308f);
         }
 
         void RefreshResult()
@@ -3357,6 +3577,20 @@ namespace BlockOut.Runtime.UI
             // boyamak bizim eklememizdi; referans kaybı RENKLE değil BİÇİMLE
             // anlatıyor (kırık kalp + kaçırılan ödülün üstündeki çarpı).
             _resultTitle.text = won ? "PERFECT!" : "FAILED";
+
+            // KABARTMA KATMANLARINI HEMEN TAZELE. `UiTitleEmboss` haleyi
+            // `LateUpdate`te eşitliyor; bu panelin yazısı kurulumda BOŞ olup
+            // gösterilirken atandığı için hale ilk karede boş metni
+            // kopyalıyordu — düzenleyici yakalamasında ise `LateUpdate` hiç
+            // çalışmadığı için hale HİÇ görünmüyordu.
+            //
+            // DERS (sonradan atanan metin, ona bağlı katmanları da tazeler):
+            // Metne göre çizilen her yardımcı katmanın (hale, gölge, plaka)
+            // güncellenmesi metnin atandığı yere bağlanmalı; "her karede
+            // kendi kendine düzelir" varsayımı düzenleyicide ve ilk karede
+            // yanlış.
+            foreach (var e in _resultPanel.GetComponentsInChildren<GameKit.UI.UiTitleEmboss>(true))
+                e.Sync();
 
             // KART RENGİ ZORLUKTAN GELİYOR (4. tur, J41).
             //
@@ -3439,6 +3673,7 @@ namespace BlockOut.Runtime.UI
             }
 
             _failHeart.gameObject.SetActive(!won);
+            if (_failHeartRim != null) _failHeartRim.gameObject.SetActive(!won);
             _rewardsTag.gameObject.SetActive(!won);
 
             bool advance = won && _session.HasNextLevel;
