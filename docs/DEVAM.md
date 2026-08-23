@@ -6455,3 +6455,37 @@ Aynı yargı basış efektinin kendisi için de geçerliydi: `PressDim` 0,84 →
 > **Ders:** geri bildirim FARK EDİLECEK kadar, DİKKAT ÇEKMEYECEK kadar
 > olmalı. Basış efektinin işi düğmeyi değiştirmek değil, dokunuşun
 > ulaştığını söylemek.
+
+### Rewards rozeti — ve "renkler çok basit duruyor" teşhisi
+
+Kullanıcı: *"rewards kısmını da güncelle, detaylı incele"*, ardından
+*"benzedi ama dil olarak sanki bir eksiklik var, renkler olarak bizimki çok
+basit duruyor."*
+
+Rozeti 5 kat büyütüp yan yana koyunca beş fark çıktı:
+
+1. **Şekil** kapsül değil, yuvarlak köşeli dikdörtgen (yarıçap ~%30).
+2. **Kontur** koyu KAHVE (72,13,0) — bizde koyu lacivertti, turuncuyla
+   akraba olmayan bir renk; rozet "yapıştırılmış" duruyordu.
+3. **Dolgu** düz değil: tepede (255,180,34), dipte (238,138,8).
+4. **Yazı tek parça değil**: "Ödüller" KOYU KAHVE ve konturusuz, "x3" BEYAZ
+   ve koyu konturlu. Bizde ikisi de beyazdı, yani "x3" hiç öne çıkmıyordu.
+5. Yazı rozeti neredeyse **kenardan kenara** dolduruyor (yazı %36,5..%64,1,
+   rozet %37,0..%63,3).
+
+> **Ders (bir rozetin "x3"ü rozetin kendisi kadar önemli):** Referans
+> çarpanı ayrı renkte ve konturlu yazarak onu ikinci bir rozet gibi
+> gösteriyor; tek renkte yazınca oyuncu yalnız "ödüller" kelimesini okuyor
+> ve KAÇ KAT olduğunu kaçırıyor.
+
+**Kullanıcının asıl teşhisi daha genel:** üç düz panelle (kontur + dolgu +
+üst bant) gradyanı taklit ettim ve "benzedi ama basit" oldu. Referansta
+HİÇBİR yüzey tek ton değil. `UiSprites.RewardTag` konturu, turuncu rampayı
+ve üst iç parlaklığı TEK dokuya çiziyor — aynı çözüm bu turda
+`UiSprites.PowerPad` için de gerekmişti.
+
+> **Ders (bu turda İKİNCİ kez):** sürekli bir geçiş isteniyorsa panel
+> eklemek çözüm değil, ÇİZİM gerekiyor. Düz renk panelleri iki-üç ton için
+> doğru araç; ötesinde her yeni panel hem basamak ekliyor hem de sonucu
+> "sade" bırakıyor. Bundan sonra bu tür bir yüzey istendiğinde doğrudan
+> doku üretmek daha kısa yol.

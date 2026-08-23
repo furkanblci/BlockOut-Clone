@@ -2807,33 +2807,59 @@ namespace BlockOut.Runtime.UI
             // zemin, verdiğin rengi koyultur. Kart nasıl prosedürel
             // kuruluyorsa (bkz. BuildResultPanel) rozet de öyle kuruluyor:
             // yuvarlak panel beyaz bir maskedir, tint ona birebir işler.
-            // ROZET İKİ KATMAN OLDU (13. tur — kullanıcı: *"rewards paneli
-            // de çok kötü, eksik"*).
+            // ROZET REFERANSTAN YENİDEN KURULDU (13. tur — kullanıcı:
+            // *"rewards kısmını da güncelle, detaylı incele"*).
             //
-            // Referansta "Ödüller x3" tek düz bir turuncu şerit değil:
-            // KALIN koyu bir dış kontur, içinde turuncu yüz, üstünde iki
-            // renkli yazı ("Ödüller" koyu kahve, "x3" beyaz). Bizdeki tek
-            // katmanlı turuncu şerit yeşil düğmenin üstünde eriyip
-            // kayboluyordu — koyu kontur onu ayakta tutan şey.
+            // Rozeti 5 KAT büyütüp yan yana koyunca beş fark çıktı:
             //
-            // Punto 24 -> 34: rozet 50 birim yüksek, 24 punto orada 17 birim
-            // kalıyordu; referansta yazı rozetin yarısından fazlasını
-            // kaplıyor.
-            var tagRim = UiKit.CreateRoundedPanel("RewardsTag", _resultCard.transform,
-                new Color(0.129f, 0.078f, 0.286f), 0.5f);
+            //   1. ŞEKİL kapsül değil, yuvarlak köşeli dikdörtgen
+            //      (yarıçap ~ yüksekliğin %30'u). Bizimki tam kapsüldü.
+            //   2. KONTUR koyu KAHVE (72,13,0), bizde koyu laciverttiydi —
+            //      turuncuyla akraba olmayan bir renk, rozet "yapıştırılmış"
+            //      duruyordu.
+            //   3. DOLGU düz değil: tepede (255,180,34), dipte (238,138,8).
+            //   4. YAZI TEK PARÇA DEĞİL: "Ödüller" KOYU KAHVE ve konturusuz,
+            //      "x3" ise BEYAZ ve koyu konturlu — iki ayrı vurgu. Bizde
+            //      ikisi de beyazdı, yani "x3" hiç öne çıkmıyordu.
+            //   5. Yazı rozeti neredeyse KENARDAN KENARA dolduruyor
+            //      (ölçüm: yazı %36,5..%64,1, rozet %37,0..%63,3 — yani
+            //      taşacak kadar). Bizimki bol boşluklu duruyordu.
+            //
+            // DERS (bir rozetin "x3"ü ROZETİN KENDİSİ kadar önemli):
+            // Referans çarpanı ayrı renkte ve konturlu yazarak onu ikinci
+            // bir rozet gibi gösteriyor; tek renkte yazınca oyuncu yalnız
+            // "ödüller" kelimesini okuyor ve KAÇ KAT olduğunu kaçırıyor.
+            // YÜZEY TEK PROSEDÜREL GÖRSEL (kullanıcı: *"renkler olarak
+            // bizimki çok basit duruyor"*). Kontur + turuncu gradyan + üst
+            // iç parlaklık tek dokuda; üç düz panelle verilemeyen şey bu.
+            var tagRim = UiKit.CreateIcon("RewardsTag", _resultCard.transform,
+                UiSprites.RewardTag);
+            tagRim.type = Image.Type.Simple;
+            tagRim.preserveAspect = false;
             _rewardsTag = tagRim;
-            UiKit.Place(tagRim, 0.356f, 0.259f, 0.647f, 0.308f);
+            UiKit.Place(tagRim, 0.356f, 0.256f, 0.647f, 0.313f);
 
-            var tagFace = UiKit.CreateRoundedPanel("Face", tagRim.transform, TagOrange, 0.5f);
-            tagFace.raycastTarget = false;
-            // Kontur 5 -> 9 birim: referansta rozetin koyu kenarı belirgin
-            // (rozet 50 birim yüksek ve kenar ~9 birim). 5'te ekranda
-            // neredeyse görünmüyordu.
-            UiKit.Place(tagFace, 0f, 0f, 1f, 1f, padding: 7f);
+            // "Rewards" KOYU KAHVE, konturusuz.
+            // Punto 36 -> 48 ve kutular daraldı: referansta yazı rozeti
+            // KENARDAN KENARA dolduruyor (yazı %36,5..%64,1, rozet
+            // %37,0..%63,3), bizde iki kelimenin arasında da kenarlarda da
+            // boşluk kalıyordu. Rozet 58 birim yüksek; kapak yüksekliğinin
+            // %60'ı ~35 birim, o da 48 punto demek.
+            // 48'de "Rewards" rozetin SOL kenarından taşıyordu: aynı harf
+            // sayısına rağmen Baloo 2'de "Rewards" "Ödüller"den geniş
+            // (w/R/d yerine ö/ü/ll). 43 sığdırıyor.
+            var tagLabel = UiKit.CreateLabel("Label", tagRim.transform, "Rewards", 43,
+                new Color(0.471f, 0.122f, 0.016f), TextAlignmentOptions.Right);
+            tagLabel.fontStyle = FontStyles.Bold;
+            tagLabel.raycastTarget = false;
+            UiKit.Place(tagLabel, 0.05f, 0.04f, 0.685f, 0.96f);
 
-            var tagLabel = UiKit.CreateTitle("Label", tagRim.transform, "Rewards x3", 34,
-                Color.white, TagOrangeDark);
-            UiKit.Place(tagLabel, 0.04f, 0.06f, 0.96f, 0.94f);
+            // "x3" BEYAZ ve koyu konturlu — ayrı bir vurgu.
+            var tagMult = UiKit.CreateTitle("Mult", tagRim.transform, "x3", 43,
+                Color.white, new Color(0.282f, 0.051f, 0f));
+            tagMult.alignment = TextAlignmentOptions.Left;
+            tagMult.raycastTarget = false;
+            UiKit.Place(tagMult, 0.735f, 0.04f, 0.97f, 0.96f);
         }
 
         // ---------------------------------------------------------------- ödül görseli
@@ -3755,7 +3781,7 @@ namespace BlockOut.Runtime.UI
                 // Referansta "Ödüller x3" hapın içinde değil, düğmenin üst
                 // kenarına binen ayrı bir turuncu rozet: x %40,9..%63,7,
                 // y %39,2..%42,0 -> kart-göreli 0,399..0,652 / 0,259..0,311.
-                UiKit.Place(_rewardsTag, 0.348f, 0.253f, 0.655f, 0.316f);
+                UiKit.Place(_rewardsTag, 0.356f, 0.256f, 0.647f, 0.313f);
         }
 
         void RefreshResult()

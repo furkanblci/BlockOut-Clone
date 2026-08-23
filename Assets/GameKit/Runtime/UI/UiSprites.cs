@@ -805,6 +805,100 @@ namespace GameKit.UI
             }
         }
 
+        /// <summary>
+        /// "Rewards x3" rozetinin yüzeyi — tek prosedürel görsel.
+        ///
+        /// NEDEN (13. tur — kullanıcı: *"benzedi ama dil olarak sanki bir
+        /// eksiklik var, renkler olarak bizimki çok basit duruyor"*):
+        ///
+        /// Rozet düz turuncu bir panel + düz koyu bir konturdu. Referansın
+        /// dikey kesiti ise turuncuyu sürekli bir geçiş olarak veriyor:
+        ///
+        ///     ust kenar (72,13,0)  ->  (255,180,34)  ->  (243,158,31)
+        ///     ->  (238,138,8)  ->  alt dudak (196,96,0)
+        ///
+        /// Bu, oyunun görsel dilinin tamamında geçerli: referansta HİÇBİR
+        /// yüzey tek ton değil. Düz panellerle "yaklaşmak" mümkün ama sonuç
+        /// hep sade kalıyor — kullanıcının fark ettiği şey tam olarak bu.
+        ///
+        /// DERS (bu projede ikinci kez, bkz. <see cref="PowerPad"/>):
+        /// Sürekli bir geçiş isteniyorsa panel eklemek çözüm değil, ÇİZİM
+        /// gerekiyor. Doku olarak üretmek hem basamağı siliyor hem de kontur,
+        /// gradyan ve iç parlaklığı tek katmanda topluyor.
+        /// </summary>
+        static Sprite _rewardTag;
+
+        public static Sprite RewardTag
+        {
+            get
+            {
+                if (_rewardTag != null) return _rewardTag;
+
+                const int W = 320, H = 64;
+                var tex = new Texture2D(W, H, TextureFormat.RGBA32, false)
+                {
+                    name = "UiRewardTag",
+                    hideFlags = HideFlags.HideAndDontSave,
+                    wrapMode = TextureWrapMode.Clamp,
+                    filterMode = FilterMode.Bilinear
+                };
+
+                // Ölçülen duraklar (referans kesiti, üstten alta).
+                var durakT = new[] { 0.00f, 0.30f, 0.62f, 1.00f };
+                var durakC = new[]
+                {
+                    new Color(255f / 255f, 190f / 255f,  56f / 255f),
+                    new Color(255f / 255f, 176f / 255f,  34f / 255f),
+                    new Color(240f / 255f, 146f / 255f,  18f / 255f),
+                    new Color(206f / 255f, 106f / 255f,   2f / 255f),
+                };
+
+                var kenar = new Color(72f / 255f, 13f / 255f, 0f);
+
+                // Kontur 0,105 -> 0,082: ilk denemede referanstan kalın
+                // çıkıyor ve rozet "çerçeveli" duruyordu.
+                float rDis = H * 0.34f;
+                float kalin = H * 0.082f;
+                float rIc = rDis - kalin;
+
+                var px = new Color32[W * H];
+                for (int y = 0; y < H; y++)
+                    for (int x = 0; x < W; x++)
+                    {
+                        float fx = x + 0.5f, fy = y + 0.5f;
+                        float dDis = PadMesafe(fx, fy, 0f, 0f, W, H, rDis);
+                        if (dDis > 0.7f) { px[y * W + x] = new Color32(0, 0, 0, 0); continue; }
+
+                        float t = 1f - (float)y / (H - 1);
+                        Color c = PadTon(durakT, durakC, t);
+
+                        float dIc = PadMesafe(fx, fy, kalin, kalin, W - kalin, H - kalin, rIc);
+                        if (dIc > -0.5f)
+                        {
+                            c = Color.Lerp(c, kenar, Mathf.Clamp01(dIc + 1f));
+                        }
+                        else if (dIc > -kalin * 0.9f && t < 0.34f)
+                        {
+                            // Üst iç kenarda ince bir parlaklık: referansta
+                            // konturun hemen altındaki açık şerit.
+                            float k = 1f - Mathf.Clamp01(-dIc / (kalin * 0.9f));
+                            c = Color.Lerp(c, Color.white, 0.30f * k * (1f - t / 0.34f));
+                        }
+
+                        c.a = Mathf.Clamp01(0.7f - dDis);
+                        px[y * W + x] = c;
+                    }
+
+                tex.SetPixels32(px);
+                tex.Apply(false, true);
+                _rewardTag = Sprite.Create(tex, new Rect(0f, 0f, W, H),
+                    new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
+                _rewardTag.name = "UiRewardTag";
+                _rewardTag.hideFlags = HideFlags.HideAndDontSave;
+                return _rewardTag;
+            }
+        }
+
         /// <summary>Yuvarlak dikdörtgenin imzalı mesafesi; İÇİ negatif.</summary>
         static float PadMesafe(float x, float y, float x0, float y0, float x1, float y1, float r)
         {
