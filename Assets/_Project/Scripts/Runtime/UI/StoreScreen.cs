@@ -1001,56 +1001,59 @@ namespace BlockOut.Runtime.UI
 
             RewardIcons(art.transform, showNoAds: false, offer.Hours, offer.Helpers);
 
-            // İndirim flaması — sol üst köşeden aşağı sarkar.
+            // İNDİRİM BAYRAĞI: 45 DERECE KÖŞE KURDELESİ (13. tur, M3b).
             //
-            // DIŞ ÇİZGİ EKLENDİ (4. tur, E14): Kullanıcı "%90 OFF indirim
-            // şeriti için de outline lı yeni görsel" dedi. Referansta
-            // (`market.jpeg`) mağazadaki her rozet/plaka kalın bir dış
-            // çizgiyle çevrili — "Blok Bileti" ve "499,99 TL" plakalarının
-            // ikisinde de altın kontur var. Bizim flamamız düz kırmızıydı ve
-            // altındaki sarı kartın üstünde sınırsız kalıyordu.
+            // Kullanıcı: *"%90 off indirim yazan o bayrağın modeli de çok
+            // kötü... çok kötü gözüküyor, onu güncelleyelim."*
             //
-            // DERS (kontur ayrı bir GÖRSEL gerektirmez): Aynı flama, biraz
-            // büyük ve koyu renkte, arkaya konuyor. Yeni bir sprite üretmek
-            // yerine katman eklemek her boyutta doğru kalınlığı da beraberinde
-            // getiriyor.
+            // Bizimki ASILI BİR FLAMAYDI: alt ucunda V çentiği olan, kartın
+            // sol üst köşesinden aşağı sarkan bir şerit. Referansta öyle bir
+            // şey YOK — kartın köşesini 45 derece kesen bir KURDELE var
+            // (`menus,powerups,vs.mp4` 11,4. sn: magenta bant, koyu kenar,
+            // üstünde beyaz yazı).
+            //
+            // Yani sorun rengi ya da boyutu değil, BİÇİMİYDİ: flama kartın
+            // dışına sarkıyor ve "etiket" gibi duruyordu; kurdele köşeyi
+            // kesip kartın PARÇASI oluyor.
+            //
+            // DERS (bir öğeyi düzeltmeden önce ne olduğunu doğrula): Dört tur
+            // boyunca bu flamanın rengi, konturu, yazı hizası ve boyutu
+            // ayarlandı — hiçbiri işe yaramadı, çünkü referansta o biçim
+            // hiç yoktu. "Kötü duruyor" geri bildirimi geldiğinde önce
+            // "referansta bu ne?" diye sormak gerekiyor.
+            //
+            // Kurdele bir kutu içinde 45 derece döndürülüyor; yazı da aynı
+            // kutunun çocuğu olduğu için onunla birlikte dönüyor.
             var badge = UiKit.CreateRect("Badge", art.transform);
-            UiKit.Place(badge, 0.025f, 0.52f, 0.175f, 1.10f);
+            badge.anchorMin = badge.anchorMax = new Vector2(0f, 1f);
+            badge.pivot = new Vector2(0.5f, 0.5f);
+            // ÖLÇÜ REFERANSTAN (`menus,powerups,vs.mp4` 11,4. sn, 384 px):
+            //   bandin merkezi kosden ~49 px = genisligin %12,8'i -> 138 birim
+            //   bandin dik kalinligi ~20 px = %5,2 -> 56 birim
+            // Merkez köşeden 138 birim UZAKTA (çapraz), yani her eksende
+            // 138/√2 = 98. Uzunluk 2x138 = 276 ki bandın iki ucu kartın SOL
+            // ve ÜST kenarına tam otursun.
+            //
+            // İlk denemede uzunluk 330 verilmişti: band kartın dışına taşıyor
+            // ve "OFF" yazısı ekranın dışında kalıyordu. Köşe kurdelesinde
+            // uzunluk serbest bir sayı değil, merkez uzaklığından TÜREMELİ
+            // (L = 2·d), yoksa ya taşar ya köşeye yetişmez.
+            // 276 -> 244: kartın köşesi YUVARLAK, o yüzden bandın uçları
+            // "düz kenarın" olacağı yere değil, yuvarlaklığın kestiği yere
+            // oturmalı. 276'da uçlar köşenin dışına taşıyordu.
+            badge.sizeDelta = new Vector2(244f, 56f);
+            badge.anchoredPosition = new Vector2(98f, -98f);
+            badge.localRotation = Quaternion.Euler(0f, 0f, 45f);
 
-            var flagRim = UiKit.CreateRect("Rim", badge);
-            UiKit.Place(flagRim, -0.10f, -0.045f, 1.10f, 1.03f);
-            var rimImage = flagRim.gameObject.AddComponent<Image>();
-            rimImage.sprite = MenuSprites.Pennant;
-            rimImage.color = new Color(0.290f, 0.020f, 0.055f);
-            rimImage.raycastTarget = false;
-
-            var flagFace = UiKit.CreateRect("Face", badge);
-            UiKit.Place(flagFace, 0f, 0f, 1f, 1f);
-            var flag = flagFace.gameObject.AddComponent<Image>();
-            flag.sprite = MenuSprites.Pennant;
-            flag.color = BadgeRed;
+            var flag = badge.gameObject.AddComponent<Image>();
+            flag.sprite = UiSprites.CornerRibbon;
+            flag.type = Image.Type.Simple;
             flag.raycastTarget = false;
 
-            // YAZI FLAMANIN ORTASINDA (7. tur, N48). Kullanıcı: "bayraktaki
-            // text bayrağa ortalanmalı (şu an üstte kalmış)."
-            //
-            // ÖLÇÜM: `MenuSprites.Pennant` 160×200 ve alt kenarında 46
-            // piksellik bir V çentiği var — yani flamanın DOLU gövdesi
-            // 46..200, normalde 0.23..1.00 ve ortası 0.615. Yazı bloğu
-            // (0.28..0.92) ise 0.60'ta duruyordu; üstelik arkadaki kontur
-            // katmanı flamayı aşağı doğru 0.045 daha uzatıyor, bu yüzden göz
-            // ortayı daha da aşağıda arıyor. Blok 0.06 aşağı çekildi.
-            //
-            // DERS (çentikli bir biçimin ortası, kutusunun ortası değildir):
-            // Flamayı bir dikdörtgen sanıp kutuya göre ortalamak, V'nin
-            // yediği alanı da hesaba katmak demek — yazı hep yukarıda kalır.
-            var percent = UiKit.CreateTitle("Percent", badge.transform, offer.Discount + "%", 44,
-                new Color(1f, 1f, 1f), new Color(0.42f, 0.03f, 0.03f));
-            UiKit.Place(percent, 0.02f, 0.46f, 0.98f, 0.86f);
-
-            var word = UiKit.CreateTitle("Word", badge.transform, "OFF", 22,
-                new Color(1f, 0.94f, 0.80f), new Color(0.42f, 0.03f, 0.03f));
-            UiKit.Place(word, 0.02f, 0.22f, 0.98f, 0.46f);
+            var percent = UiKit.CreateTitle("Percent", badge, offer.Discount + "% OFF", 30,
+                new Color(1f, 1f, 1f), new Color(0.35f, 0.02f, 0.14f));
+            UiKit.Place(percent, 0.06f, 0.06f, 0.94f, 0.94f);
+            percent.raycastTarget = false;
 
             // BANDIN GÖRÜNEN YÜKSEKLİĞİ, BANDIN YÜKSEKLİĞİ DEĞİL (7. tur, N49).
             //

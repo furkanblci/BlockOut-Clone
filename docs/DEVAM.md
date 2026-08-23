@@ -6723,3 +6723,51 @@ Böylece çerçeve yuvarlak uçların etrafını da dolaşıyor.
 
 9-dilim payı (40,0,40,0): profil yalnız dikey olduğu için orta yatayda
 esniyor, yuvarlak uçlar payda korunuyor.
+
+---
+
+## 13. tur (devam) — M3b: indirim bayrağı
+
+Kullanıcı: *"%90 off indirim yazan o bayrağın modeli de çok kötü... onu
+güncelleyelim."*
+
+### Sorun renk ya da boyut değil, BİÇİMDİ
+
+Bizimki **asılı bir flamaydı**: alt ucunda V çentiği olan, kartın sol üst
+köşesinden aşağı sarkan bir şerit. Referansta öyle bir şey **yok** —
+kartın köşesini **45 derece kesen bir kurdele** var
+(`menus,powerups,vs.mp4` 11,4. sn: magenta bant, koyu kenar, beyaz yazı,
+"En İyi Teklif").
+
+Flama kartın dışına sarkıp "etiket" gibi duruyordu; kurdele köşeyi kesip
+kartın PARÇASI oluyor.
+
+> **Ders (bir öğeyi düzeltmeden önce NE OLDUĞUNU doğrula):** Dört tur
+> boyunca bu flamanın rengi, konturu, yazı hizası ve boyutu ayarlandı —
+> hiçbiri işe yaramadı, çünkü referansta o biçim hiç yoktu. "Kötü duruyor"
+> geri bildirimi geldiğinde önce *"referansta bu ne?"* diye sormak gerekiyor.
+> (Aynı hata tentede de yapılmıştı: yarım daire feston diye bir şey yoktu.)
+
+### Ölçüm ve kurulum
+
+Referans karesi 384 piksel geniş, bandın dik kalınlığı orada yalnız ~20
+piksel — o çözünürlükten kesmek bulanık olurdu. Kullanıcı *"aynı dilde
+üretilebilir"* dediği için biçim ölçülüp yeniden çizildi:
+
+```
+koyu kenar    (140,10,70)
+govde         (230,40,130) -> (185,20,100)
+ust parlaklik (255,130,200)
+bandin merkezi   kosden ~49 px = genisligin %12,8 -> 138 birim
+bandin kalinligi ~20 px = %5,2 -> 56 birim
+```
+
+Kurdele 45° döndürülmüş bir kutu; yazı da aynı kutunun çocuğu olduğu için
+onunla dönüyor.
+
+> **Ders (köşe kurdelesinde uzunluk SERBEST bir sayı değildir):** Merkez
+> köşeden *d* uzaklıktaysa uzunluk *2·d* olmalı ki iki uç kartın sol ve üst
+> kenarına otursun. İlk denemede 330 verildi, band kartın dışına taştı ve
+> "OFF" ekranın dışında kaldı. Sonra kartın köşesi YUVARLAK olduğu için
+> 276'dan 244'e indirildi — uçlar düz kenarın olacağı yere değil,
+> yuvarlaklığın kestiği yere oturmalı.

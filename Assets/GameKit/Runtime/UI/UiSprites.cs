@@ -1114,6 +1114,75 @@ namespace GameKit.UI
             }
         }
 
+        /// <summary>
+        /// İndirim bayrağının bandı (M3b) — yatay bir şerit; çağıran onu 45°
+        /// döndürüp kartın sol üst köşesine oturtuyor.
+        ///
+        /// Kullanıcı: *"%90 off indirim yazan o bayrağın modeli de çok kötü,
+        /// yine hazır oyundan alınabilir veya aynı dilde üretilebilir."*
+        ///
+        /// Bizimki ASILI BİR FLAMAYDI (alt ucunda V çentiği olan, köşeden
+        /// sarkan bir şerit). Referansta öyle bir şey yok: kartın sol üst
+        /// köşesini 45° kesen bir KURDELE var, magenta, koyu kenarlı, üstünde
+        /// beyaz yazı (`menus,powerups,vs.mp4` 11,4. sn).
+        ///
+        /// Renkler o kareden, banda DİK kesitle ölçüldü:
+        ///     koyu kenar   (140,10,70)
+        ///     govde        (230,40,130) -> (185,20,100)
+        ///     ust parlaklik(255,130,200)
+        ///
+        /// Referans karesi 384 piksel geniş, yani bandın dik kalınlığı orada
+        /// yalnız ~20 piksel. O çözünürlükten kesmek bulanık olurdu; kullanıcı
+        /// da "aynı dilde üretilebilir" dediği için biçim ölçülüp yeniden
+        /// çizildi.
+        /// </summary>
+        static Sprite _cornerRibbon;
+
+        public static Sprite CornerRibbon
+        {
+            get
+            {
+                if (_cornerRibbon != null) return _cornerRibbon;
+
+                const int W = 16, H = 64;
+                var tex = new Texture2D(W, H, TextureFormat.RGBA32, false)
+                {
+                    name = "UiCornerRibbon",
+                    hideFlags = HideFlags.HideAndDontSave,
+                    wrapMode = TextureWrapMode.Clamp,
+                    filterMode = FilterMode.Bilinear
+                };
+
+                var durakT = new[] { 0.00f, 0.10f, 0.22f, 0.55f, 0.88f, 1.00f };
+                var durakC = new[]
+                {
+                    new Color(140f / 255f,  10f / 255f,  70f / 255f),
+                    new Color(255f / 255f, 130f / 255f, 200f / 255f),
+                    new Color(230f / 255f,  40f / 255f, 130f / 255f),
+                    new Color(210f / 255f,  30f / 255f, 118f / 255f),
+                    new Color(185f / 255f,  20f / 255f, 100f / 255f),
+                    new Color(120f / 255f,   6f / 255f,  58f / 255f),
+                };
+
+                var px = new Color32[W * H];
+                for (int y = 0; y < H; y++)
+                {
+                    float t = 1f - (float)y / (H - 1);
+                    Color c = PadTon(durakT, durakC, t);
+                    for (int x = 0; x < W; x++) px[y * W + x] = c;
+                }
+
+                tex.SetPixels32(px);
+                tex.Apply(false, true);
+                // Yatayda sonsuz esneyebilsin: sol/sag pay 0, dikey pay 0.
+                _cornerRibbon = Sprite.Create(tex, new Rect(0f, 0f, W, H),
+                    new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
+                _cornerRibbon.name = "UiCornerRibbon";
+                _cornerRibbon.hideFlags = HideFlags.HideAndDontSave;
+                return _cornerRibbon;
+            }
+        }
+
         /// <summary>Yuvarlak dikdörtgenin imzalı mesafesi; İÇİ negatif.</summary>
         static float PadMesafe(float x, float y, float x0, float y0, float x1, float y1, float r)
         {

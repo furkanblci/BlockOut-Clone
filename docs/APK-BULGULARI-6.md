@@ -156,11 +156,22 @@ varlık kullanmak serbest.
       gradyanlı ((255,136,62) -> (205,49,0)) ve uçların yarıçapı tam
       kapsül değil, yüksekliğin %30'u. 9-dilimli tek prosedürel sprite.
 
-- [ ] **M3b.** **"%90 OFF" indirim bayrağının modeli çok kötü.** Oyundan
+- [x] **M3b.** **"%90 OFF" indirim bayrağının modeli çok kötü.** Oyundan
       hazır alınabilir veya aynı dilde üretilebilir.
       > *"%90 off indirim yazan o bayrağın modeli de çok kötü, yine hazır
       > oyundan alınabilir veya aynı dilde üretilebilir; çok kötü gözüküyor,
       > onu güncelleyelim"*
+
+      **13. TURDA KAPATILDI.** Sorun renk ya da boyut değil BİÇİMDİ:
+      bizimki alt ucunda V çentiği olan, köşeden aşağı SARKAN bir flamaydı;
+      referansta kartın köşesini 45 derece KESEN bir kurdele var
+      (`menus,powerups,vs.mp4` 11,4. sn). Flama kartın dışına sarkıp
+      "etiket" gibi duruyordu, kurdele kartın parçası oluyor.
+
+      Referans karesi 384 px ve bandın dik kalınlığı orada ~20 px olduğu
+      için kesmek bulanık olurdu; kullanıcının izin verdiği gibi "aynı
+      dilde" yeniden çizildi. Ölçüm: kenar (140,10,70), gövde
+      (230,40,130)->(185,20,100), merkez köşeden %12,8, kalınlık %5,2.
 
 ## 4. Paket kartı (Starter Pack / teklif kartı)
 
