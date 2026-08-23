@@ -880,7 +880,12 @@ namespace BlockOut.Runtime.UI
             //
             // 9-dilim: profil yalnız dikey, o yüzden orta yatayda güvenle
             // esniyor; yuvarlak uçlar kenar payında korunuyor.
-            var rim = UiKit.CreateIcon("Rim", row, UiSprites.SectionRibbon);
+            // GÖRSEL ORİJİNALDEN (13. tur). Prosedürel kurdele profili
+            // doğru çiziyordu ama kenarı tutmadı; tentede öğrenilen kural
+            // ("üç tur yaklaşamayan çizim, çizilmemeli") burada bir turda
+            // uygulandı. Görsel yoksa prosedürel olana düşülüyor.
+            var ribbonArt = UiSkin.Get(Art.SectionRibbon);
+            var rim = UiKit.CreateIcon("Rim", row, ribbonArt ?? UiSprites.SectionRibbon);
             rim.type = Image.Type.Sliced;
             rim.preserveAspect = false;
             rim.raycastTarget = false;

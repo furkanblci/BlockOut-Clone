@@ -189,5 +189,7 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: 0c1fa5c0f1cb53e40a3024b6c7465d5e, type: 3}
   - name: ribbon_reward
     sprite: {fileID: 21300000, guid: b62453dd025c22c4eb16e5fc4de3ec51, type: 3}
+  - name: ribbon_section
+    sprite: {fileID: 21300000, guid: e3e465e27d338a3459b6e94578ed6a75, type: 3}
   - name: splash_art
     sprite: {fileID: 21300000, guid: 3c33fbb4e10e9b549972d6cbbe207cf1, type: 3}

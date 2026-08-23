@@ -6680,3 +6680,46 @@ görsele geçince arada görünür bir dikiş kalırdı.
 
 Prosedürel tente `MenuSprites.Awning` yedek olarak duruyor (görsel
 bulunamazsa devreye giriyor).
+
+---
+
+## 13. tur (devam) — Bölüm kurdelesi de orijinalden kesildi
+
+Kullanıcı: *"özel teklifler başlığını güncelleyelim, o dış çizgisi kötü
+olmuş, orijinaline benzetelim"* ve ardından *"yanların dış çizgisi
+birleşmiyor, onu yap."*
+
+Prosedürel kurdeleyi (M3a) bir tur önce ölçülen altı bantlı profille
+kurmuştum ve profil doğruydu — ama kenar tutmadı. Tentede öğrenilen kural
+burada **bir turda** uygulandı: kes.
+
+### Kesim
+
+`market.jpeg`ten ölçülerek:
+- kurdele **y 318..425** (107 px)
+- köşe yarıçapı **38** (sol uçta kumaş x=32'de açılmaya başlıyor, x=70'te
+  tam yüksekliğe ulaşıyor)
+- uçlarda ayrıca dar bir **dil** var (y 355..391, ekran kenarından x≈32'ye)
+- renk profili yazı olmayan bir sütundan (**x=200**)
+
+Biçim ölçülen yarıçaptan kuruldu, renk kaynaktan alındı — böylece
+köşelerde JPEG'in kahverengi duvarı karışmıyor.
+
+### Kullanıcının ikinci notu: çerçeve dört tarafı dolaşmalı
+
+İlk kesimde rengi **y'ye** bağlamıştım; o yüzden altın bant yalnız üstte ve
+altta vardı, uçlarda dönmüyordu — "yanların dış çizgisi birleşmiyor" tam
+olarak buydu.
+
+Düzeltme: renk artık **kenardan içeri uzaklığa** bağlı.
+- uzaklık < 18 px → çerçeve rampası (altın → koyu kırmızı → parlak turuncu)
+- uzaklık ≥ 18 px → gövdenin dikey gradyanı
+
+Böylece çerçeve yuvarlak uçların etrafını da dolaşıyor.
+
+> **Ders (bir çerçeve, KENARIN fonksiyonudur; y'nin değil):** Dikdörtgen
+> bir şeyde ikisi aynı sonucu veriyor, o yüzden fark uzun süre görünmüyor.
+> Köşe yuvarlandığı anda y-tabanlı profil çerçeveyi uçlarda kesiyor.
+
+9-dilim payı (40,0,40,0): profil yalnız dikey olduğu için orta yatayda
+esniyor, yuvarlak uçlar payda korunuyor.

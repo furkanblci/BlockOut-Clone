@@ -179,6 +179,23 @@ namespace BlockOut.Runtime.UI
         /// </summary>
         public const string Awning  = "awning_shop";
 
+        /// <summary>
+        /// MAĞAZANIN BÖLÜM KURDELESİ (13. tur — kullanıcı: *"özel teklifler
+        /// başlığını güncelleyelim, o dış çizgisi kötü olmuş, orijinaline
+        /// benzetelim"*).
+        ///
+        /// Prosedürel kurdele bir tur denendi ve profili doğru çizmesine
+        /// rağmen kenarı tutmadı. Tentede öğrenilen kural burada doğrudan
+        /// uygulandı: kes.
+        ///
+        /// `market.jpeg`ten: kurdele y 318..425, köşe yarıçapı 38 (ölçüldü:
+        /// sol uçta kumaş x=32'de açılmaya başlıyor, x=70'te tam yüksekliğe
+        /// ulaşıyor). Renk profili YAZI OLMAYAN bir sütundan (x=200)
+        /// alındı; biçim ölçülen yarıçaptan kuruldu, böylece köşelerde
+        /// JPEG'in kahverengi duvarı karışmıyor.
+        /// </summary>
+        public const string SectionRibbon = "ribbon_section";
+
         public const string Coin    = "icon_coin";
         public const string Heart   = "icon_heart";
         public const string HeartBroken = "icon_heart_broken";

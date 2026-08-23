@@ -52,6 +52,11 @@ namespace BlockOut.Editor.ProjectSetup
             { "badge_reward", new Vector4(232, 268, 278, 266) },
             { "bar_tabs",     new Vector4(96, 16, 96, 86) },
             { "card_tab",     new Vector4(54, 70, 50, 68) },
+
+            // Mağazanın bölüm kurdelesi (13. tur, M3a): profil yalnız
+            // DİKEY, o yüzden yatay pay köşe yarıçapı (38) + 2, dikey pay
+            // sıfır — orta yalnız yatayda esniyor.
+            { "ribbon_section", new Vector4(40, 0, 40, 0) },
         };
 
         // Varsayılan 512; bunlar ondan büyük olmalı.
@@ -125,6 +130,9 @@ namespace BlockOut.Editor.ProjectSetup
             // Mağaza tentesi (13. tur, M2): baştan sona dikey gradyan;
             // ASTC bunu bantlıyor ve şeritler kademeli görünüyor.
             "awning_shop",
+            // Bölüm kurdelesi (13. tur, M3a): altın-turuncu geçişi ince ve
+            // bantlanmaya çok açık.
+            "ribbon_section",
         };
 
         /// <summary>
