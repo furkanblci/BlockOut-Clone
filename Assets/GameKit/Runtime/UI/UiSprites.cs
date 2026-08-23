@@ -691,6 +691,140 @@ namespace GameKit.UI
         /// bırakıyor, küp alınca kenar tamamen kayboluyor ve hale "bir yerde
         /// biten" bir şekil olmaktan çıkıyor.
         /// </summary>
+        /// <summary>
+        /// Yardımcı (booster) düğmesinin YÜZEYİ — tek prosedürel görsel.
+        ///
+        /// NEDEN TEK PARÇA (13. tur, F2 — kullanıcı: *"powerupların arka
+        /// butonunu güncelle, kötü duruyor"*):
+        ///
+        /// Bu düğme dört ayrı `RoundedPanel` katmanıyla kuruluyordu (koyu
+        /// kenar, gövde, kuyu, ikinci kuyu tonu) ve referansın en belirgin
+        /// özelliğini veremiyordu: yeşilin yukarıdan aşağı SÜREKLİ sönmesi.
+        /// Ölçüm (referans düğmenin dikey kesiti, yeşil kanal):
+        ///
+        ///     216 -> 208 -> 195 -> 174 -> 115     (%47 düşüş, pürüzsüz)
+        ///
+        /// Düz katmanlarla bunu vermek için 6-8 bant gerekiyor ve her bant
+        /// sınırı 138 birimlik bir düğmede BASAMAK olarak görünüyor. İki
+        /// tonla denendi, kullanıcı haklı olarak beğenmedi.
+        ///
+        /// Doku olarak üretilince rampa piksel piksel çiziliyor, basamak
+        /// kalmıyor; üstelik koyu kenar, kuyu ve kuyunun üst parlaklığı da
+        /// aynı dokuya giriyor, yani dört katman bire iniyor.
+        ///
+        /// DERS (katman sayısı artıyorsa, yanlış aracı kullanıyorsun):
+        /// Düz renk panelleri "iki-üç ton" için doğru araç. Sürekli bir
+        /// geçiş isteniyorsa panel eklemek çözüm değil — çizim gerekiyor.
+        ///
+        /// Boyut sabit (düğme 194x138 birim) olduğu için 9-dilime gerek yok;
+        /// doku doğrudan gerilmeden kullanılıyor.
+        /// </summary>
+        static Sprite _powerPad;
+
+        public static Sprite PowerPad
+        {
+            get
+            {
+                if (_powerPad != null) return _powerPad;
+
+                const int W = 256, H = 182;
+                var tex = new Texture2D(W, H, TextureFormat.RGBA32, false)
+                {
+                    name = "UiPowerPad",
+                    hideFlags = HideFlags.HideAndDontSave,
+                    wrapMode = TextureWrapMode.Clamp,
+                    filterMode = FilterMode.Bilinear
+                };
+
+                // Ölçülen duraklar (referans kesiti, üstten alta).
+                var durakT = new[] { 0.00f, 0.22f, 0.46f, 0.72f, 1.00f };
+                var durakC = new[]
+                {
+                    new Color(36f / 255f, 216f / 255f,  29f / 255f),
+                    new Color(58f / 255f, 208f / 255f,  31f / 255f),
+                    new Color(36f / 255f, 195f / 255f,  18f / 255f),
+                    new Color(34f / 255f, 174f / 255f,  13f / 255f),
+                    new Color(14f / 255f, 115f / 255f,  10f / 255f),
+                };
+
+                var kenar = new Color(0f, 54f / 255f, 0f);
+                var kuyuKenar = new Color(18f / 255f, 132f / 255f, 8f / 255f);
+
+                float rDis = H * 0.24f;          // dış köşe yarıçapı
+                float kalin = H * 0.055f;        // koyu kenar kalınlığı
+                float rIc = rDis - kalin;
+
+                // Kuyu: ikonun oturduğu açık alan (y AŞAĞIDAN).
+                // Kuyu ilk denemede %11/%26..%92 verildi ve düğmenin
+                // neredeyse tamamını kapladı; referansta kuyunun ÇEVRESİNDE
+                // görünür bir koyu yeşil bilezik var ve o bilezik düğmeye
+                // derinlik veren şey.
+                float kx0 = W * 0.135f, kx1 = W * 0.865f;
+                float ky0 = H * 0.305f, ky1 = H * 0.875f;
+                float rKuyu = (ky1 - ky0) * 0.28f;
+
+                var px = new Color32[W * H];
+                for (int y = 0; y < H; y++)
+                    for (int x = 0; x < W; x++)
+                    {
+                        float fx = x + 0.5f, fy = y + 0.5f;
+                        float dDis = PadMesafe(fx, fy, 0f, 0f, W, H, rDis);
+                        if (dDis > 0.7f) { px[y * W + x] = new Color32(0, 0, 0, 0); continue; }
+
+                        // t: ÜSTTEN aşağı 0..1 (doku y'si aşağıdan yukarı)
+                        float t = 1f - (float)y / (H - 1);
+                        Color c = PadTon(durakT, durakC, t);
+
+                        float dIc = PadMesafe(fx, fy, kalin, kalin, W - kalin, H - kalin, rIc);
+                        if (dIc > -0.5f)
+                        {
+                            c = Color.Lerp(c, kenar, Mathf.Clamp01(dIc + 1f));
+                        }
+                        else
+                        {
+                            float dK = PadMesafe(fx, fy, kx0, ky0, kx1, ky1, rKuyu);
+                            if (dK < 0f)
+                            {
+                                float ust = Mathf.Clamp01((fy - ky0) / (ky1 - ky0));
+                                c = Color.Lerp(c, Color.white, 0.10f + 0.10f * ust);
+                                c = Color.Lerp(c, kuyuKenar, Mathf.Clamp01(1.6f + dK) * 0.70f);
+                            }
+                        }
+
+                        c.a = Mathf.Clamp01(0.7f - dDis);
+                        px[y * W + x] = c;
+                    }
+
+                tex.SetPixels32(px);
+                tex.Apply(false, true);
+                _powerPad = Sprite.Create(tex, new Rect(0f, 0f, W, H),
+                    new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
+                _powerPad.name = "UiPowerPad";
+                _powerPad.hideFlags = HideFlags.HideAndDontSave;
+                return _powerPad;
+            }
+        }
+
+        /// <summary>Yuvarlak dikdörtgenin imzalı mesafesi; İÇİ negatif.</summary>
+        static float PadMesafe(float x, float y, float x0, float y0, float x1, float y1, float r)
+        {
+            float cx = Mathf.Max(Mathf.Max(x0 + r - x, 0f), Mathf.Max(x - (x1 - r), 0f));
+            float cy = Mathf.Max(Mathf.Max(y0 + r - y, 0f), Mathf.Max(y - (y1 - r), 0f));
+            return Mathf.Sqrt(cx * cx + cy * cy) - r;
+        }
+
+        /// <summary>Çok duraklı dikey renk rampası.</summary>
+        static Color PadTon(float[] t, Color[] c, float u)
+        {
+            for (int i = 1; i < t.Length; i++)
+            {
+                if (u > t[i] && i != t.Length - 1) continue;
+                float k = Mathf.InverseLerp(t[i - 1], t[i], Mathf.Clamp(u, t[i - 1], t[i]));
+                return Color.Lerp(c[i - 1], c[i], k);
+            }
+            return c[c.Length - 1];
+        }
+
         public static Sprite Radial
         {
             get

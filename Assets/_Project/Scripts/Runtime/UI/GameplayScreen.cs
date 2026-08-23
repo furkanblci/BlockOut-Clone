@@ -1049,39 +1049,30 @@ namespace BlockOut.Runtime.UI
                 // ikonlar arkalarındaki parlak yeşile karışıyordu. Referansta
                 // parlaklık yukarıdan aşağıya düşüyor ve en altta sert bir koyu
                 // bant var; ikon o düşüşün ortasında durduğu için öne çıkıyor.
+                // YÜZEY TEK PROSEDÜREL GÖRSEL (13. tur, F2 — kullanıcı:
+                // *"powerupların arka butonunu güncelle, kötü duruyor"*).
+                //
+                // Burada dört düz katman vardı: koyu kenar, gövde ve iki
+                // kuyu tonu. Referansın yeşili yukarıdan aşağı SÜREKLİ
+                // sönüyor (216 -> 115, %47) ve düz panellerle bunu vermek
+                // için 6-8 bant gerekiyor; her bant sınırı 138 birimlik bir
+                // düğmede basamak olarak görünüyor. İki tonla denendi,
+                // kullanıcı beğenmedi — haklıydı.
+                //
+                // `UiSprites.PowerPad` rampayı, koyu kenarı, kuyuyu ve
+                // kuyunun üst parlaklığını TEK dokuya çiziyor; basamak yok
+                // ve dört katman bire indi.
+                //
+                // DERS (katman sayısı artıyorsa yanlış aracı kullanıyorsun):
+                // Düz renk panelleri iki-üç ton için doğru araç; sürekli bir
+                // geçiş isteniyorsa panel eklemek çözüm değil, çizim gerekli.
                 var face = button.targetGraphic as Image;
-                if (face != null) face.color = PowerEdge;
-
-                // Gövde alt kenardan 12% pay bırakıyor: koyu bant orada doğuyor.
-                var body = UiKit.CreateRoundedPanel("Body", button.transform, PowerBody);
-                body.raycastTarget = false;
-                // Gövde 0,045 -> 0,065: referansta düğmenin DÖRT YANINDA da
-                // görünür koyu yeşil bir kenar var, bizde yalnız altta
-                // belirgindi.
-                UiKit.Place(body, 0.065f, 0.115f, 0.935f, 0.945f);
-
-                // Parlak üst alan: ikonun oturduğu yuva.
-                // YEŞİL AŞAĞI DOĞRU SÖNÜYOR (13. tur, F2 — kullanıcı:
-                // *"poweruplar arkaplanı"*).
-                //
-                // ÖLÇÜM (düğmenin ortasından dikey kesit, yeşil kanal):
-                //     referans  216 -> 195 -> 174 -> 115   (%47 düşüş)
-                //     bizim     236 -> 200                 (%15 düşüş)
-                // Yani bizim düğme neredeyse DÜZ bir yeşil lekeydi; kuyu ile
-                // gövde arasında görünür bir fark yoktu.
-                //
-                // Elimizde dikey gradyan sprite'ı yok; düşüş İKİ TONLU kuyuyla
-                // veriliyor — alta koyu bir orta ton, üste parlak kuyu. 138
-                // birimlik bir düğmede iki basamak sürekli bir geçiş gibi
-                // okunuyor, üstelik referansın kendi kesiti de zaten basamaklı.
-                var wellLow = UiKit.CreateRoundedPanel("WellLow", button.transform,
-                    new Color(0.133f, 0.682f, 0.051f));
-                wellLow.raycastTarget = false;
-                UiKit.Place(wellLow, 0.10f, 0.30f, 0.90f, 0.925f);
-
-                var well = UiKit.CreateRoundedPanel("Well", button.transform, PowerWell);
-                well.raycastTarget = false;
-                UiKit.Place(well, 0.10f, 0.46f, 0.90f, 0.925f);
+                if (face != null)
+                {
+                    face.sprite = UiSprites.PowerPad;
+                    face.type = Image.Type.Simple;
+                    face.color = Color.white;
+                }
 
                 var icon = UiKit.CreateIcon("Icon", button.transform, UiSkin.Get(icons[i]));
                 icon.raycastTarget = false;
@@ -1090,7 +1081,9 @@ namespace BlockOut.Runtime.UI
                 // TAŞIYORDU; referansta açık yeşil kuyunun içinde ve her
                 // yanında yeşil pay var. Kuyu, ikonu "oturtan" şey — ikon
                 // onu kaplayınca düğme düz bir ikon lekesine dönüyor.
-                UiKit.Place(icon, 0.18f, 0.30f, 0.82f, 0.87f);
+                // İkon kuyunun İÇİNDE kalıyor: kuyu %30,5..%87,5,
+                // ikon %34..%84 — dört yandan da yeşil pay var.
+                UiKit.Place(icon, 0.20f, 0.34f, 0.80f, 0.84f);
 
                 // ADET ROZETİ: sağ alt KÖŞEDEN taşan, koyu kenarlı KIRMIZI
                 // YUVARLAK KARE.
@@ -1184,9 +1177,14 @@ namespace BlockOut.Runtime.UI
                 // Punto 28 -> 34: hap 42 birim yüksek, 28 punto orada ~20
                 // birim çiziyordu; referansta rakam hapın üçte ikisini
                 // kaplıyor.
-                var priceText = UiKit.CreateTitle("PriceText", price.transform, "", 34,
+                // SAYI ORTALANDI VE BÜYÜDÜ (13. tur — kullanıcı:
+                // *"powerupların altındaki sayıları da ortala büyüt,
+                // referanstaki gibi olsun"*). Kutu jetonun sağındaki boşluğa
+                // ortalanıyor (0,32..0,98 -> merkez 0,65) ve punto 34 -> 44.
+                var priceText = UiKit.CreateTitle("PriceText", price.transform, "", 44,
                     PriceInk, new Color(0f, 0f, 0f, 0f));
-                UiKit.Place(priceText, 0.30f, 0.04f, 0.94f, 0.96f);
+                priceText.alignment = TMPro.TextAlignmentOptions.Center;
+                UiKit.Place(priceText, 0.32f, 0.04f, 0.98f, 0.96f);
 
                 // Jeton hapın DIŞINDA (kardeşi, çocuğu değil): hapın kenarını
                 // aşması gerekiyor, çocuk olsaydı hapın içine sıkışırdı.
@@ -3129,10 +3127,21 @@ namespace BlockOut.Runtime.UI
                 //
                 // Boşta yeşil, seçiliyken ALTIN: seçim durumu artık yeşilden
                 // ayrışmak zorunda.
+                //
+                // 13. TURDA DÜZELTİLDİ: yüzey artık `PowerPad` GÖRSELİ
+                // taşıyor, `PowerEdge` yazmak onu koyu yeşille ÇARPIP
+                // karartırdı. Boşta beyaz (yani görselin kendi renkleri),
+                // seçiliyken altın tint.
+                //
+                // DERS (boyamadan görsele geçerken tazeleme kodunu da ara):
+                // Kurulum kodunu değiştirmek yetmiyor; rengi HER KARE yazan
+                // yer varsa asıl davranışı o belirliyor — bu projede aynı
+                // tuzağa "Açık çipi üç katmana çıktı ama Apply tek katman
+                // yazıyordu" diye daha önce de düşülmüştü.
                 if (face != null)
                     face.color = power.Pending == kind
                         ? new Color(1f, 0.82f, 0.15f)
-                        : PowerEdge;
+                        : Color.white;
             }
 
             // Süre donmuşken ekranın kenarında buzlu bir çerçeve dursun:
