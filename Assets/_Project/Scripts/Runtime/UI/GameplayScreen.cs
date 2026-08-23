@@ -1599,8 +1599,20 @@ namespace BlockOut.Runtime.UI
             // da doğru yerde durur. Kart oynamaya başladığı anda fark
             // ortaya çıkıyor. Bir öğe bir panelin PARÇASIysa o panelin
             // ÇOCUĞU olmalı; aynı yerde durmaları yetmiyor.
-            var title = UiKit.CreateTitle("Title", _pauseCard.transform, "Pause", 88, Ink, TitleOutline);
-            UiKit.Place(title, 0.179f, 0.939f, 0.820f, 1.069f);
+            // BAŞLIK %89 BÜYÜDÜ (13. tur, P5 — gerçek referansla).
+            //
+            // ÖLÇÜM (`durak_avg.png` vs bizim yakalama, kapak yüksekliği):
+            //     referans 104 birim   bizim 55   ->  x1,89
+            // Alt kenarı da kartın üst kenarının 0,023 ALTINDA (bizde 0,012),
+            // yani başlık karta daha çok biniyor.
+            //
+            // Punto 88 -> 166. Kutu da büyüdü, yoksa `UiTextFit` yazılan
+            // puntoyu sessizce geri kısardı — bu projede tekrarlayan ders:
+            // "kutuya sığmayan punto, yazılmamış puntodur".
+            var title = UiKit.CreateTitle("Title", _pauseCard.transform, "Pause", 166, Ink, TitleOutline);
+            // Kutu 0,0186 kart-göreli AŞAĞI: ilk denemede yazının alt kenarı
+            // %78,3'te kaldı, referansta %77,3.
+            UiKit.Place(title, 0.080f, 0.8814f, 0.920f, 1.1314f);
 
             // KABARTMA (12. tur, P4): menü başlıklarıyla aynı muamele.
             // Kullanıcı: *"tasarım olarak da pause textini düzelt, bahsettiğim
@@ -1627,7 +1639,10 @@ namespace BlockOut.Runtime.UI
             // kadar doğru renkte olursa olsun, yüzeyden kopuk görünüyor.
             // Çarpı da karta bağlandı — gerekçe yukarıda (P3).
             var close = UiKit.CreateRect("Close", _pauseCard.transform);
-            UiKit.Place(close, 0.886f, 0.883f, 0.995f, 0.968f);
+            // KAPAT %35 BÜYÜDÜ (13. tur, P5). Ölçüm: referans 88 birim çap,
+            // bizim 65. Merkez zaten doğruydu (0,913 / 0,755 vs 0,917 /
+            // 0,756), yalnız boy küçüktü.
+            UiKit.Place(close, 0.8669f, 0.8681f, 1.0141f, 0.9829f);
 
             // Gölge KALIYOR: görselin kendi içinde gölgesi yok, karta
             // oturduğunu gösteren şey bu.
@@ -1647,7 +1662,7 @@ namespace BlockOut.Runtime.UI
             // Üç ayar satırı. Referanstaki sıra: Sounds, Musics, Haptics.
             BuildSettingRow(0, UiSprites.Speaker, "Sounds:", 0.785f, 0.869f,
                 on => SettingsBinder.SetSounds(on, _session.Audio, _session.Haptics),
-                iconScale: 1.22f);   // hoparlor: cizilen 50 birim -> hedef 61
+                iconScale: 1.46f);   // hoparlor -> hedef 74 birim (gercek referans)
             // "Musics:" DEĞİL (11. tur): "music" İngilizce'de sayılamayan bir
             // isim, çoğulu yok. Ayarlar ekranı aynı satıra zaten "Music"
             // diyordu (SettingsScreen.cs:222) — aynı kontrol iki ekranda iki
@@ -1656,10 +1671,10 @@ namespace BlockOut.Runtime.UI
             // de çoğullanmış.
             BuildSettingRow(1, UiSprites.MusicNote, "Music:", 0.660f, 0.744f,
                 on => SettingsBinder.SetMusic(on, _session.Audio, _session.Haptics),
-                iconScale: 0.95f);   // nota: 64 -> 61
+                iconScale: 1.14f);   // nota -> 74
             BuildSettingRow(2, UiSprites.Haptics, "Haptics:", 0.535f, 0.619f,
                 on => SettingsBinder.SetHaptics(on, _session.Audio, _session.Haptics),
-                iconScale: 1.79f);   // titresim: 34 -> 61 (en cok dolgusu olan)
+                iconScale: 2.15f);   // titresim -> 74 (en cok dolgusu olan)
 
             // DÜĞMELER KARTIN İÇ YÜZEYİNE SIĞDIRILDI (7. tur, S62).
             //
@@ -1682,9 +1697,30 @@ namespace BlockOut.Runtime.UI
             //   ayraç  0.512-0.519   (Haptics satırı 0.535'te bitiyor)
             //   Resume 0.330-0.487
             //   Quit   0.140-0.297   (iç yüzey 0.121'de bitiyor)
+            //
+            // ---- 13. TURDA GEÇERSİZ KALDI ----
+            //
+            // Yukarıdaki "iç yüzey 0,121'de bitiyor" sınırı `panel_card`
+            // GÖRSELİNİN kalın alt dudağından geliyordu. 8. turda kart
+            // görselden çıkarılıp `CreateRoundedPanel` bantlarına çevrildi
+            // ama bu sınır kaldı. Dikey kesit ölçüldü: kartın iç yüzü artık
+            // kart-göreli **0,019**'da bitiyor, yani düğmeler için 100 birim
+            // fazladan yer VAR ve düğmeler o yüzden yukarı sıkışmıştı.
+            //
+            // GERÇEK REFERANSTAN (`durak_avg.png`, kart-göreli):
+            //     ayraç   0,490
+            //     Sürdür  0,298-0,443   (bizde 0,356-0,482)
+            //     Çıkış   0,088-0,237   (bizde 0,166-0,292)
+            // Referansın düğmeleri hem DAHA AŞAĞIDA hem %15 daha yüksek.
+            //
+            // DERS (bir kısıt, dayandığı şey kalkınca da yaşamaya devam
+            // eder): Sınırı koyan sebep (kalın dudaklı sprite) bir tur sonra
+            // ortadan kalktı; sayı kaldı ve yerleşimi bir daha kimse
+            // sorgulamadı. Bir varlığı çıkarırken ONA GÖRE konmuş sayıları da
+            // tara.
             var divider = UiKit.CreatePanel("Divider", _pauseCard.transform,
                 new Color(1f, 1f, 1f, 0.18f));
-            UiKit.Place(divider, 0.133f, 0.512f, 0.873f, 0.519f);
+            UiKit.Place(divider, 0.133f, 0.487f, 0.873f, 0.494f);
 
             // GÖRSELDEN REÇETEYE (8. tur). Bu iki düğme `btn_green.png` /
             // `btn_red.png` görsellerinden geliyordu; oyundaki BÜTÜN diğer
@@ -1698,14 +1734,14 @@ namespace BlockOut.Runtime.UI
             // kullanılmıyor.
             var resume = MenuPage.PillButton("Resume", _pauseCard.transform,
                 "Resume", MenuPage.Green, 46, null);
-            UiKit.Place(resume, 0.237f, 0.330f, 0.763f, 0.487f);
+            UiKit.Place(resume, 0.237f, 0.272f, 0.763f, 0.448f);
             resume.onClick.AddListener(() => SetPaused(false));
 
             // Referansta "Yeniden Başla" YOK — kaldırıldı. Bölümü yeniden
             // başlatmak isteyen HUD'daki geri düğmesini kullanıyor.
             var quit = MenuPage.PillButton("Quit", _pauseCard.transform,
                 "Quit", MenuPage.Red, 46, null);
-            UiKit.Place(quit, 0.237f, 0.140f, 0.763f, 0.297f);
+            UiKit.Place(quit, 0.237f, 0.0615f, 0.763f, 0.2415f);
             quit.onClick.AddListener(AppRouter.GoHome);
 
             _pausePanel.gameObject.SetActive(false);
@@ -1760,7 +1796,9 @@ namespace BlockOut.Runtime.UI
             // merkezi tutuyorsa ortalıdır. Tek bir satıra bakmak ikisini
             // ayırt ettirmez — bizde dördü de sola dayalıydı ve fark ancak
             // uzun/kısa etiketler yan yana ölçülünce görüldü.
-            var text = UiKit.CreateTitle($"Label_{index}", card, label, 40, Ink, TitleOutline);
+            // Punto 40 -> 55: ölçülen kapak yüksekliği bizde ekranın
+            // %1,30-%1,82'si, gerçek referansta %1,92-%2,40'ı.
+            var text = UiKit.CreateTitle($"Label_{index}", card, label, 55, Ink, TitleOutline);
             text.alignment = TextAlignmentOptions.Center;
             UiKit.Place(text, 0.265f, y0, 0.540f, y1);
 
@@ -1770,8 +1808,29 @@ namespace BlockOut.Runtime.UI
             // beyaz "On" yazısı, kabartma yok. Ayarlar ekranındaki ise
             // referanstan ölçülmüştü. Aynı kontrol iki ekranda iki türlü
             // görünüyordu — düğmelerdeki hikâyenin aynısı, aynı çözüm.
+            // ANAHTAR KENDİ (DAHA UZUN) BANDINDA (13. tur, P5 — GERÇEK
+            // referansla).
+            //
+            // P5'i ilk kapatırken duraklat panelinin referansı elimizde YOK
+            // sanmış ve `menus,powerups,vs.mp4`teki "Ayarlar" ekranını vekil
+            // almıştım. Gerçek referans `Game over .mp4`ün 1. saniyesinde
+            // duruyormuş (`_Reference/notes/durak_avg.png`, t=1,0-1,55 arası
+            // 34 kare) ve iki ekran AYNI DEĞİL: duraklat panelinin anahtarı
+            // belirgin biçimde daha iri.
+            //
+            //     cip yuksekligi:  referans 75 birim   bizde 50   -> x1,50
+            //
+            // Simge ve etiket satırın kendi bandını kullanmaya devam ediyor;
+            // yalnız anahtar bandı büyüyor, yoksa üçü birden şişerdi.
+            //
+            // DERS (vekil referans, referans değildir): Elimizde olmadığını
+            // sandığım bir ekran için "aynı bileşeni kullanan başka bir
+            // ekran" yeterli göründü ve ölçüler %50'ye varan farkla yanlış
+            // çıktı. Vekille çalışmak zorundaysan bunu KAYDA GEÇİR ki gerçek
+            // kaynak çıkınca yeniden ölçülsün.
+            float sm = (y0 + y1) * 0.5f, sh = (y1 - y0) * 0.5f * 1.50f;
             var view = MenuPage.Switch($"Track_{index}", card, 30);
-            UiKit.Place(view.Root, 0.553f, y0, 0.863f, y1);
+            UiKit.Place(view.Root, 0.553f, sm - sh, 0.863f, sm + sh);
 
             _toggles[index] = view;
 

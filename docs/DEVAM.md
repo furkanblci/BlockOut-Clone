@@ -6144,3 +6144,75 @@ Sonuç: %24,8 (referans %25,2), yatay merkez %86,25 (referans %86,20).
 ekran can kutusu) kutu 1/0,796 = **×1,256** büyütüldü; oralarda eski kurguda
 kutuyu düz kırmızı bir daire dolduruyordu, yani görünen kırmızıyı korumak
 için halkanın payı eklendi.
+
+---
+
+## 13. tur (devam) — P5 YENİDEN: duraklat panelinin GERÇEK referansı vardı
+
+**Kendi hatamı düzeltiyorum.** P5'i kapatırken "duraklat panelinin referansı
+elimizdeki videoların hiçbirinde yok" deyip `menus,powerups,vs.mp4`teki
+**Ayarlar** ekranını vekil almıştım (aynı satır kurgusu: simge · etiket ·
+ikili anahtar). Sonra `Game over .mp4`ün kare temas sayfasını çıkarınca panel
+**1. saniyede** karşıma çıktı.
+
+Vekil yanlış ölçüler verdi — iki ekran aynı bileşeni kullanıyor ama aynı
+BOYUTTA kullanmıyor:
+
+| öge | vekille kurduğum | GERÇEK referans | düzeltme |
+|---|---|---|---|
+| anahtar çipi | 61 birim | **75** | ×1,50 |
+| satır simgesi | 61 birim | **74** | ×1,20 |
+| satır etiketi | punto 40 | **punto 55** | ×1,37 |
+| başlık | 55 birim | **104** | ×1,89 (punto 88 → 166) |
+| kapat çarpısı | 65 birim | **88** | ×1,35 |
+
+> **Ders:** vekil referans, referans değildir. Elimde olmadığını sandığım bir
+> ekran için "aynı bileşeni kullanan başka bir ekran" makul göründü ve
+> ölçüler %89'a varan farkla yanlış çıktı. Daha önemlisi: kaynağın YOK
+> olduğuna karar vermeden önce eldeki her videonun kare temas sayfasını
+> çıkarmak 30 saniye sürüyor. Bu oturumda aynı hatayı ikinci kez yaptım
+> (referans videolarının OneDrive'da olduğunu daha önce de kaçırmıştım).
+
+### Kart ölçüsü: kendi ölçümüme de aldandım
+
+Renk maskesiyle kart sınırlarını ölçünce "bizim kart %9,5 dar ve %16 kısa"
+çıktı. Kartı büyütmeye başlamadan önce yatay ve dikey KESİT aldım:
+
+```
+             dis kenar        yuz baslangici
+referans     x %3,1           x %9,4        y %79,8 / %25,7
+bizim        x %3,3           x %8,9        y %79,5 / %25,8
+```
+
+Kart zaten birebir doğruymuş. Maske iki görüntüde FARKLI bantları
+yakalıyordu (bizde dört bant var, referansta üç).
+
+> **Ders:** bir kutuyu renk maskesiyle ölçerken, maskenin iki görüntüde de
+> AYNI katmanı yakaladığını doğrula. Kesit almak bunu bir bakışta gösteriyor;
+> maske sessizce yanlış cevap veriyor.
+
+### Ölü bir kısıt bulundu
+
+Düğmeler yukarı sıkışmıştı çünkü kodda "kartın iç yüzeyi kart-göreli
+0,121'de bitiyor" diye bir sınır vardı. O sınır `panel_card` GÖRSELİNİN kalın
+alt dudağından geliyordu; 8. turda kart görselden çıkarılıp
+`CreateRoundedPanel` bantlarına çevrilmiş ama sayı kalmıştı. Dikey kesit: iç
+yüz artık **0,019**'da bitiyor, yani 100 birim boş yer vardı.
+
+> **Ders:** bir kısıt, dayandığı şey kalkınca da yaşamaya devam eder. Bir
+> varlığı çıkarırken ONA GÖRE konmuş sayıları da tara.
+
+### Sonuç (hepsi ölçüldü)
+
+```
+             referans        bizim
+baslik        104 br          106 br
+baslik alt    %77,3           %77,3
+kapat cap      88 br           89 br
+kapat merkez  (%91,7,%75,6)   (%91,3,%75,5)
+cip           74/76/76 br     78/79/79 br
+simge         -/76/74 br      78/75/75 br
+etiket        37/37/46 br     35/38/47 br
+Surdur        %41,8..%49,6    %41,9..%49,5
+Cikis         %30,5..%38,2    %30,6..%38,4
+```

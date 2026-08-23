@@ -459,10 +459,20 @@ varlık kullanmak serbest.
       > boyutuna kapat butonunun yerine, üzerine basılı tuttuğumuzda hareket
       > etmesine vs dikkat edelim, bunların hepsini yapıcaz"*
 
-      **13. TURDA KAPATILDI.** Duraklat panelinin referansı elimizdeki
-      videolarda YOK; ama `menus,powerups,vs.mp4` 54. sn'deki "Ayarlar"
-      ekranı birebir aynı satır kurgusunu taşıyor (109 kare ortalandı:
-      `_Reference/notes/ayarlar_avg.png`). Oradan ölçülerek:
+      **13. TURDA KAPATILDI — SONRA GERÇEK REFERANSLA YENİDEN YAPILDI.**
+
+      İlk turda "duraklat panelinin referansı yok" deyip Ayarlar ekranını
+      vekil almıştım. Panel `Game over .mp4`ün **1. saniyesinde** varmış
+      (`_Reference/notes/durak_avg.png`, t=1,0-1,55 arası 34 kare). Vekil
+      %89'a varan hata verdi; hepsi gerçek kaynakla yeniden ölçüldü:
+      başlık 55→106 birim, kapat 65→89, anahtar çipi 50→79, simge 61→75,
+      etiket puntosu 40→55, düğmeler referans yerine indi.
+
+      Ayrıca ölü bir kısıt bulundu: kod "kartın iç yüzeyi 0,121'de bitiyor"
+      diyordu, o sınır 8. turda çıkarılan `panel_card` görselinden kalmaydı;
+      gerçek değer 0,019 ve düğmeler için 100 birim boş yer vardı.
+
+      İlk turda (vekille) yapılanlar:
       - **simge boyutları** eşitlendi (50/64/34 -> 62/61/61 birim); sorun
         kutuda değil sprite'ların farklı saydam dolgusundaydı
       - **etiketler ortalandı** (referansta dört etiketin merkezi aynı,
