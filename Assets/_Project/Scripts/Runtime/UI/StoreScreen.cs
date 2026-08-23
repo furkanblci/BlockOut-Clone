@@ -1045,7 +1045,20 @@ namespace BlockOut.Runtime.UI
             badge.anchoredPosition = new Vector2(98f, -98f);
             badge.localRotation = Quaternion.Euler(0f, 0f, 45f);
 
-            var flag = badge.gameObject.AddComponent<Image>();
+            // GÖLGE: kurdeleyi kartın yüzeyinden KALDIRAN şey. Referansta
+            // bandın altında koyu ince bir iz var; onsuz kurdele karta
+            // "çizilmiş" gibi duruyor.
+            var flagShadow = UiKit.CreateRect("Shadow", badge);
+            UiKit.Place(flagShadow, 0f, -0.14f, 1f, 0.86f);
+            var shadowImage = flagShadow.gameObject.AddComponent<Image>();
+            shadowImage.sprite = UiSprites.CornerRibbon;
+            shadowImage.type = Image.Type.Simple;
+            shadowImage.color = new Color(0.10f, 0f, 0.05f, 0.42f);
+            shadowImage.raycastTarget = false;
+
+            var flagFace = UiKit.CreateRect("Face", badge);
+            UiKit.Place(flagFace, 0f, 0f, 1f, 1f);
+            var flag = flagFace.gameObject.AddComponent<Image>();
             flag.sprite = UiSprites.CornerRibbon;
             flag.type = Image.Type.Simple;
             flag.raycastTarget = false;

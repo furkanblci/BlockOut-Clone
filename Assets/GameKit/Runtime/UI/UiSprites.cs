@@ -1153,15 +1153,41 @@ namespace GameKit.UI
                     filterMode = FilterMode.Bilinear
                 };
 
-                var durakT = new[] { 0.00f, 0.10f, 0.22f, 0.55f, 0.88f, 1.00f };
+                // PROFİL ZENGİNLEŞTİRİLDİ (kullanıcı: *"kurdele modelini de
+                // daha iyi hale getir, çok basit duruyor"*).
+                //
+                // İlk sürüm tek yönlü bir gradyandı: üstte koyu kenar, bir
+                // parlaklık, sonra aşağı doğru sönme. Referansı 8 kat
+                // büyütünce ve görüntüyü 45° döndürüp bandı YATAY hâle
+                // getirince (böylece profil yazısız sütunlardan ORTALANARAK
+                // okunabildi) iki eksik çıktı:
+                //
+                //   1. Bandın İKİ uzun kenarında da parlak birer çizgi var;
+                //      bende yalnız üstte vardı.
+                //   2. Gövdenin ortasında ayrı bir spekülar (ışık) bandı var.
+                //
+                // Ölçülen profil (üstten alta): koyu kenar -> parlak çizgi ->
+                // magenta gövde -> spekülar -> koyu -> parlak çizgi -> koyu
+                // kenar. Yani band bir ŞERİT değil, kenarları kıvrık bir
+                // KURDELE gibi okunuyor; "çok basit duruyor" dedirten şey bu
+                // simetrik kenar çiftinin olmamasıydı.
+                //
+                // DERS (bir bandın profilini TEK kesitten okuma): JPEG + video
+                // sıkıştırmasında tek bir dik kesit gürültüden ibaret.
+                // Görüntüyü döndürüp bandı eksenlerden birine oturtmak,
+                // yazısız sütunları ortalamayı ve gerçek profili görmeyi
+                // mümkün kılıyor.
+                var durakT = new[] { 0.00f, 0.07f, 0.17f, 0.42f, 0.62f, 0.80f, 0.93f, 1.00f };
                 var durakC = new[]
                 {
-                    new Color(140f / 255f,  10f / 255f,  70f / 255f),
-                    new Color(255f / 255f, 130f / 255f, 200f / 255f),
-                    new Color(230f / 255f,  40f / 255f, 130f / 255f),
-                    new Color(210f / 255f,  30f / 255f, 118f / 255f),
-                    new Color(185f / 255f,  20f / 255f, 100f / 255f),
-                    new Color(120f / 255f,   6f / 255f,  58f / 255f),
+                    new Color(110f / 255f,  12f / 255f,  68f / 255f),
+                    new Color(255f / 255f, 140f / 255f, 205f / 255f),
+                    new Color(222f / 255f,  52f / 255f, 132f / 255f),
+                    new Color(238f / 255f,  66f / 255f, 148f / 255f),
+                    new Color(255f / 255f, 120f / 255f, 190f / 255f),
+                    new Color(205f / 255f,  32f / 255f, 112f / 255f),
+                    new Color(255f / 255f, 130f / 255f, 198f / 255f),
+                    new Color(110f / 255f,  12f / 255f,  68f / 255f),
                 };
 
                 var px = new Color32[W * H];

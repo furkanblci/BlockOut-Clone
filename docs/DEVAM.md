@@ -6771,3 +6771,32 @@ onunla dönüyor.
 > "OFF" ekranın dışında kaldı. Sonra kartın köşesi YUVARLAK olduğu için
 > 276'dan 244'e indirildi — uçlar düz kenarın olacağı yere değil,
 > yuvarlaklığın kestiği yere oturmalı.
+
+### Kurdele profili zenginleştirildi
+
+Kullanıcı: *"kurdele modelini de daha iyi hale getir, çok basit duruyor"* ve
+*"aynısını alabilirsin."*
+
+**Kesmeyi denedim, kaynak yetmedi.** 946x2048 ekran görüntülerinin hiçbirinde
+bu kurdele yok; tek kaynak 384 piksellik video karesi ve bandın DİK
+kalınlığı orada ~20 piksel. Bize 56 birim lazım, yani 2,4 kat büyütme —
+bulanık olurdu.
+
+**Bunun yerine profili doğru okudum.** Tek bir dik kesit JPEG+video
+gürültüsünden ibaret çıkıyordu (iki farklı noktadan iki farklı sonuç aldım).
+Çözüm: görüntüyü **45° döndürüp bandı YATAY hâle getirmek** — sonra yazısız
+sütunları ortalayarak gerçek profil okunabildi.
+
+İki eksik çıktı:
+1. Bandın **iki uzun kenarında da** parlak birer çizgi var; bende yalnız
+   üstte vardı.
+2. Gövdenin ortasında ayrı bir **spekülar** bandı var.
+
+Yani band bir ŞERİT değil, kenarları kıvrık bir KURDELE gibi okunuyor —
+"çok basit duruyor" dedirten şey bu simetrik kenar çiftinin olmamasıydı.
+Ayrıca bandın altına gölge eklendi (referansta var; onsuz kurdele karta
+"çizilmiş" gibi duruyor).
+
+> **Ders (bir bandın profilini TEK kesitten okuma):** Sıkıştırılmış bir
+> kaynakta tek dik kesit gürültüdür. Görüntüyü döndürüp bandı eksenlerden
+> birine oturtmak, ortalama almayı ve gerçek profili görmeyi mümkün kılıyor.
