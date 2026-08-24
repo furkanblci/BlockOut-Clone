@@ -160,18 +160,39 @@ namespace BlockOut.Runtime.UI
         /// Aradaki 55/65/70 gibi seviyelerde de ödül olabilir; videoda o
         /// aralıklar hiç ekrana gelmedi, uydurulmadı.
         /// </summary>
-        static readonly (int level, string icon, string value)[] Milestones =
+        /// <summary>
+        /// Kilometre taşları — GÖRÜNTÜ VE ÖDÜL BİR ARADA (14. tur, J1).
+        ///
+        /// Kullanıcı: *"belirli levellere gelince kalp coin arkaplan görseli
+        /// veriyor ya, bunların hepsini açabilelim kullanabilelim çalışsın
+        /// yani; o sorunluysa onu düzeltelim."* Sorunluydu: tablo yalnız
+        /// ikon ve yazıyı taşıyordu, ödülü VEREN hiçbir kod yoktu. Ekran
+        /// doğru görünüyordu — tik çıkıyor, boru uzuyordu — ama oyuncu
+        /// hiçbir şey almıyordu.
+        ///
+        /// DERS (görünen doğru, işleyen yok): Bir ekranın referansa benzemesi
+        /// çalıştığı anlamına gelmiyor. Bu tablo dört turdur "bitti" sayılan
+        /// bir ekranın içindeydi ve hiç kimse ödülün nereye gittiğini
+        /// sormamıştı. Her gösterge için "bunun arkasındaki durum nerede
+        /// tutuluyor?" diye sorulmalı.
+        ///
+        /// YAZILAR DA DÜZELTİLDİ: "30d" ve "1s" referansın TÜRKÇE
+        /// kısaltmalarıydı (30 dakika, 1 saat) ve İngilizce arayüzümüzde
+        /// "30 gün" gibi okunuyordu. "30m" / "1h" oldu.
+        /// </summary>
+        static readonly (int level, string icon, string value,
+                         int coins, int minutes, string powerUp)[] Milestones =
         {
-            (10, "coin_pile_1", "50"),
-            (15, Art.Infinite,  "30d"),
-            (25, Art.Infinite,  "1s"),
-            (30, Art.Clock,     "x1"),
-            (45, Art.Rocket,    "x1"),
-            (50, Art.Infinite,  "30d"),
-            (60, Art.Clock,     "x1"),
-            (75, Art.Rocket,    "x1"),
-            (80, Art.Clock,     "x1"),
-            (90, Art.Infinite,  "1s")
+            (10, "coin_pile_1", "50",  50,  0, null),
+            (15, Art.Infinite,  "30m",  0, 30, null),
+            (25, Art.Infinite,  "1h",   0, 60, null),
+            (30, Art.Clock,     "x1",   0,  0, "clock"),
+            (45, Art.Rocket,    "x1",   0,  0, "rocket"),
+            (50, Art.Infinite,  "30m",  0, 30, null),
+            (60, Art.Clock,     "x1",   0,  0, "clock"),
+            (75, Art.Rocket,    "x1",   0,  0, "rocket"),
+            (80, Art.Clock,     "x1",   0,  0, "clock"),
+            (90, Art.Infinite,  "1h",   0, 60, null)
         };
 
         /// <summary>
@@ -473,7 +494,8 @@ namespace BlockOut.Runtime.UI
         }
 
         /// <summary>Kilometre taşı: tek kapsül, solda seviye, sağda ödül.</summary>
-        void BuildMilestone((int level, string icon, string value) milestone, float y)
+        void BuildMilestone((int level, string icon, string value,
+                             int coins, int minutes, string powerUp) milestone, float y)
         {
             var row = UiKit.CreateRect($"Milestone_{milestone.level}", _content);
             AnchorNormalizedX(row, PillX0, PillX1, y, PillH);
@@ -863,6 +885,8 @@ namespace BlockOut.Runtime.UI
             foreach (var (check, level) in _checks)
                 check.enabled = reached >= level;
 
+            OdulleriDagit(reached);
+
             float progress = MarkerPosition(reached);
 
             // Boru ilerlemeyi taşır: ışıklı kısım oyuncunun bulunduğu yere
@@ -902,6 +926,34 @@ namespace BlockOut.Runtime.UI
             {
                 _markerLabel.text = reached.ToString();
                 _marker.anchoredPosition = new Vector2(_marker.anchoredPosition.x, progress);
+            }
+        }
+
+        /// <summary>
+        /// ULAŞILMIŞ AMA ALINMAMIŞ kilometre taşlarının ödüllerini verir (J1).
+        ///
+        /// Neden burada ve neden her tazelemede: Oyuncu bir seviyeyi bitirip
+        /// menüye döndüğünde bu ekran zaten tazeleniyor. Ayrı bir "ödül
+        /// dağıtıcı" servisi kurmak, aynı bilgiyi (hangi seviyede ne var) iki
+        /// yerde tutmak demekti — tablo değişince biri unutulurdu.
+        ///
+        /// Kayıt tek kaynak: `ProgressService.ClaimJourney` zaten alınmışsa
+        /// hiçbir şey yapmıyor, yani bu döngü kaç kez çalışırsa çalışsın
+        /// ödül bir kez veriliyor. Oyunu ilk kez bu sürümle açan ve zaten
+        /// 50. seviyede olan bir oyuncu, birikmiş taşların hepsini bir
+        /// defada alıyor — istenen davranış bu.
+        /// </summary>
+        void OdulleriDagit(int reached)
+        {
+            if (!MetaServices.Ready) return;
+            var progress = MetaServices.Progress;
+
+            foreach (var m in Milestones)
+            {
+                if (m.level > reached) break;              // tablo sıralı
+                progress.ClaimJourney(m.level, m.coins,
+                                      System.TimeSpan.FromMinutes(m.minutes),
+                                      m.powerUp, m.powerUp != null ? 1 : 0);
             }
         }
 

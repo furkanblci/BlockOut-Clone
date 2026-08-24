@@ -78,6 +78,24 @@ namespace BlockOut.Core.Save
         /// </summary>
         [JsonProperty("noAds")] public bool NoAds;
 
+        /// <summary>
+        /// Yolculuk ekranında ÖDÜLÜ ALINMIŞ kilometre taşlarının seviyeleri
+        /// (J1, 14. tur).
+        ///
+        /// NEDEN LİSTE: "en yüksek alınan seviye" tek bir sayı olarak
+        /// tutulabilirdi ama kilometre taşları ileride araya eklenebiliyor.
+        /// Sayıyla tutulsaydı, 30 ile 45 arasına yeni bir taş konduğunda 45'i
+        /// almış oyuncu yeni taşı hiç alamazdı. Liste her taşı bağımsız
+        /// izliyor.
+        ///
+        /// NEDEN GEREKLİ: Ödül olmadan da ekran çalışıyordu — tik çıkıyor,
+        /// boru uzuyordu. Ama kullanıcının istediği şey görüntü değil işleyiş:
+        /// *"belirli levellere gelince kalp coin arkaplan görseli veriyor ya,
+        /// bunların hepsini açabilelim kullanabilelim çalışsın yani."*
+        /// </summary>
+        [JsonProperty("journeyClaimed")] public List<int> JourneyClaimed
+            = new List<int>();
+
         /// <summary>Sınırsız can hakkının bitiş anı (UTC, ISO-8601). Boş = hak yok.</summary>
         [JsonProperty("infiniteLivesUntilUtc")] public string InfiniteLivesUntilUtc = "";
 

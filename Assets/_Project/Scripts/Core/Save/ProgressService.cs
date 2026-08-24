@@ -197,14 +197,54 @@ namespace BlockOut.Core.Save
             if (noAds) _save.Data.NoAds = true;
 
             if (infiniteLifeHours > 0)
-            {
-                var from = DateTime.UtcNow + InfiniteLivesLeft;
-                _save.Data.InfiniteLivesUntilUtc =
-                    from.AddHours(infiniteLifeHours).ToString("o");
-            }
+                UzatSinirsizCan(TimeSpan.FromHours(infiniteLifeHours));
 
             _save.Save();
             if (coins > 0) CoinsChanged?.Invoke(_save.Data.Coins);
+        }
+
+        /// <summary>
+        /// Sınırsız can süresini uzatır. Süre EKLENİR (bkz. GrantPackage).
+        ///
+        /// SAAT DEĞİL TimeSpan (14. tur, J1): Yolculuk ödülleri arasında
+        /// "30 dakika" var; `int` saat parametresiyle bu ifade edilemiyordu
+        /// ve 30 dakikalık ödül sessizce 0 saat oluyordu.
+        /// </summary>
+        public void UzatSinirsizCan(TimeSpan sure)
+        {
+            if (sure <= TimeSpan.Zero) return;
+            var from = DateTime.UtcNow + InfiniteLivesLeft;
+            _save.Data.InfiniteLivesUntilUtc = (from + sure).ToString("o");
+        }
+
+        // ---- Yolculuk kilometre taşları (J1) --------------------------------
+
+        /// <summary>Bu seviyenin yolculuk ödülü daha önce alındı mı?</summary>
+        public bool JourneyClaimed(int level) =>
+            _save.Data.JourneyClaimed != null && _save.Data.JourneyClaimed.Contains(level);
+
+        /// <summary>
+        /// Yolculuk ödülünü verir ve BİR KEZ alındığını kaydeder.
+        /// Zaten alınmışsa hiçbir şey yapmaz ve <c>false</c> döner.
+        /// </summary>
+        public bool ClaimJourney(int level, int coins, TimeSpan infiniteLives,
+                                 string powerUpId, int powerUpCount)
+        {
+            if (JourneyClaimed(level)) return false;
+
+            if (coins > 0)
+            {
+                _save.Data.Coins += coins;
+                CoinsChanged?.Invoke(_save.Data.Coins);
+            }
+            UzatSinirsizCan(infiniteLives);
+            if (!string.IsNullOrEmpty(powerUpId) && powerUpCount > 0)
+                SetPowerUpCount(powerUpId, PowerUpCount(powerUpId) + powerUpCount);
+
+            _save.Data.JourneyClaimed ??= new System.Collections.Generic.List<int>();
+            _save.Data.JourneyClaimed.Add(level);
+            _save.Save();
+            return true;
         }
     }
 }

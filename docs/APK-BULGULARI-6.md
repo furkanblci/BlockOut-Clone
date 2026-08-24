@@ -626,6 +626,35 @@ varlık kullanmak serbest.
       > olarak çalışsın: belirli levellere gelince kalp coin arkaplan
       > görseli veriyor ya, bunların hepsini açabilelim kullanabilelim
       > çalışsın yani; o sorunluysa onu düzeltelim"*
+      >
+      > **YARISI YAPILDI (14. tur).** Sorunluydu ve sebebi şuydu: kilometre
+      > taşı tablosu yalnız İKON ve YAZI taşıyordu, ödülü VEREN hiçbir kod
+      > yoktu. Ekran doğru görünüyordu — tik çıkıyor, boru uzuyordu — ama
+      > oyuncu hiçbir şey almıyordu.
+      >
+      > **BİTEN — jeton / sınırsız can / yardımcılar:**
+      >   * `SaveData.JourneyClaimed` (liste, tek sayı değil: ileride araya
+      >     yeni taş eklenirse eskisini almış oyuncu yenisini de alabilsin).
+      >   * `ProgressService.ClaimJourney(...)` — zaten alınmışsa hiçbir şey
+      >     yapmıyor, yani kaç kez çağrılırsa çağrılsın ödül bir kez veriliyor.
+      >   * `ProgressService.UzatSinirsizCan(TimeSpan)` — eski API `int` SAAT
+      >     alıyordu ve "30 dakika"lık ödül sessizce 0 saate düşüyordu.
+      >   * `JourneyScreen.OdulleriDagit` her tazelemede ulaşılmış ama
+      >     alınmamış taşları veriyor.
+      >   * Yazılar düzeltildi: "30d"/"1s" referansın TÜRKÇE kısaltmalarıydı
+      >     (30 dakika / 1 saat) ve İngilizce arayüzde "30 gün" gibi
+      >     okunuyordu -> "30m"/"1h".
+      >
+      > **DOĞRULAMA (bellek deposuyla, seviye 50'ye ulaşmış oyuncu):**
+      >     1. dağıtım: jeton 50, sınırsız can 120 dk (30+60+30), clock 1, rocket 1
+      >     2. dağıtım: hepsi aynı — "zaten alınmış"
+      >
+      > **KALAN — arka plan görseli:** Kullanıcının saydığı üçüncü ödül
+      > ("arkaplan görseli") bölge çemberlerine ait: referansta tamamlanmış
+      > bölgenin düğmesinde "Kullan" yazıyor, yani bölgenin görseli
+      > kullanılabilir bir ARKA PLAN oluyor. Bizde o düğme "Play" diyor ve
+      > seçilebilir arka plan envanteri yok. Bu ayrı bir özellik (envanter +
+      > ana ekrana uygulama) ve sıradaki turda yapılacak.
 
 - [ ] **J2.** Orijinale göre eksikler detaylıca incelenip kapatılacak.
 

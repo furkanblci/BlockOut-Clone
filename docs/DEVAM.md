@@ -7096,3 +7096,30 @@ parçasının birleşimi olarak çizildi. Sonuç en/boy 1,34, ekranın %11,0'i
 noktaları ölçülen orana koyunca yuvarlak uçlar dokunun dışına taştı ve sağ
 üst ile alt köşe düz kesildi. Her uç, kalınlığın yarısı kadar içeride
 başlamalı.
+
+### J1 — "görünen doğru, işleyen yok"
+Kilometre taşı tablosu yalnız ikon ve yazı taşıyordu; ödülü VEREN hiçbir kod
+yoktu. Ekran doğru görünüyordu (tik çıkıyor, boru uzuyor) ama oyuncu hiçbir
+şey almıyordu. Dört turdur "bitti" sayılan bir ekranın içindeydi.
+
+Eklenenler: `SaveData.JourneyClaimed` (liste — ileride araya taş eklenirse
+eskisini almış oyuncu yenisini de alabilsin), `ProgressService.ClaimJourney`
+(alınmışsa hiçbir şey yapmaz), `UzatSinirsizCan(TimeSpan)` (eski API `int`
+SAAT alıyordu, "30 dakika" sessizce 0 saate düşüyordu),
+`JourneyScreen.OdulleriDagit`.
+
+Doğrulama (bellek deposu, seviye 50'ye ulaşmış oyuncu):
+1. dağıtım jeton 50 / sınırsız can 120 dk / clock 1 / rocket 1;
+2. dağıtım hepsi aynı.
+
+Yazılar da düzeltildi: "30d" ve "1s" referansın TÜRKÇE kısaltmalarıydı
+(30 dakika, 1 saat); İngilizce arayüzümüzde "30 gün" gibi okunuyordu.
+
+**Ders (her göstergenin arkasında bir durum olmalı):** Bir ekranın referansa
+benzemesi çalıştığı anlamına gelmiyor. Bu tablo dört turdur ekrandaydı ve
+kimse ödülün NEREYE gittiğini sormamıştı. Bundan sonra her gösterge için
+"bunun arkasındaki durum nerede tutuluyor, kim yazıyor?" diye sorulacak.
+
+**KALAN:** kullanıcının saydığı üçüncü ödül olan "arkaplan görseli" bölge
+çemberlerine ait (referansta tamamlanmış bölgede "Kullan" düğmesi). Bizde o
+düğme "Play" diyor ve seçilebilir arka plan envanteri yok.
