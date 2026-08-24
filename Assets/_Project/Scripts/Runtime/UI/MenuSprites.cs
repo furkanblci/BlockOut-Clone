@@ -1142,6 +1142,204 @@ namespace BlockOut.Runtime.UI
             return _offerBand;
         }
 
+        static Sprite _tabCard;
+
+        /// <summary>
+        /// Alt çubuktaki SEÇİLİ sekme kartı — dudağı kenar mesafesine göre
+        /// boyanmış tek görsel (N1).
+        ///
+        /// ÖLÇÜM (8 kare ortalaması, kartın SOL kenarından yatay kesit;
+        /// 1 kare pikseli = 2 kanvas birimi):
+        ///     0-4    ( 28,  5, 131)  koyu dış kenar
+        ///     8-12   ( 56, 33, 164)  ince ışık
+        ///     12-16  ( 38, 17, 146)  KOYU OYUK
+        ///     20-24  ( 64, 45, 180)
+        ///     28-32  (113, 94, 246)  parlak iç rim
+        ///     32+    ( 93, 70, 245)  YÜZ — düz, gradyansız
+        ///
+        /// Yani kartın dudağı, çubuğun üst dudağının AYNISI: aynı dört bant,
+        /// yalnız 90° dönmüş ve kartın dört kenarını da dolanıyor.
+        ///
+        /// Eskiden üç katmandı: koyu rim + açık yüz + yüzün üstünde
+        /// `FadeDown` ışığı (ve ışığı kırpmak için yüze bir `Mask`).
+        /// İki hata vardı:
+        ///   • Yüz (107,101,249) idi, referans (93,70,245) — yeşil kanal 31
+        ///     fazla, yani mor lavantaya kaçıyordu (aynı hata çubuğun
+        ///     gövdesinde de vardı, bkz. N2).
+        ///   • Referansta yüzün üstünde ışık YOK; kesitte üst (91,72,243),
+        ///     alt (94,70,246) — düz. Bizim eklediğimiz `Sheen` kartı
+        ///     referansta olmayan bir parlaklıkla yıkıyordu.
+        ///
+        /// 9-dilim payı yarıçap + 2: dudak köşe bölgesinde, orta yalnız düz
+        /// yüz olduğu için serbestçe geriliyor.
+        ///
+        /// DERS (bir dudağı ÜÇ katmanla değil, mesafeyle boya): Koyu bant +
+        /// açık yüz iki dikdörtgendir; köşede bandın kalınlığı kaçınılmaz
+        /// olarak değişir ve yarıçapları eşitlemek uğraşına düşülür (7. ve
+        /// 8. turların ikisi de bu yüzden harcandı). Renk kenar mesafesinden
+        /// geliyorsa bant her yerde, köşede de, tam ölçüldüğü kalınlıkta.
+        /// </summary>
+        public static Sprite TabCard => _tabCard != null ? _tabCard : (_tabCard = BuildTabCard());
+
+        static Sprite BuildTabCard()
+        {
+            const int W = 160, H = 160;
+            const float R = 44f;
+
+            // Kenardan içeri mesafeye göre renk (birim = piksel).
+            var duraklar = new[]
+            {
+                ( 0f, new Color32( 28,   5, 131, 255)),
+                ( 4f, new Color32( 41,  20, 132, 255)),
+                ( 8f, new Color32( 56,  33, 164, 255)),
+                (12f, new Color32( 38,  17, 146, 255)),
+                (16f, new Color32( 50,  31, 155, 255)),
+                (20f, new Color32( 64,  45, 180, 255)),
+                (24f, new Color32( 96,  77, 223, 255)),
+                (28f, new Color32(113,  94, 246, 255)),
+                (32f, new Color32( 93,  70, 245, 255)),
+            };
+
+            var tex = NewTexture("TabCard", W, H);
+            var px = new Color32[W * H];
+            for (int y = 0; y < H; y++)
+            for (int x = 0; x < W; x++)
+            {
+                float d = Kose(x + 0.5f, y + 0.5f, W, H, R);   // negatif = içeride
+                float ic = -d;                                  // kenardan içeri
+                Color c;
+                if (ic >= 32f) c = duraklar[duraklar.Length - 1].Item2;
+                else
+                {
+                    int i = 1;
+                    while (i < duraklar.Length && ic > duraklar[i].Item1) i++;
+                    if (i >= duraklar.Length) i = duraklar.Length - 1;
+                    float k = (ic - duraklar[i - 1].Item1)
+                            / Mathf.Max(1e-5f, duraklar[i].Item1 - duraklar[i - 1].Item1);
+                    c = Color.Lerp(duraklar[i - 1].Item2, duraklar[i].Item2, Mathf.Clamp01(k));
+                }
+                c.a = Mathf.Clamp01(0.7f - d);
+                px[y * W + x] = c;
+            }
+            tex.SetPixels32(px);
+            tex.Apply(false, true);
+
+            _tabCard = Sprite.Create(tex, new Rect(0f, 0f, W, H), new Vector2(0.5f, 0.5f),
+                100f, 0, SpriteMeshType.FullRect,
+                new Vector4(R + 2f, R + 2f, R + 2f, R + 2f));
+            _tabCard.name = "TabCard";
+            _tabCard.hideFlags = HideFlags.HideAndDontSave;
+            return _tabCard;
+        }
+
+        /// <summary>
+        /// Yuvarlak köşeli dikdörtgene işaretli mesafe; negatif = içeride.
+        /// Standart kutu-SDF: köşe bölgesinde Öklid, kenarlarda dik mesafe.
+        /// </summary>
+        static float Kose(float x, float y, float w, float h, float r)
+        {
+            float qx = Mathf.Max(r - x, x - (w - r));
+            float qy = Mathf.Max(r - y, y - (h - r));
+            float ax = Mathf.Max(qx, 0f), ay = Mathf.Max(qy, 0f);
+            return Mathf.Sqrt(ax * ax + ay * ay) + Mathf.Min(Mathf.Max(qx, qy), 0f) - r;
+        }
+
+        static Sprite _tabRim;
+
+        /// <summary>
+        /// Alt sekme çubuğunun ÜST DUDAĞI — 40 birimlik dikey profil (N1).
+        ///
+        /// Kullanıcı: *"alt menü daha iyi oldu okey, ama arkaplan orjinal
+        /// oyundakinin birebir aynısı alınabilir; bizdekinin dış kenarları
+        /// görünümü şuan kötü, birebir orjinalini alalım."*
+        ///
+        /// Bizimki DÖRT DÜZ ŞERİTTİ (koyu kenar 15, ışık 4, oyuk 11,
+        /// parlaklık 9 birim). Referansın aynı bölgesi ise sürekli bir
+        /// profil ve toplam 30 birim — bizimki hem %30 kalın hem basamaklı
+        /// duruyordu; "dış kenarları kötü" denen şey o basamaklar.
+        ///
+        /// ÖLÇÜM: 52 menü karesinden aynı durumu gösteren 8'i ortalandı
+        /// (kareler arası std 3.5 -> ortalama sonrası kodek gürültüsü yok).
+        /// Kare 443x960, kanvas 1920 birim yüksek: 1 kare pikseli = 2 birim.
+        /// Çubuğun üstü ekranın altından 186 birimde. Profil (üstten aşağı,
+        /// birim):
+        ///     0-2    (34,26,94)   koyu dış kenar
+        ///     4-8    (58,37,164)  ince ışık şeridi
+        ///     10-13  (32,12,134)  KOYU OYUK
+        ///     14-20  (60,34,180)  yükselen
+        ///     22-25  (101,74,235) ÜST PARLAKLIK (tepe)
+        ///     26-29  (73,44,219)  gövdeye iniş
+        ///     30+    (73,44,219)  gövde
+        ///
+        /// DERS (düz şerit yığını, gradyanın ucuz taklidi değildir): Dört
+        /// şerit doğru RENKLERİ taşıyordu ama aralarındaki sıçramalar
+        /// telefonda çizgi olarak görünüyor. Profil ölçülebiliyorsa doku
+        /// olarak çizilmeli; şerit ancak profil GERÇEKTEN basamaklıysa
+        /// doğrudur.
+        /// </summary>
+        public static Sprite TabRim => _tabRim != null ? _tabRim : (_tabRim = BuildTabRim());
+
+        static Sprite BuildTabRim()
+        {
+            // Üstten aşağı, birim birim ölçülen profil.
+            var profil = new Color32[]
+            {
+                new Color32( 34,  26,  94, 255), new Color32( 37,  25, 115, 255),
+                new Color32( 39,  24, 136, 255), new Color32( 44,  28, 150, 255),
+                new Color32( 50,  32, 163, 255), new Color32( 54,  35, 164, 255),
+                new Color32( 58,  37, 164, 255), new Color32( 56,  36, 161, 255),
+                new Color32( 55,  35, 158, 255), new Color32( 44,  24, 146, 255),
+                new Color32( 32,  12, 134, 255), new Color32( 32,  11, 136, 255),
+                new Color32( 33,  11, 138, 255), new Color32( 41,  18, 150, 255),
+                new Color32( 50,  26, 163, 255), new Color32( 55,  30, 172, 255),
+                new Color32( 60,  34, 180, 255), new Color32( 59,  33, 182, 255),
+                new Color32( 58,  32, 184, 255), new Color32( 62,  36, 190, 255),
+                new Color32( 67,  40, 196, 255), new Color32( 80,  54, 211, 255),
+                new Color32( 94,  68, 226, 255), new Color32( 98,  71, 230, 255),
+                new Color32(101,  74, 235, 255), new Color32( 90,  62, 226, 255),
+                new Color32( 79,  51, 218, 255), new Color32( 74,  46, 215, 255),
+                new Color32( 70,  41, 212, 255), new Color32( 71,  42, 215, 255),
+                new Color32( 73,  44, 219, 255), new Color32( 73,  44, 219, 255),
+                new Color32( 73,  44, 219, 255), new Color32( 73,  44, 219, 255),
+                new Color32( 73,  44, 219, 255), new Color32( 73,  44, 219, 255),
+                new Color32( 73,  44, 219, 255), new Color32( 73,  44, 219, 255),
+                new Color32( 73,  44, 219, 255), new Color32( 73,  44, 219, 255),
+            };
+
+            // GÖVDE DE AYNI DOKUDA (14. tur). Önce dudak ayrı görsel, gövde
+            // ayrı bir `FadeDown` katmanıydı; sönüm kutusu çubuğun EKRAN
+            // DIŞINA taşan payını da kapsadığı için görünen alanda hiç
+            // uygulanmıyordu — ölçümde gövde baştan sona (73,42,219) çıktı,
+            // referansta ise altta (60,34,180). Profil artık çubuğun görünen
+            // 186 biriminin TAMAMI; taşan pay çubuğun kendi düz rengiyle
+            // doluyor.
+            const int W = 8;
+            const int H = 186;
+            var tex = NewTexture("TabBarFace", W, H);
+            var px = new Color32[W * H];
+            for (int y = 0; y < H; y++)
+            {
+                int ust = H - 1 - y;                 // doku y=0 ALTTIR
+                Color32 c;
+                if (ust < profil.Length) c = profil[ust];
+                else
+                {
+                    // Gövde: (73,44,219) -> (60,34,180), ölçülen sönüm.
+                    float t = (ust - profil.Length) / (float)(H - 1 - profil.Length);
+                    c = Color32.Lerp(new Color32(73, 44, 219, 255),
+                                     new Color32(60, 34, 180, 255), t);
+                }
+                for (int x = 0; x < W; x++) px[y * W + x] = c;
+            }
+            tex.SetPixels32(px);
+            tex.Apply(false, true);
+
+            _tabRim = Sprite.Create(tex, new Rect(0f, 0f, W, H), new Vector2(0.5f, 0.5f), 100f);
+            _tabRim.name = "TabBarFace";
+            _tabRim.hideFlags = HideFlags.HideAndDontSave;
+            return _tabRim;
+        }
+
         static Sprite _softGlow;
 
         /// <summary>
@@ -1244,6 +1442,7 @@ namespace BlockOut.Runtime.UI
             _fadeDown = _pennant = _ring = _sunburst = _foliage = null;
             _quilt = _frostVignette = _snowflake = _sparkle = null;
             _packFace = _packBand = _offerFace = _offerBand = _softGlow = null;
+            _tabRim = _tabCard = null;
         }
     }
 }

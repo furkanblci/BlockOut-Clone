@@ -387,17 +387,46 @@ varlık kullanmak serbest.
 
 # ALT MENÜ (sekme çubuğu)
 
-- [ ] **N1.** Alt menü **daha iyi oldu, tamam** — ama **arka planı**
+- [x] **N1.** Alt menü **daha iyi oldu, tamam** — ama **arka planı**
       orijinalin birebir aynısı alınabilir. Bizdekinin **dış kenarları /
       görünümü şu an kötü**.
       > *"menü kısmında alt menü daha iyi oldu okey, ama arkaplan orjinal
       > oyundakinin birebir aynısı alınabilir; onun bizdekinin dış kenarları
       > görünümü şuan kötü, birebir orjinalini alalım daha iyi hale gelsin"*
+      >
+      > **YAPILDI (14. tur).** Çubuğun üst dudağı DÖRT DÜZ ŞERİTTİ (koyu
+      > kenar 15, ışık 4, oyuk 11, parlaklık 9 birim). Renkler doğruydu ama
+      > aralarındaki sıçramalar telefonda çizgi olarak görünüyor — "dış
+      > kenarları kötü" denen şey o basamaklar. Ayrıca toplam kalınlık 39
+      > birimdi, referansta 30.
+      >
+      > 52 menü karesinden aynı durumu gösteren 8'i ortalandı (kareler arası
+      > std 3,5 -> kodek gürültüsü kalmadı). Kare 443x960, kanvas 1920 birim:
+      > 1 kare pikseli = 2 birim. Çubuğun üstü ekranın altından **186 birim**
+      > (eskiden %10,35 = 199 varsayılmıştı). Ölçülen profil bir dokuya
+      > gömüldü ve çubuğun görünen 186 biriminin tamamını bire bir kaplıyor.
+      > **Doğrulama:** 186/182/176/168/162/156/120/80/40/4 birimlerinin
+      > hepsinde referansla 1-2 birim fark.
+      >
+      > Seçili kart da tek görsele indi: dudağı KENAR MESAFESİNE göre
+      > boyanıyor, böylece bant köşede de tam ölçülen kalınlıkta (iki
+      > dikdörtgenle bu mümkün değildi — 7. ve 8. turlar tam bunun için
+      > harcanmıştı). Kutusu yeniden ölçüldü: üstü 230 birim (bizde 260 idi),
+      > genişliği slotun 1,524 katı (1,30 idi), altı ekranın 46 birim dışına
+      > taşıyor (18 idi — yuvarlak alt köşeler görünüyordu).
 
-- [ ] **N2.** **Renk tonu:** orijinalde bir tık daha koyu mor var gibi;
+- [x] **N2.** **Renk tonu:** orijinalde bir tık daha koyu mor var gibi;
       bizdeki fazla açık olabilir. Ölçülüp bakılacak.
       > *"ve renk olarak da sanki orjinal oyunda bir tık daha koyu mor var,
       > bizdeki ekstra açık olabilir, ona da bakalım"*
+      >
+      > **YAPILDI (14. tur) — kullanıcı haklıydı, fark YEŞİL kanalda.**
+      > Çubuğun gövdesi bizde (81,64,228), referansta (73,44,219); seçili
+      > kartın yüzü bizde (107,101,249), referansta (93,70,245). Yeşilin 20-30
+      > birim fazla olması moru lavantaya çekiyor, göz de bunu "daha açık"
+      > diye okuyor. Gövde ayrıca alta doğru (60,34,180)'e söner — bizde bu
+      > sönüm hiç uygulanmıyordu (sönüm katmanı çubuğun ekran dışına taşan
+      > payını kapsıyordu, görünen alanda etkisi sıfırdı).
 
 ---
 

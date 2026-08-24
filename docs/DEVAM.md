@@ -6946,3 +6946,40 @@ kesenin arkasındaki yumuşak hale: yakında (255,248,240), uzakta
 cansız durduğunu söylüyor; çözümün gürültü olduğunu varsaymak kolay. Ölçünce
 derinliği verenin gürültü değil TEK BİR IŞIK KAYNAĞI olduğu çıktı. Gürültü
 eklemek hem yanlış olurdu hem de ASTC'yi bozardı.
+
+### N1 / N2 — alt sekme çubuğu referanstan yeniden ölçüldü
+52 menü karesinden aynı durumu gösteren 8'i ortalandı (kareler arası std 3,5;
+ortalama sonrası kodek gürültüsü yok). Kare 443x960, kanvas 1920 birim:
+**1 kare pikseli = 2 kanvas birimi.**
+
+Çubuğun üstü ekranın altından **186 birim** (eskiden tek bir ekran
+görüntüsünden %10,35 = 199 varsayılmıştı). Üst dudak profili:
+186(34,26,94) → 182(50,32,163) → 176(32,12,134) → 168(58,32,184) →
+162(101,74,235) → 156(73,44,219) → ... → 4(60,34,180).
+Bizimki dört düz şeritti; renkler doğru ama aralarındaki sıçramalar telefonda
+çizgi olarak görünüyordu. Profil artık tek dokuda ve çubuğun görünen 186
+biriminin tamamını bire bir kaplıyor. On örnekleme noktasında referansla fark
+1-2 birim.
+
+Seçili kart: dudağı çubuğun üst dudağının aynısı, yalnız kartın dört kenarını
+dolanıyor. Renk artık KENAR MESAFESİNDEN geliyor. Kutu ölçüldü: üst 230 birim
+(bizde 260), genişlik slotun 1,524 katı (1,30), alt ekranın 46 birim dışında
+(18 idi — yuvarlak alt köşeler görünüyor, kart çubuğa konmuş ayrı bir kutu
+gibi duruyordu).
+
+N2 (renk tonu) kullanıcının dediği gibiydi ve fark **yeşil kanalda**: gövde
+(81,64,228) yerine (73,44,219), kart yüzü (107,101,249) yerine (93,70,245).
+Yeşilin 20-30 fazla olması moru lavantaya çekiyor, göz "daha açık" diye
+okuyor.
+
+**Ders (bir dudağı üç katmanla değil, MESAFEYLE boya):** Koyu bant + açık yüz
+iki dikdörtgendir; köşede bandın kalınlığı kaçınılmaz olarak değişir ve
+yarıçapları eşitleme uğraşına düşülür — 7. ve 8. turların ikisi de tam bu
+yüzden harcanmıştı. Renk kenar mesafesinden geliyorsa bant her yerde, köşede
+de, ölçüldüğü kalınlıkta. Yanında duran `Mask` + `Sheen` katmanları da
+gereksiz kalıyor.
+
+**Ders (sönüm katmanının kutusu, GÖRÜNEN alanı kapsamalı):** Çubuğun sönümü
+üç turdur koddaydı ama hiç çalışmıyordu: sönüm kutusu çubuğun güvenli-alan
+için ekran dışına taşan 220 birimlik payını da kapsıyor, ramp o payın içinde
+tükeniyordu. Ölçüm gövdeyi baştan sona sabit gösterince ortaya çıktı.

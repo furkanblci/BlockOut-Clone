@@ -180,9 +180,12 @@ namespace BlockOut.Runtime.UI
             // Dört dikdörtgen, tek bir "plastik" görselinin yaptığı işi
             // yapıyor — üstelik rengi istediğimiz an değişebiliyor.
             var bar = UiKit.CreatePanel("TabBar", root, BarColor);
-            // Yükseklik referanstan: çubuğun üst kenarı ekranın altından
-            // %10.35'te (bizde %8.6'ydı, sonra %9.9).
-            UiKit.Place(bar, 0f, 0f, 1f, 0.1035f);
+            // YÜKSEKLİK YENİDEN ÖLÇÜLDÜ (14. tur, N1). Önceki sayı tek bir
+            // ekran görüntüsünden alınmıştı; bu kez 52 menü karesinden aynı
+            // durumu gösteren 8'i ortalandı (kodek gürültüsü kalmadı).
+            // Kare 443x960, kanvas 1920 birim: 1 kare pikseli = 2 birim.
+            // Çubuğun üst kenarı ekranın altından 186 birim = %9.69.
+            UiKit.Place(bar, 0f, 0f, 1f, 0.0969f);
 
             // Boya HER ÜÇ KENARDAN taşar. Aşağısı güvenli alan için (eskiden
             // beri), YANLAR ise çubuk görselinin YUVARLAK UÇLARI yüzünden:
@@ -192,21 +195,28 @@ namespace BlockOut.Runtime.UI
             bar.rectTransform.offsetMax = new Vector2(90f, 0f);
             _bar = bar.rectTransform;
 
-            // Gövde aşağı doğru hafifçe koyuluyor (referansta ölçüldü:
-            // üstte #5240EC, altta #503DD7). `FadeDown` altta opak.
-            var barFade = UiKit.CreateRect("Shade", _bar);
-            var barFadeImage = barFade.gameObject.AddComponent<Image>();
-            barFadeImage.sprite = MenuSprites.FadeDown;
-            barFadeImage.type = Image.Type.Sliced;
-            barFadeImage.color = new Color(0.259f, 0.180f, 0.741f, 0.60f);
-            barFadeImage.raycastTarget = false;
-            UiKit.Place(barFade, 0f, 0f, 1f, 0.72f);
-
-            // Üstteki dört şerit: dıştan içe koyu kenar, ışık, oyuk, parlaklık.
-            TopStrip(_bar, "EdgeDark",  new Color(0.176f, 0.106f, 0.529f),  0f, 15f);
-            TopStrip(_bar, "EdgeLight", new Color(0.361f, 0.294f, 0.847f), 15f,  4f);
-            TopStrip(_bar, "Groove",    new Color(0.137f, 0.082f, 0.471f), 19f, 11f);
-            TopStrip(_bar, "Rim",       new Color(0.467f, 0.443f, 0.988f), 30f,  9f);
+            // ÇUBUĞUN YÜZÜ TEK GRADYAN (14. tur, N1).
+            //
+            // Eskiden dört düz şerit (koyu kenar / ışık / oyuk / parlaklık) +
+            // ayrı bir sönüm katmanı vardı. Şeritler doğru RENKLERİ taşıyordu
+            // ama aralarındaki sıçramalar telefonda çizgi olarak görünüyordu —
+            // kullanıcının "dış kenarları görünümü şu an kötü" dediği şey o
+            // basamaklar. Toplam kalınlıkları da 39 birimdi, referansta 30.
+            //
+            // Görsel çubuğun GÖRÜNEN 186 biriminin tamamını kaplıyor ve
+            // BİRE BİR oturuyor (186 doku pikseli = 186 kanvas birimi).
+            // Aşağı taşan güvenli-alan payını çubuğun kendi düz rengi
+            // dolduruyor; orası zaten yalnız çentikli cihazlarda görünür.
+            var yuz = UiKit.CreateRect("Face", _bar);
+            yuz.anchorMin = new Vector2(0f, 1f);
+            yuz.anchorMax = new Vector2(1f, 1f);
+            yuz.pivot = new Vector2(0.5f, 1f);
+            yuz.sizeDelta = new Vector2(0f, 186f);
+            yuz.anchoredPosition = Vector2.zero;
+            var yuzImage = yuz.gameObject.AddComponent<Image>();
+            yuzImage.sprite = MenuSprites.TabRim;
+            yuzImage.type = Image.Type.Simple;
+            yuzImage.raycastTarget = false;
 
             // Seçili kartın taşacağı alan çubuğun üstünde; bu yüzden kartlar
             // çubuğun DEĞİL kökün çocuğu, yoksa çubuk onları kırpar.
@@ -266,7 +276,20 @@ namespace BlockOut.Runtime.UI
                 // referansta kartın üstü ekranın altından %13,5'te, bizde de
                 // öyle — 1,42 çarpanı yerinde.
                 var card = UiKit.CreateRect("Card", button.transform);
-                UiKit.Place(card, -0.15f, -0.10f, 1.15f, 1.42f);
+                // KUTU YENİDEN ÖLÇÜLDÜ (14. tur, N1 — 8 kare ortalamasından):
+                //   • Kartın ÜSTÜ ekranın altından 230 birim. Bizimki 260'tı,
+                //     yani bir baş boyu uzundu. Düğme kutusu 182,4 birim
+                //     olduğuna göre çarpan 230/182,4 = 1,261.
+                //   • Kart, sekme SLOTUNUN 1,524 katı geniş (referansta 270
+                //     birim / 177,2 birimlik slot). Bizimki 1,30 slottu.
+                //     Slot oranı olarak yazmak en-boy oranından bağımsız:
+                //     dar telefonda da geniş tablette de aynı çıkıyor.
+                //   • ALT KENAR EKRANIN DIŞINDA KALMALI. -0,10 (18 birim)
+                //     yetmiyordu; köşe yarıçapı 44 olduğu için yuvarlak alt
+                //     köşeler ekranın hemen üstünde görünüyor ve kart çubuğa
+                //     KONMUŞ ayrı bir kutu gibi duruyordu. -0,252 = 46 birim,
+                //     yarıçaptan büyük.
+                UiKit.Place(card, -0.262f, -0.252f, 1.262f, 1.261f);
 
                 // KÖŞELER EŞ MERKEZLİ OLMALI (7. tur, P56). Kullanıcı:
                 // "Seçili butonun dış köşelerinde piksel bozulmaları var."
@@ -286,8 +309,7 @@ namespace BlockOut.Runtime.UI
                 // (Aynı hata mağaza kartlarında da mümkün; orada
                 // `UiCornerFit` iki yüzeye de aynı oranı verdiği için
                 // yarıçaplar zaten kutu boyuyla birlikte değişiyor.)
-                const float cardBand = 20f;                 // koyu bandın kalınlığı
-                const float cardRadius = 44.4f;             // dış köşe yarıçapı
+                const float cardRadius = 44f;               // dış köşe yarıçapı
                 // GÖLGE: kartın ARKASINDA, birkaç birim aşağıda.
                 //
                 // Kullanıcı: "güzel gölge de verelim, orijinal referanstaki
@@ -311,61 +333,29 @@ namespace BlockOut.Runtime.UI
                 UiKit.Place(cardShadow, 0f, 0f, 1f, 1f, padding: -7f);
                 cardShadow.rectTransform.anchoredPosition += new Vector2(0f, -6f);
 
-                var cardRim = UiKit.CreateRoundedPanel("Rim", card,
-                    new Color(0.161f, 0.106f, 0.549f));
-                UiKit.SetSliceScale(cardRim, UiKit.SliceScaleFor(cardRadius));
-                cardRim.raycastTarget = false;
-                UiKit.Place(cardRim, 0f, 0f, 1f, 1f);
-
-                var cardFace = UiKit.CreateRoundedPanel("Face", card,
-                    new Color(0.420f, 0.396f, 0.976f));
-                UiKit.SetSliceScale(cardFace, UiKit.SliceScaleFor(cardRadius - cardBand));
-                cardFace.raycastTarget = false;
-                // Kenarlık genişliği referanstan: kartın koyu bandı 18 piksel
-                // (946 genişlikte), yani bizim tuvalde ~20 birim.
-                UiKit.Place(cardFace, 0f, 0f, 1f, 1f, padding: cardBand);
-
-                // BOZUK KÖŞENİN GERÇEK SEBEBİ BU KATMANDI (8. tur).
+                // KART TEK GÖRSEL, DUDAĞI KENAR MESAFESİYLE (14. tur, N1).
                 //
-                // Kullanıcı, altı turdur: "seçili butonun köşeleri bozuk."
-                // 7. turda kartın DIŞ ve İÇ yüzeyinin yarıçapları eş merkezli
-                // hâle getirildi — o düzeltme doğruydu ama sorun orada
-                // değildi. Ekrandan ölçünce görüldü ki köşeyi kesen şey
-                // üstteki ışık katmanı:
-                //
-                //   Face  : yuvarlak, ppuM 0,53 → köşe ~75 birim
-                //   Sheen : `FadeDown`, KENARLIKSIZ bir gradyan
-                //
-                // Kenarlığı olmayan bir sprite `Sliced` çizilince dokuz dilim
-                // diye bir şey kalmıyor; düpedüz gerilmiş bir dikdörtgen
-                // oluyor. Yani yuvarlak kartın üstüne KARE köşeli bir ışık
-                // konuyor ve köşelerde kartın dışına taşıyordu.
-                //
-                // Çözüm ışığı küçültmek değil, KARTIN ŞEKLİNE KIRPMAK: yüz
-                // bir `Mask` oluyor ve çocukları kendi alfasına göre kesiyor.
-                // Yuvarlak köşe artık ışığı da kesiyor, üstelik ileride yüze
-                // eklenecek her şey de kendiliğinden doğru kırpılacak.
-                //
-                // DERS (yanlış katmanı düzeltmek, doğru düzeltme değildir):
-                // Yarıçapları eşitlemek mantıklıydı, ölçüm de tutarlıydı —
-                // ama ekranda görünen kusur başka bir katmandan geliyordu.
-                // Bir kusuru altı tur boyunca kovalıyorsan, düzelttiğin şeyin
-                // GERÇEKTEN o kusur olduğunu ekrandan doğrulamak gerekiyor.
-                var faceMask = cardFace.gameObject.AddComponent<Mask>();
-                faceMask.showMaskGraphic = true;
-
-                // Üstte toplanan ışık — kartı düz bir dikdörtgen olmaktan
-                // çıkaran tek şey. `FadeDown` altta opak olduğu için ters
-                // çevriliyor. Artık yüzün maskesi tarafından kırpılıyor,
-                // bu yüzden kartın kenarına kadar uzanabiliyor.
-                var cardSheen = UiKit.CreateRect("Sheen", cardFace.transform);
-                var cardSheenImage = cardSheen.gameObject.AddComponent<Image>();
-                cardSheenImage.sprite = MenuSprites.FadeDown;
-                cardSheenImage.type = Image.Type.Sliced;
-                cardSheenImage.color = new Color(0.573f, 0.553f, 1f, 0.85f);
-                cardSheenImage.raycastTarget = false;
-                UiKit.Place(cardSheen, 0f, 0.50f, 1f, 1f);
-                cardSheen.localRotation = Quaternion.Euler(0f, 0f, 180f);
+                // Eskiden üç katmandı: koyu rim + açık yüz + yüzün üstünde
+                // `FadeDown` ışığı, ışığı kırpmak için de yüze bir `Mask`.
+                // Ölçüm iki şeyi söyledi:
+                //   • Yüzümüz (107,101,249), referans (93,70,245) — yeşil
+                //     kanal 31 fazla, mor lavantaya kaçıyordu (aynı hata
+                //     çubuğun gövdesinde de vardı, bkz. N2).
+                //   • Referansta yüzün üstünde ışık YOK: kesitte üst
+                //     (91,72,243), alt (94,70,246) — düz. Bizim eklediğimiz
+                //     `Sheen` referansta olmayan bir parlaklıktı.
+                // Ayrıca kartın dudağı çubuğun üst dudağının aynısı: aynı
+                // dört bant, kartın dört kenarını da dolanıyor. İki
+                // dikdörtgenle bunu yapmak köşede bandın kalınlığını
+                // değiştiriyordu — 7. ve 8. turların ikisi de tam bu yüzden
+                // harcanmıştı. Renk artık KENAR MESAFESİNDEN geliyor, bant
+                // köşede de tam ölçüldüğü kalınlıkta
+                // (bkz. MenuSprites.TabCard).
+                var cardImage = UiKit.CreateIcon("Face", card, MenuSprites.TabCard);
+                cardImage.type = Image.Type.Sliced;
+                cardImage.preserveAspect = false;
+                cardImage.raycastTarget = false;
+                UiKit.Place(cardImage, 0f, 0f, 1f, 1f);
 
                 // Görünmez ama dokunulabilir yüzey: sekmenin tamamı tıklanabilsin.
                 if (button.targetGraphic is Image face) face.color = new Color(1f, 1f, 1f, 0f);
@@ -402,20 +392,6 @@ namespace BlockOut.Runtime.UI
         /// Çubuğun ÜST kenarına yapışan, piksel yüksekliğinde ince şerit.
         /// Plastik dudağın dört katmanı bununla kuruluyor.
         /// </summary>
-        static void TopStrip(RectTransform bar, string name, Color color, float top, float height)
-        {
-            var rect = UiKit.CreateRect(name, bar);
-            rect.anchorMin = new Vector2(0f, 1f);
-            rect.anchorMax = new Vector2(1f, 1f);
-            rect.pivot = new Vector2(0.5f, 1f);
-            rect.sizeDelta = new Vector2(0f, height);
-            rect.anchoredPosition = new Vector2(0f, -top);
-
-            var image = rect.gameObject.AddComponent<Image>();
-            image.color = color;
-            image.raycastTarget = false;
-        }
-
         // Referans karesinden örneklenen iki ton: çubuk koyu mor-lacivert,
         // seçili kart ondan belirgin AÇIK bir mor.
         // DERS (koyu zemin ikonu YALNIZ BIRAKIR): Çubuk fazla koyuydu ve
@@ -428,7 +404,12 @@ namespace BlockOut.Runtime.UI
         // karışmıştı (#4F3BD8 / #5340EA); dikey tarama ikisini ayırdı —
         // #5340EA aslında GÖVDENİN kendisi, ışık şeridi ondan çok daha
         // parlak (#7771F9).
-        static readonly Color BarColor = new Color(0.318f, 0.251f, 0.894f);
+        // ÖLÇÜM (14. tur, N2 — kullanıcı: "orjinal oyunda bir tık daha koyu
+        // mor var, bizdeki ekstra açık olabilir"). Haklıymış ve fark asıl
+        // YEŞİL kanalda: referansın gövdesi (73,44,219), bizimki (81,64,228)
+        // idi. Yeşilin 64 olması moru maviye/lavantaya çekiyor, göz de bunu
+        // "daha açık" diye okuyor. Gövdenin altı (60,34,180)'e sönüyor.
+        static readonly Color BarColor = new Color(0.235f, 0.133f, 0.706f);
 
         /// <summary>Sekmeler arasındaki ince dikey ayraç — referansta var.</summary>
         /// <summary>
