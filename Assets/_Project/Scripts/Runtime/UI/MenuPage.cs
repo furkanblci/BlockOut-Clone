@@ -131,14 +131,30 @@ namespace BlockOut.Runtime.UI
         /// seçim özelliği eklenirken birini güncelleyip diğerini unutmak
         /// işten değildi. Tek metot, iki yerin ayrı düşmesini imkânsız kılıyor.
         /// </summary>
-        public static Sprite SeciliManzara()
+        public static Sprite SeciliManzara() => SeciliManzara(out _);
+
+        /// <param name="yakinlik">
+        /// Görselin ne kadar büyütüleceği. Bölge görselleri DAİRE çizilmiş
+        /// (yolculuk diskleri için); tam ekran arka plan yapılınca köşelerde
+        /// dairenin kavisi görünüyor. Dairenin İÇİNE SIĞAN KARE ekranı
+        /// doldursun diye 1.45 ile büyütülüyorlar (kabaca √2). Varsayılan
+        /// manzara zaten dikdörtgen, o 1.0 kalıyor.
+        ///
+        /// DERS (bir varlığı yeni bir yerde kullanmak, onu yeniden ölçmek
+        /// demektir): Bölge görselleri arka plan olarak kullanılabilsin diye
+        /// açıldı ve kod doğru çalıştı — ama görselin BİÇİMİ o iş için
+        /// çizilmemişti. Özelliği ekledikten sonra ekranda görmeden
+        /// "bitti" demek, yuvarlak kenarlı bir ana ekran yollamak olurdu.
+        /// </param>
+        public static Sprite SeciliManzara(out float yakinlik)
         {
+            yakinlik = 1f;
             int secim = Runtime.Services.MetaServices.Ready
                 ? Runtime.Services.MetaServices.Progress.Background : 0;
             if (secim > 0)
             {
                 var bolge = UiSkin.Get(Art.Region(secim));
-                if (bolge != null) return bolge;
+                if (bolge != null) { yakinlik = 1.45f; return bolge; }
             }
             return UiSkin.Get(Art.MenuBack);
         }

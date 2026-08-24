@@ -172,8 +172,11 @@ namespace BlockOut.Runtime.UI
             // Manzara, güvenli alanın değil EKRANIN tamamını kaplamalı; çentiğin
             // altında zemin rengi görünmesin diye kanvasa doğrudan bağlanıyor.
             var cover = UiKit.CreateCover("Background", canvas.transform,
-                MenuPage.SeciliManzara(), UiKit.Background);
+                MenuPage.SeciliManzara(out float manzaraZoom), UiKit.Background);
             cover.transform.SetAsFirstSibling();
+            // Bölge görselleri daire çizildiği için büyütülüyor (bkz.
+            // MenuPage.SeciliManzara); varsayılan manzarada çarpan 1.
+            cover.transform.localScale = Vector3.one * manzaraZoom;
 
             // Sekme geçişinde ana ekran da kayıyor (bkz. Slide). Manzara ile
             // arayüz AYRI ebeveynlerde olduğu için ikisini de tutmak gerekiyor;
