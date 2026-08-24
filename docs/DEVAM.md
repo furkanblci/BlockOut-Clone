@@ -7295,3 +7295,20 @@ aylardır koşuyordu ve "bölümler sağlam" izlenimi veriyordu. Ama çözücü
 bölümü DOSYADAN okuyup simüle ediyor; oyunun onu gerçekten kurup kuramadığına
 hiç bakmıyor. Kullanıcının "açılmayan leveller vardı" şikâyeti tam olarak bu
 boşluktaydı. Bir doğrulama aracının neyi ÖLÇMEDİĞİ, ölçtüğü kadar önemli.
+
+### H4 — ana ekran arka planı (son madde)
+Uyumsuzluk önce ÖLÇÜLDÜ: arayüzün kromu indigo-mor (sekme çubuğu 73,44,219),
+oyna düğmesi yeşil, eski manzara ise sıcak pembe-turuncu ve oyna düğmesinin
+arkası (201,178,98) sıcak kum. J1'de eklenen seçim özelliği sayesinde altı
+seçenek gerçek ana ekran üstünde yakalanıp kullanıcıya sunuldu; seçim
+"mor gece" oldu. Sonra: düğme arkası (102,128,73), çubuk arkası (118,76,158).
+
+**Ders (bir özellik, bir sonraki maddenin aracı olabilir):** H4 "kullanıcı
+görsel versin" diye beklemedeydi. J1 için yazılan arka plan SEÇİMİ, H4'ü
+"yeni varlık üret" probleminden "eldekiler arasından ölçüp seç" problemine
+çevirdi. Sıradaki maddeye bakarken bir öncekinin ne bıraktığını sormak
+gerekiyor.
+
+**Ders (yeni bir yerde kullanılan varlık yeniden ölçülür):** Bölge görselleri
+daire çizilmişti; arka plan olarak tam ekrana konunca köşelerde kavis
+görünüyordu. Kod doğruydu, biçim o iş için değildi.

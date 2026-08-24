@@ -517,11 +517,30 @@ varlık kullanmak serbest.
       > çerçeveden AÇIK (orada portre bir sahne karesi). Koyu bırakınca bizim
       > saydam zeminli karakterimiz çerçeveye karışıyordu.
 
-- [ ] **H4.** Ana sayfadaki **arka plan görseli**: her şey bitince
+- [x] **H4.** Ana sayfadaki **arka plan görseli**: her şey bitince
       düğmelerle **renk uyumu** açısından bir görsel çözülecek.
       (SONA BIRAKILIYOR — diğer maddeler bitmeden bakılmayacak.)
       > *"ana sayfadaki arkaplan görsele, butonlar, her şey bitince çok daha
       > yakışacak renk uyum olarak bi görsel çözülecek"*
+      >
+      > **YAPILDI (14. tur, en son madde olarak).** Önce uyumsuzluk ölçüldü:
+      > arayüzün kromu indigo-mor (sekme çubuğu 73,44,219; üst çubuk kapsülü
+      > 35,25,80) ve oyna düğmesi yeşil (56,215,20); eski manzara ise sıcak
+      > pembe-turuncuydu ve **oyna düğmesinin arkası (201,178,98)** sıcak kuma
+      > düşüyordu — yeşil düğme sıcak zemin üstünde zayıflıyordu.
+      >
+      > J1'de eklenen arka plan seçimi sayesinde altı seçenek gerçek ana ekran
+      > üstünde yan yana yakalandı ve kullanıcıya sunuldu. Seçim: **2 numaralı
+      > "mor gece"**, gökyüzü arayüzün moruyla aynı aileden.
+      >
+      > **Ölçüm (sonra):** oyna düğmesinin arkası (102,128,73), sekme
+      > çubuğunun arkası (118,76,158), üst çubuğun arkası (108,79,131) —
+      > üçü de arayüzün mor-indigo ailesine yaklaştı, sıcak kum gitti.
+      >
+      > Bu sırada J1'in kendi kusuru da bulundu: bölge görselleri DAİRE
+      > çizilmiş (yolculuk diskleri için) ve tam ekran arka plan yapılınca
+      > köşelerde kavis görünüyordu. Dairenin içine sığan kare ekranı
+      > doldursun diye 1.45 ile büyütülüyorlar.
 
 - [x] **H5.** **Oyna düğmesi zorluğa göre renk değiştirecek** (değişmiyorsa
       eklenecek). Orijinalde zor seviyede mor düğme var; bizdeki renk

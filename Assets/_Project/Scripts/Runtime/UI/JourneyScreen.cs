@@ -732,6 +732,13 @@ namespace BlockOut.Runtime.UI
             view.Art = region.art;
             view.To  = region.to;
 
+            // NOT (H4): varsayılan arka plan 2 numaralı bölgenin görseli
+            // ("mor gece") — kullanıcının seçimi, çünkü arayüzün kromu
+            // indigo-mor. Bu, o bölgenin ödülünü teknik olarak gereksiz
+            // kılıyor (oyuncu zaten görüyor) ama zararsız: başka bir arka
+            // plana geçen oyuncu buraya geri dönebiliyor. Ayrı bir
+            // "varsayılan" görsel üretmek yerine bilerek böyle bırakıldı.
+
             // DÜĞME İKİ İŞ YAPIYOR (14. tur, J1). Referansta tamamlanmış
             // bölgenin düğmesinde "Kullan" yazıyor: bölgenin görseli
             // kullanılabilir bir ARKA PLAN oluyor. Bizde her durumda

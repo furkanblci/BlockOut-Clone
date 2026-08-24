@@ -109,7 +109,13 @@ namespace BlockOut.Core.Save
         /// tamamlandıysa açıktır. Tek kaynak `HighestUnlockedIndex`; ikinci
         /// bir liste tutmak, iki kaydın birbirinden ayrı düşmesi demekti.
         /// </summary>
-        [JsonProperty("background")] public int Background;
+        /// VARSAYILAN 2 = "mor gece" (H4, 14. tur). Kullanıcının seçimi.
+        /// Gerekçe ölçülmüştü: arayüzün kromu indigo-mor (sekme çubuğu
+        /// 73,44,219; üst çubuk kapsülü 35,25,80) ama eski varsayılan manzara
+        /// sıcak pembe-turuncuydu ve oyna düğmesinin arkası (201,178,98)
+        /// sıcak kuma düşüyordu — yeşil düğme sıcak zemin üstünde
+        /// zayıflıyordu. Mor gökyüzü aynı aileden.
+        [JsonProperty("background")] public int Background = 2;
 
         /// <summary>Sınırsız can hakkının bitiş anı (UTC, ISO-8601). Boş = hak yok.</summary>
         [JsonProperty("infiniteLivesUntilUtc")] public string InfiniteLivesUntilUtc = "";
