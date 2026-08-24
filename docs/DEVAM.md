@@ -8,6 +8,70 @@ Bu dosya her oturum sonunda güncellenir. Aşağısı 2026-08-10 itibarıyla ge�
 
 ---
 
+## ⭐ YENİ OTURUM BURADAN BAŞLASIN — 2026-08-24 durumu
+
+**TEK CÜMLE: Arayüz/bulgu listelerinin HEPSİ kapandı. Kalan iş bölüm
+tasarımı ve yayın öncesi kontrol listesi.**
+
+### Bulgu dosyalarının durumu (24 Ağustos itibarıyla sayıldı)
+
+| dosya | durum |
+|---|---|
+| `docs/APK-BULGULARI.md` | 0 açık |
+| `docs/APK-BULGULARI-2.md` | 56/56 kapalı |
+| `docs/APK-BULGULARI-3.md` | 43 kapalı — **A2 (metin ve panel boyutları) KULLANICI YAPACAK**, bana ait değil |
+| `docs/APK-BULGULARI-4.md` | 17/17 kapalı |
+| `docs/APK-BULGULARI-5.md` | 0 açık |
+| `docs/APK-BULGULARI-6.md` | **62/62 kapalı** (14. tur) |
+| `docs/GECE-PLANI.md` | 14/14 kapalı |
+| bu dosya (`DEVAM.md`) | **1 açık kutucuk: "D. Best Value bayrağı/flaması"** |
+
+### Tek açık madde — D, "Best Value" bayrağı
+
+Aşağıda `KULLANICI BULGULARI — 2026-08-22 sabah` başlığı altında.
+**Büyük ihtimalle ZATEN KAPALI:** 13. turun M3b maddesi ("Best Value /
+Popular şerit bannerları kötü") tam bunu yeniden yazdı — 45° köşe
+flaması, kullanıcının onayladığı "90% OFF" flamasıyla aynı kod yolu
+(`MenuSprites` + `ribbon_packs.png` / `ribbon_packs_tail.png`).
+**Yapılacak:** mağazayı "Ultimate Pack" kartına kaydırıp bir yakalama al,
+göze doğrula, tik at. 2 dakikalık iş, kod değişikliği beklenmiyor.
+
+### Kod değil ama takipteki 3 şey
+
+1. **YAYIN ÖNCESİ:** `DeviceErrorOverlay.cs:33` → `Enabled = true`.
+   Test sürümünde BİLEREK açık; yayına çıkarken `false` yapılacak.
+2. **Haptik gerçek cihazda doğrulanmadı** — Gradle derlemesi gerekiyor.
+3. **BÖLÜM TASARIMI (kullanıcının kararı bekleniyor).** 14. turda 50
+   bölümün hepsi gerçekten açıldı (`AppRoot.PlayLevel`, 50/50, istisna
+   yok) ve `LevelValidationTool.ValidateAll()` hata vermedi — ama:
+   * **50 bölümün 44'ünde açılışta TEK legal hamle var.**
+   * 9, 12, 15, 36, 43 baştan sona neredeyse tek çözüm sırası.
+   * 1 ve 2'de süre çok bol (çözüm ~31-39 sn, verilen 180 sn).
+   Bölüm dosyaları ve bölüm editörü PARALEL ÇALIŞILAN ALAN — dokunmadım.
+
+### Bu ağaçta paralel çalışma var
+
+`git status` şu an `Assets/_Project/Levels/level_*.json` üzerinde bir
+sürü değişiklik gösteriyor; **bunlar benim değil.** `git add -A` ASLA
+kullanılmayacak; yalnız o oturumda gerçekten düzenlenen dosyalar
+aşamalanacak.
+
+### 14. turda öğrenilen iki ders (tekrar etmesin)
+
+* **Düzenleyicide sahneye nesne kuran her araç `try/finally` yazmalı.**
+  Bir yakalama komutu istisna atıp `OnizlemeKanvas`ı sahnede bıraktı ve
+  kullanıcının menüsü bozuk açıldı (ayrıntısı dosyanın en sonunda).
+* **Bir kararı, işin ÇİZİLECEĞİ boyutta ver.** Arka planı 300 piksellik
+  önizleme şeritlerine bakarak seçtim; tam ekranda köşeleri kavisliydi.
+
+### Son işlenmiş commit'ler
+
+    f598f66 Magazada dort haneli bakiye jetonun altinda kaliyordu
+    453e5c9 H4 geri alindi: varsayilan arka plan yeniden bg_menu
+    d769b7e 14. tur kapanisi: APK-BULGULARI-6 listesi 56/56 bitti
+
+---
+
 ## 2026-08-20 (11) — SON KALANLAR: HUD, ÜST BAR, SEKME ÇUBUĞU, İLERLEME ÇUBUĞU
 
 Kullanıcının listesi: Restore Purchases, Journey'nin oynat düğmeleri,
