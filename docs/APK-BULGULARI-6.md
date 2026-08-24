@@ -1095,7 +1095,7 @@ varlık kullanmak serbest.
 
 # EN SONDA — QA
 
-- [ ] **Q1.** Her şey bittikten sonra **bütün bölümler baştan sona
+- [x] **Q1.** Her şey bittikten sonra **bütün bölümler baştan sona
       oynanacak**. Sıkıntı var mı kontrol edilecek — **çalışmayan /
       açılmayan bazı bölümler vardı**, hepsi düzeltilecek.
       > *"tüm her şeyi bitirdikten sonra bunların hepsini bitirirsen QA test
@@ -1106,6 +1106,29 @@ varlık kullanmak serbest.
       Not: `GECE-PLANI.md` 16. maddesiyle aynı iş. Çözücü (`LevelValidationTool`)
       zaten koşturuldu ama **gerçek oynanış hiç sürülmedi**; "açılmayan
       bölüm" tam olarak çözücünün yakalayamayacağı türden bir hata.
+
+      > **YAPILDI (14. tur) — iki ayrı sürüş.**
+      >
+      > **1) GERÇEK AÇILIŞ (notun istediği eksik parça).** Oynatma kipinde
+      > `AppRoot.PlayLevel(i)` ile 50 bölümün hepsi tek tek AÇILDI — menüden
+      > geçen gerçek yol, çözücü değil. Her açılıştan sonra `ActiveLevel`
+      > modelinin var olduğu ve tahtada blok bulunduğu denetlendi.
+      >     açılan 50 / 50   boş tahta 0   istisna 0
+      > Yani "açılmayan bölüm" kalmamış.
+      >
+      > **2) ÇÖZÜLEBİLİRLİK.** `LevelValidationTool.ValidateAll()` 50 bölümü
+      > taradı: **tek bir HATA yok**, hepsi çözülebiliyor.
+      >
+      > **AMA — tasarım uyarıları var ve bunlar gerçek bir bulgu:**
+      >   * **50 bölümün 44'ünde açılışta TEK hamle var.** Uyarının kendi
+      >     ifadesiyle: *"oyuncu deneme yapamadan doğru yolu bulmalı."*
+      >   * Beş bölüm (9, 12, 15, 36, 43) baştan sona neredeyse tek çözüm
+      >     sırasına sahip ("21 hamlenin 18'i zorunlu").
+      >   * İki bölümde (1, 2) süre çok bol: çözüm ~31-39 sn, verilen 180 sn.
+      >
+      > Bunlar bölüm TASARIMI ve bölüm dosyalarını değiştirmeyi gerektiriyor;
+      > bölüm editörü ve setleri şu an paralel çalışılan alan olduğu için
+      > dokunulmadı. Kullanıcının kararına bırakılıyor.
 
 ---
 

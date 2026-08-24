@@ -7267,3 +7267,31 @@ ekranın `Refresh`ini elle çağırıyor.
 **ÖLÇÜLEMEYEN:** kilitli bölgedeki asma kilidin boyutu — elimizdeki bütün
 yolculuk karelerinde o bölge AÇIK. Bizimki çemberin yarısını kaplıyor ve
 büyük duruyor ama ölçmeden değiştirmek tahmin olurdu.
+
+### Q1 — QA: bütün bölümler
+İki ayrı sürüş yapıldı.
+
+**1) Gerçek açılış** (notun istediği, daha önce hiç yapılmamış parça):
+oynatma kipinde `AppRoot.PlayLevel(i)` ile 50 bölüm tek tek açıldı — çözücü
+değil, menüden geçen gerçek yol. Her açılıştan sonra `ActiveLevel` modelinin
+varlığı ve tahtada blok bulunduğu denetlendi.
+**açılan 50/50, boş tahta 0, istisna 0.**
+
+**2) Çözülebilirlik:** `LevelValidationTool.ValidateAll()` — tek bir HATA yok.
+
+**Tasarım uyarıları (gerçek bulgu, düzeltilmedi):** 50 bölümün 44'ünde
+açılışta TEK hamle var; beş bölüm (9, 12, 15, 36, 43) neredeyse tek çözüm
+sırasına sahip; iki bölümde (1, 2) süre çok bol (çözüm ~31-39 sn, verilen
+180). Bunlar bölüm DOSYALARINI değiştirmeyi gerektiriyor ve bölüm editörü şu
+an paralel çalışılan alan — dokunulmadı, kullanıcının kararına bırakıldı.
+
+**Yan bulgu:** 50 bölümü arka arkaya açınca PrimeTween kapasitesi 256'dan
+4096'ya çıktı. Normal oyunda tek bölüm açık olduğu için sorun değil, ama
+`PrimeTweenConfig.SetTweensCapacity` açılışta ayarlanırsa çalışma anındaki
+tahsisler tamamen kalkar — performans dalında (bu dal!) değerlendirilebilir.
+
+**Ders (bir aracın "koşturulmuş olması" kapsamı garanti etmez):** Çözücü
+aylardır koşuyordu ve "bölümler sağlam" izlenimi veriyordu. Ama çözücü
+bölümü DOSYADAN okuyup simüle ediyor; oyunun onu gerçekten kurup kuramadığına
+hiç bakmıyor. Kullanıcının "açılmayan leveller vardı" şikâyeti tam olarak bu
+boşluktaydı. Bir doğrulama aracının neyi ÖLÇMEDİĞİ, ölçtüğü kadar önemli.
