@@ -1041,6 +1041,13 @@ namespace BlockOut.Runtime.UI
             art.raycastTarget = false;
             UiKit.Place(art, 0f, (OfferLipH + OfferBandH) / height, 1f, 1f);
 
+            // Teklif kartında da aynı hale (M5) — turuncu yüzeyde daha
+            // ölçülü: alfa 0.30, yoksa turuncu solar.
+            var hale = UiKit.CreateIcon("Hale", art.transform, MenuSprites.SoftGlow);
+            hale.preserveAspect = false;
+            hale.color = new Color(1f, 1f, 1f, 0.42f);
+            UiKit.Place(hale, -0.06f, 0.08f, 0.50f, 1.04f);
+
             var pile = UiKit.CreateIcon("Pile", art.transform,
                 Tiered(Art.CoinPile, offer.Pile, Art.Coin));
             // Yığın rafın BURNUNUN üstünde başlıyor: yüzün alt %6'sı rafın
@@ -1246,6 +1253,14 @@ namespace BlockOut.Runtime.UI
             // Ölçüm satır bazlı zeminle yapıldı — yüzün kendisi yukarıdan
             // aşağı gradyanlı olduğu için tek bir zemin rengiyle eşik koymak
             // alt yarıyı bütünüyle "öge" sayıyordu (ilk denemede tam bu oldu).
+            // SANATIN ARKASINDAKİ HALE (14. tur, M5). Ölçüm: referansta
+            // kesenin yanı (255,248,240), uzağı (248,239,224) — soğuk beyaz
+            // bir ışık, %55 alfa. Merkez sanatın üstünde: yüzün 0.19'u.
+            var hale = UiKit.CreateIcon("Hale", clip, MenuSprites.SoftGlow);
+            hale.preserveAspect = false;
+            hale.color = new Color(1f, 1f, 1f, 0.90f);
+            UiKit.Place(hale, -0.09f, 0.06f, 0.47f, 1.06f);
+
             var art = UiKit.CreateIcon("Art", clip, Tiered(Art.PackArt, index + 1, Art.Chest));
             UiKit.Place(art, 0.012f, 0.061f, 0.475f, 0.813f);
 
@@ -1441,6 +1456,11 @@ namespace BlockOut.Runtime.UI
             // JETON SAYISI (dolgu oranı %21'den %35'e çıkıyor). Mesajı taşıyan
             // şey yığının boyu değil, içindeki jeton yoğunluğu. Kademeli
             // büyütmek üstelik küçük kutuları boş bırakıp ızgarayı dağıtıyordu.
+            var hale = UiKit.CreateIcon("Hale", cream.transform, MenuSprites.SoftGlow);
+            hale.preserveAspect = false;
+            hale.color = new Color(1f, 1f, 1f, 0.75f);
+            UiKit.Place(hale, -0.10f, 0.02f, 1.10f, 1.14f);
+
             var pile = UiKit.CreateIcon("Pile", cream.transform,
                 Tiered(Art.CoinPile, index + 1, Art.Coin));
             UiKit.Place(pile, 0.02f, 0.14f, 0.98f, 1.0f);

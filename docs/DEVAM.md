@@ -6931,3 +6931,18 @@ YALITIP ölçtüm — tek başına doğru çıktı. Demek ki hata üretimde değ
 sahnenin katmanlarındaydı. Bandın merkezini kaplayan bütün `Graphic`leri
 listelemek `Buy/Drop`u bir kalemde ortaya çıkardı. Üç turdur "renk tutmuyor"
 diye profil kurcalamak yerine bu iki adım baştan yapılmalıydı.
+
+### M5 — "kâğıt dokusu" tanecik değilmiş
+Kullanıcı paketlerin beyaz zemininin düz durduğunu söyledi. İlk refleks
+gürültü eklemekti; ölçüm çürüttü: referansın kreminde satır/sütun gradyanı
+çıkarıldığında kalan sapma **std 0,1** — yüzey pürüzsüz. Mavi kanalı ±8
+birimlik pencereye gerip baktım, ışın deseni de yok. Derinliği veren tek şey
+kesenin arkasındaki yumuşak hale: yakında (255,248,240), uzakta
+(248,239,224) — kırmızı doygun olduğu için etki soğuk beyaz görünüyor.
+`MenuSprites.SoftGlow` (karesi alınmış radyal sönüm) üç kart tipine de kondu.
+**Ölçüm:** mavi kanalda tepe 232 / taban 225 (referans 234/224).
+
+**Ders ("doku" sözcüğü tanecik demek değildir):** Kullanıcı düz bir yüzeyin
+cansız durduğunu söylüyor; çözümün gürültü olduğunu varsaymak kolay. Ölçünce
+derinliği verenin gürültü değil TEK BİR IŞIK KAYNAĞI olduğu çıktı. Gürültü
+eklemek hem yanlış olurdu hem de ASTC'yi bozardı.

@@ -266,10 +266,20 @@ varlık kullanmak serbest.
 
 ## 5. Paket kutucuklarının zemini
 
-- [ ] **M5.** Paketlerin **beyaz zemini kâğıt dokulu** olacak, düz beyaz
+- [x] **M5.** Paketlerin **beyaz zemini kâğıt dokulu** olacak, düz beyaz
       değil.
       > *"bu paketlerin arkaplanı beyaz kısmı, orada bi kağıt dokuluymuş
       > gibi, düz beyazdan ziyade öyle ya; onu yapabiliyorsak yapalım"*
+      >
+      > **YAPILDI (14. tur) — ama tanecikle değil.** İlk varsayım "kâğıt
+      > gürültüsü ekle" idi; ölçüm bunu çürüttü. Referansın kreminde
+      > satır/sütun gradyanı çıkarıldığında kalan sapma std **0,1** — yüzey
+      > pürüzsüz, tanecik yok. Mavi kanalı ±8 birimlik pencereye gerip
+      > baktım, ışın deseni de yok. Derinliği veren tek şey kesenin
+      > arkasındaki YUMUŞAK HALE: yakında (255,248,240), uzakta
+      > (248,239,224) — soğuk beyaz bir ışık. `MenuSprites.SoftGlow`
+      > (karesi alınmış radyal sönüm) üç kart tipinin de sanatının arkasına
+      > kondu. Ölçüm: mavi kanalda tepe 232 / taban 225 (referans 234/224).
 
 ## 6. Jeton görsellerindeki koyuluk
 

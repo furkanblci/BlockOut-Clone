@@ -1142,6 +1142,59 @@ namespace BlockOut.Runtime.UI
             return _offerBand;
         }
 
+        static Sprite _softGlow;
+
+        /// <summary>
+        /// Kartın yüzünde, sanat eserinin ARKASINDAKİ yumuşak hale (M5).
+        ///
+        /// Kullanıcı: *"bu paketlerin arkaplanı beyaz kısmı, orada bi kağıt
+        /// dokuluymuş gibi, düz beyazdan ziyade öyle ya; onu yapabiliyorsak
+        /// yapalım."*
+        ///
+        /// İlk varsayım "kâğıt taneciği ekle" idi. ÖLÇÜM bunu çürüttü:
+        /// referansın kreminde satır/sütun gradyanı çıkarıldığında kalan
+        /// sapma std 0,1 — yani yüzey pürüzsüz, tanecik YOK. Mavi kanalı
+        /// ±8 birimlik pencereye gerip baktım, ışın deseni de yok.
+        ///
+        /// Gerçekte olan şey tek bir şey: kesenin arkasında YUMUŞAK BİR HALE.
+        ///     kesenin yanı (x=160)  (255,248,240)
+        ///     uzağı      (x=460)    (248,239,224)
+        /// Kırmızı doygun, yeşil +9, mavi +16 — yani SOĞUK beyaz bir ışık.
+        /// Beyazı %55 alfayla eklemek tam bu farkı veriyor.
+        ///
+        /// DERS ("doku" sözcüğü tanecik demek değildir): Kullanıcı düz bir
+        /// yüzeyin cansız durduğunu söylüyor; çözümün gürültü olduğunu
+        /// varsaymak kolay. Referansı ölçünce derinliği verenin gürültü
+        /// değil, tek bir ışık kaynağı olduğu çıktı. Gürültü eklemek hem
+        /// yanlış olurdu hem de ASTC'yi bozardı.
+        /// </summary>
+        public static Sprite SoftGlow => _softGlow != null ? _softGlow : (_softGlow = BuildSoftGlow());
+
+        static Sprite BuildSoftGlow()
+        {
+            const int S = 128;
+            var tex = NewTexture("SoftGlow", S, S);
+            var px = new Color32[S * S];
+            for (int y = 0; y < S; y++)
+            for (int x = 0; x < S; x++)
+            {
+                float dx = (x + 0.5f) / S * 2f - 1f;
+                float dy = (y + 0.5f) / S * 2f - 1f;
+                float r = Mathf.Sqrt(dx * dx + dy * dy);
+                // Karesi alınmış sönüm: referansta hale merkeze yakın hızlı,
+                // dışta yavaş kapanıyor.
+                float a = Mathf.Clamp01(1f - r); a *= a;
+                px[y * S + x] = new Color32(255, 255, 255, (byte)Mathf.RoundToInt(a * 255f));
+            }
+            tex.SetPixels32(px);
+            tex.Apply(false, true);
+
+            _softGlow = Sprite.Create(tex, new Rect(0f, 0f, S, S), new Vector2(0.5f, 0.5f), 100f);
+            _softGlow.name = "SoftGlow";
+            _softGlow.hideFlags = HideFlags.HideAndDontSave;
+            return _softGlow;
+        }
+
         /// <summary>Duraklı renk rampası; t alttan üste 0..1.</summary>
         static Color Duraktan((float t, Color32 c)[] duraklar, float t)
         {
@@ -1190,7 +1243,7 @@ namespace BlockOut.Runtime.UI
             _capsule = _capsuleOutline = _awning = _infinity = _noAds = null;
             _fadeDown = _pennant = _ring = _sunburst = _foliage = null;
             _quilt = _frostVignette = _snowflake = _sparkle = null;
-            _packFace = _packBand = _offerFace = _offerBand = null;
+            _packFace = _packBand = _offerFace = _offerBand = _softGlow = null;
         }
     }
 }
