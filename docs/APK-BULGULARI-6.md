@@ -201,18 +201,49 @@ varlık kullanmak serbest.
       yanlıştı ve `CreateTitle` ortak materyal yüzünden verilen rengi
       yok sayıyordu.
 
-- [ ] **M4f.** Kartın **"Starter Pack" kısmına geçmeden önceki ara çizgi /
+- [x] **M4f.** Kartın **"Starter Pack" kısmına geçmeden önceki ara çizgi /
       görünüm geçişi** daha iyi hale getirilecek.
       > *"o panelin starter pack kısmına gelmeden o aradaki çizgi görünüm
       > geçişi daha iyi hale getirilmeli"*
+      >
+      > **YAPILDI (14. tur).** Kartlar düz levha yığınıydı: teklif kartında
+      > koyu gövde + bant + sanat alanı, paket kartında bant + dudak + raf +
+      > krem. Dikey kesit bunu net gösteriyordu — renk hiç değişmiyor, sonra
+      > bir anda sıçrıyor. Referansın aynı kesiti sürekli ve sınırda ÜÇ öge
+      > var: nesnelerin rafa düşen gölgesi (237,199,156), rafın ışık alan
+      > burnu (250,228,204), rafın ön kenarı (211,148,87); bandın üstünde de
+      > kendi koyu kenarı (102,17,134) ve hemen altında parlak şerit
+      > (219,74,255). Yani referans sınırı yumuşatmıyor, ona KALINLIK
+      > veriyor. İki kart da artık iki gradyan görselden ibaret
+      > (`MenuSprites.PackFace/PackBand`, `OfferFace/OfferBand`); ara
+      > paneller ve "dikiş görünmesin" diye konan 0.04 bindirme kalktı.
 
-- [ ] **M4g.** Kart **boyutsal olarak** orijinal oyundaki görünümle aynı
+- [x] **M4g.** Kart **boyutsal olarak** orijinal oyundaki görünümle aynı
       oranlarda olacak.
+      >
+      > **YAPILDI (14. tur).** Referans kartın krem yüzü 869x278 piksel;
+      > 946 piksellik görsel 1080 birimlik kanvasa 1.1416 ile ölçeklendiği
+      > için 992x317 birim. Genişliğimiz zaten 1002 birimdi (%1 fark) ama
+      > yüksekliğimiz 241 idi — %24 basık. Bant 144 -> 174. Kart içindeki
+      > ögelerin kutuları da yüzün ORANI olarak ölçüldü: kese 0.061..0.813,
+      > "2 000" 0.061..0.353, ad yazısı bandın 0.283..0.691'i, düğme
+      > 0.598..0.990 x / 0.158..0.849 y. Ad puntosu 58 -> 74, fiyat 44 -> 50.
 
-- [ ] **M4h.** Aralarındaki **kahverengi arka planın deseni** orijinaldekine
+- [x] **M4h.** Aralarındaki **kahverengi arka planın deseni** orijinaldekine
       daha çok benzetilecek.
       > *"aralarındaki kahverengi arkaplanın deseni daha çok benzetilmeli,
       > orjinal oyundaki gibi olmalı"*
+      >
+      > **YAPILDI (14. tur).** Desenimiz `cos(x+y) + cos(x-y)` ile
+      > çiziliyordu; toplama formülü gereği bu `2·cos(x)·cos(y)`ye eşit, yani
+      > ÇARPANLARINA AYRILIYOR ve eksen hizalı KARE bir ızgara veriyor —
+      > ekranda yuvarlak köşeli kareler çıkıyordu. Referans 45°'lik eşkenar
+      > dörtgen kafes: yatay adım 222 piksel (= 253 birim), çizgi merkezi 59,
+      > zemin medyanı 100, yüzeylerin en açığı 116 / en koyusu 70, çizginin
+      > üst-sol yanında ince bir parlama. Kafes artık `x+y` ve `x-y`
+      > doğrularına DİK MESAFEYLE kuruluyor. Zemin tonu da düzeltildi:
+      > (80,24,16) -> (100,28,13). Ölçüm sonrası medyanımız (99,28,13),
+      > adım 253 birim.
 
 - [x] **M4i.** Şerit başlıklarda **dış çizgi rengi, ait olduğu başlığın
       rengiyle aynı** olacak. Örnek: "Packs" krem dış çizgili ama sarı
@@ -242,12 +273,21 @@ varlık kullanmak serbest.
 
 ## 6. Jeton görsellerindeki koyuluk
 
-- [ ] **M6.** Jetonlarda görsel olarak bir **koyuluk** var. Kullanıcı
+- [x] **M6.** Jetonlarda görsel olarak bir **koyuluk** var. Kullanıcı
       editörden baktı: sebebi **drop (gölge)**. O drop'un ne işe yaradığı
       anlaşılmıyor, kötü görünüyor, amaçlanan şey olmamış. Çözülecek.
       > *"goldlar kısmında görsel olarak görselde bi koyuluk var, baktım
       > editörden droptan dolayı; o drop ne işe yarıyor anlamadım ama kötü
       > gözüküyor, amaçlanan şey olmamış, onu da çözelim"*
+      >
+      > **YAPILDI (14. tur) — kullanıcı teşhisi birebir doğruydu.** Suçlu
+      > `PriceButton`ın gölgesi. Metot `root` -> (`Drop`, `Body`) kuruyor ama
+      > geriye `Body`yi döndürüyordu; çağıran da dönen şeyi yerleştiriyordu,
+      > yani KÖK hiç yerleştirilmiyor ve varsayılan olarak ebeveynin tamamına
+      > yayılıyordu. `Drop` kökün %99'u olduğu için düğmenin gölgesi jeton
+      > kutucuğunun ve paket bandının BÜTÜNÜNÜ %30 siyahla yıkıyordu.
+      > Kök artık metodun kendisi tarafından yerleştiriliyor. Ölçüm: jeton
+      > kutucuğunun kremi (251,241,226) — hedeflenen `CardCream`in aynısı.
 
 ---
 

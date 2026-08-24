@@ -6856,3 +6856,78 @@ Bu iki etikete kendi materyal örneği verildi (`InceKontur`).
 > yanlış olduğunu sanıp üç kez değiştirdim; oysa hiç kullanılmıyordu. Ortak
 > materyale geçen bir sistemde eski parametreler görünüşte yerinde durmaya
 > devam ediyor.
+
+## 14. tur — mağaza kartları (M4f, M4g, M4h, M4i, M6)
+
+### M4i — Paketler kurdelesi kendi çerçevesiyle bağlandı
+Tek kurdele görselini iki bölümde de kullanıyorduk. Referansta ikisi ayrı:
+Teklifler altın çerçeve + turuncu gövde, Paketler KREM çerçeve + mor gövde;
+uçtaki dil de kurdelenin çerçevesiyle aynı renk. `ribbon_packs.png` (76x109)
+ve `ribbon_packs_tail.png` `market_ref.png`ten kesildi. Renk profili yazı
+olmayan bir sütundan (x=150) alınıp **kenar mesafesine** göre uygulandı —
+`y`'ye göre değil, yoksa çerçeve yuvarlak uçlarda kesiliyor. Başlığın konturu
+da bölüme bağlandı (morda 46,5,70).
+**Ölçüm:** yazı/kurdele %38,4 (ref %36,7); dil (230,196,159) vs ref (229,197,159).
+
+**Ders (import kuralı geçmişe dönük çalışmaz, ikinci kez):** Yeni png önce
+içeri alındı, 9-dilim payı kuralı SONRA yazıldı — kurdele elips gibi gerildi.
+Yeni bir görsel eklerken kuralı yazıp `ImportAsset(..., ForceUpdate)` demek
+şart; `AssetDatabase.Refresh()` yetmiyor.
+
+### M4h — kahverengi zemin deseni
+Desenimiz `cos(x+y) + cos(x-y)` ile çiziliyordu. Toplama formülü gereği bu
+`2·cos(x)·cos(y)`ye eşit — **çarpanlarına ayrılıyor**, yani x ve y'de ayrı
+ayrı periyodik, eksen hizalı KARE bir ızgara. Ekranda yuvarlak köşeli kareler
+çıkıyordu. 45°'lik kafes, dalga toplamıyla değil `x+y` ve `x-y` doğrularına
+olan DİK MESAFEYLE kurulur.
+**Ölçüm:** yatay adım 222 px = 253 birim; çizgi merkezi 59, zemin medyanı 100,
+yüzeyler 70..116; çizginin üst-sol yanında ince parlama. Zemin tonu da
+(80,24,16) -> (100,28,13) düzeltildi.
+**Sonuç:** medyanımız (99,28,13), adım 253 birim — birebir.
+
+### M4f — "geçiş çizgisi": sınırı yumuşatma, ona KALINLIK ver
+Kartlar düz levha yığınıydı. Dikey kesit bunu net söylüyordu: renk hiç
+değişmiyor, sonra bir anda sıçrıyor. Referansın aynı kesiti sürekli ve
+sınırda ÜÇ öge var — nesnelerin rafa düşen gölgesi (237,199,156), rafın ışık
+alan burnu (250,228,204), rafın ön kenarı (211,148,87) — bandın üstünde de
+kendi koyu kenarı (102,17,134) ve hemen altında parlak şerit (219,74,255).
+Yani referans sınırı SİLMİYOR, ona kalınlık veriyor. İki kart da artık iki
+gradyan görsele indi (`PackFace/PackBand`, `OfferFace/OfferBand`);
+"dikiş görünmesin" diye konan 0.04 bindirme kalktı.
+**Ölçüm:** geçişimiz (243,208,166) -> (249,224,197) -> (214,153,94) -> mor;
+referans (243,211,173) -> (247,223,195) -> (215,151,87) -> mor.
+
+### M4g — kart oranları
+Referans krem yüz 869x278 px = 992x317 birim. Genişliğimiz zaten 1002 birimdi
+(%1) ama yüksekliğimiz 241 — %24 basık. Bant 144 -> 174. Öge kutuları da
+yüzün ORANI olarak ölçüldü: kese 0.061..0.813, "2 000" 0.061..0.353, ad
+yazısı bandın 0.283..0.691'i, düğme 0.598..0.990 / 0.158..0.849. Ad puntosu
+58 -> 74, fiyat 44 -> 50.
+
+**Ders (satır bazlı zemin):** İlk ölçüm bütün ögeleri "alt 0.043" verdi.
+Sebep: tek bir zemin rengiyle (kremin üstü) eşik konmuştu, oysa yüz yukarıdan
+aşağı gradyanlı — alt yarı bütünüyle "öge" sayılıyordu. Her satırın kendi
+MEDYANINA göre eşiklemek doğru kutuları verdi.
+
+### M6 — jetonlardaki koyuluk: kullanıcının teşhisi birebir doğruydu
+Kullanıcı "editörden baktım, droptan dolayı; o drop ne işe yarıyor anlamadım"
+demişti. Suçlu `PriceButton`ın gölgesi: metot `root` -> (`Drop`, `Body`)
+kuruyor ama geriye `Body`yi döndürüyordu, çağıran da dönen şeyi
+yerleştiriyordu — yani KÖK hiç yerleştirilmiyor ve ebeveynin tamamına
+yayılıyordu. `Drop` kökün %99'u olduğundan düğmenin gölgesi jeton
+kutucuğunun ve paket bandının BÜTÜNÜNÜ %30 siyahla yıkıyordu.
+**Ölçüm:** düzeltmeden sonra jeton kutucuğunun kremi (251,241,226) —
+hedeflenen `CardCream`in aynısı; bandın gövdesi (171,26,218), dokudakiyle
+birebir.
+
+**Ders (yerleştirilmeyen RectTransform ebeveyni KAPLAR, sessizce):** Bir
+yardımcı kök nesne kurup içeriden bir çocuğu döndürüyorsa, kökü kimin
+yerleştireceği sözleşmenin parçası olmalı. Aksi hâlde kök görünmez biçimde
+tüm ebeveyni kaplar ve yalnız SAYDAM bir çocuğu varsa fark edilir.
+
+**Ders (ölçüm ikiye ayrılır: kaynak mı, sahne mi):** Dokudan okunan renk
+(170,26,218) ile ekrandan ölçülen (146,21,186) tutmayınca önce görseli
+YALITIP ölçtüm — tek başına doğru çıktı. Demek ki hata üretimde değil
+sahnenin katmanlarındaydı. Bandın merkezini kaplayan bütün `Graphic`leri
+listelemek `Buy/Drop`u bir kalemde ortaya çıkardı. Üç turdur "renk tutmuyor"
+diye profil kurcalamak yerine bu iki adım baştan yapılmalıydı.

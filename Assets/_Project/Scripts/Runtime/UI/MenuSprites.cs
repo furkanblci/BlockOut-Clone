@@ -617,40 +617,85 @@ namespace BlockOut.Runtime.UI
         ///
         /// Referansta (`market.jpeg`) bölüm zeminleri düz değil: eşkenar
         /// dörtgen bir kapitone deseni var ve her yüzeyin ışığı biraz farklı.
-        /// Ölçüm: bordo bölümde kırmızı kanalı 62 ile 116 arasında salınıyor
-        /// (±%25), mor bölümde daha yumuşak. Kullanıcının "arkaplan çok sade
-        /// kalmış, orada doku filan var" dediği şey bu (11. APK bulgusu).
+        /// Kullanıcının "arkaplan çok sade kalmış, orada doku filan var"
+        /// dediği şey bu (11. APK bulgusu).
         ///
         /// DERS (doku RENK DEĞİL, IŞIKTIR): Deseni renkli çizip Image'ı
         /// boyamak, boyama çarpma olduğu için deseni de renklendirirdi ve her
         /// bölümde farklı bir ton çıkardı. Bunun yerine doku BEYAZ üstüne
         /// yalnız parlaklık farkı olarak çiziliyor; bölüm rengi tint ile
         /// veriliyor. Böylece tek doku üç bölümde de doğru çalışıyor.
+        ///
+        /// DERS (ayrıştırılabilir dalga EŞKENAR DÖRTGEN VERMEZ — 14. tur,
+        /// M4h): Bu doku bir tur `cos(x+y) + cos(x-y)` ile yazılmıştı, "iki
+        /// köşegen dalganın toplamı eşkenar dörtgen ızgara verir" diye. Ama
+        /// toplama formülü gereği bu ifade `2·cos(x)·cos(y)`ye eşit — yani
+        /// ÇARPANLARINA AYRILIYOR ve x ile y'de ayrı ayrı periyodik, eksen
+        /// hizalı KARE bir ızgara çiziyor. Ekranda da yuvarlak köşeli kareler
+        /// çıkıyordu; kullanıcı "aralarındaki kahverengi arkaplanın deseni
+        /// orijinaldeki gibi olmalı" derken bunu gördü. 45°'lik bir kafes,
+        /// dalga toplamıyla değil, `x+y` ve `x-y` doğrularına olan DİK
+        /// MESAFEYLE kurulur.
+        ///
+        /// ÖLÇÜM (`market_ref.png`, y 940..1015 — kartların arasındaki
+        /// kahverengi bölge):
+        ///   • Kafes 45°: bir çizgi y 960->1010 arasında x 43->91'e kayıyor,
+        ///     yani eğim 1.
+        ///   • Yatay adım 222 referans piksel (çizgi merkezleri 72, 294, 516,
+        ///     737). 946 piksel genişlik 1080 kanvas birimine geldiği için
+        ///     ekranda 253 birim.
+        ///   • Çizgi merkezi 59, zemin medyanı 100, yüzeylerin en açığı 116,
+        ///     en koyusu 70 (3. ve 97. yüzdelik).
+        ///   • Çizginin ÜST-SOL yanında ince bir parlama var (x=66'da 108,
+        ///     merkezden 6 piksel ötede).
         /// </summary>
         public static Sprite Quilt => _quilt != null ? _quilt : (_quilt = BuildQuilt());
 
         static Sprite BuildQuilt()
         {
-            const int s = 128;                 // döşeme karesi
+            // Döşeme karesinin kenarı, kafesin YATAY ADIMIYLA aynı olmalı:
+            // `x+y` ailesinin ardışık iki doğrusu arasındaki yatay mesafe s,
+            // `x-y` ailesininki de s. Kare doku o yüzden kusursuz döşeniyor.
+            const int s = 256;
             var tex = NewTexture("ShopQuilt", s, s);
             tex.wrapMode = TextureWrapMode.Repeat;
+
+            // Referans ölçüsü doku pikseline çevrildi: 253 kanvas birimi = 256
+            // doku pikseli, yani bire bir sayılabilir. Çizginin dik yarı
+            // kalınlığı yatayda 7 piksel ölçüldü; 45°'de dik mesafe bunun
+            // 1/√2'si.
+            const float SeamYari  = 7f / 1.41421f;   // ~4.95
+            const float ParlaBas  = SeamYari;        // parlama dikişin hemen dışında
+            const float ParlaBit  = SeamYari + 4.5f;
 
             var pixels = new Color32[s * s];
             for (int y = 0; y < s; y++)
             for (int x = 0; x < s; x++)
             {
-                // Eşkenar dörtgen ızgara: iki köşegen dalganın toplamı.
-                float u = (x + y) / (float)s * Mathf.PI * 2f;
-                float v = (x - y) / (float)s * Mathf.PI * 2f;
-                float facet = (Mathf.Cos(u) + Mathf.Cos(v)) * 0.5f;      // -1..1
+                // İki doğru ailesine DİK mesafe. Doğrular: x+y = k·s ve
+                // x-y = k·s. Dik mesafe |x±y - k·s| / √2.
+                float a = Mathf.Repeat(x + y, s);        // 0..s
+                float b = Mathf.Repeat(x - y, s);
+                float d1 = Mathf.Min(a, s - a) * 0.70711f;
+                float d2 = Mathf.Min(b, s - b) * 0.70711f;
+                float d  = Mathf.Min(d1, d2);            // en yakın dikişe uzaklık
 
-                // Dikişlerde ince koyu çizgi: dalganın sıfır geçişine yakın yer.
-                float seam = 1f - Step(0.02f, 0.16f, Mathf.Abs(facet));
+                // Dikiş: merkezde en koyu, SeamYari'de zemine dönüyor.
+                float seam = 1f - Step(0f, SeamYari, d);
 
-                // Genlik referans ölçüsünden: bordo bölümde kırmızı kanal 62 ile
-                // 116 arasında salınıyor, yani ortalamanın ±%28'i. Dikiş
-                // çizgisi ayrıca koyultuyor.
-                float light = 1f + facet * 0.17f - seam * 0.20f;
+                // Dikişin dışındaki ince parlama (referansta merkezden 6
+                // piksel ötede 108, zemin 100).
+                float parla = Step(ParlaBas, (ParlaBas + ParlaBit) * 0.5f, d)
+                            * (1f - Step((ParlaBas + ParlaBit) * 0.5f, ParlaBit, d));
+
+                // YÜZEY IŞIĞI: her eşkenar dörtgen kendi içinde üstten alta
+                // hafifçe koyulaşıyor (referansta 102 -> 93). Hücre içindeki
+                // konum a ve b'den çıkıyor; a veya b sarmaladığı yerde ışık
+                // sıçrıyor ama orası zaten dikişin koyu şeridi, görünmüyor.
+                float t = (a / s + b / s) * 0.5f;        // 0..1
+                float yuzey = 1.06f - 0.13f * t;
+
+                float light = yuzey * (1f - 0.41f * seam) + 0.085f * parla;
                 byte c = (byte)Mathf.Clamp(Mathf.RoundToInt(255f * light), 0, 255);
                 pixels[y * s + x] = new Color32(c, c, c, 255);
             }
@@ -842,6 +887,295 @@ namespace BlockOut.Runtime.UI
             return Sprite.Create(tex, new Rect(0f, 0f, s, s), new Vector2(0.5f, 0.5f), 100f);
         }
 
+        // ---- Paket kartinin yuzu ve bandi (14. tur, M4f) -------------------
+
+        static Sprite _packFace, _packBand;
+
+        /// <summary>
+        /// Paket kartının KREM YÜZÜ — üstte krem, altta rafın kumu, en altta
+        /// rafın ön kenarı.
+        ///
+        /// Kullanıcı: *"o panelin starter pack kısmına gelmeden o aradaki
+        /// çizgi görünüm geçişi daha iyi hale getirilmeli."*
+        ///
+        /// Bizimki ÜÇ DÜZ LEVHAYDI ve ölçüm bunu net gösteriyor — kartın
+        /// dikey kesitinde renk hiç değişmiyor, sonra bir anda sıçrıyor:
+        ///     krem (251,241,226) ... sabit
+        ///     raf  (229,208,183) ... sabit
+        ///     mor  (120,17,169)  ... sabit
+        /// Referansın aynı kesiti ise sürekli:
+        ///     %0..%26   (250,241,226) düz krem
+        ///     %26..%80  krem yavaşça (245,215,177) kumuna dönüyor
+        ///     %84..%89  (237,199,156) — nesnelerin rafa düşen gölgesi
+        ///     %94..%95  (250,228,204) — rafın ışık alan burnu
+        ///     %96..%100 (211,148,87)  — rafın ÖN KENARI, kalınlığı
+        ///
+        /// Yani referansta "geçiş" diye bir çizgi yok; bir RAF var ve rafın
+        /// kalınlığı görünüyor. Kullanıcının "çizgi" dediği şey de o kalınlığın
+        /// eksikliği: iki düz levha yan yana gelince aradaki sınır çizgi gibi
+        /// okunuyor.
+        ///
+        /// DERS (bir sınırı yumuşatmanın yolu onu BULANIKLAŞTIRMAK değil,
+        /// KALINLIK vermektir): İlk refleks iki levha arasına yumuşak bir
+        /// geçiş koymak olurdu; o da sınırı siler ve yüzey sünger gibi durur.
+        /// Referans tam tersini yapıyor — sınırı KESKİN bırakıyor ama önüne
+        /// bir ışık burnu, arkasına bir gövde kalınlığı koyuyor. Göz o zaman
+        /// "iki renk" değil "bir raf" görüyor.
+        ///
+        /// Üst köşeler yuvarlak, alt köşeler kare: yüz bandın üstüne oturuyor.
+        /// </summary>
+        public static Sprite PackFace => _packFace != null ? _packFace : (_packFace = BuildPackFace());
+
+        static Sprite BuildPackFace()
+        {
+            const int W = 128, H = 317;        // yükseklik = referans yüzü, birim birim
+            const float R = 30f;               // üst köşe yarıçapı
+
+            var duraklar = new[]
+            {
+                (0.000f, new Color32(211, 148,  87, 255)),   // en alt: rafın ön kenarı
+                (0.020f, new Color32(219, 165, 108, 255)),
+                (0.040f, new Color32(250, 228, 204, 255)),   // rafın ışık alan burnu
+                (0.062f, new Color32(243, 208, 166, 255)),
+                (0.110f, new Color32(237, 199, 156, 255)),   // nesne gölgesi
+                (0.160f, new Color32(245, 215, 177, 255)),
+                (0.200f, new Color32(245, 215, 177, 255)),   // rafın kumu
+                (0.450f, new Color32(246, 229, 209, 255)),
+                (0.740f, new Color32(248, 239, 224, 255)),
+                (1.000f, new Color32(250, 241, 226, 255)),
+            };
+
+            var tex = NewTexture("PackFace", W, H);
+            var px = new Color32[W * H];
+            for (int y = 0; y < H; y++)
+            {
+                Color c = Duraktan(duraklar, y / (float)(H - 1));
+                for (int x = 0; x < W; x++)
+                {
+                    // Yalnız ÜST köşeler yuvarlak: alt kenar bandın üstünde
+                    // duruyor, orada yuvarlaklık bir boşluk açardı.
+                    float d = UstKose(x + 0.5f, y + 0.5f, W, H, R);
+                    var k = c; k.a = Mathf.Clamp01(0.7f - d);
+                    px[y * W + x] = k;
+                }
+            }
+            tex.SetPixels32(px);
+            tex.Apply(false, true);
+
+            // 9-dilim yalnız YATAYDA: profil dikey olduğu için orta satırlar
+            // gerilemez, ama kart genişliği ekrana göre değiştiğinden yatayda
+            // gerilmesi şart.
+            _packFace = Sprite.Create(tex, new Rect(0f, 0f, W, H), new Vector2(0.5f, 0.5f),
+                100f, 0, SpriteMeshType.FullRect, new Vector4(R + 2f, 0f, R + 2f, 0f));
+            _packFace.name = "PackFace";
+            _packFace.hideFlags = HideFlags.HideAndDontSave;
+            return _packFace;
+        }
+
+        /// <summary>
+        /// Paket kartının MOR BANDI — üstte kendi kalınlığının koyu çizgisi,
+        /// hemen altında ışık alan parlak şerit, sonra aşağı doğru sönen gövde.
+        ///
+        /// ÖLÇÜM (`market_ref.png`, x=200, bant y 1456..1607):
+        ///     %0    (102,17,134)  koyu üst kenar
+        ///     %8    (219,74,255)  parlak şerit — ışığın vurduğu yer
+        ///     %11   (171,26,219)  gövdenin üstü
+        ///     %70   (146,22,206)  gövdenin altı (sönüyor)
+        ///     %93   (124,16,161)
+        ///     %100  ( 72, 3,100)  alt kenar
+        ///
+        /// Bizimki tek düz mordu (141,23,198) ve ayrıca alt %5.5'e elle
+        /// koyduğumuz bir "dudak" vardı. Referansta dudak ALTTA DEĞİL ÜSTTE:
+        /// bandın üstünde görünen şey, yüzün altındaki kalınlık.
+        ///
+        /// Üst köşeler kare, alt köşeler yuvarlak.
+        /// </summary>
+        public static Sprite PackBand => _packBand != null ? _packBand : (_packBand = BuildPackBand());
+
+        static Sprite BuildPackBand()
+        {
+            const int W = 128, H = 174;
+            const float R = 30f;
+
+            var duraklar = new[]
+            {
+                (0.000f, new Color32( 72,   3, 100, 255)),   // en alt
+                (0.030f, new Color32(124,  16, 161, 255)),
+                (0.070f, new Color32(140,  20, 198, 255)),
+                (0.300f, new Color32(146,  22, 206, 255)),
+                (0.700f, new Color32(168,  25, 215, 255)),
+                (0.890f, new Color32(171,  26, 219, 255)),
+                (0.921f, new Color32(219,  74, 255, 255)),   // parlak şerit
+                (0.947f, new Color32(183,  39, 225, 255)),
+                (0.974f, new Color32(129,  15, 191, 255)),
+                (1.000f, new Color32(102,  17, 134, 255)),   // koyu üst kenar
+            };
+
+            var tex = NewTexture("PackBand", W, H);
+            var px = new Color32[W * H];
+            for (int y = 0; y < H; y++)
+            {
+                Color c = Duraktan(duraklar, y / (float)(H - 1));
+                for (int x = 0; x < W; x++)
+                {
+                    float d = AltKose(x + 0.5f, y + 0.5f, W, H, R);
+                    var k = c; k.a = Mathf.Clamp01(0.7f - d);
+                    px[y * W + x] = k;
+                }
+            }
+            tex.SetPixels32(px);
+            tex.Apply(false, true);
+
+            _packBand = Sprite.Create(tex, new Rect(0f, 0f, W, H), new Vector2(0.5f, 0.5f),
+                100f, 0, SpriteMeshType.FullRect, new Vector4(R + 2f, 0f, R + 2f, 0f));
+            _packBand.name = "PackBand";
+            _packBand.hideFlags = HideFlags.HideAndDontSave;
+            return _packBand;
+        }
+
+        static Sprite _offerFace, _offerBand;
+
+        /// <summary>
+        /// TEKLİF kartının turuncu yüzü — <see cref="PackFace"/> ile aynı raf
+        /// mantığı, kartın kendi paletinde (M4f).
+        ///
+        /// Kullanıcının şikâyeti asıl BU kart içindi: *"o panelin starter pack
+        /// kısmına gelmeden o aradaki çizgi görünüm geçişi daha iyi hale
+        /// getirilmeli."* Turuncu sanat alanı ile "Starter Pack" bandı iki düz
+        /// levhaydı ve aradaki sınır çizgi gibi okunuyordu.
+        ///
+        /// Paket kartında referanstan ÖLÇÜLEN raf profili şu üç öge:
+        /// nesnelerin düştüğü gölge, rafın ışık alan burnu, rafın ön kenarı.
+        /// Referansta teklif kartının turuncu hâli yok (oradaki kart bambaşka
+        /// bir premium paket), o yüzden burada ÖLÇÜM DEĞİL ORAN taşındı:
+        /// aynı üç öge, taban rengin çevresinde aynı açıklık/koyuluk
+        /// çarpanlarıyla.
+        /// </summary>
+        public static Sprite OfferFace => _offerFace != null ? _offerFace : (_offerFace = BuildOfferFace());
+
+        static Sprite BuildOfferFace()
+        {
+            const int W = 128, H = 418;
+            const float R = 30f;
+
+            var duraklar = new[]
+            {
+                (0.000f, new Color32(176,  78,   8, 255)),   // rafın ön kenarı
+                (0.018f, new Color32(198,  96,  12, 255)),
+                (0.036f, new Color32(255, 190,  96, 255)),   // rafın ışık alan burnu
+                (0.056f, new Color32(250, 160,  45, 255)),
+                (0.100f, new Color32(226, 122,  18, 255)),   // nesne gölgesi
+                (0.150f, new Color32(245, 137,  20, 255)),
+                (0.450f, new Color32(249, 160,  12, 255)),
+                (1.000f, new Color32(252, 186,   5, 255)),
+            };
+
+            var tex = NewTexture("OfferFace", W, H);
+            var px = new Color32[W * H];
+            for (int y = 0; y < H; y++)
+            {
+                Color c = Duraktan(duraklar, y / (float)(H - 1));
+                for (int x = 0; x < W; x++)
+                {
+                    float d = UstKose(x + 0.5f, y + 0.5f, W, H, R);
+                    var k = c; k.a = Mathf.Clamp01(0.7f - d);
+                    px[y * W + x] = k;
+                }
+            }
+            tex.SetPixels32(px);
+            tex.Apply(false, true);
+
+            _offerFace = Sprite.Create(tex, new Rect(0f, 0f, W, H), new Vector2(0.5f, 0.5f),
+                100f, 0, SpriteMeshType.FullRect, new Vector4(R + 2f, 0f, R + 2f, 0f));
+            _offerFace.name = "OfferFace";
+            _offerFace.hideFlags = HideFlags.HideAndDontSave;
+            return _offerFace;
+        }
+
+        /// <summary>
+        /// Teklif kartının adı ve fiyatı taşıyan bandı. Yüksekliğe kartın
+        /// ALT KALINLIĞI da dahil: eskiden bu iki ayrı paneldi (koyu bir
+        /// "Body" ve üstünde bandın kendisi) ve aralarındaki sınır yine bir
+        /// çizgi bırakıyordu. Kalınlık artık bandın kendi profilinin altı.
+        /// </summary>
+        public static Sprite OfferBand => _offerBand != null ? _offerBand : (_offerBand = BuildOfferBand());
+
+        static Sprite BuildOfferBand()
+        {
+            const int W = 128, H = 204;        // 172 bant + 32 alt kalınlık
+            const float R = 30f;
+
+            var duraklar = new[]
+            {
+                (0.000f, new Color32(110,  36,   4, 255)),   // alt kenar
+                (0.060f, new Color32(140,  48,   6, 255)),
+                (0.140f, new Color32(176,  62,   9, 255)),
+                (0.157f, new Color32(214,  82,  12, 255)),   // kalınlık biter, gövde başlar
+                (0.400f, new Color32(226,  88,  14, 255)),
+                (0.760f, new Color32(237,  96,  17, 255)),
+                (0.905f, new Color32(243, 104,  22, 255)),
+                (0.930f, new Color32(255, 158,  92, 255)),   // parlak şerit
+                (0.955f, new Color32(250, 122,  40, 255)),
+                (0.978f, new Color32(196,  66,   8, 255)),
+                (1.000f, new Color32(150,  44,   4, 255)),   // koyu üst kenar
+            };
+
+            var tex = NewTexture("OfferBand", W, H);
+            var px = new Color32[W * H];
+            for (int y = 0; y < H; y++)
+            {
+                Color c = Duraktan(duraklar, y / (float)(H - 1));
+                for (int x = 0; x < W; x++)
+                {
+                    float d = AltKose(x + 0.5f, y + 0.5f, W, H, R);
+                    var k = c; k.a = Mathf.Clamp01(0.7f - d);
+                    px[y * W + x] = k;
+                }
+            }
+            tex.SetPixels32(px);
+            tex.Apply(false, true);
+
+            _offerBand = Sprite.Create(tex, new Rect(0f, 0f, W, H), new Vector2(0.5f, 0.5f),
+                100f, 0, SpriteMeshType.FullRect, new Vector4(R + 2f, 0f, R + 2f, 0f));
+            _offerBand.name = "OfferBand";
+            _offerBand.hideFlags = HideFlags.HideAndDontSave;
+            return _offerBand;
+        }
+
+        /// <summary>Duraklı renk rampası; t alttan üste 0..1.</summary>
+        static Color Duraktan((float t, Color32 c)[] duraklar, float t)
+        {
+            if (t <= duraklar[0].t) return duraklar[0].c;
+            for (int i = 1; i < duraklar.Length; i++)
+            {
+                if (t > duraklar[i].t) continue;
+                float k = (t - duraklar[i - 1].t) / Mathf.Max(1e-5f, duraklar[i].t - duraklar[i - 1].t);
+                return Color.Lerp(duraklar[i - 1].c, duraklar[i].c, k);
+            }
+            return duraklar[duraklar.Length - 1].c;
+        }
+
+        /// <summary>
+        /// Yalnız ÜST köşeleri yuvarlak dikdörtgene işaretli mesafe.
+        /// Negatif = içeride. Doku koordinatında y=0 ALTTIR.
+        /// </summary>
+        static float UstKose(float x, float y, float w, float h, float r)
+        {
+            float cx = Mathf.Max(Mathf.Max(r - x, 0f), Mathf.Max(x - (w - r), 0f));
+            float cy = Mathf.Max(y - (h - r), 0f);
+            float dis = Mathf.Sqrt(cx * cx + cy * cy) - r;
+            return Mathf.Max(dis, Mathf.Max(Mathf.Max(-x, x - w), -y));
+        }
+
+        /// <summary>Yalnız ALT köşeleri yuvarlak dikdörtgene işaretli mesafe.</summary>
+        static float AltKose(float x, float y, float w, float h, float r)
+        {
+            float cx = Mathf.Max(Mathf.Max(r - x, 0f), Mathf.Max(x - (w - r), 0f));
+            float cy = Mathf.Max(r - y, 0f);
+            float dis = Mathf.Sqrt(cx * cx + cy * cy) - r;
+            return Mathf.Max(dis, Mathf.Max(Mathf.Max(-x, x - w), y - h));
+        }
+
         static Texture2D NewTexture(string name, int w, int h) =>
             new Texture2D(w, h, TextureFormat.RGBA32, false)
             {
@@ -856,6 +1190,7 @@ namespace BlockOut.Runtime.UI
             _capsule = _capsuleOutline = _awning = _infinity = _noAds = null;
             _fadeDown = _pennant = _ring = _sunburst = _foliage = null;
             _quilt = _frostVignette = _snowflake = _sparkle = null;
+            _packFace = _packBand = _offerFace = _offerBand = null;
         }
     }
 }

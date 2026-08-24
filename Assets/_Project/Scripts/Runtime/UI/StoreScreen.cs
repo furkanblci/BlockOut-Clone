@@ -39,7 +39,11 @@ namespace BlockOut.Runtime.UI
     {
         // ---- Referanstan örneklenen palet ---------------------------------
 
-        static readonly Color BgOffers   = new Color(0.314f, 0.094f, 0.063f);
+        // ÖLÇÜM (14. tur, M4h): referansın kartlar arası kahvesi medyan
+        // (100,28,13). Bizimki (80,24,16) idi — %20 daha koyu ve daha
+        // kırmızıya kaçık. Doku beyaz üstüne parlaklık olarak çizildiği ve
+        // medyanı 1.0'a oturduğu için tint doğrudan bu medyan.
+        static readonly Color BgOffers   = new Color(0.392f, 0.110f, 0.051f);
         static readonly Color BgPacks    = new Color(0.200f, 0.102f, 0.349f);
         static readonly Color BgCoins    = new Color(0.325f, 0.047f, 0.122f);
 
@@ -50,7 +54,6 @@ namespace BlockOut.Runtime.UI
         static readonly Color PillRimGold = new Color(0.980f, 0.741f, 0.200f);
 
         static readonly Color CardCream  = new Color(0.984f, 0.945f, 0.886f);
-        static readonly Color CardShelf  = new Color(0.898f, 0.816f, 0.718f);
         static readonly Color BandPurple = new Color(0.553f, 0.090f, 0.776f);
         static readonly Color CoinBase   = new Color(0.827f, 0.165f, 0.341f);
 
@@ -199,7 +202,14 @@ namespace BlockOut.Runtime.UI
         // kısmen gizlediği için toplamda fark küçük görünüyordu.
         //     krem: 0,1302 × 1920 = 250 px çizim; çizim/sabit 1,038 -> 241
         //     bant: 0,0677 × 1920 = 130 px çizim; çizim/sabit 0,673 -> 193
-        const float PackCreamH = 241f;
+        // ÖLÇÜM (14. tur, M4g — kullanıcı: "kart boyutsal olarak orijinal
+        // oyundaki görünümle aynı oranlarda olacak"): referansta kartın krem
+        // yüzü 869x278 piksel. O görsel 946 piksel geniş ve bizim kanvasımız
+        // 1080 birim, yani ölçek 1.1416: yüz 992x317 birim ediyor. Kartın
+        // genişliği zaten 1002 birimdi (ölçüldü, %1 fark) ama yüksekliği 241
+        // idi — %24 basık. Karttaki her şey oranla yerleştiği için tek bu
+        // sayıyı düzeltmek içeriği de referans oranına getiriyor.
+        const float PackCreamH = 317f;
         // İNCE AYAR, İKİ ÖLÇÜM NOKTASIYLA. Tek orandan tahmin iki kez şaştı
         // (0,673 sonra 0,829), çünkü bandın ölçülen yüksekliği kartlar arası
         // boşluktan etkileniyor. İki sabit ölçülüp doğrusal ilişki kuruldu:
@@ -208,7 +218,8 @@ namespace BlockOut.Runtime.UI
         // 36 birim 0,88 puan, ikincisinde 28 birim 1,46 puan). Hedef %6,77
         // iki alt nokta arasında; ara değer alındı:
         //     129 + 0,534 × 28 = 144
-        const float PackBandH = 144f;
+        // Bant referansta 152 piksel = 174 birim (y 1456..1607).
+        const float PackBandH = 174f;
         const float PackGap   = 64f;
         // JETON KUTUCUKLARI REFERANSTAN (10. tur, `m_004`, oranlar YÜKSEKLİĞE).
         //
@@ -820,9 +831,12 @@ namespace BlockOut.Runtime.UI
             var image = rect.gameObject.AddComponent<Image>();
             image.sprite = MenuSprites.Quilt;
             image.type = Image.Type.Tiled;
-            // Döşeme ölçüsü: desen okunsun ama gürültü olmasın. 128 piksellik
-            // kare, kanvas biriminde ~190'a geliyor.
-            UiKit.SetSliceScale(image, 0.68f);
+            // Döşeme ölçüsü ÖLÇÜMDEN (14. tur, M4h): referansta kafesin
+            // yatay adımı 222 piksel ve o görsel 946 piksel genişliğinde;
+            // 1080 birimlik kanvasta 222 * 1080/946 = 253 birim ediyor.
+            // `pixelsPerUnitMultiplier` doku pikselini birime böldüğü için
+            // 256/253 = 1.012 tam bu adımı veriyor.
+            UiKit.SetSliceScale(image, 256f / 253f);
             image.color = color;
             image.raycastTarget = false;
             rect.SetAsFirstSibling();
@@ -1000,31 +1014,42 @@ namespace BlockOut.Runtime.UI
             var inner = UiKit.CreateRect("Inner", card);
             UiKit.Place(inner, 0f, 0f, 1f, 1f);
 
-            // Alt kalınlık + isim bandı tek panelde; üstüne turuncu sanat alanı.
-            var body = UiKit.CreateRoundedPanel("Body", inner, Darken(OfferBand, 0.72f));
-            UiKit.Place(body, 0f, 0f, 1f, 1f);
-
-            var band = UiKit.CreateRoundedPanel("Band", inner, OfferBand);
-            UiKit.Place(band, 0f, OfferLipH / height, 1f, (OfferLipH + OfferBandH) / height);
-
-            // Dikey degrade: alta doğru koyulaşan turuncu.
+            // BANT VE YÜZ, İKİ GRADYAN GÖRSEL (14. tur, M4f).
             //
-            // Eskiden yüzeyin üstüne ikinci bir DİKDÖRTGEN konuyordu ve o
-            // dikdörtgen kartın yuvarlak köşesini kesiyordu — köşelerde düz
-            // bir turuncu kenar görünüyordu. Geçiş artık yüzeyin kendi köşe
-            // noktalarının rengi, dolayısıyla silüet neyse o (bkz. 8. tur).
-            var art = UiKit.CreateRoundedPanel("Art", inner, Color.white);
-            UiKit.Place(art, 0f, (OfferLipH + OfferBandH) / height - 0.04f, 1f, 1f);
-            art.gameObject.AddComponent<GameKit.UI.UiVerticalTint>()
-               .Set(OfferTop, OfferLow);
+            // Kullanıcı: *"o panelin starter pack kısmına gelmeden o aradaki
+            // çizgi görünüm geçişi daha iyi hale getirilmeli."*
+            //
+            // Eskiden ÜÇ panel vardı: koyu bir "Body" (kartın alt kalınlığı),
+            // üstünde bant, onun da üstünde dikey tint'li sanat alanı. Üç düz
+            // yüzeyin iki sınırı da çizgi olarak okunuyordu; sanat alanı ayrıca
+            // bandın üstüne 0.04 biniyordu ki dikiş görünmesin — ama bindirme
+            // dikişi gizlemiyor, yalnız içindekilerin ortalamasını bozuyordu.
+            //
+            // Referansın paket kartında ölçülen çözüm: sınırı gizleme, ona
+            // KALINLIK ver. Alt kalınlık artık bandın profilinin altı, rafın
+            // ön kenarı da yüzün profilinin altı. Üç panel ikiye indi ve
+            // bindirme gerekmiyor.
+            var band = UiKit.CreateIcon("Band", inner, MenuSprites.OfferBand);
+            band.type = Image.Type.Sliced;
+            band.preserveAspect = false;
+            band.raycastTarget = false;
+            UiKit.Place(band, 0f, 0f, 1f, (OfferLipH + OfferBandH) / height);
+
+            var art = UiKit.CreateIcon("Art", inner, MenuSprites.OfferFace);
+            art.type = Image.Type.Sliced;
+            art.preserveAspect = false;
+            art.raycastTarget = false;
+            UiKit.Place(art, 0f, (OfferLipH + OfferBandH) / height, 1f, 1f);
 
             var pile = UiKit.CreateIcon("Pile", art.transform,
                 Tiered(Art.CoinPile, offer.Pile, Art.Coin));
-            UiKit.Place(pile, 0.06f, 0.14f, 0.46f, 0.98f);
+            // Yığın rafın BURNUNUN üstünde başlıyor: yüzün alt %6'sı rafın
+            // kendi kalınlığı, oraya bir şey oturtulmaz.
+            UiKit.Place(pile, 0.06f, 0.075f, 0.46f, 0.92f);
 
             var amount = UiKit.CreateTitle("Amount", art.transform, Amount(offer.Coins), 72,
                 new Color(1f, 1f, 1f), AmountShade);
-            UiKit.Place(amount, 0.16f, 0.04f, 0.56f, 0.34f);
+            UiKit.Place(amount, 0.16f, 0.075f, 0.56f, 0.375f);
             InceKontur(amount);
 
             RewardIcons(art.transform, showNoAds: false, offer.Hours, offer.Helpers);
@@ -1096,29 +1121,31 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(percent, 0.06f, 0.06f, 0.94f, 0.94f);
             percent.raycastTarget = false;
 
-            // BANDIN GÖRÜNEN YÜKSEKLİĞİ, BANDIN YÜKSEKLİĞİ DEĞİL (7. tur, N49).
+            // BANDIN GÖRÜNEN YÜKSEKLİĞİ, BANDIN YÜKSEKLİĞİ DEĞİL (7. tur, N49;
+            // 14. turda yeniden türetildi).
             //
             // Kullanıcı: "'Starter Pack' yazısı biraz daha solda ve ortalanmış
             // olmalı. Fiyat butonu ortalanmalı (şu an çok üste yapışmış)."
             //
-            // SEBEP: `art` paneli bandın üstüne 0.04 kart yüksekliği kadar
-            // BİNİYOR (yuvarlak köşeler arada dikiş bırakmasın diye). 0.04 ×
-            // 506 = 20 birim, bandın 140 biriminin %14'ü. Ad ve düğme bandın
-            // TAMAMINA göre ortalandığı için ikisi de o payın yarısı kadar
-            // yukarıda duruyordu — göze "üste yapışmış" diye geliyor.
+            // ESKİ SEBEP: `art` paneli bandın üstüne biniyordu ve ad/düğme
+            // bandın TAMAMINA göre ortalandığı için binen payın yarısı kadar
+            // yukarıda duruyordu. Bindirme kalktı; ama şimdi bandın kutusuna
+            // kartın ALT KALINLIĞI dahil (görsel profilinin altı, %15.7).
+            // Yani ortalanacak alan yine bandın tamamı değil, kalınlığın
+            // ÜSTÜNDE kalan kısım.
             //
-            // DERS (bir kutunun ortası, GÖRÜNEN kutunun ortasıdır): Üstünü
-            // başka bir katman örtüyorsa ortalama hesabı örtülen payı
-            // düşmeli. Aksi hâlde düzen "doğru" ama görüntü yanlış olur.
-            const float ArtOverlap = 0.04f;                       // kart oranı
-            float visible = 1f - ArtOverlap * height / OfferBandH; // band oranı
+            // DERS (bir kutunun ortası, GÖRÜNEN kutunun ortasıdır): örten
+            // katman kalksa bile kural aynı kalıyor — bu kez örten değil,
+            // kutunun içine gömülen kalınlık payını düşmek gerekiyor.
+            const float Kalinlik = OfferLipH / (OfferLipH + OfferBandH);   // 0.157
+            float Govde(float t) => Kalinlik + t * (1f - Kalinlik);
 
             var name = UiKit.CreateTitle("Name", band.transform, offer.Name, 58,
                 new Color(1f, 0.99f, 0.96f), new Color(0.45f, 0.13f, 0.02f));
-            UiKit.Place(name, 0.032f, 0.06f * visible, 0.600f, 0.94f * visible);
+            UiKit.Place(name, 0.032f, Govde(0.06f), 0.600f, Govde(0.94f));
 
-            var buy = PriceButton("Buy", band.transform, offer.Price, 44);
-            UiKit.Place(buy, 0.64f, 0.14f * visible, 0.96f, 0.86f * visible);
+            var buy = PriceButton("Buy", band.transform, offer.Price, 44,
+                                  0.64f, Govde(0.14f), 0.96f, Govde(0.86f));
 
             var captured = offer;
             buy.onClick.AddListener(() => Purchase("offer_" + captured.Coins, captured.Coins,
@@ -1188,31 +1215,43 @@ namespace BlockOut.Runtime.UI
             UiKit.Place(cardDrop, 0.012f, -0.035f, 0.988f, 0.96f);
             cardDrop.raycastTarget = false;
 
-            var band = UiKit.CreateRoundedPanel("Band", card, BandPurple);
-            UiKit.Place(band, 0f, 0f, 1f, 1f);
+            // BANT VE YÜZ, İKİ GRADYAN GÖRSEL (14. tur, M4f).
+            //
+            // Eskiden dört düz levha vardı: bant + bandın alt dudağı + raf +
+            // krem. Aralarındaki sınırlar renk sıçraması olarak okunuyordu;
+            // kullanıcının "o aradaki çizgi görünüm geçişi" dediği şey buydu.
+            // Referansta sınır değil KALINLIK var — rafın ön kenarı ve bandın
+            // üst kenarı. İkisi de artık görselin profiline gömülü
+            // (bkz. MenuSprites.PackFace / PackBand).
+            var band = UiKit.CreateIcon("Band", card, MenuSprites.PackBand);
+            band.type = Image.Type.Sliced;
+            band.preserveAspect = false;
+            band.raycastTarget = false;
+            UiKit.Place(band, 0f, 0f, 1f, PackBandH / height);
 
-            // Bandın alt kenarındaki koyu şerit: mor yüzeyin kendi kalınlığı.
-            var bandLip = UiKit.CreateRoundedPanel("BandLip", card,
-                new Color(BandPurple.r * 0.55f, BandPurple.g * 0.45f, BandPurple.b * 0.60f));
-            UiKit.Place(bandLip, 0f, 0f, 1f, 0.055f);
-            bandLip.raycastTarget = false;
-
-            var shelf = UiKit.CreateRoundedPanel("Shelf", card, CardShelf);
-            UiKit.Place(shelf, 0f, (PackBandH - 16f) / height, 1f, 1f);
-
-            var cream = UiKit.CreateRoundedPanel("Cream", card, CardCream);
-            UiKit.Place(cream, 0f, (PackBandH + 6f) / height, 1f, 1f);
+            var cream = UiKit.CreateIcon("Face", card, MenuSprites.PackFace);
+            cream.type = Image.Type.Sliced;
+            cream.preserveAspect = false;
+            cream.raycastTarget = false;
+            UiKit.Place(cream, 0f, PackBandH / height, 1f, 1f);
 
             var clip = UiKit.CreateRect("Clip", cream.transform);
             UiKit.Place(clip, 0f, 0f, 1f, 1f);
             clip.gameObject.AddComponent<RectMask2D>();
 
+            // YERLEŞİM ÖLÇÜLDÜ (14. tur, M4g). Referans kartın yüzünde her
+            // ögenin kutusu, yüzün kendi ORANI olarak:
+            //     kese      alt 0.061  üst 0.813  sol 0.012  sağ 0.475
+            //     "2 000"   alt 0.061  üst 0.353  sol 0.207  sağ 0.475
+            // Ölçüm satır bazlı zeminle yapıldı — yüzün kendisi yukarıdan
+            // aşağı gradyanlı olduğu için tek bir zemin rengiyle eşik koymak
+            // alt yarıyı bütünüyle "öge" sayıyordu (ilk denemede tam bu oldu).
             var art = UiKit.CreateIcon("Art", clip, Tiered(Art.PackArt, index + 1, Art.Chest));
-            UiKit.Place(art, 0.03f, 0.06f, 0.52f, 0.98f);
+            UiKit.Place(art, 0.012f, 0.061f, 0.475f, 0.813f);
 
             var amount = UiKit.CreateTitle("Amount", clip, Amount(pack.Coins), 70,
                 new Color(1f, 1f, 1f), AmountShade);
-            UiKit.Place(amount, 0.14f, 0.02f, 0.55f, 0.30f);
+            UiKit.Place(amount, 0.207f, 0.061f, 0.475f, 0.353f);
             InceKontur(amount);
 
             RewardIcons(clip, showNoAds: true, hours: pack.Hours, helpers: pack.Helpers);
@@ -1229,9 +1268,19 @@ namespace BlockOut.Runtime.UI
             // DERS (hizalama, konumdan daha çok belirler): Bir etiketi sola
             // taşımak yetmez; İÇİNDEKİ yazının da sola yaslı olması gerekir,
             // yoksa konum yalnız en uzun metin için doğru olur.
-            var name = UiKit.CreateTitle("Name", band.transform, pack.Name, 58,
+            // PUNTO 58 -> 74 (14. tur, M4g). Referansta ad yazısının mürekkebi
+            // bandın %40.8'i (0.283..0.691) — "Tuğla Paketi" tepe aksanından
+            // g kuyruğuna 71 birim. Bizim 58 punto ~42 birim veriyordu, yani
+            // bant büyürken yazı onunla büyümemişti.
+            var name = UiKit.CreateTitle("Name", band.transform, pack.Name, 74,
                 new Color(1f, 0.99f, 0.96f), new Color(0.24f, 0.03f, 0.36f));
-            UiKit.Place(name, 0.042f, 0.02f, 0.62f, PackBandH / height * 0.92f);
+            // BANT ARTIK KENDİ KUTUSU (14. tur, M4f). Eskiden bant tüm kartı
+            // kaplıyordu ve çocukları 'PackBandH / height' ile bandın
+            // yüksekliğine indiriliyordu. Bant kendi yüksekliğine çekilince o
+            // bölme İKİNCİ KEZ uygulanmış oldu ve yazı bandın en dibine
+            // yapıştı. (Bir kutuyu küçültürken içindeki oranları da gözden
+            // geçir: oran, hangi kutuya ait olduğu söylenmeden anlamsız.)
+            UiKit.Place(name, 0.042f, 0.06f, 0.62f, 0.94f);
             name.alignment = TextAlignmentOptions.Left;
 
             // FİYAT DÜĞMESİ ORANI (2026-08-22). Yeşil dolgusu ölçüldü:
@@ -1240,9 +1289,11 @@ namespace BlockOut.Runtime.UI
             // Yani hem fazla geniş hem fazla alçaktı. Genişlik ×0.94
             // (0.33 -> 0.311 kart oranı), yükseklik ×1.18; dikey MERKEZ
             // korunarak açıldı, böylece bandın içindeki dengesi bozulmuyor.
-            var buy = PriceButton("Buy", band.transform, pack.Price, 44);
-            UiKit.Place(buy, 0.649f, PackBandH / height * 0.124f,
-                             0.96f, PackBandH / height * 0.858f);
+            // DÜĞME KUTUSU ÖLÇÜLDÜ (14. tur, M4g): referansta yeşil dolgu
+            // bandın 0.598..0.990'ı ve 0.158..0.849'u = 389x120 birim.
+            // Bizimki 312x128 idi — dar ve fazla yüksek.
+            var buy = PriceButton("Buy", band.transform, pack.Price, 50,
+                                  0.598f, 0.158f, 0.990f, 0.849f);
 
             var captured = pack;
             buy.onClick.AddListener(() => Purchase(
@@ -1403,8 +1454,8 @@ namespace BlockOut.Runtime.UI
             // görünmesin") aynen kalırdı. Taban içinde bir tık yukarı
             // oturuyor — altındaki 26 birim, gölgesinin düştüğü pay.
             const float BuyH = 90f, BuyBottom = 26f;
-            var buy = PriceButton("Buy", tile, price, 36);
-            UiKit.Place(buy, 0.085f, BuyBottom / height, 0.915f, (BuyBottom + BuyH) / height);
+            var buy = PriceButton("Buy", tile, price, 36,
+                                  0.085f, BuyBottom / height, 0.915f, (BuyBottom + BuyH) / height);
             buy.onClick.AddListener(() => Purchase("coins_" + coins, coins, 0, false, price));
             _purchaseButtons.Add(buy);
         }
@@ -1763,9 +1814,38 @@ namespace BlockOut.Runtime.UI
         /// fazla gölgesi var" demişti ve referansta da var. Düğmenin ALTINA
         /// taşıyor, yani reçetenin bir parçası değil, bu ekrana özel.
         /// </summary>
-        static Button PriceButton(string name, Transform parent, string text, int fontSize)
+        /// <summary>
+        /// KÖKÜ ÇAĞIRAN DEĞİL BU METOT YERLEŞTİRİR (14. tur).
+        ///
+        /// HATA: Metot `root` -> (`Drop`, `Body`) kuruyor ve geriye `Body`'yi
+        /// döndürüyordu. Çağıran da dönen şeyi yerleştiriyordu — yani KÖK hiç
+        /// yerleştirilmemiş oluyor ve varsayılan olarak ebeveynin TAMAMINA
+        /// yayılıyordu. `Drop` kökün 0.004..0.996'sı olduğu için düğmenin
+        /// gölgesi bandın BÜTÜNÜNÜ %30 siyahla yıkıyordu.
+        ///
+        /// NASIL YAKALANDI: Bandı yeni gradyan görsele bağladıktan sonra
+        /// dokudan okunan renkle ekrandan ölçülen renk tutmadı — doku
+        /// (170,26,218), ekran (146,21,186). Görsel tek başına bir tuvale
+        /// konunca DOĞRU çıkıyordu, yani kusur görselde değil sahnedeydi.
+        /// Bandın merkezini kaplayan bütün Graphic'ler listelenince
+        /// `Buy/Drop` ortaya çıktı.
+        ///
+        /// DERS (yerleştirilmeyen RectTransform ebeveyni KAPLAR, sessizce):
+        /// Bir yardımcı kök nesne kurup içeriden bir çocuğu döndürüyorsa, o
+        /// kökü kimin yerleştireceği sözleşmenin parçası olmalı. Aksi hâlde
+        /// kök görünmez biçimde tüm ebeveyni kaplar ve YALNIZ saydam bir
+        /// çocuğu varsa fark edilir — burada üç turdur bandın rengi
+        /// tutmuyordu.
+        ///
+        /// DERS (ölçüm ikiye ayrılır: kaynak mı, sahne mi): Beklenen renkle
+        /// ölçülen renk tutmadığında önce ögeyi YALITIP ölç. Doğru çıkıyorsa
+        /// hata üretimde değil, sahnenin katmanlarındadır.
+        /// </summary>
+        static Button PriceButton(string name, Transform parent, string text, int fontSize,
+                                  float x0, float y0, float x1, float y1)
         {
             var root = UiKit.CreateRect(name, parent);
+            UiKit.Place(root, x0, y0, x1, y1);
 
             var drop = Capsule("Drop", root, new Color(0f, 0f, 0f, 0.30f),
                                MenuPage.ButtonCornerShare);
