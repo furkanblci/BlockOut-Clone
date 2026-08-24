@@ -31,6 +31,9 @@ namespace BlockOut.Runtime.UI
         static readonly Color CoinInk    = new Color(1f, 0.98f, 0.94f);
 
         TextMeshProUGUI _coinLabel;
+
+        /// <summary>Uçan jetonların varış noktası ve "geldi" vuruşunu yiyen simge (E1).</summary>
+        Image _coinIcon;
         TextMeshProUGUI _livesLabel;
 
         /// <summary>
@@ -333,6 +336,7 @@ namespace BlockOut.Runtime.UI
             // --- jeton ---
             var coinIcon = UiKit.CreateIcon("Icon_Coin", root, UiSkin.Get(Art.Coin));
             UiKit.Place(coinIcon, 0.220f, bottom - 0.004f, 0.308f, top + 0.004f);
+            _coinIcon = coinIcon;      // uçan jetonların varış noktası (E1)
             UiKit.MakeClickable(coinIcon, () => MenuShell.Instance?.ShowStepped("store"));
 
             _coinLabel = UiKit.CreateTitle("Value_Coin", root, "", 40, CoinInk,
@@ -938,6 +942,98 @@ namespace BlockOut.Runtime.UI
         /// Profil'de ad değişince ana ekran zaten açık olmadığı için OnEnable
         /// beklemek yetmiyor (bkz. <see cref="ProfileScreen"/>).
         /// </summary>
+        /// <summary>
+        /// Kazanılan jetonları ekranın ortasından sayaca UÇURUR (E1).
+        ///
+        /// Kaç jeton uçuyor: miktarla DEĞİL, okunabilirlikle ilgili. 20 jeton
+        /// için 20 parça atmak ekranı çöpe çeviriyor, 5000 için 5000 zaten
+        /// imkânsız. Referansta bir avuç parça var ve sayaç onlardan bağımsız,
+        /// yumuşakça sayıyor — göz parçaları sayamıyor zaten, "bir şeyler
+        /// geldi" hissini alıyor.
+        ///
+        /// DERS (sayaç ile parçacık AYNI şey değildir): İlk tasarımda her
+        /// parça sayaca belli bir miktar ekliyordu; 7 parçaya bölünmeyen bir
+        /// artışta son parça diğerlerinden farklı bir sıçrama yapıyordu ve
+        /// sayacın adımı düzensiz görünüyordu. Parçalar GÖSTERİ, sayaç ise
+        /// kendi başına ve düzgün sayıyor; ikisi yalnız süreyi paylaşıyor.
+        /// </summary>
+        void JetonUcur(int baslangic, int hedef)
+        {
+            _shownCoins = hedef;
+
+            var hedefRect = _coinLabel != null
+                ? _coinLabel.rectTransform.parent as RectTransform : null;
+            if (hedefRect == null || _coinIcon == null)
+            {
+                if (_coinLabel != null) _coinLabel.text = MenuPage.Amount(hedef);
+                return;
+            }
+
+            const int EnAz = 5, EnCok = 12;
+            int adet = Mathf.Clamp((hedef - baslangic) / 25, EnAz, EnCok);
+
+            Vector3 kaynak = _coinIcon.rectTransform.position;
+            var kok = (RectTransform)transform;
+            kaynak.x = kok.position.x;
+            kaynak.y = kok.position.y - kok.rect.height * 0.10f * kok.lossyScale.y;
+
+            Vector3 varis = _coinIcon.rectTransform.position;
+
+            for (int i = 0; i < adet; i++)
+            {
+                var parca = UiKit.CreateIcon("CoinFly", transform, UiSkin.Get(Art.Coin));
+                parca.raycastTarget = false;
+                var r = parca.rectTransform;
+                r.anchorMin = r.anchorMax = new Vector2(0.5f, 0.5f);
+                r.sizeDelta = new Vector2(56f, 56f);
+                r.position = kaynak;
+
+                // Parçalar aynı noktadan çıkmıyor: küçük bir saçılma olmadan
+                // hepsi tek bir çizgi gibi gidiyor ve "bir tane" görünüyorlar.
+                float yay = 70f + (i % 3) * 45f;
+                r.position += new Vector3(((i % 5) - 2) * 34f, (i % 2) * 22f, 0f);
+
+                float gecikme = i * 0.045f;
+                var hedefRef = parca;
+                GameKit.FX.Juice.Run(UcusGecikmesi(gecikme, () =>
+                {
+                    if (hedefRef == null) return;
+                    GameKit.FX.Juice.FlyTo(hedefRef.transform, hedefRef.transform.position,
+                        varis, arc: yay, duration: 0.52f,
+                        onArrive: () =>
+                        {
+                            if (hedefRef == null) return;
+                            if (_coinIcon != null)
+                                GameKit.FX.Juice.PunchScale(_coinIcon.transform, 0.16f, 0.18f);
+                            Destroy(hedefRef.gameObject);
+                        });
+                }));
+            }
+
+            // Sayaç kendi başına ve DÜZGÜN sayıyor.
+            float sure = 0.045f * (adet - 1) + 0.52f;
+            GameKit.FX.Juice.Run(SayaciSay(baslangic, hedef, sure));
+        }
+
+        static System.Collections.IEnumerator UcusGecikmesi(float sure, System.Action is_)
+        {
+            for (float t = 0f; t < sure; t += Time.unscaledDeltaTime) yield return null;
+            is_?.Invoke();
+        }
+
+        System.Collections.IEnumerator SayaciSay(int baslangic, int hedef, float sure)
+        {
+            for (float t = 0f; t < sure; t += Time.unscaledDeltaTime)
+            {
+                if (_coinLabel == null) yield break;
+                float k = Mathf.Clamp01(t / sure);
+                int simdi = Mathf.RoundToInt(Mathf.Lerp(baslangic, hedef, k * k * (3f - 2f * k)));
+                _coinLabel.text = MenuPage.Amount(simdi);
+                yield return null;
+            }
+            if (_coinLabel != null) _coinLabel.text = MenuPage.Amount(hedef);
+        }
+
         public void Refresh()
         {
             if (!MetaServices.Ready)
@@ -951,11 +1047,34 @@ namespace BlockOut.Runtime.UI
 
             if (progress.Coins != _shownCoins)
             {
-                _shownCoins = progress.Coins;
-                // Mağazayla AYNI biçim: binlik ayıracı boşluk ("1 720").
-                // Değer yalnız değiştiğinde yazıldığı için tahsis kare başına
-                // değil, olay başına.
-                _coinLabel.text = MenuPage.Amount(_shownCoins);
+                // JETONLAR UÇARAK GELİR (14. tur, E1). Kullanıcı: *"görev
+                // bittikten sonra menüye geçince o toplanan paralar birikip
+                // gold kısmına geliyor ya... onu kesin yapalım."*
+                //
+                // Yalnız ARTIŞTA ve yalnız sayaç zaten bir değer gösteriyorken:
+                //   • Azalış (mağazada harcama) uçmaz — kazanç değil ödeme.
+                //   • İlk açılışta (_shownCoins < 0) uçmaz; oyuncu menüye
+                //     geldiğinde sayacın zaten dolu olması gerekiyor, sıfırdan
+                //     sayması "kazandın" yalanı olurdu.
+                // OYNATMA KİPİ ŞART: `Juice.Run` bir `DontDestroyOnLoad`
+                // çalıştırıcı kuruyor ve o düzenleyici kipinde patlıyor
+                // (KURAL 0). Önizleme yakalamaları da bu yoldan geçtiği için
+                // koruma burada; yoksa mağazadan jeton alıp ana ekranı
+                // önizleyen her araç istisna atardı.
+                bool kazanc = Application.isPlaying
+                              && _shownCoins >= 0 && progress.Coins > _shownCoins;
+                int hedef = progress.Coins;
+
+                if (kazanc && isActiveAndEnabled && gameObject.activeInHierarchy)
+                {
+                    JetonUcur(_shownCoins, hedef);
+                }
+                else
+                {
+                    _shownCoins = hedef;
+                    // Mağazayla AYNI biçim: binlik ayıracı boşluk ("1 720").
+                    _coinLabel.text = MenuPage.Amount(_shownCoins);
+                }
             }
 
             // Sınırsız can hakkı varsa sayaç yerini ∞'a ve KALAN SÜREYE bırakır.

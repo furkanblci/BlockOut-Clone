@@ -7201,3 +7201,23 @@ klasöründeki 120 kutlama karesiyle bağımsız kontrol yapıldı:
 kare 66 siyah + harfler → 76 "BLOCK"+"OUT!" → 81 logo tamam, konfeti YOK →
 86 konfeti → 91-96 alttan roket izleri → 101+ patlamalar (aynı anda birden
 fazla). Bizim çizelgemiz aynı; değişiklik gerekmedi.
+
+### E1 — kazanılan jetonlar sayaca uçuyor
+Sayaç yalnız yeni değere zıplıyordu. `HomeScreen.JetonUcur` ekranın
+ortasından üst çubuktaki jeton simgesine 5-12 parça uçuruyor; her varış
+simgeye küçük bir vuruş yaptırıyor.
+
+**Ders (sayaç ile parçacık AYNI şey değildir):** İlk tasarımda her parça
+sayaca pay ekliyordu; 7'ye bölünmeyen bir artışta son parça farklı bir
+sıçrama yapıyor ve adım düzensiz görünüyordu. Parçalar GÖSTERİ, sayaç kendi
+başına ve düzgün sayıyor; ikisi yalnız süreyi paylaşıyor.
+
+**Ders (yeni bir tween, önizleme araçlarını da kırar):** `Juice.Run` bir
+`DontDestroyOnLoad` çalıştırıcı kuruyor ve o düzenleyici kipinde istisna
+atıyor (KURAL 0). Koruma yazmadan önce test tam bunu yaşadı: ana ekranı
+önizleyen HER araç, kayıtta jeton artmışsa patlayacaktı. Hareket ekleyen her
+değişiklik "bu kod önizlemede de koşacak mı?" sorusunu sormalı.
+
+**DOĞRULAMA (oynatma kipinde):** ilk tazeleme 0 parça / +500 kazanç 12 parça
+/ -300 harcama 0 parça. Test kaydın jetonunu oynattığı için sonunda geri
+alındı (9190 -> 9190).

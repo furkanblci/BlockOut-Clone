@@ -635,11 +635,37 @@ varlık kullanmak serbest.
 
 # BÖLÜM SONU → MENÜ GEÇİŞİ
 
-- [ ] **E1.** Görev bitip menüye geçince **toplanan paralar birikip jeton
+- [x] **E1.** Görev bitip menüye geçince **toplanan paralar birikip jeton
       sayacına UÇARAK gelmeli**. Referansta var, kesin yapılacak.
       > *"şeyi de ekleyelim: görev bittikten sonra menüye geçince o toplanan
       > paralar birikip gold kısmına geliyor ya, referansta vardır onun
       > orjinali, onu kesin yapalım — yoksa, goldun gelme animasyonu"*
+      >
+      > **YAPILDI (14. tur).** Sayaç yalnız yeni değere ZIPLIYORDU.
+      > `HomeScreen.JetonUcur` ekranın ortasından üst çubuktaki jeton
+      > simgesine bir avuç jeton uçuruyor; her varış simgeye küçük bir vuruş
+      > yaptırıyor.
+      >
+      > Tasarım kararları:
+      >   * Parça sayısı miktara değil OKUNABİLİRLİĞE bağlı: 5-12 arası
+      >     (`delta/25`). 20 jeton için 20 parça ekranı çöpe çevirir.
+      >   * **Sayaç parçalardan BAĞIMSIZ sayıyor.** İlk tasarımda her parça
+      >     sayaca pay ekliyordu; 7'ye bölünmeyen bir artışta son parça farklı
+      >     bir sıçrama yapıyor ve adım düzensiz görünüyordu. Parçalar
+      >     GÖSTERİ, sayaç kendi başına ve düzgün; yalnız süreyi paylaşıyorlar.
+      >   * Yalnız ARTIŞTA uçuyor. Mağazada harcama zıplıyor — ödeme kazanç
+      >     değil. İlk açılışta da uçmuyor: sıfırdan saymak "kazandın" yalanı
+      >     olurdu.
+      >   * `Application.isPlaying` koruması: `Juice.Run` bir
+      >     `DontDestroyOnLoad` çalıştırıcı kuruyor ve o düzenleyicide
+      >     patlıyor (KURAL 0). Koruma olmadan ana ekranı önizleyen her araç
+      >     istisna atıyordu — nitekim ilk testte tam bunu yaşadı.
+      >
+      > **DOĞRULAMA (oynatma kipinde, üç durum):**
+      >     ilk tazeleme        -> uçan jeton 0   ✓
+      >     +500 jeton kazanç   -> uçan jeton 12  ✓ (5-12 aralığı)
+      >     -300 jeton harcama  -> uçan jeton 0   ✓
+      > Test kaydın jetonunu 9190'dan oynattığı için sonunda geri alındı.
 
 ---
 
