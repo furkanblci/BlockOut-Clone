@@ -7348,3 +7348,45 @@ taşıyordu. Sayıyı yazmak, o sayının çizileceği anlamına gelmiyor.
   paralel çalışılan alan olduğu için dokunulmadı.
 - Kilitli yolculuk bölgesindeki asma kilidin boyutu: referansı yok.
 - `PrimeTweenConfig.SetTweensCapacity` açılışta ayarlanabilir (performans).
+
+---
+
+## OYUNDA ÇIKAN BOZULMA — sebep ve düzeltme (14. tur sonrası)
+
+Kullanıcı oyunu açtığında menü bozuk çıktı: arka plan kaymış ve devleşmiş,
+karakterler ikişer, üst çubukta beyaz kutular, jeton 0 ve "Level 1".
+
+**İKİ AYRI SEBEP:**
+
+**1) Sahnede unutulmuş bir ÖNİZLEME KANVASI.** Yakalama komutlarım kök
+GameObject kurup sonunda `DestroyImmediate` ile siliyordu. E1 testi
+`Juice.Run`ın düzenleyicide `DontDestroyOnLoad` çağırması yüzünden İSTİSNA
+ATINCA temizlik satırına hiç gelinmedi; `OnizlemeKanvas` ve `JuiceRunner`
+sahnede kaldı. Oyun açılınca gerçek menünün üstüne ikinci, boş bir kayıtla
+kurulmuş ana ekran biniyordu — 0 jeton ve "Level 1" oradan geliyordu.
+Sahne dosyası diske YAZILMAMIŞTI (git'te değişiklik yok), artık yalnız
+bellekteki sahnedeydi; temizlendi.
+
+**Ders (temizlik `finally` içinde olmalı):** Düzenleyicide sahneye nesne
+kuran her araç, istisna atsa bile onu silmek zorunda. Bir yakalama
+komutunun çökmesi, oyunu bozacak bir kalıntı bırakmamalı. Bundan sonraki
+bütün yakalama komutları `try/finally` ile yazılıyor.
+
+**2) H4'ün arka plan değişikliği.** Varsayılan arka planı 2 ("mor gece")
+yapmıştım. Bölge görselleri yolculuk diskleri için DAİRE çizilmiş; tam
+ekran arka plan olunca köşeleri kavisli kalıyor, kavisi gizlemek için
+uyguladığım 1.45 büyütme de sahneyi kaydırıp içindeki karakterleri
+devleştiriyordu. GERİ ALINDI — varsayılan yine `bg_menu`.
+
+**Ders (küçük önizleme, tam ekranın yerine geçmez):** Altı seçeneği 300
+piksel genişliğinde şeritler hâlinde yan yana koyup karar verdim; o ölçekte
+kusur görünmüyordu. Bir arka plan kararı, arka planın ÇİZİLECEĞİ boyutta
+verilmeli.
+
+**3) Yan bulgu — mağazada dört haneli bakiye jetonun altında kalıyordu.**
+Yazının kutusu kapsülün %30'undan başlıyordu (ekranın 0.137'si) ama jeton
+simgesi 0.195'e kadar uzanıyor. Üç hanede fark edilmiyordu; gerçek bakiye
+"9 340" olunca ilk rakam simgenin arkasına girdi. Yazı simgenin sağına
+alındı (%56), kapsül 0.296 -> 0.315.
+**Ders:** bir ögeyi büyütmek komşusunu da ilgilendirir — jeton bir önceki
+turda x1,48 büyütülmüştü ve doğruydu, ama yazı olduğu yerde kaldı.

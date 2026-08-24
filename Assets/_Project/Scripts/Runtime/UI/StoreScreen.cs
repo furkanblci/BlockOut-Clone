@@ -632,7 +632,11 @@ namespace BlockOut.Runtime.UI
             // elle kutu seçmek bu turda üç kez yanlış sonuç verdi.
             // PillX0 0,088 -> 0,069: ölçüm, referansın sol kenarı %11,9,
             // bizimki %13,8 — kapsül 0,019 sağda başlıyordu.
-            const float PillX0 = 0.069f, PillX1 = 0.296f;
+            // PillX1 0.296 -> 0.315: yazı jetonun sağına alınınca dört haneli
+            // bakiyeye kalan yer daraldı ve `UiTextFit` puntoyu gereğinden
+            // fazla kısıyordu. Kapsül referanstakinden %2 geniş; sayı
+            // okunurluğu bu farkın önünde.
+            const float PillX0 = 0.069f, PillX1 = 0.315f;
 
             // TEK PROSEDÜREL YÜZEY (13. tur, M1a+M1b).
             //
@@ -665,8 +669,25 @@ namespace BlockOut.Runtime.UI
             // duruyor, yazı da ona göre kaydı.
             // Punto 40 -> 52: kapsül 45'ten 58 birime çıktı, yazı da onunla
             // büyümeliydi. Referansta rakam kapsül yüksekliğinin ~%60'ı.
+            // YAZI JETONUN SAĞINDAN BAŞLAMALI (14. tur, oyunda yakalandı).
+            //
+            // Kutu kapsülün %30'undan başlıyordu: kapsül ekranın 0.069-0.296'sı
+            // olduğu için bu, ekranın 0.137'si demek. Jeton simgesi ise
+            // 0.027-0.195 arasında — yani yazının başlangıcı simgenin ALTINDA
+            // kalıyordu. Üç haneli sayıda ("142") fark edilmiyordu çünkü yazı
+            // ortalanınca sağa kaçıyor; DÖRT haneli gerçek bir bakiyede
+            // ("9 340") ilk rakam jetonun arkasına giriyor.
+            //
+            // DERS (bir ögeyi büyütmek KOMŞUSUNU da ilgilendirir): Jeton bir
+            // önceki turda x1,48 büyütülmüştü ve o değişiklik doğruydu; ama
+            // sağ kenarı yazının kutusuna girdiği hâlde yazı olduğu yerde
+            // kaldı. Boyut değiştiren her düzeltmede "bu ögenin kenarı artık
+            // nereye değiyor?" diye sorulmalı.
+            //
+            // Simgenin sağ kenarı ekranın 0.195'i; kapsül yerelinde
+            // (0.195 - 0.069) / 0.227 = 0.555.
             _coinLabel = UiKit.CreateLabel("Coins", pill.transform, "0", 52, CoinInk);
-            UiKit.Place(_coinLabel, 0.30f, 0.04f, 0.95f, 0.96f);
+            UiKit.Place(_coinLabel, 0.56f, 0.04f, 0.97f, 0.96f);
 
             // Jeton kapsülün BAŞLANGIÇ noktasında ve ondan büyük: sol kenarı
             // kapsülün sol kenarıyla aynı hizada başlayıp yukarı-aşağı taşıyor.
