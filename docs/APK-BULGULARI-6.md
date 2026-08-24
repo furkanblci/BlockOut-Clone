@@ -432,17 +432,32 @@ varlık kullanmak serbest.
 
 # ANA SAYFA (kritik)
 
-- [ ] **H1.** Karakter **avatar çerçevesi** güncellenecek / değişecek.
+- [x] **H1.** Karakter **avatar çerçevesi** güncellenecek / değişecek.
 
-- [ ] **H2.** Jeton ve kalp için sağdaki **artı (+) ekleme düğmesi** kötü
+- [x] **H2.** Jeton ve kalp için sağdaki **artı (+) ekleme düğmesi** kötü
       görünüyor; güncellenecek.
 
-- [ ] **H3.** **Ayarlar düğmesi** güncellenecek; ikonu Magic Sort'tan hazır
+- [x] **H3.** **Ayarlar düğmesi** güncellenecek; ikonu Magic Sort'tan hazır
       alınabilir.
       > *"karakter avatar çerçevesi güncellenicek değişecek; gold ve kalp
       > için sağda bulunan artı ekleme işareti butonu kötü gözüküyor
       > güncellenicek; ayarlar butonu güncellenicek, ikonu yine hazır
       > alınabilir magic shorttan"*
+      >
+      > **YAPILDI (14. tur) — üçü tek dilde.** Üç düğme de referansta AYNI
+      > profili paylaşıyor: dört kenarı dolanan ince koyu kenar, üstte dar bir
+      > parlaklık, aşağı sönen gövde, altta kalın koyu bir kalınlık.
+      > Bizimkiler düz renkli yuvarlak karelerdi — "kötü görünüyor" denen şey
+      > hacmin yokluğu. `MenuSprites.PlastikKare` bir kez yazıldı, üç palet
+      > verildi:
+      >   * ayarlar: kenar (44,8,23), tepe (113,81,250), gövde
+      >     (105,75,246)→(91,61,214)  — kesit y 68..108
+      >   * artı: kenar (12,62,10), tepe (129,250,91), gövde
+      >     (105,249,56)→(38,184,15)  — kesit y 75..100
+      >   * avatar: gövde (102,74,226)→(122,96,240), iç rim (56,34,158)
+      > Avatarın İÇ PANOSU açık yapıldı: referansta çerçevenin içi
+      > çerçeveden AÇIK (orada portre bir sahne karesi). Koyu bırakınca bizim
+      > saydam zeminli karakterimiz çerçeveye karışıyordu.
 
 - [ ] **H4.** Ana sayfadaki **arka plan görseli**: her şey bitince
       düğmelerle **renk uyumu** açısından bir görsel çözülecek.
@@ -450,14 +465,31 @@ varlık kullanmak serbest.
       > *"ana sayfadaki arkaplan görsele, butonlar, her şey bitince çok daha
       > yakışacak renk uyum olarak bi görsel çözülecek"*
 
-- [ ] **H5.** **Oyna düğmesi zorluğa göre renk değiştirecek** (değişmiyorsa
+- [x] **H5.** **Oyna düğmesi zorluğa göre renk değiştirecek** (değişmiyorsa
       eklenecek). Orijinalde zor seviyede mor düğme var; bizdeki renk
       bilinmiyor, tespit edilecek.
       > *"buton kısmında zorluğa göre buton değişmiyorsa değişecek; örneğin
       > zor seviyede mor buton var orjinal oyunda, bizde hangi renk
       > bilmiyorum"*
+      >
+      > **ZATEN VARDI, DOĞRULANDI (14. tur).** `ApplyDifficulty` düğmeyi
+      > zorluğa göre boyuyor: normal YEŞİL, Hard MOR, SuperHard KIRMIZI.
+      > Sorunun cevabı: bizim moru `PlayPurple` = **(133,28,252)**.
+      > Referansla karşılaştırmak için 52 menü karesinden mor düğmeli 5'i ve
+      > yeşil düğmeli 4'ü ayrı ayrı ortalandı:
+      >   * referans mor: tepe (146,45,242), gövde (111,4,242), dip (98,0,218)
+      >   * referans yeşil: tepe (86,255,39), gövde (66,243,25), dip (32,200,10)
+      > Bizim mor referansın tepesi ile gövdesi arasında — fark JPEG
+      > sıkıştırmasının gürültüsü mertebesinde, değişiklik gerekmedi.
 
-- [ ] **H6.** Düğmenin **görünümüne ve boyutuna** dikkat edilecek.
+- [x] **H6.** Düğmenin **görünümüne ve boyutuna** dikkat edilecek.
+      >
+      > **ÖLÇÜLDÜ, DEĞİŞİKLİK GEREKMEDİ (14. tur).** Aynı maske iki tarafa:
+      >     referans  gen %49,9  yük %18,1 (genişliğe oranla)  en/boy 2,76
+      >     bizim     gen %52,0  yük %17,3                      en/boy 3,05
+      > Fark %4 mertebesinde. (Bu ölçüm bir kez YANLIŞ çıktı: yeşil eşiği
+      > ana ekranın ÇİMENİNİ de yakalayınca düğme %82,5 genişlik verdi.
+      > Doygunluk eşiği daraltılınca gerçek sayı çıktı — bkz. DEVAM.md.)
 
 - [x] **H7.** **BASILI DURUM GÖRSELİ YOK.** Klasik oyunlarda düğmeye
       basınca arkasında bir koyuluk olur, basıldığını hissettirir. Bizde

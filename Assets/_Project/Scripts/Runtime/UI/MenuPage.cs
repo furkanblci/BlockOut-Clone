@@ -576,6 +576,42 @@ namespace BlockOut.Runtime.UI
             return button;
         }
 
+        /// <summary>
+        /// Tek görselden ikon düğmesi — yüzü <see cref="MenuSprites.PlastikKare"/>
+        /// (H1/H2/H3, 14. tur).
+        ///
+        /// <see cref="IconButton"/> yüzü halka + yüz katmanlarıyla kuruyor ve
+        /// düz renk veriyor; referansın üst çubuk düğmelerinde ise hacim var:
+        /// ince koyu kenar, üstte dar bir parlaklık, aşağı sönen gövde, altta
+        /// kalın koyu bir kalınlık. Bunların hepsi tek dokuda.
+        /// </summary>
+        public static Button PlateIconButton(string name, Transform parent, Sprite icon,
+                                             Sprite plate, float iconInset = 0.08f,
+                                             Color? iconTint = null)
+        {
+            var root = UiKit.CreateRect(name, parent);
+
+            var yuz = UiKit.CreateIcon("Plate", root, plate);
+            yuz.type = Image.Type.Sliced;
+            yuz.preserveAspect = false;
+            yuz.raycastTarget = true;                 // dokunuşu bu yakalıyor
+            UiKit.Place(yuz, 0f, 0f, 1f, 1f);
+
+            if (icon != null)
+            {
+                var glyph = UiKit.CreateIcon("Icon", root, icon, iconTint ?? Color.white);
+                glyph.raycastTarget = false;
+                UiKit.Place(glyph, iconInset, iconInset, 1f - iconInset, 1f - iconInset);
+            }
+
+            var button = root.gameObject.AddComponent<Button>();
+            button.targetGraphic = yuz;
+            button.transition = Selectable.Transition.None;
+            GameKit.UI.UiPressFeedback.Attach(button);
+            root.gameObject.AddComponent<GameKit.UI.UiButtonFeel>();
+            return button;
+        }
+
         /// <summary>Dört kenardan eşit pay alan, beyaz (yani boyanmaya hazır) halka.</summary>
         static Image Ring(string name, RectTransform parent, GameKit.UI.UiRingLayout layout,
                           float inset, float cornerShare)

@@ -6983,3 +6983,43 @@ gereksiz kalıyor.
 üç turdur koddaydı ama hiç çalışmıyordu: sönüm kutusu çubuğun güvenli-alan
 için ekran dışına taşan 220 birimlik payını da kapsıyor, ramp o payın içinde
 tükeniyordu. Ölçüm gövdeyi baştan sona sabit gösterince ortaya çıktı.
+
+### H1 / H2 / H3 — üst çubuğun üç düğmesi tek dile indi
+Ayarlar, artı ve avatar çerçevesi referansta AYNI profili paylaşıyor: dört
+kenarı dolanan ince koyu kenar, üstte dar bir parlaklık, aşağı sönen gövde,
+altta kalın koyu bir kalınlık. Bizimkiler düz renkli yuvarlak karelerdi —
+"kötü görünüyor" denen şey hacmin yokluğuydu.
+
+Ölçülen kesitler:
+- ayarlar (x=386, y 68..108): kenar (44,8,23) → tepe (113,81,250) → gövde
+  (105,75,246)→(91,61,214) → dip (37,11,71)
+- artı (x=207, y 75..100): kenar (12,62,10) → tepe (129,250,91) → gövde
+  (105,249,56)→(38,184,15) → dip (22,64,29)
+- avatar (y=88): gövde (102,74,226)→(122,96,240), iç rim (56,34,158)
+
+**Ders (üç ögeyi ayrı ayrı düzeltmek yerine ORTAK DİLİ çıkar):** Üçü ayrı ayrı
+ölçülüp ayrı ayrı çizilebilirdi. Aynı profili paylaştıkları görülünce profil
+bir kez yazıldı (`MenuSprites.PlastikKare`), üç palet verildi. İleride
+eklenecek dördüncü düğme de kendiliğinden doğru olacak.
+
+**Ders (dilim ölçeği yarıçap DEĞİLDİR):** Avatarın iç panosuna `SetSliceScale(0.35)`
+verilmişti; kutu küçük olduğu için yarıçap kutunun yarısına çıktı ve pano
+DAİRE olarak çıktı. `SliceScaleFor(20f)` istenen yarıçapı doğrudan alıyor.
+
+### H5 / H6 — oyna düğmesi: zaten doğruymuş, ölçümle doğrulandı
+H5 kodda vardı (`ApplyDifficulty`: normal yeşil, Hard mor, SuperHard kırmızı).
+Kullanıcının sorusunun cevabı: bizim mor `PlayPurple` = (133,28,252).
+52 menü karesinden mor düğmeli 5'i ve yeşil düğmeli 4'ü ayrı ayrı ortalandı:
+referans mor tepe (146,45,242) / gövde (111,4,242) / dip (98,0,218);
+referans yeşil tepe (86,255,39) / gövde (66,243,25) / dip (32,200,10).
+Bizim mor referansın tepesiyle gövdesi arasında — değişiklik gerekmedi.
+
+H6 (boyut): referans gen %49,9 / yük %18,1 (genişliğe oranla), en/boy 2,76;
+bizim gen %52,0 / yük %17,3, en/boy 3,05. Fark %4.
+
+**Ders (renk eşiği KOMŞUYU da yakalar):** Düğmeyi ölçmek için "yeşil"
+maskesi kurunca genişlik %82,5 çıktı — maske ana ekranın ÇİMENİNİ de
+sayıyordu. Ekranda ölçtüğün rengin ARKA PLANDA da bulunup bulunmadığına bak;
+doygunluk eşiğini daraltmak (G>190) gerçek sayıyı verdi. Bu, "ölçüm görselle
+çelişirse göze güven" kuralının bir örneği daha: gözle düğme ekranın yarısı
+kadardı, ölçüm %82,5 diyordu; haklı olan gözdü.

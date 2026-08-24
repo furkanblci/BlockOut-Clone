@@ -349,8 +349,14 @@ namespace BlockOut.Runtime.UI
             // ARTI ARTIK GÖRSEL DEĞİL (10. tur): `icon_plus.png` komple
             // YUVARLAK yeşil bir düğme görseliydi, referansta ise yuvarlak
             // KARE. Gövde reçeteden, artı da prosedürel çiziliyor.
-            var coinPlus = MenuPage.IconButton("Plus_Coin", root,
-                GameKit.UI.UiSprites.Plus, MenuPage.Green, iconInset: 0.14f);
+            // ARTI DÜĞMESİ TEK GÖRSEL (14. tur, H2). Kullanıcı: *"gold ve
+            // kalp için sağda bulunan artı ekleme işareti butonu kötü
+            // gözüküyor."* Düz yeşil bir yuvarlak kareydi. Referansın kesiti
+            // (y 75..100): koyu kenar (12,62,10), üstte (129,250,91),
+            // gövde (105,249,56)->(38,184,15), altta (22,64,29).
+            var coinPlus = MenuPage.PlateIconButton("Plus_Coin", root,
+                GameKit.UI.UiSprites.Plus,
+                MenuSprites.PlusButton, iconInset: 0.26f);
             UiKit.Place(coinPlus, 0.457f, bottom + 0.002f, 0.511f, top - 0.002f);
             coinPlus.onClick.AddListener(() => MenuShell.Instance?.ShowStepped("store"));
 
@@ -388,8 +394,9 @@ namespace BlockOut.Runtime.UI
             _livesTimer = UiKit.CreateLabel("Status_Heart", root, "", 39, CoinInk);
             UiKit.Place(_livesTimer, 0.655f, bottom + 0.003f, 0.777f, top - 0.003f);
 
-            var lifePlus = MenuPage.IconButton("Plus_Heart", root,
-                GameKit.UI.UiSprites.Plus, MenuPage.Green, iconInset: 0.14f);
+            var lifePlus = MenuPage.PlateIconButton("Plus_Heart", root,
+                GameKit.UI.UiSprites.Plus,
+                MenuSprites.PlusButton, iconInset: 0.26f);
             UiKit.Place(lifePlus, 0.787f, bottom + 0.002f, 0.842f, top - 0.002f);
             lifePlus.onClick.AddListener(() => MenuShell.Instance?.ShowStepped("store"));
 
@@ -428,17 +435,36 @@ namespace BlockOut.Runtime.UI
             var button = UiKit.CreateRect("Avatar", root);
             UiKit.Place(button, x0, y0, x1, y1);
 
-            // Zemin: çerçevenin ortası oyuk, arkasında bir şey olmazsa portre
-            // boşlukta duruyor.
-            var back = UiKit.CreateRoundedPanel("Back", button, new Color(0.20f, 0.62f, 0.78f));
-            UiKit.Place(back, 0.13f, 0.13f, 0.87f, 0.87f);
-            UiKit.SetSliceScale(back, 0.35f);
+            // ÇERÇEVE ARTIK PLASTİK KARE (14. tur, H1). Kullanıcı: *"karakter
+            // avatar çerçevesi güncellenicek değişecek."* Hazır
+            // `frame_avatar.png` açık mavi-lavantaydı; referansın çerçevesi
+            // MOR ve hacimli — y=88 kesitinde gövde (102,74,226)->(122,96,240),
+            // içeride koyu bir oyuk rimi (56,34,158) ve onun içinde portre.
+            var plaka = UiKit.CreateIcon("Plate", button, MenuSprites.AvatarPlate);
+            plaka.type = Image.Type.Sliced;
+            plaka.preserveAspect = false;
+            plaka.raycastTarget = false;
+            UiKit.Place(plaka, 0f, 0f, 1f, 1f);
+
+            // İÇ PANO AÇIK OLMALI (14. tur, H1). İlk denemede oyuğu koyu mor
+            // yapmıştım; referansta çerçevenin içi ÇERÇEVEDEN AÇIK — orada
+            // portre bir sahne karesi (penguen + kar) olduğu için iç alan
+            // neredeyse beyaz. Bizim portremiz saydam zeminli bir karakter,
+            // yani zemini biz veriyoruz: koyu verirsek karakter çerçeveye
+            // karışıyor, açık verince "çerçeve içinde resim" oluyor.
+            var back = UiKit.CreateRoundedPanel("Back", button, new Color(0.722f, 0.702f, 1f));
+            UiKit.Place(back, 0.19f, 0.19f, 0.81f, 0.81f);
+            // KÖŞE YARIÇAPI BİRİM OLARAK VERİLMELİ (14. tur). 0.35 dilim
+            // ölçeği, kutu küçük olduğu için yarıçapı kutunun yarısına
+            // çıkarıyor ve iç pano DAİRE olarak çıkıyordu. `SliceScaleFor`
+            // istenen yarıçapı doğrudan alıyor.
+            UiKit.SetSliceScale(back, UiKit.SliceScaleFor(20f));
 
             var portrait = UiSkin.Get(Art.Avatar);
             if (portrait != null)
             {
                 var face = UiKit.CreateIcon("Portrait", button, portrait);
-                UiKit.Place(face, 0.10f, 0.06f, 0.90f, 0.94f);
+                UiKit.Place(face, 0.20f, 0.20f, 0.80f, 0.80f);
             }
             else
             {
@@ -446,12 +472,6 @@ namespace BlockOut.Runtime.UI
                     CoinInk, new Color(0.12f, 0.09f, 0.28f));
                 UiKit.Place(_avatarInitial, 0f, 0f, 1f, 1f);
             }
-
-            var frameSprite = UiSkin.Get(Art.AvatarFrame);
-            var frame = frameSprite != null
-                ? UiKit.CreateIcon("Frame", button, frameSprite)
-                : UiKit.CreateRoundedPanel("Frame", button, new Color(1f, 1f, 1f, 0f));
-            UiKit.Place(frame, 0f, 0f, 1f, 1f);
 
             // Tıklama en son: dokunuşu yakalayan saydam yüzey en üstte olmalı.
             var hit = UiKit.CreatePanel("Hit", button, new Color(1f, 1f, 1f, 0f));
@@ -470,11 +490,14 @@ namespace BlockOut.Runtime.UI
         static Button SquareButton(Transform root, string name, string icon,
             float x0, float x1, float y0, float y1)
         {
-            // Oyunun standart düğme profili, kare hâli (10. tur). Burası
-            // `btn_square.png` görselini kullanıyordu; referansta bu düğmenin
-            // de üstte parlak pahı, degradeli yüzü ve dipte koyu eteği var.
-            var button = MenuPage.IconButton(name, root, UiSkin.Get(icon), Periwinkle,
-                                             iconInset: 0.06f);
+            // TEK GÖRSEL, ÖLÇÜLEN PALET (14. tur, H3). Kullanıcı: *"ayarlar
+            // butonu güncellenicek."* Düğme düz `Periwinkle` ile boyanmış bir
+            // yuvarlak kareydi. Referansın aynı düğmesinin dikey kesiti
+            // (y 68..108) hacim gösteriyor: ince koyu kenar (44,8,23), üstte
+            // dar bir parlaklık (113,81,250), aşağı sönen gövde
+            // (105,75,246)->(91,61,214) ve altta kalın koyu bir kalınlık.
+            var button = MenuPage.PlateIconButton(name, root, UiSkin.Get(icon),
+                                                  MenuSprites.GearButton, iconInset: 0.22f);
             UiKit.Place(button, x0, y0, x1, y1);
             return button;
         }

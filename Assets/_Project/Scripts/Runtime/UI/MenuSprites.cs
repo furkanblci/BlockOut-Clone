@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace BlockOut.Runtime.UI
 {
@@ -1142,6 +1143,102 @@ namespace BlockOut.Runtime.UI
             return _offerBand;
         }
 
+        static readonly Dictionary<string, Sprite> _plastik = new Dictionary<string, Sprite>();
+
+        /// <summary>
+        /// Üst çubuğun "plastik kare" düğmeleri — ayarlar, artı, avatar
+        /// çerçevesi (H1, H2, H3).
+        ///
+        /// Kullanıcı: *"karakter avatar çerçevesi güncellenicek değişecek;
+        /// gold ve kalp için sağda bulunan artı ekleme işareti butonu kötü
+        /// gözüküyor güncellenicek; ayarlar butonu güncellenicek."*
+        ///
+        /// Üçü de referansta AYNI DİLDE ve o dil ölçülebilir. Ayar
+        /// düğmesinin dikey kesiti (kare y 68..108, x=386):
+        ///     68     ( 44,  8,  23)  ince koyu dış kenar
+        ///     72-76  ( 90, 60, 184) -> (107, 75, 244)
+        ///     77-78  (113, 81, 250)  ÜST PARLAKLIK
+        ///     79-99  (105, 75, 246) -> ( 91, 61, 214)  gövde
+        ///     100-108( 84, 54, 201) -> ( 37, 11,  71)  ALT KOYU KALINLIK
+        /// Artı düğmesinin aynı kesiti (kare y 75..100, x=207):
+        ///     75     ( 18, 31,  26)
+        ///     79     (129,250,  91)  ÜST PARLAKLIK
+        ///     81-90  (105,249, 56) -> ( 38,184, 15)
+        ///     97-100 ( 57,183, 54) -> ( 22, 64, 29)
+        ///
+        /// Yani biçim tek: dört kenarı dolanan ince koyu kenar + üstte dar
+        /// bir parlaklık + aşağı sönen gövde + altta kalın koyu bir kalınlık.
+        /// Bizimkiler düz renkli yuvarlak karelerdi; "kötü görünüyor" denen
+        /// şey hacmin yokluğu.
+        ///
+        /// DERS (üç ögeyi ayrı ayrı düzeltmek yerine ORTAK DİLİ çıkar): Ayar,
+        /// artı ve çerçeve ayrı ayrı ölçülüp ayrı ayrı çizilebilirdi. Ama üçü
+        /// de aynı profili paylaşıyor; profili bir kez yazıp paleti
+        /// değiştirmek hem kısa hem de ileride eklenecek dördüncü düğmeyi
+        /// kendiliğinden doğru yapıyor.
+        /// </summary>
+        public static Sprite PlastikKare(string ad, Color32 disKenar, Color32 ustParlak,
+                                         Color32 govdeUst, Color32 govdeAlt, Color32 altKoyu,
+                                         float yaricap = 26f)
+        {
+            if (_plastik.TryGetValue(ad, out var hazir) && hazir != null) return hazir;
+
+            const int S = 128;
+            var tex = NewTexture("Plastik_" + ad, S, S);
+            var px = new Color32[S * S];
+
+            // Ölçülen oranlar (ayar düğmesi 41 piksel yüksek kabul edilerek):
+            //   üst koyu kenar   %0..%7
+            //   üst parlaklık    %17..%24  (tepe %22)
+            //   gövde            %27..%78
+            //   alt kalınlık     %78..%100
+            for (int y = 0; y < S; y++)
+            {
+                float t = 1f - y / (float)(S - 1);          // 0 = üst, 1 = alt
+                Color c;
+                if (t < 0.22f) c = Color32.Lerp(ustParlak, govdeUst, t / 0.22f);
+                else if (t < 0.78f) c = Color32.Lerp(govdeUst, govdeAlt, (t - 0.22f) / 0.56f);
+                else c = Color32.Lerp(govdeAlt, altKoyu, (t - 0.78f) / 0.22f);
+
+                for (int x = 0; x < S; x++)
+                {
+                    float d = Kose(x + 0.5f, y + 0.5f, S, S, yaricap);
+                    float ic = -d;
+                    var k = ic < 4f ? Color.Lerp(disKenar, c, Mathf.Clamp01(ic / 4f)) : c;
+                    k.a = Mathf.Clamp01(0.7f - d);
+                    px[y * S + x] = k;
+                }
+            }
+            tex.SetPixels32(px);
+            tex.Apply(false, true);
+
+            var sp = Sprite.Create(tex, new Rect(0f, 0f, S, S), new Vector2(0.5f, 0.5f),
+                100f, 0, SpriteMeshType.FullRect,
+                new Vector4(yaricap + 2f, yaricap + 2f, yaricap + 2f, yaricap + 2f));
+            sp.name = "Plastik_" + ad;
+            sp.hideFlags = HideFlags.HideAndDontSave;
+            _plastik[ad] = sp;
+            return sp;
+        }
+
+        /// <summary>Ayarlar düğmesi: mavi-mor, referanstan ölçülen palet.</summary>
+        public static Sprite GearButton => PlastikKare("Gear",
+            new Color32( 37,  11,  71, 255), new Color32(113,  81, 250, 255),
+            new Color32(105,  75, 246, 255), new Color32( 91,  61, 214, 255),
+            new Color32( 44,  16, 100, 255));
+
+        /// <summary>Jeton/kalp yanındaki artı düğmesi: yeşil.</summary>
+        public static Sprite PlusButton => PlastikKare("Plus",
+            new Color32( 12,  40,  10, 255), new Color32(129, 250,  91, 255),
+            new Color32(105, 249,  56, 255), new Color32( 38, 184,  15, 255),
+            new Color32( 22,  64,  29, 255));
+
+        /// <summary>Avatar çerçevesi: mor, içi portre için oyuk.</summary>
+        public static Sprite AvatarPlate => PlastikKare("Avatar",
+            new Color32( 40,  18,  96, 255), new Color32(150, 126, 255, 255),
+            new Color32(122,  96, 240, 255), new Color32(102,  74, 226, 255),
+            new Color32( 56,  34, 158, 255), 30f);
+
         static Sprite _tabCard;
 
         /// <summary>
@@ -1443,6 +1540,7 @@ namespace BlockOut.Runtime.UI
             _quilt = _frostVignette = _snowflake = _sparkle = null;
             _packFace = _packBand = _offerFace = _offerBand = _softGlow = null;
             _tabRim = _tabCard = null;
+            _plastik.Clear();
         }
     }
 }
