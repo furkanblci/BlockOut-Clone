@@ -1011,10 +1011,34 @@ varlık kullanmak serbest.
 
 ## SONRAYA BIRAKILANLAR
 
-- [ ] **G5.** Kabartmalı başlıkların **boyutu ve konumu** bazı ekranlarda
+- [x] **G5.** Kabartmalı başlıkların **boyutu ve konumu** bazı ekranlarda
       ayarlanacak (kullanıcı özellikle **Pause**'u işaret etti).
       > *"bazı yerlerde boyutu değişecek, mesela pause'da konumu boyutu
       > değişecek ama bu sonranın işi, şuanda güzel oldu devam edebiliriz"*
+      >
+      > **YAPILDI (14. tur).** Ölçülebilir tutarsızlık SAYFA BAŞLIKLARINDAYDI.
+      > Beş ekran yan yana dizilince görüldü: Mağaza 104 puntoydu, diğer
+      > sayfalar `MenuPage.Header` üzerinden 72, Yolculuk ise kendi kodunda
+      > 74. Aynı rolü oynayan beş başlık üç farklı boyuttaydı.
+      >
+      > Referans iki bağımsız yoldan aynı çarpanı verdi:
+      >   * BÜYÜK HARF YÜKSEKLİĞİ — referansın kısa başlığı "Ayarlar" ekran
+      >     yüksekliğinin %4,09'u; bizim alt uzantısız en kısa başlığımız
+      >     "Collection" %2,71. Oran 1,51.
+      >   * GENİŞLİK — referansın uzun başlığı "Liderlik Panosu" ekran
+      >     genişliğinin %62,5'i; bizim "Leaderboard" %43'tü. 72 -> 104
+      >     olunca %62,0'ye çıkıyor, yani aynı yere düşüyor.
+      >
+      > `MenuPage.Header` ve `JourneyScreen` 104'e alındı; Mağaza zaten 104.
+      > Doğrulama: beş başlık (Leaderboard / Collection / Journey / Settings /
+      > Profile) yan yana yakalandı ve büyük harf yükseklikleri eşit çıktı.
+      >
+      > **PAUSE:** modal başlığı %7,14 ekran yüksekliği — sayfa başlıklarının
+      > (%3,91) iki katı, ama bu bilinçli: bir kartın üstündeki başlık sayfa
+      > başlığı değil. Kendi modal ailemizde tutarlı (Failed 225 punto, Pause
+      > 166) ve kullanıcı "şu anda güzel oldu" dedi. Referansta karşılığı yok:
+      > orada duraklat ekranı bir modal değil, tam sayfa Ayarlar ekranı.
+      > Konumunun kartın üst kenarına binmesi de bizim tasarımımız.
 
 ---
 

@@ -188,7 +188,23 @@ namespace BlockOut.Runtime.UI
             // İkisinde de 'y' harfi var; beyaz piksel kutusu alt uzantıyı da
             // sayıyor. Alt uzantısı olmayan üç başlık gerçeği söyledi.
             // Punto seçerken ölçülmesi gereken şey BÜYÜK HARF yüksekliği.
-            var label = UiKit.CreateTitle("Title", band, title, 72, Ink, TitleEdge);
+            // PUNTO 72 -> 104 (14. tur, G5). Kullanıcı: *"kabartmalı
+            // başlıkların boyutu ve konumu bazı ekranlarda ayarlanacak."*
+            //
+            // ÖLÇÜM iki bağımsız yoldan aynı çarpanı verdi:
+            //   • BÜYÜK HARF YÜKSEKLİĞİ — referansın kısa başlığı "Ayarlar"
+            //     ekran yüksekliğinin %4,09'u; bizim alt uzantısız en kısa
+            //     başlığımız "Collection" %2,71. Oran 1,51.
+            //   • GENİŞLİK — referansın uzun başlığı "Liderlik Panosu" ekran
+            //     genişliğinin %62,5'i; bizim "Leaderboard" %43. 72 punto
+            //     104'e çıkınca %65 oluyor, yani aynı yere düşüyor.
+            // İki farklı ölçünün aynı çarpanda buluşması, sayının tek bir
+            // karenin gürültüsü olmadığını söylüyor.
+            //
+            // Ayrıca bu, Mağaza başlığıyla (zaten 104) sayfa başlıklarını
+            // EŞİTLİYOR — G5'in "bazı ekranlarda" dediği tutarsızlık buydu:
+            // Mağaza %6,09, diğer sayfalar %2,50-3,02'ydi.
+            var label = UiKit.CreateTitle("Title", band, title, 104, Ink, TitleEdge);
             UiKit.Place(label, 0.12f, 0.28f, 0.88f, 0.88f);
 
             // KONTUR — paylaşılan başlık materyali `CreateTitle`'a verilen

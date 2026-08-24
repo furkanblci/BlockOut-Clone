@@ -309,9 +309,18 @@ namespace BlockOut.Runtime.UI
             fadeImage.raycastTarget = false;
             UiKit.Place(fade, 0f, 0f, 1f, 1f);
 
-            // Punto referanstan: başlığın büyük harf yüksekliği ekranın
-            // %2.73'ü. 62 punto %2.32 veriyordu — %18 küçüktü.
-            var title = UiKit.CreateTitle("Title", band, "Journey", 74,
+            // PUNTO 74 -> 104 (14. tur, G5). Eski sayı ("%2.73 büyük harf
+            // yüksekliği") tek bir karenin ölçüsüydü ve o karede başlık
+            // "Yolculuk" — sekiz harf. Diğer sayfa başlıkları `MenuPage.Header`
+            // üzerinden 104'e çıkınca Yolculuk tek başına küçük kaldı; beş
+            // başlık yan yana dizilince fark açıkça görülüyordu.
+            //
+            // DERS (tutarlılık, tek tek doğruluktan önce gelir): Her başlığı
+            // kendi karesinden ölçüp ayrı ayrı "doğru" yapmak, ekranlar
+            // arasında gezerken zıplayan bir arayüz üretiyor. Aynı rolü
+            // oynayan ögeler TEK bir sayıyı paylaşmalı; ölçüm o sayıyı
+            // belirler, öge sayısını değil.
+            var title = UiKit.CreateTitle("Title", band, "Journey", 104,
                 new Color(1f, 0.99f, 0.96f), new Color(0.204f, 0.145f, 0.588f));
             UiKit.Place(title, 0.05f, 0.28f, 0.95f, 0.88f);
 

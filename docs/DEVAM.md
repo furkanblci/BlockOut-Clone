@@ -7153,3 +7153,29 @@ ayrı yerde aynı tuzağa düşüldü — `UiTextFit.LateUpdate`, `LeaderboardSc
 Refresh`, `HomeScreen.ApplyDifficulty`. Düzenleyicide `Start`/`OnEnable`/
 `LateUpdate` dönmüyor. Bir önizleme yakalamadan önce ekranın durumu yazan
 metodu ELLE çağır; yoksa "kusur" diye ölçtüğün şey kendi önizleme aracın olur.
+
+### G5 — başlık boyutları: tutarsızlık sayfa başlıklarındaydı
+Beş ekran yan yana dizilince görüldü: Mağaza 104 punto, diğer sayfalar
+`MenuPage.Header` üzerinden 72, Yolculuk kendi kodunda 74. Aynı rolü oynayan
+beş başlık üç farklı boyuttaydı.
+
+Referans iki bağımsız yoldan aynı çarpanı verdi:
+- büyük harf yüksekliği: ref "Ayarlar" %4,09 ekran / bizim "Collection" %2,71
+  -> 1,51
+- genişlik: ref "Liderlik Panosu" %62,5 / bizim "Leaderboard" %43; 72->104
+  olunca %62,0
+
+İki farklı ölçünün aynı çarpanda buluşması, sayının tek bir karenin gürültüsü
+olmadığını söylüyor. `MenuPage.Header` ve `JourneyScreen` 104'e alındı.
+
+**Ders (tutarlılık, tek tek doğruluktan önce gelir):** Her başlığı kendi
+karesinden ölçüp ayrı ayrı "doğru" yapmak, ekranlar arasında gezerken zıplayan
+bir arayüz üretiyor. Aynı rolü oynayan ögeler TEK bir sayıyı paylaşmalı;
+ölçüm o sayıyı belirler, öge sayısını değil.
+
+**Ders (kırpma penceresi ölçümü kirletir):** Beş başlığı tek tek ölçerken
+Collection 75 px, Settings 105 px çıktı — oysa ikisi de 104 punto. Sebep:
+sabit bir kırpma penceresi kullanmıştım ve farklı yükseklikteki başlık
+bantlarında pencere farklı şeyleri yakalıyordu. Beşini tek görselde alt alta
+görmek saniyesinde çözdü. Sayı ile göz çeliştiğinde, önce sayının NEYİ
+ölçtüğüne bak.
