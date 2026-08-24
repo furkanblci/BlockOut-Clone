@@ -1143,6 +1143,96 @@ namespace BlockOut.Runtime.UI
             return _offerBand;
         }
 
+        static Sprite _tick;
+
+        /// <summary>
+        /// Yolculuk satırlarının "geçildi" tiki (J3).
+        ///
+        /// Kullanıcı: *"en basitinden geçtiğimiz bölüm için çıkan tikler çok
+        /// kötü bizde, grandin tiklerini kullanalım."*
+        ///
+        /// Bizimki `check_green.png`di: kalın yan duvarı, geniş spekülar
+        /// parlaması ve altında gölgesi olan PLASTİK BİR NESNE. Referansın
+        /// tiki ise DÜZ — kalem darbesi gibi, yalnız hafif bir dikey gradyan
+        /// ve altında ince koyu yeşil bir kontur var. Yan yana konunca fark
+        /// "iyi/kötü" değil, DİL farkı: oyunun geri kalanı düz vektör
+        /// işaretler kullanıyor, bizim tik tek başına 3B duruyordu.
+        ///
+        /// ÖLÇÜM (`m_010.jpg`, satır tiki y 294..329 / x 384..431):
+        ///     kutu      48x36 piksel = 96x72 kanvas birimi (en/boy 1,33;
+        ///               bizimki 512x461 = 1,11, yani tıknazdı)
+        ///     üst       (105,233, 94)
+        ///     orta      ( 66,230, 39)
+        ///     alt       ( 54,217, 28)
+        ///     kontur    ( 10,113,  4)  — altta belirgin, üstte ince
+        ///
+        /// Biçim iki kalın çizgi parçası (yuvarlak uçlu), birleşim olarak
+        /// çiziliyor: kısa kol sol-ortadan alt köşeye, uzun kol alt köşeden
+        /// sağ üste.
+        /// </summary>
+        public static Sprite Tick => _tick != null ? _tick : (_tick = BuildTick());
+
+        static Sprite BuildTick()
+        {
+            const int W = 192, H = 144;      // kutunun iki katı, kenar temiz olsun
+            // Ölçülen oranlar (y yukarıdan aşağı).
+            const float R = 0.155f * H;      // kalınlığın yarısı
+            // UÇLAR YARIÇAP KADAR İÇERİ (14. tur): ilk çizimde uç noktalar
+            // doğrudan ölçülen orana konmuştu ve YUVARLAK UÇLAR dokunun
+            // dışına taşıp kesildi — sağ üst ve alt köşe düz kesilmiş
+            // çıkıyordu. Bir fırça izinin kutusu, izin MERKEZ ÇİZGİSİNİN
+            // kutusu değildir; her uç yarıçap kadar içeride başlar.
+            var A = new Vector2(R,          0.42f * H);
+            var V = new Vector2(0.40f * W,  H - R);
+            var B = new Vector2(W - R,      R);
+            const float Kontur = 7f;
+
+            var tex = NewTexture("Tick", W, H);
+            var px = new Color32[W * H];
+            var konturRenk = new Color32(10, 113, 4, 255);
+
+            for (int y = 0; y < H; y++)
+            for (int x = 0; x < W; x++)
+            {
+                // Doku y=0 ALTTIR; ölçüm yukarıdan aşağı.
+                var p2 = new Vector2(x + 0.5f, H - 1 - y + 0.5f);
+                float d = Mathf.Min(ParcaMesafe(p2, A, V), ParcaMesafe(p2, B, V)) - R;
+
+                if (d > 1f) { px[y * W + x] = new Color32(0, 0, 0, 0); continue; }
+
+                float t = (H - 1 - y) / (float)(H - 1);     // 0 = üst
+                Color dolgu = t < 0.45f
+                    ? Color32.Lerp(new Color32(105, 233, 94, 255),
+                                   new Color32( 66, 230, 39, 255), t / 0.45f)
+                    : Color32.Lerp(new Color32( 66, 230, 39, 255),
+                                   new Color32( 54, 217, 28, 255), (t - 0.45f) / 0.55f);
+
+                // Kontur ALTTA daha kalın: konturun ölçüsü aşağı doğru artıyor.
+                float konturPay = Kontur * (0.55f + 0.45f * t);
+                Color c = d > -konturPay
+                    ? Color.Lerp(konturRenk, dolgu,
+                                 Mathf.Clamp01((-d) / Mathf.Max(0.001f, konturPay)))
+                    : dolgu;
+                c.a = Mathf.Clamp01(1f - d);
+                px[y * W + x] = c;
+            }
+
+            tex.SetPixels32(px);
+            tex.Apply(false, true);
+            _tick = Sprite.Create(tex, new Rect(0f, 0f, W, H), new Vector2(0.5f, 0.5f), 100f);
+            _tick.name = "Tick";
+            _tick.hideFlags = HideFlags.HideAndDontSave;
+            return _tick;
+        }
+
+        /// <summary>Bir noktanın [a,b] doğru parçasına uzaklığı.</summary>
+        static float ParcaMesafe(Vector2 p, Vector2 a, Vector2 b)
+        {
+            Vector2 ab = b - a, ap = p - a;
+            float t = Mathf.Clamp01(Vector2.Dot(ap, ab) / Mathf.Max(1e-5f, Vector2.Dot(ab, ab)));
+            return (ap - ab * t).magnitude;
+        }
+
         static readonly Dictionary<string, Sprite> _plastik = new Dictionary<string, Sprite>();
 
         /// <summary>
@@ -1541,6 +1631,7 @@ namespace BlockOut.Runtime.UI
             _packFace = _packBand = _offerFace = _offerBand = _softGlow = null;
             _tabRim = _tabCard = null;
             _plastik.Clear();
+            _tick = null;
         }
     }
 }

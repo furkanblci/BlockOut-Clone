@@ -7081,3 +7081,18 @@ doğrula.
 (disk, halka, kilit, etiket) DOĞRU. Onlar bir haritanın gerçek nesneleri;
 genişlikle ölçeklenselerdi tablette dev, dar telefonda okunmaz olurlardı.
 Kusur yalnız kutunun kendisi ekranın PAYI olması gereken yerde: bölge adı.
+
+### J3 — tik: sorun kalite değil DİL
+`check_green.png` kalın yan duvarlı, geniş spekülar parlamalı bir plastik
+nesneydi (512x461, en/boy 1,11). Referansın tiki düz bir kalem darbesi:
+hafif dikey gradyan + altta ince koyu yeşil kontur, en/boy 1,33.
+
+Ölçüm (`m_010.jpg`): kutu 48x36 px = 96x72 birim; üst (105,233,94), orta
+(66,230,39), alt (54,217,28), kontur (10,113,4). İki yuvarlak uçlu çizgi
+parçasının birleşimi olarak çizildi. Sonuç en/boy 1,34, ekranın %11,0'i
+(referans %10,8).
+
+**Ders (bir fırça izinin kutusu, MERKEZ ÇİZGİSİNİN kutusu değildir):** Uç
+noktaları ölçülen orana koyunca yuvarlak uçlar dokunun dışına taştı ve sağ
+üst ile alt köşe düz kesildi. Her uç, kalınlığın yarısı kadar içeride
+başlamalı.

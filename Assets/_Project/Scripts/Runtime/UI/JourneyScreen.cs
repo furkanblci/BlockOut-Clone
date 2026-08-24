@@ -519,11 +519,16 @@ namespace BlockOut.Runtime.UI
 
             // Tik kapsülün sağ ÜST köşesinden taşar; kapsülün değil satırın
             // çocuğu, yoksa kapsül onu kırpar.
-            var checkSprite = UiSkin.Get(Art.Check);
-            var check = checkSprite != null
-                ? UiKit.CreateIcon("Check", row, checkSprite)
-                : UiKit.CreateIcon("Check", row, UiSkin.Get(Art.Star), CheckGreen);
-            UiKit.Place(check, 0.885f, 0.66f, 1.085f, 1.34f);
+            // TİK ARTIK DÜZ (14. tur, J3). Kullanici: "gectigimiz bolum icin
+            // cikan tikler cok kotu bizde, grandin tiklerini kullanalim."
+            // check_green.png kalin yan duvarli, genis spekuler parlamali bir
+            // PLASTIK NESNEYDI; referansin tiki duz bir kalem darbesi.
+            // Olculen en/boy 1.33 (bizimki 1.11 idi), yani ayrica tiknazdi.
+            var check = UiKit.CreateIcon("Check", row, MenuSprites.Tick);
+            check.preserveAspect = true;
+            // BOYUT ÖLÇÜLDÜ: referansta tik ekran genişliğinin %10,8'i
+            // (48 piksel / 443). İlk yerleşimde %12,0 çıktı — %11 büyüktü.
+            UiKit.Place(check, 0.890f, 0.748f, 1.061f, 1.252f);
             _checks.Add((check, milestone.level));
         }
 

@@ -629,10 +629,24 @@ varlık kullanmak serbest.
 
 - [ ] **J2.** Orijinale göre eksikler detaylıca incelenip kapatılacak.
 
-- [ ] **J3.** Geçilen bölüm için çıkan **tikler çok kötü**; Grand'ın
+- [x] **J3.** Geçilen bölüm için çıkan **tikler çok kötü**; Grand'ın
       tikleri kullanılacak.
       > *"en basitinden geçtiğimiz bölüm için çıkan tikler çok kötü bizde,
       > grandin tiklerini kullanalım"*
+      >
+      > **YAPILDI (14. tur).** Bizimki `check_green.png`di: kalın yan duvarı,
+      > geniş spekülar parlaması ve altında gölgesi olan PLASTİK BİR NESNE
+      > (512x461, en/boy 1,11). Referansın tiki DÜZ — kalem darbesi gibi,
+      > yalnız hafif bir dikey gradyan ve altında ince koyu yeşil kontur.
+      > Fark "iyi/kötü" değil DİL farkı: oyunun geri kalanı düz işaretler
+      > kullanıyor, bizim tik tek başına 3B duruyordu.
+      >
+      > ÖLÇÜM (`m_010.jpg`, y 294..329 / x 384..431):
+      > kutu 48x36 piksel = 96x72 birim (en/boy **1,33**), üst (105,233,94),
+      > orta (66,230,39), alt (54,217,28), kontur (10,113,4).
+      > Biçim iki kalın yuvarlak uçlu çizgi parçasının birleşimi olarak
+      > `MenuSprites.Tick`te çizildi. Sonuç: en/boy **1,34**, ekran
+      > genişliğinin **%11,0**'i (referans %10,8).
 
 - [ ] **J4.** Sahnenin geneli cilalanacak.
 
