@@ -541,7 +541,7 @@ varlık kullanmak serbest.
 
 # KOLEKSİYON
 
-- [ ] **K1.** Görselin **dış kısımlarında beyazlıklar** var; kötü görünüyor,
+- [x] **K1.** Görselin **dış kısımlarında beyazlıklar** var; kötü görünüyor,
       **kesilmiş gibi** duruyor. Düzeltilecek.
       > *"koleksiyon kısmında zaten çok bir şey yok ama görselin dış
       > kısımlarından beyazlıklar var, o da kötü gözüküyor, çok kesilmiş
@@ -550,6 +550,28 @@ varlık kullanmak serbest.
       Not: bu, `collection_book.png`'in matlanmasından kalan hâle olabilir —
       hafızadaki "saydamlık doğrulama tuzağı" (koyu zeminde bak, damalıda
       değil) burada birebir geçerli.
+
+      > **YAPILDI (14. tur) — ve tahmin doğruydu.** Matlama alfayı doğru
+      > çıkarıyor ama yarı saydam kenar piksellerinde ORİJİNALDE pişirilmiş
+      > açık zeminin rengi kalıyor; koyu bir zeminde o kalıntı açık gri bir
+      > hale olarak görülüyor. `collection_book.png`in yumuşak kenarında
+      > beyaza yakın piksel oranı **%12,4**'tü.
+      >
+      > Çözüm kenarı SİLMEK değil, kenarın RENGİNİ içerden doldurmak: alfa
+      > aynen korunuyor (silüet bozulmuyor), yalnız RGB en yakın OPAK
+      > komşudan yayılıyor. Sonra oran **%3,3**.
+      >
+      > Bütün `Art/UI` klasörü aynı ölçütle tarandı (kenar ortalaması içten
+      > 12 birimden fazla açıksa VE beyaza yakın oran %6'yı geçiyorsa) ve 20
+      > varlıkta aynı kusur bulundu. Kullanımda olan 16'sı düzeltildi:
+      > `collection_book`, `avatar_2..9`, `icon_lock`, `region_1..4`,
+      > `podium_gold/silver/bronze`, `frame_board`. (Kalan dördü —
+      > `frame_avatar`, `btn_square`, `bar_tabs`, `card_tab` — bu turda
+      > prosedürel görsellerle değiştirildiği için artık kullanılmıyor.)
+      > `logo_*.png` taramanın dışında bırakıldı.
+      >
+      > Yan fayda: L1a'nın avatar çerçeveleri ve L1b'nin kürsüleri de aynı
+      > düzeltmeyi aldı.
 
 ---
 

@@ -7023,3 +7023,28 @@ sayıyordu. Ekranda ölçtüğün rengin ARKA PLANDA da bulunup bulunmadığına
 doygunluk eşiğini daraltmak (G>190) gerçek sayıyı verdi. Bu, "ölçüm görselle
 çelişirse göze güven" kuralının bir örneği daha: gözle düğme ekranın yarısı
 kadardı, ölçüm %82,5 diyordu; haklı olan gözdü.
+
+### K1 — "dış kısımlarda beyazlıklar": hale, kenarın RENGİNDE
+Matlama alfayı doğru çıkarıyor ama yarı saydam kenar piksellerinde
+ORİJİNALDE pişirilmiş açık zeminin rengi kalıyor. Koyu zeminde o kalıntı
+açık gri bir hale olarak görülüyor — kullanıcının "kesilmiş gibi duruyor"
+dediği şey bu.
+
+Çözüm kenarı silmek DEĞİL, kenarın RENGİNİ içerden doldurmak: alfa aynen
+korunuyor (silüet bozulmuyor), yalnız RGB en yakın opak komşudan dalga
+dalga yayılıyor. `collection_book`ta beyaza yakın kenar oranı %12,4 -> %3,3.
+
+Bütün `Art/UI` aynı ölçütle tarandı (kenar ortalaması içten 12 birimden
+fazla açık VE beyaza yakın oran > %6): 20 varlıkta aynı kusur. Kullanımda
+olan 16'sı düzeltildi. `logo_*.png` taramanın dışında.
+
+**Ders (bir kusuru bulunca AYNI ÖLÇÜTLE hepsini tara):** Kullanıcı yalnız
+koleksiyon ekranını söylemişti. Aynı matlama akışından geçen her varlıkta
+aynı kusur vardı — sıralama avatarları, kürsüler, yolculuk bölgeleri, hatta
+oyun tahtasının çerçevesi. Tek tek şikâyet gelmesini beklemek, aynı işi on
+altı kez yapmak demekti.
+
+**Ders (bir ölçütün YANLIŞ POZİTİFİ de bilgidir):** `avatar_2` düzeltmeden
+sonra da %20,5 "beyaza yakın kenar" veriyor. Sebep: o avatarın ayaklarının
+altında GERÇEKTEN beyaz bir kar zemini var. Ölçüt kusuru değil içeriği
+gösteriyor; sayıyı kovalayıp kar zeminini silmek olurdu.
