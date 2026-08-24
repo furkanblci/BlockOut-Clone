@@ -7048,3 +7048,36 @@ altı kez yapmak demekti.
 sonra da %20,5 "beyaza yakın kenar" veriyor. Sebep: o avatarın ayaklarının
 altında GERÇEKTEN beyaz bir kar zemini var. Ölçüt kusuru değil içeriği
 gösteriyor; sayıyı kovalayıp kar zeminini silmek olurdu.
+
+### G2 — responsive: gözle değil ÖLÇÜMLE tarandı
+Kanvas yüksekliğe kilitli, yani 1920 birimlik yükseklik her cihazda aynı ama
+birim GENİŞLİĞİ ekran oranıyla değişiyor: 16:9'da 1080, 19.5:9'da **886**,
+4:3 tablette **1440**. Kırılma her zaman en dar ekranda olur.
+
+Altı ekran üç oranda kurulup iki testten geçirildi:
+1. **Yazı taşması** — `ForceMeshUpdate` sonrası ÇİZİLEN genişlik / kutu.
+2. **Oran kayması** — her ögenin genişliği ekran genişliğine bölünüp üç oran
+   karşılaştırıldı; %5'ten fazla kayan öge sabit birimle yazılmış demektir.
+
+Tek gerçek kusur: yolculuğun bölge başlığı 1040 birim sabitti, 886 birimlik
+ekranda ekranın %117'si oluyordu. Oranlandı (0.02–0.98).
+
+**Ders (aynı ölçüm ÜÇ KEZ yanlış cevap verdi, her seferinde başka sebeple):**
+1. İlk tarama 4 yazı taşması buldu — `UiTextFit.LateUpdate` düzenleyicide
+   kendiliğinden dönmediği için koruma hiç çalışmamıştı. `FitNow()` çağrılınca
+   4 -> 1'e indi.
+2. Kalan 1, sıralamanın oyuncu adıydı: `enableAutoSizing` açık olduğu için
+   `UiTextFit` bilerek çekiliyor, TMP kendi küçültmesini yapıyor —
+   `GetPreferredValues` o küçültmeyi görmüyor. `ForceMeshUpdate` + `textBounds`
+   ile ÇİZİLEN ölçüye bakınca taşma yok.
+3. Son iki uyarı (mağazadaki tutar) da yanlış pozitif: fark 4 birim ve o
+   yazının KONTURUNUN kalınlığı — kontur `GetPreferredValues`'a girmiyor.
+
+Yani "ölçüm sonucu" diye rapor edilen üç şeyin de üçü de araçtan geliyordu.
+Bir tarama sıfır dışında bir sayı veriyorsa, önce ARACIN ne ölçtüğünü
+doğrula.
+
+**Ders (sabit birim her zaman kusur değildir):** Yolculuğun 54 sabit ögesi
+(disk, halka, kilit, etiket) DOĞRU. Onlar bir haritanın gerçek nesneleri;
+genişlikle ölçeklenselerdi tablette dev, dar telefonda okunmaz olurlardı.
+Kusur yalnız kutunun kendisi ekranın PAYI olması gereken yerde: bölge adı.

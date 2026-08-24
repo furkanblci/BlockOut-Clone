@@ -105,10 +105,50 @@ namespace BlockOut.Runtime.UI
         // hem de "Üst"/"Alt" atlama düğmelerinin durduğu boşluğu kapatıp
         // onların bölge içeriğinin üstüne binmesine yol açıyordu.
         const float HeaderH   = 240f;
-        const float RowHeight = 250f;   // kilometre taşları arası (referans: 250)
-        const float PillH     = 175f;
-        const float PillX0    = 0.050f;
-        const float PillX1    = 0.950f;
+        // SEVİYE KAPSÜLÜ ÖLÇÜLERİ YENİDEN ALINDI (2026-08-22, `journey.jpeg`).
+        // Mor bantlar tam kolon taraması ile bulundu (sabit pencere ıskalıyordu):
+        //     referans kapsül 766×175 px / 946 genişlik
+        //         -> genişliğin %81.0'i, yüksekliği genişliğin %18.5'i, en/boy 4.38
+        //     bizim    kapsül 944×152 px / 1080 genişlik
+        //         -> %87.4 geniş, yükseklik %14.1, en/boy 6.21
+        // Yani hem fazla geniş hem belirgin biçimde ALÇAK.
+        //
+        // PillH 175 birim iken ekranda 152 px çiziliyordu (kapsülün iç payı,
+        // oran 0.869). Hedef 200 px -> 175 × (200/152) = 230.
+        //
+        // Satır aralığı da ölçüldü: referansta kapsül üstleri arası 283 px =
+        // genişliğin %29.9'u; bizde 250/1080 = %23.1. 0.299 × 1080 = 323.
+        // Kapsül büyürken aralık büyümezse kapsüller birbirine yapışırdı —
+        // bu turda mağazada aynı tuzağa düşülmüştü (şerit büyüdü, yazı sabit
+        // kaldı ve oransal küçüldü).
+        // ---- 9. TUR, EKSEN DÜZELTMESİ ----
+        //
+        // Yukarıdaki iki ölçü YANLIŞ KENARA bölünmüştü: "yüksekliği
+        // GENİŞLİĞİN %18,5'i" ve "satır aralığı GENİŞLİĞİN %29,9'u".
+        // `UiKit` kanvası `matchWidthOrHeight = 1`, yani dikey birim sabit;
+        // bir Y ölçüsü ekran YÜKSEKLİĞİNE oranlanır. (Bu dosyanın daire
+        // notu bunu zaten doğru yapıyor — `DiscSize` yükseklik oranından
+        // türetilmiş ve ölçümde referansla birebir çıkıyor: %68 / %68.)
+        //
+        // ÖLÇÜM (`m_009`, kapsül zemini renk eşleştirmesiyle, yakalama
+        // referansın en-boyunda 886×1920):
+        //     referans  kapsül %8,33   satır adımı %13,96
+        //     bizim     kapsül %10,16  satır adımı %22,97
+        //     0,0833 × 1920 = 160 px çizim; kapsülün iç payı 0,848
+        //                                  -> PillH 160/0,848 = 189
+        //     0,1396 × 1920 = 268        -> RowHeight 268
+        // Yeni değerlerle kapsüller arası boşluk 268-160 = 108, referansta da
+        // aynı.
+        //
+        // GENİŞLİK DOKUNULMADI: `PillX0/X1` (%83,3 sabit -> %81,0 çizim) X
+        // ekseninde ve zaten doğru ölçülmüştü.
+        const float RowHeight = 268f;
+        const float PillH     = 189f;
+        // Genişlik: referansta ekranın %81.0'i ÇİZİLİYOR. Sabit doğrudan
+        // 0.81 verildiğinde ekranda %78.7 çıktı — kapsülün kendi iç payı
+        // 2.3 puan yiyor. Sabit o payı telafi edecek şekilde %83.3.
+        const float PillX0    = 0.0835f;
+        const float PillX1    = 0.9165f;
         const float RegionH   = 760f;
         const float DiscSize  = 580f;
         const float TubeW     = 32f;
@@ -263,7 +303,10 @@ namespace BlockOut.Runtime.UI
             // paylaşıyor. Tek bir başlığa özel kontur istiyorsan `SetOutline`
             // çağırmak ZORUNDASIN. Yukarıdaki satırdaki renk de bu yüzden tek
             // başına işe yaramıyordu.
-            UiKit.SetOutline(title, new Color(0.204f, 0.145f, 0.588f));
+            // KABARTMA (12. tur, G1/G4) — menü başlıklarıyla aynı.
+            GameKit.UI.UiTitleEmboss.Apply(title,
+                halo: new Color(0.384f, 0.278f, 0.894f),
+                shadow: new Color(0.137f, 0.071f, 0.420f));
         }
 
         void BuildScrollArea(Transform root)
@@ -444,28 +487,33 @@ namespace BlockOut.Runtime.UI
             // olmalı" derken bunu gördü. Kenar belirgin biçimde koyulaştırıldı
             // ve ALTINA düşen ayrı bir gölge kopyası eklendi — kalınlık
             // hissini veren şey kenar değil, o kopya.
-            var shadow = MenuCapsule("Shadow", row, MilestoneShadow);
+            var shadow = MenuCapsule("Shadow", row, MilestoneShadow, MilestoneCornerShare, NoRadiusCap);
             UiKit.Place(shadow, 0f, 0f, 1f, 1f);
             shadow.rectTransform.offsetMin = new Vector2(0f, -11f);
             shadow.rectTransform.offsetMax = new Vector2(0f, -11f);
 
-            var rim = MenuCapsule("Rim", row, CapsuleRim);
+            var rim = MenuCapsule("Rim", row, CapsuleRim, MilestoneCornerShare, NoRadiusCap);
             UiKit.Place(rim, 0f, 0f, 1f, 1f);
 
-            var face = MenuCapsule("Face", row, Capsule);
+            var face = MenuCapsule("Face", row, Capsule, MilestoneCornerShare, NoRadiusCap);
             UiKit.Place(face, 0.014f, 0.09f, 0.986f, 0.955f);
 
-            var caption = UiKit.CreateLabel("Caption", face.transform, "Level", 38, Caption);
+            var caption = UiKit.CreateLabel("Caption", face.transform, "Level", 43, Caption);
             UiKit.Place(caption, 0.04f, 0.52f, 0.52f, 0.92f);
 
             var number = UiKit.CreateTitle("Number", face.transform,
-                milestone.level.ToString(), 66, UiKit.Ink, Outline);
+                // PUNTO 66 -> 75 (2026-08-22). Sayı bloğunun yüksekliği
+                // KAPSÜLE oranlandı: referansta %22.5, bizde %19.7 -> ×1.14.
+                // (Kapsül bu turda 175'ten 230 birime çıktı; sabit punto
+                // oransal olarak küçülmüştü — mağazadaki şerit/yazı tuzağının
+                // aynısı.)
+                milestone.level.ToString(), 75, UiKit.Ink, Outline);
             UiKit.Place(number, 0.04f, 0.08f, 0.52f, 0.56f);
 
             var icon = UiKit.CreateIcon("Reward", face.transform, UiSkin.Get(milestone.icon));
             UiKit.Place(icon, 0.655f, 0.26f, 0.875f, 0.97f);
 
-            var value = UiKit.CreateTitle("Value", face.transform, milestone.value, 38,
+            var value = UiKit.CreateTitle("Value", face.transform, milestone.value, 43,
                 UiKit.Ink, Outline);
             UiKit.Place(value, 0.60f, 0.04f, 0.92f, 0.30f);
 
@@ -503,7 +551,15 @@ namespace BlockOut.Runtime.UI
             var title = UiKit.CreateTitle($"RegionName_{region.from}", _content, region.name, 62,
                 UiKit.Ink, RegionTitleEdge);
             UiKit.SetOutline(title, RegionTitleEdge);
-            Anchor(title.rectTransform, 0f, y + DiscSize * 0.5f + 68f, 1040f, 100f);
+            // GENİŞLİK ORAN OLARAK (14. tur, G2). Kutu 1040 birim SABİTTİ.
+            // Kanvas yüksekliğe kilitli olduğu için birim genişliği ekran
+            // oranıyla değişiyor: 16:9'da 1080 birim ama 19.5:9'luk bir
+            // telefonda yalnız 886. Sabit 1040, o telefonda ekranı 154 birim
+            // AŞIYORDU — yani başlık iki yanından kesiliyordu. Oranla
+            // yazılınca her cihazda aynı payı alıyor ve `UiTextFit` gereken
+            // yerde puntoyu kendisi kısıyor.
+            AnchorNormalizedX(title.rectTransform, 0.02f, 0.98f,
+                              y + DiscSize * 0.5f + 68f, 100f);
 
             var art = UiSkin.Get(Art.Region(region.art));
 
@@ -692,8 +748,19 @@ namespace BlockOut.Runtime.UI
         /// kapsülleri, "Lv1-20" etiketi ve yeşil oynat düğmesi buradan geliyor.
         /// </summary>
         static Image MenuCapsule(string name, Transform parent, Color color,
-                                 float cornerShare = UiCornerFit.HouseShare)
-            => MenuPage.Capsule(name, parent, color, cornerShare);
+                                 float cornerShare = UiCornerFit.HouseShare,
+                                 float maxRadius = UiCornerFit.MaxRadius)
+            => MenuPage.Capsule(name, parent, color, cornerShare, maxRadius);
+
+        /// <summary>
+        /// Kilometre taşı kapsülünün köşe oranı. ÖLÇÜM (`journey.jpeg`, X
+        /// aralığı kapsülle sınırlandırılarak): referansta yarıçap kısa
+        /// kenarın %39'u; bizde %13'tü. Sebep genel tavan (34 birim): 193 px
+        /// kapsülde %22 = 42 birim isteniyor, tavan 34'e kırpıyordu.
+        /// Bu çağrı yerinde tavan kaldırıldı.
+        /// </summary>
+        const float MilestoneCornerShare = 0.42f;
+        const float NoRadiusCap = 9999f;
 
         static Color Darken(Color color, float factor) =>
             new Color(color.r * factor, color.g * factor, color.b * factor, color.a);
@@ -707,7 +774,20 @@ namespace BlockOut.Runtime.UI
             rect.anchoredPosition = Vector2.zero;
         }
 
-        /// <summary>Kaydırma içeriğinde MUTLAK yerleştirme (oran değil piksel).</summary>
+        /// <summary>
+        /// Kaydırma içeriğinde MUTLAK yerleştirme (oran değil piksel).
+        ///
+        /// NE ZAMAN DOĞRU (14. tur, G2): Bu ekran dikey bir harita; düğümler,
+        /// diskler, kilitler ve kapsüller GERÇEK NESNELER — tablette de
+        /// telefonda da aynı büyüklükte olmaları doğru, çünkü büyütülürlerse
+        /// tablette dev, küçültülürlerse dar telefonda okunmaz olurlar.
+        /// Ölçüldü: disk 580, halka 594, kilit 230, etiket 380, eylem 280
+        /// birim — hepsi en dar ekranda (886 birim) rahatça sığıyor.
+        ///
+        /// NE ZAMAN YANLIŞ: kutunun kendisi ekranın PAYI olacaksa. Bölge adı
+        /// 1040 birimle yazılmıştı ve 886 birimlik ekranda taşıyordu; o tek
+        /// yer <see cref="AnchorNormalizedX"/>'e taşındı.
+        /// </summary>
         static void Anchor(RectTransform rect, float x, float y, float width, float height)
         {
             rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0f);

@@ -346,11 +346,43 @@ varlık kullanmak serbest.
       dört ekranımız), `emboss_cmp4.png`.
 ## 8. Responsive (KRİTİK)
 
-- [ ] **G2.** Telefondan telefona arayüz boyutları bozulabiliyor. Her şey
+- [x] **G2.** Telefondan telefona arayüz boyutları bozulabiliyor. Her şey
       responsive yapılıp **her telefonda aynı görünüm** yakalanacak.
       > *"yine kritik bir şeyden bahsedicem: telefondan telefona uılar
       > boyutu bozulabiliyor, responsive yapıp her şeyi her telefonda aynı
       > görünümü de yakalayalım"*
+      >
+      > **YAPILDI (14. tur) — göz yerine ÖLÇÜMLE tarandı.**
+      >
+      > Kanvas YÜKSEKLİĞE kilitli (`matchWidthOrHeight = 1`). Bunun anlamı:
+      > 1920 birimlik yükseklik her cihazda aynı, ama birim GENİŞLİĞİ ekran
+      > oranıyla değişiyor — 16:9'da 1080, 19.5:9'luk bir telefonda yalnız
+      > **886**, 4:3 tablette **1440**. Yani kırılma her zaman EN DAR ekranda
+      > olur ve sabit birimle yazılmış her genişlik orada taşar.
+      >
+      > Altı ekran (mağaza, koleksiyon, sıralama, yolculuk, ayarlar, profil)
+      > üç oranda kurulup iki ayrı testten geçirildi:
+      >   1. **Yazı taşması:** her `TMP_Text` için `ForceMeshUpdate` sonrası
+      >      ÇİZİLEN genişlik ile kutu genişliği. Sonuç: sıfır. (Kalan iki
+      >      uyarı mağazadaki "20 000"/"60 000" — 224 birim çizilene karşı
+      >      220 birimlik kutu; fark yazının KONTURUNUN kalınlığı, 2 birim.)
+      >   2. **Oran kayması:** her ögenin genişliği ekran genişliğine bölünüp
+      >      üç oran karşılaştırıldı. Oran %5'ten fazla kayıyorsa o öge sabit
+      >      birimle yazılmış demektir.
+      >
+      > Bulunan tek GERÇEK kusur: yolculuk ekranının bölge başlığı 1040 birim
+      > SABİTTİ ve 886 birimlik ekranda 154 birim taşıyordu (ekranın %117'si).
+      > Oranlı yazıldı (0.02–0.98).
+      >
+      > Yolculuğun diğer 54 "sabit" ögesi (disk 580, halka 594, kilit 230,
+      > etiket 380, eylem 280 birim) DOĞRU: onlar bir haritanın gerçek
+      > nesneleri, tablette de telefonda da aynı büyüklükte olmalılar ve en
+      > dar ekranda rahatça sığıyorlar. Sıralamanın 1197 birimlik `Scene`si de
+      > kasıtlı — `CreateCover` ile kurulmuş bir kapak görseli ve arkasında
+      > `RectMask2D` var.
+      >
+      > **Son durum:** en dar ekranda (886 birim) altı ekranın hiçbirinde
+      > ekrandan geniş kutu ve taşan yazı yok.
 
 ## 9. Kapatma (X) düğmesi
 
