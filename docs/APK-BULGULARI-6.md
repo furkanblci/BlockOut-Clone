@@ -395,7 +395,7 @@ varlık kullanmak serbest.
 
 # SIRALAMA (Leaderboard)
 
-- [ ] **L1.** Sahnede **görülen her şey** güncellenecek. Hazır olanlar
+- [x] **L1.** Sahnede **görülen her şey** güncellenecek. Hazır olanlar
       doğrudan kullanılacak, olmayanlar aynı dilde üretilip şu anki
       hâlinden çok daha iyi hâle getirilerek orijinaline benzetilecek.
       Kapsam: **avatar çerçeveleri, kürsü (podyum), sıralama satırları,
@@ -409,11 +409,37 @@ varlık kullanmak serbest.
       > bunların hepsini en ufak detayına kadar daha temiz hale getirip
       > düzenlemeni istiyorum"*
 
-      Alt kalemler (çalışırken bölünecek):
-      - **L1a** avatar çerçeveleri
-      - **L1b** kürsü / podyum
-      - **L1c** sıralama satırları
-      - **L1d** Haftalık / Dünya / Ülke sekme paneli
+      Alt kalemler:
+      - **L1a** avatar çerçeveleri — **YAPILDI (14. tur).** Üç kürsünün
+        çerçevesi de aynı mor `frame_avatar.png`di. Referansta birinci ALTIN,
+        ikinci GÜMÜŞ, üçüncü BRONZ — çerçeve süs değil, sıranın ikinci
+        işareti. `MenuSprites.PodiumFrame(place)` aynı plastik profili üç
+        metal paletle veriyor. Ayrıca çerçeveler HAVADA duruyordu: hazır
+        görselin çevresindeki saydam pay yüzünden kutunun altında boşluk
+        kalıyordu; prosedürel plaka kutuyu tam dolduruyor ve mindere biniyor.
+        Yükseklik ölçüldü: referansta birinci 70 px = 140 birim, yanlar
+        55 px = 110 birim (bizde 183 idi ve sekme paneline giriyordu).
+      - **L1b** kürsü / podyum — **YAPILDI (14. tur).** Sütunlar 235 birim
+        genişliğinde YAZILMIŞTI ama ekranda 117 birim çiziliyordu: kaide
+        görselinin en-boyu 0,559 (dik bir sütun) ve `preserveAspect` açık
+        olduğu için görsel kutuya YÜKSEKLİKTEN sığıp genişliğin yarısını boş
+        bırakıyordu. Kutular görselin en-boyuna oturtuldu. Referansta
+        kürsülerin arası yalnız %3,4 (üç kule değil bir KÜTLE); bizimkilerin
+        arası %10'du, o da kapatıldı.
+      - **L1c** sıralama satırları — **İNCELENDİ, DEĞİŞİKLİK GEREKMEDİ.**
+        Satır yüksekliği ve ilk üçün madalyaları zaten referanstan
+        türetilmişti. `m_006` karesinde madalya görünmemesi kusur değil: o
+        kare 6-10. sıraları gösteriyor, madalya yalnız ilk üçte var.
+        (Satırlardaki jeton yığını + ödül rozeti artık diskte olmayan
+        `sıralama.jpeg`ten geliyor; elimizdeki karede ilk üç satır
+        görünmediği için doğrulanamadı, olduğu gibi bırakıldı.)
+      - **L1d** Haftalık / Dünya / Ülke sekme paneli — **İNCELENDİ,
+        DEĞİŞİKLİK GEREKMEDİ.** İlk yakalamada sekmeler BEYAZ çıktı ve panel
+        baştan aşağı yanlış görünüyordu; sebep `Refresh()`in düzenleyici
+        kipinde hiç çalışmaması, yani sekmeler kurulum varsayılanında
+        kalmıştı. Elle çağrılınca renkler referansla örtüştü: seçili
+        (0,133,254) / referans (6,127,255), seçilmemiş (101,83,253) /
+        referans (91,55,247), üst ışık (3,212,255) / referans (23,194,255).
 
 ---
 

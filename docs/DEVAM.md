@@ -7123,3 +7123,33 @@ kimse ödülün NEREYE gittiğini sormamıştı. Bundan sonra her gösterge içi
 **KALAN:** kullanıcının saydığı üçüncü ödül olan "arkaplan görseli" bölge
 çemberlerine ait (referansta tamamlanmış bölgede "Kullan" düğmesi). Bizde o
 düğme "Play" diyor ve seçilebilir arka plan envanteri yok.
+
+### L1 — sıralama sahnesi
+**L1b (kürsü):** Sütunlar 235 birim genişliğinde YAZILMIŞTI ama ekranda 117
+birim çiziliyordu. Sebep: kaide görselinin en-boyu 0,559 (dik sütun) ve
+`preserveAspect` açık; görsel kutuya YÜKSEKLİKTEN sığıp genişliğin yarısını
+boş bırakıyordu. Kutular görselin en-boyuna oturtuldu, aralar referanstaki
+%3,4'e indirildi (bizimki %10'du).
+
+**Ders (preserveAspect kutuyu DEĞİL görseli korur):** Bir kutuya "referanstaki
+genişlik" yazmak o genişlikte çizileceği anlamına gelmiyor. En-boy koruması
+açıksa kutunun en-boyu da görselinkine eşitlenmeli; değilse görsel kısa
+kenara göre küçülür ve ölçüm boşa gider. Bu, "ölçüm doğru ama çizilen başka"
+sınıfının üçüncü örneği (önce PriceButton gölgesi, sonra UiTextFit).
+
+**L1a (avatar çerçeveleri):** Üçü de aynı mor `frame_avatar.png`di;
+referansta altın/gümüş/bronz. `MenuSprites.PodiumFrame(place)` aynı plastik
+profili üç metal paletle veriyor. Çerçeveler ayrıca havada duruyordu — hazır
+görselin saydam payı yüzünden. Yükseklik ölçüldü: birinci 140 birim, yanlar
+110 (bizde 183 idi, sekme paneline giriyordu).
+
+**L1c / L1d — değişiklik gerekmedi, ama ikisi de önce YANLIŞ göründü.**
+Sekme paneli ilk yakalamada bembeyaz çıktı; neredeyse baştan yazacaktım.
+Sebep `Refresh()`in düzenleyici kipinde hiç dönmemesi: sekmeler kurulum
+varsayılanında kalmıştı. Elle çağrılınca renkler referansla örtüştü.
+
+**Ders (önizleme, ekranın KURULMUŞ hâlidir; ÇALIŞAN hâli değil):** Bugün üç
+ayrı yerde aynı tuzağa düşüldü — `UiTextFit.LateUpdate`, `LeaderboardScreen.
+Refresh`, `HomeScreen.ApplyDifficulty`. Düzenleyicide `Start`/`OnEnable`/
+`LateUpdate` dönmüyor. Bir önizleme yakalamadan önce ekranın durumu yazan
+metodu ELLE çağır; yoksa "kusur" diye ölçtüğün şey kendi önizleme aracın olur.

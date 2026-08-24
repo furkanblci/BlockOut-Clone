@@ -210,7 +210,14 @@ namespace BlockOut.Runtime.UI
             // ekranın SOLUNA yaslı ve sağda "i" bilgi düğmesine yer bırakıyor.
             // Bizimki 0.075-0.925 ile neredeyse tam genişlikti; üç sekme
             // birbirinden kopuk üç düğme gibi duruyordu (17. APK bulgusu).
-            var slotRow = MenuPage.Row("Tabs", root, 336f, 112f, 0.107f, 0.803f);
+            // GENİŞLİK GERÇEK REFERANSTAN YENİDEN (9. tur, `m_006`).
+            // Yukarıdaki 0,107-0,803 artık diskte olmayan `sıralama.jpeg`ten
+            // geliyordu. Yuvanın orta yüksekliğinden yatay kesit:
+            //     referans  yuva %9,3-%86,0 (gen %76,7)   "i" %90,7-%97,7
+            //     bizim     yuva %10,7-%80,0 (gen %69,3)  "i" %84,4-%92,3
+            // Sabitlerle birebir örtüştüğü için ölçüme güvenildi; yuva
+            // referanstan %7 dar, "i" ise fazla içerideydi.
+            var slotRow = MenuPage.Row("Tabs", root, 336f, 112f, 0.093f, 0.860f);
 
             // ÜÇ KATMAN — referansta seçici tek bir kutu değil, GÖMÜLÜ bir yuva:
             // dıştan açık mor bir bilezik, içinde koyu bir kuyu, kuyunun içinde
@@ -242,6 +249,7 @@ namespace BlockOut.Runtime.UI
                 UiKit.Place(label, 0.04f, 0.06f, 0.96f, 0.94f);
 
                 var button = face.gameObject.AddComponent<Button>();
+            GameKit.UI.UiPressFeedback.Attach(button);   // 12. tur, H7
                 button.targetGraphic = face;
                 button.transition = Selectable.Transition.None;
                 face.gameObject.AddComponent<GameKit.UI.UiButtonFeel>();
@@ -274,7 +282,10 @@ namespace BlockOut.Runtime.UI
             // #2C8BFE ile MAVİYDİ — kullanıcının "yuvarlak içindeki İ orijinal
             // oyunda mor, bizde mavi" bulgusu. Etrafında ayrıca bir bilezik
             // var; tek düz daire referansta olduğundan yassı kalıyordu.
-            var info = MenuPage.Row("Info", root, 344f, 96f, 0.836f, 0.936f);
+            // "i" düğmesi referansın yerine alındı (bkz. BuildTabs ölçümü):
+            // %90,7-%97,7. Yuvanın sağ kenarıyla arasındaki boşluk (0,047)
+            // referanstakiyle aynı kaldı.
+            var info = MenuPage.Row("Info", root, 344f, 96f, 0.907f, 0.977f);
             var infoRim = UiKit.CreateIcon("Rim", info, GameKit.UI.UiSprites.Circle,
                 MenuPage.Darken(InfoFill, 0.62f));
             UiKit.Place(infoRim, 0f, 0f, 1f, 1f);
@@ -445,11 +456,35 @@ namespace BlockOut.Runtime.UI
             // Referansta kürsüler yan yana ama ARALARINDA boşluk var ve
             // ortadaki belirgin biçimde GENİŞ (0.34-0.66; yanlar 0.107-0.325
             // ve 0.671-0.905). Genişlik de bir sıralama işareti.
+            // KUTU, GÖRSELİN EN-BOYUNA OTURMALI (14. tur, L1b).
+            //
+            // HATA: Kutular 235x209 birimdi (en/boy 1.12) ama kaide görseli
+            // 571x1022 piksel, yani en/boy 0.559 — DİK bir sütun. `stand`
+            // `preserveAspect` ile çizildiği için görsel kutuya YÜKSEKLİKTEN
+            // sığıyor ve genişliğin yarısını boş bırakıyordu: ekranda 235
+            // değil 117 birimlik incecik bir sütun çıkıyordu. Yani sayılar
+            // doğru yazılmıştı, çizilen şey başkaydı.
+            //
+            // DERS (preserveAspect kutuyu DEĞİL görseli korur): Bir kutuya
+            // "referanstaki genişlik" yazmak, o genişlikte çizileceği anlamına
+            // gelmiyor. En-boy koruması açıksa kutunun en-boyu da görselinkine
+            // eşitlenmeli; değilse görsel kutunun kısa kenarına göre küçülür
+            // ve ölçüm boşa gider.
+            //
+            // ÖLÇÜM (`m_006`, 443 piksel geniş kare): kürsüler yan yana ve
+            // aralarında yalnız 15 piksel (%3,4) var — üç ayrı kule değil bir
+            // KÜTLE oluşturuyorlar. Bizimkilerin arası %10'du.
+            //     referans  sol %14,0-31,6   orta %35,0-66,6   sağ %70,0-86,2
+            // Görselin en-boyu sabit olduğu için ortadakini referans kadar
+            // geniş yapmak bandın yüksekliğini aşıyor (610 birim gerekirdi,
+            // elimizde 486 var); olabilecek en genişi alındı.
+            //
+            // (merkez, yarım genişlik, ÜST kenar (band birimi), madalya no)
             var slots = new[]
             {
-                (0.216f, 0.109f, 282f, 2),
-                (0.500f, 0.160f, 364f, 1),
-                (0.788f, 0.117f, 282f, 3)
+                (0.280f, 0.0815f, 388f, 2),
+                (0.500f, 0.1050f, 479f, 1),
+                (0.720f, 0.0815f, 388f, 3)
             };
             var medal = new[] { default(Color),
                 new Color(1f, 0.82f, 0.25f), new Color(0.78f, 0.80f, 0.85f),
@@ -506,19 +541,42 @@ namespace BlockOut.Runtime.UI
                     UiKit.Place(cap, 0f, 0.74f, 1f, 1f, padding: 7f);
                 }
 
+                // ÇERÇEVE SIRAYA GÖRE METAL (14. tur, L1a). Üçü de aynı mor
+                // `frame_avatar.png`di; referansta birinci altın, ikinci
+                // gümüş, üçüncü bronz. Çerçeve süs değil, sıranın ikinci
+                // işareti.
+                //
+                // AYRICA HAVADA DURUYORDU: hazır görselin çevresindeki saydam
+                // pay yüzünden çerçeve kutusunun altında boşluk kalıyor ve
+                // avatar minderin üstüne oturmuyordu. Prosedürel plaka kutuyu
+                // tam dolduruyor; kutu da mindere biniyor (0.99'dan başlıyor).
                 var frame = UiKit.CreateRect("Avatar", pillar);
-                UiKit.Place(frame, 0.15f, 0.97f, 0.85f, 1.46f);
-                var frameArt = UiSkin.Get(Art.AvatarFrame);
-                if (frameArt != null)
-                {
-                    var f = UiKit.CreateIcon("Frame", frame, frameArt);
-                    UiKit.Place(f, 0f, 0f, 1f, 1f);
-                }
+                // YÜKSEKLİK ÖLÇÜLDÜ: referansta birincinin çerçevesi 70 kare
+                // pikseli = 140 birim, yanlardakiler 55 px = 110 birim.
+                // 1.44 çarpanı ortadakine 183 birim veriyordu ve çerçeve
+                // sekme paneline giriyordu; 1.34 ikisini de ölçüye getiriyor
+                // (sütun genişlikleri farklı ama oran neredeyse aynı çıkıyor).
+                UiKit.Place(frame, 0.145f, 0.99f, 0.855f, 1.34f);
+
+                var frameArt = UiKit.CreateIcon("Frame", frame, MenuSprites.PodiumFrame(place));
+                frameArt.type = Image.Type.Sliced;
+                frameArt.preserveAspect = false;
+                frameArt.raycastTarget = false;
+                UiKit.Place(frameArt, 0f, 0f, 1f, 1f);
+
+                // Portrenin oturduğu açık pano — koyu bırakılırsa saydam
+                // zeminli karakter çerçeveye karışıyor (ana ekranda öğrenildi).
+                var well = UiKit.CreateRoundedPanel("Well", frame,
+                    new Color(0.949f, 0.937f, 0.906f));
+                UiKit.SetSliceScale(well, UiKit.SliceScaleFor(16f));
+                well.raycastTarget = false;
+                UiKit.Place(well, 0.17f, 0.17f, 0.83f, 0.83f);
+
                 // Her basamakta FARKLI yüz: üç podyum da aynı avatarı
                 // taşıdığında tablo tek kişinin tekrarı gibi okunuyordu.
                 var portrait = UiKit.CreateIcon("Portrait", frame,
                     UiSkin.Get(Art.Rival(place - 1)));
-                UiKit.Place(portrait, 0.14f, 0.14f, 0.86f, 0.86f);
+                UiKit.Place(portrait, 0.19f, 0.19f, 0.81f, 0.81f);
 
                 // AD LEVHASI: gölge + kenar + yüzey.
                 //
@@ -616,7 +674,20 @@ namespace BlockOut.Runtime.UI
         /// </summary>
         void BuildRows(Transform root)
         {
-            const float rowH = 158f, gap = 24f, step = rowH + gap;
+            // SATIR ÖLÇÜLERİ YENİDEN ALINDI (2026-08-22, `sıralama.jpeg`).
+            // Satır zeminleri, avatar/rozet/jeton hapının kesmediği temiz bir
+            // sütundan (x = genişliğin %32'si) dikey taramayla bulundu:
+            //     referans satır 161 px / 946 -> genişliğin %17.0'i,
+            //              pitch 174 px      -> %18.4
+            //     bizim    satır 162 px / 1080 -> %15.0, pitch 186 -> %17.2
+            // Dikey KONUM karşılaştırılmadı: referans ekranı 946×2048 (en/boy
+            // 2.165), bizimki 1080×1920 (1.778) — farklı en/boy oranında
+            // "ekranın %X'i aşağıda" aynı şeyi anlatmıyor. Kanvas genişlikle
+            // ölçeklendiği için yalnız genişliğe oranlanan ölçüler geçerli.
+            //
+            // 158 birim ekranda 162 px çiziliyordu (oran 1.025).
+            // Hedef 184 px -> sabit 179. Pitch hedefi 199 -> gap 20.
+            const float rowH = 179f, gap = 20f, step = rowH + gap;
 
             // KAYDIRILABİLİR LİSTE.
             //

@@ -1311,6 +1311,42 @@ namespace BlockOut.Runtime.UI
             return sp;
         }
 
+        /// <summary>
+        /// Kürsüdeki avatar çerçevesi — sıraya göre altın / gümüş / bronz
+        /// (L1a, 14. tur).
+        ///
+        /// Kullanıcı sıralama sahnesi için: *"avatar çerçeveleri olur, kürsü
+        /// olur ... hepsini en ufak detayına kadar daha temiz hale getirip
+        /// düzenlemeni istiyorum."*
+        ///
+        /// Üç kürsünün çerçevesi de AYNI mor `frame_avatar.png`di. Referansta
+        /// birincinin çerçevesi altın, ikincininki gümüş, üçüncününki bronz —
+        /// yani çerçeve süs değil, sıranın kendisini söyleyen ikinci bir
+        /// işaret. (Aynı bilgi madalyada da var; referans onu bilerek iki kez
+        /// söylüyor, çünkü kürsüye bakan göz önce yüzü görüyor.)
+        ///
+        /// Biçim <see cref="PlastikKare"/>nin ta kendisi; yalnız palet
+        /// değişiyor.
+        /// </summary>
+        public static Sprite PodiumFrame(int place)
+        {
+            switch (place)
+            {
+                case 1: return PlastikKare("Altin",
+                    new Color32(120,  72,   8, 255), new Color32(255, 236, 150, 255),
+                    new Color32(250, 196,  60, 255), new Color32(214, 150,  26, 255),
+                    new Color32(120,  72,   8, 255), 30f);
+                case 2: return PlastikKare("Gumus",
+                    new Color32( 86,  92, 110, 255), new Color32(245, 248, 255, 255),
+                    new Color32(206, 214, 228, 255), new Color32(160, 170, 190, 255),
+                    new Color32( 86,  92, 110, 255), 30f);
+                default: return PlastikKare("Bronz",
+                    new Color32(110,  60,  26, 255), new Color32(246, 190, 140, 255),
+                    new Color32(214, 140,  80, 255), new Color32(170, 100,  50, 255),
+                    new Color32(110,  60,  26, 255), 30f);
+            }
+        }
+
         /// <summary>Ayarlar düğmesi: mavi-mor, referanstan ölçülen palet.</summary>
         public static Sprite GearButton => PlastikKare("Gear",
             new Color32( 37,  11,  71, 255), new Color32(113,  81, 250, 255),
