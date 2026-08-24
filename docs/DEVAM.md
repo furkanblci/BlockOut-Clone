@@ -7221,3 +7221,25 @@ değişiklik "bu kod önizlemede de koşacak mı?" sorusunu sormalı.
 **DOĞRULAMA (oynatma kipinde):** ilk tazeleme 0 parça / +500 kazanç 12 parça
 / -300 harcama 0 parça. Test kaydın jetonunu oynattığı için sonunda geri
 alındı (9190 -> 9190).
+
+### J1 (ikinci geçiş) — arka plan ödülü kullanılabilir oldu
+Referansta tamamlanmış bölgenin düğmesinde "Kullan" yazıyor: bölgenin görseli
+arka plan oluyor. Bizde düğme her durumda "Play"di.
+
+`SaveData.Background`, `ProgressService.IsBackgroundUnlocked/SelectBackground`,
+yolculuk düğmesinin üç durumu ve `MenuPage.SeciliManzara()` eklendi.
+
+**Ders (kilidi AYRICA saklama):** "Hangi arka planlar açık" bilgisi için ayrı
+bir liste tutmak cazipti. Ama o bilgi zaten ilerlemede var: bir bölgenin arka
+planı, bölge tamamlandıysa açıktır. İki kayıt tutmak, ikisinin bir gün
+birbirinden ayrı düşmesi demek.
+
+**Ders (aynı şeyi çizen iki yer, tek metoda indirilmeli):** Manzara hem
+`HomeScreen`de hem `MenuShell`de ayrı ayrı `UiSkin.Get(Art.MenuBack)` ile
+çiziliyordu. Seçim özelliği eklenirken birini güncelleyip diğerini unutmak
+işten değildi — nitekim ilk denemede tam öyle oldu, ana ekran yeni manzarayı
+alırken kabuk eskisini çiziyordu.
+
+**DOĞRULAMA (oynatma kipinde):** ilerleme geçici 25 yapıldı; bölge1 açık /
+bölge2 kilitli / kilitli seçilemedi / açık seçildi ve manzara `region_1` oldu /
+varsayılana dönünce `bg_menu`. Kayıt sonunda gerçek değerine geri yüklendi.

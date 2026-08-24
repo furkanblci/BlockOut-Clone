@@ -757,7 +757,7 @@ namespace BlockOut.Runtime.UI
             // Menü zemini burada da görünsün, üstüne okunurluk için koyu bir
             // perde çekilsin: manzara tamamen kaybolursa ekranlar arası geçiş
             // "başka bir oyuna girdim" hissi veriyor.
-            UiKit.CreateCover("Bg", root, UiSkin.Get(Art.MenuBack), UiKit.Background);
+            UiKit.CreateCover("Bg", root, MenuPage.SeciliManzara(), UiKit.Background);
             UiKit.CreatePanel("Scrim", root, new Color(0.09f, 0.06f, 0.20f, 0.88f));
             return root;
         }

@@ -568,6 +568,9 @@ namespace BlockOut.Runtime.UI
         {
             public int From;
             public Image Wash, Lock, Action, Tick;
+
+            /// <summary>Arka plan ödülü için (J1): bölgenin görsel numarası ve son bölümü.</summary>
+            public int Art, To;
             public RectTransform LockTag, ActionRoot;
             public TextMeshProUGUI ActionLabel, LockLabel;
         }
@@ -707,8 +710,26 @@ namespace BlockOut.Runtime.UI
             // `MenuCapsule`'den geldiği için `raycastTarget` kapalıydı, yani
             // düğme gerçekte HÂLÂ basılamıyordu. Doğrulama yöntemi hatayı
             // görmeyi imkânsız kılmıştı.
-            int from = region.from, to = region.to;
-            pill.onClick.AddListener(() => PlayRegion(from, to));
+            view.Art = region.art;
+            view.To  = region.to;
+
+            // DÜĞME İKİ İŞ YAPIYOR (14. tur, J1). Referansta tamamlanmış
+            // bölgenin düğmesinde "Kullan" yazıyor: bölgenin görseli
+            // kullanılabilir bir ARKA PLAN oluyor. Bizde her durumda
+            // "oyna"ydı, yani kullanıcının saydığı üçüncü ödül (arka plan
+            // görseli) kazanılıyor ama HİÇBİR YERDE kullanılamıyordu.
+            //
+            // Tamamlanmamış bölgede eski davranış sürüyor (o bölümü oyna).
+            int from = region.from, to = region.to, gorselNo = region.art;
+            pill.onClick.AddListener(() =>
+            {
+                if (!MetaServices.Ready) { PlayRegion(from, to); return; }
+                var ilerleme = MetaServices.Progress;
+                if (ilerleme.IsBackgroundUnlocked(to))
+                    ilerleme.SelectBackground(gorselNo, to);
+                else PlayRegion(from, to);
+                Refresh();
+            });
 
             view.ActionRoot = action;
             _regions.Add(view);
@@ -927,8 +948,14 @@ namespace BlockOut.Runtime.UI
                 // "Play". Referansta (`journey.jpeg`, tamamlanmış bölge)
                 // yeşil düğmenin içinde OYULMUŞ gibi duran koyu yeşil bir tik
                 // var, başka hiçbir şey yok.
-                view.Tick.enabled = done;
-                view.ActionLabel.text = done ? "" : "Play";
+                // ÜÇ DURUM (14. tur, J1):
+                //   kilitli      -> düğme gizli (yukarıda)
+                //   açık, bitmemiş -> "Play"
+                //   bitmiş       -> "Use" (arka planı seç) / seçiliyse tik
+                bool secili = MetaServices.Ready &&
+                              MetaServices.Progress.Background == view.Art;
+                view.Tick.enabled = done && secili;
+                view.ActionLabel.text = done ? (secili ? "" : "Use") : "Play";
             }
 
             if (_marker != null)

@@ -118,6 +118,31 @@ namespace BlockOut.Runtime.UI
         /// Taşan şey yalnız BOYA: başlık yazısı bandın kendi içinde kalıyor,
         /// yani çentiğin altına girmiyor.
         /// </summary>
+        /// <summary>
+        /// Ana ekranın ve menü kabuğunun arkasındaki manzara (J1, 14. tur).
+        ///
+        /// Oyuncu yolculukta bir bölgeyi tamamlayınca o bölgenin görselini
+        /// arka plan olarak SEÇEBİLİYOR; seçim kayıtta duruyor. Seçilmemişse
+        /// ya da seçilen görsel eksikse varsayılan manzaraya düşülüyor —
+        /// eksik bir varlık yüzünden ekranın boş kalması kabul edilemez.
+        ///
+        /// İKİ ÇAĞIRAN, TEK KAYNAK: `HomeScreen` ve `MenuShell` aynı manzarayı
+        /// çiziyor. İkisinde ayrı ayrı `UiSkin.Get(Art.MenuBack)` yazılıydı;
+        /// seçim özelliği eklenirken birini güncelleyip diğerini unutmak
+        /// işten değildi. Tek metot, iki yerin ayrı düşmesini imkânsız kılıyor.
+        /// </summary>
+        public static Sprite SeciliManzara()
+        {
+            int secim = Runtime.Services.MetaServices.Ready
+                ? Runtime.Services.MetaServices.Progress.Background : 0;
+            if (secim > 0)
+            {
+                var bolge = UiSkin.Get(Art.Region(secim));
+                if (bolge != null) return bolge;
+            }
+            return UiSkin.Get(Art.MenuBack);
+        }
+
         public static RectTransform Header(Transform root, string title)
         {
             // Boya şeridi bandın ÜSTÜNDE, kökün dışına taşıyor. Pivot 0

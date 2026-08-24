@@ -217,6 +217,33 @@ namespace BlockOut.Core.Save
             _save.Data.InfiniteLivesUntilUtc = (from + sure).ToString("o");
         }
 
+        // ---- Arka plan ödülü (J1) -------------------------------------------
+
+        /// <summary>Ana ekranda kullanılan arka plan; 0 = varsayılan manzara.</summary>
+        public int Background => _save.Data.Background;
+
+        /// <summary>Arka plan değişti — ana ekran ve kabuk bunu dinliyor.</summary>
+        public event Action<int> BackgroundChanged;
+
+        /// <summary>
+        /// Bir bölgenin arka planı açık mı? Bölge TAMAMLANDIYSA açıktır.
+        /// Ayrı bir liste tutulmuyor: tek kaynak ilerleme.
+        /// </summary>
+        public bool IsBackgroundUnlocked(int lastLevelOfRegion) =>
+            HighestUnlockedIndex + 1 > lastLevelOfRegion;
+
+        /// <summary>Arka planı seçer. Açık değilse hiçbir şey yapmaz.</summary>
+        public bool SelectBackground(int index, int lastLevelOfRegion)
+        {
+            if (index != 0 && !IsBackgroundUnlocked(lastLevelOfRegion)) return false;
+            if (_save.Data.Background == index) return false;
+
+            _save.Data.Background = index;
+            _save.Save();
+            BackgroundChanged?.Invoke(index);
+            return true;
+        }
+
         // ---- Yolculuk kilometre taşları (J1) --------------------------------
 
         /// <summary>Bu seviyenin yolculuk ödülü daha önce alındı mı?</summary>

@@ -96,6 +96,21 @@ namespace BlockOut.Core.Save
         [JsonProperty("journeyClaimed")] public List<int> JourneyClaimed
             = new List<int>();
 
+        /// <summary>
+        /// Ana ekranda KULLANILAN arka plan (J1, 14. tur).
+        /// 0 = varsayılan manzara, 1..5 = yolculuk bölgesinin görseli.
+        ///
+        /// Kullanıcı: *"belirli levellere gelince kalp coin ARKA PLAN GÖRSELİ
+        /// veriyor ya, bunların hepsini AÇABİLELİM KULLANABİLELİM."* Ödülün
+        /// açılması yetmiyor; seçilebilmesi de gerekiyor, yoksa kazanılan şey
+        /// görünmez kalıyor.
+        ///
+        /// Kilit AYRICA saklanmıyor: bir bölgenin arka planı, o bölge
+        /// tamamlandıysa açıktır. Tek kaynak `HighestUnlockedIndex`; ikinci
+        /// bir liste tutmak, iki kaydın birbirinden ayrı düşmesi demekti.
+        /// </summary>
+        [JsonProperty("background")] public int Background;
+
         /// <summary>Sınırsız can hakkının bitiş anı (UTC, ISO-8601). Boş = hak yok.</summary>
         [JsonProperty("infiniteLivesUntilUtc")] public string InfiniteLivesUntilUtc = "";
 

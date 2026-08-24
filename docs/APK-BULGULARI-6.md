@@ -671,7 +671,7 @@ varlık kullanmak serbest.
 
 # YOLCULUK (Journey)
 
-- [ ] **J1.** **ÖNCE MANTIK ÇALIŞSIN.** Belirli seviyelere gelince kalp,
+- [x] **J1.** **ÖNCE MANTIK ÇALIŞSIN.** Belirli seviyelere gelince kalp,
       jeton, arka plan görseli ödülü veriyor; **bunların hepsi açılabilmeli,
       kullanılabilmeli**. Sorunluysa düzeltilecek.
       > *"journey kısmını da bi toparlayalım inceden. ilk olarak mantık
@@ -701,12 +701,32 @@ varlık kullanmak serbest.
       >     1. dağıtım: jeton 50, sınırsız can 120 dk (30+60+30), clock 1, rocket 1
       >     2. dağıtım: hepsi aynı — "zaten alınmış"
       >
-      > **KALAN — arka plan görseli:** Kullanıcının saydığı üçüncü ödül
-      > ("arkaplan görseli") bölge çemberlerine ait: referansta tamamlanmış
-      > bölgenin düğmesinde "Kullan" yazıyor, yani bölgenin görseli
-      > kullanılabilir bir ARKA PLAN oluyor. Bizde o düğme "Play" diyor ve
-      > seçilebilir arka plan envanteri yok. Bu ayrı bir özellik (envanter +
-      > ana ekrana uygulama) ve sıradaki turda yapılacak.
+      > **ARKA PLAN GÖRSELİ DE BİTTİ (14. tur, ikinci geçiş).** Referansta
+      > tamamlanmış bölgenin düğmesinde "Kullan" yazıyor: bölgenin görseli
+      > kullanılabilir bir ARKA PLAN oluyor. Bizde o düğme her durumda "Play"
+      > diyordu, yani ödül kazanılıyor ama hiçbir yerde kullanılamıyordu.
+      >
+      >   * `SaveData.Background` (0 = varsayılan manzara, 1..5 = bölge).
+      >   * `ProgressService.IsBackgroundUnlocked / SelectBackground` —
+      >     **kilit ayrıca saklanmıyor**: bir bölgenin arka planı, o bölge
+      >     tamamlandıysa açıktır. Tek kaynak `HighestUnlockedIndex`; ikinci
+      >     bir liste tutmak iki kaydın birbirinden ayrı düşmesi demekti.
+      >   * Yolculuk düğmesi üç durumlu: kilitli (gizli) / açık ama bitmemiş
+      >     ("Play") / bitmiş ("Use", seçiliyse tik).
+      >   * `MenuPage.SeciliManzara()` — ana ekran ve menü kabuğu aynı
+      >     manzarayı çiziyordu ve ikisinde AYRI AYRI `UiSkin.Get(Art.MenuBack)`
+      >     yazılıydı. Tek metoda indirildi; yoksa birini güncelleyip
+      >     diğerini unutmak işten değildi. Seçilen görsel eksikse varsayılana
+      >     düşüyor.
+      >
+      > **DOĞRULAMA (oynatma kipinde, ilerleme geçici olarak 25 yapılıp
+      > sonra gerçek değerine döndürüldü):**
+      >     bölge1 (1-20) açık        -> True   ✓
+      >     bölge2 (21-40) açık       -> False  ✓
+      >     kilitli bölge seçilebildi -> False  ✓
+      >     açık bölge seçilebildi    -> True, manzara `region_1`  ✓
+      >     varsayılana dönüş         -> manzara `bg_menu`         ✓
+      >     kayıt geri yüklendi (ilerleme 5, arka plan 0)          ✓
 
 - [ ] **J2.** Orijinale göre eksikler detaylıca incelenip kapatılacak.
 

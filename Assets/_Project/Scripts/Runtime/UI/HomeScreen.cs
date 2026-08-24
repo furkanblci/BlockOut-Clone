@@ -172,7 +172,7 @@ namespace BlockOut.Runtime.UI
             // Manzara, güvenli alanın değil EKRANIN tamamını kaplamalı; çentiğin
             // altında zemin rengi görünmesin diye kanvasa doğrudan bağlanıyor.
             var cover = UiKit.CreateCover("Background", canvas.transform,
-                UiSkin.Get(Art.MenuBack), UiKit.Background);
+                MenuPage.SeciliManzara(), UiKit.Background);
             cover.transform.SetAsFirstSibling();
 
             // Sekme geçişinde ana ekran da kayıyor (bkz. Slide). Manzara ile
