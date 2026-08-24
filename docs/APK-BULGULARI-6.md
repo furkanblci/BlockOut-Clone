@@ -945,13 +945,42 @@ varlık kullanmak serbest.
       NOT: Kullanıcının "kesik kesik" ifadesi ANİMASYON anlamına da
       gelebilir (harf harf giriş). Kenar sorunu ölçülüp giderildi; giriş
       animasyonunun ritmi W2 ile birlikte ayrıca bakılacak.
-- [ ] **W2.** **Konfeti / havai fişek sırası ve uyumu** orijinaldekiyle
+- [x] **W2.** **Konfeti / havai fişek sırası ve uyumu** orijinaldekiyle
       aynı değil; düzeltilecek.
+      >
+      > **BAĞIMSIZ OLARAK DOĞRULANDI (14. tur) — değişiklik gerekmedi.**
+      > Diziliş 12. turda ham karelerden (59,47 fps) ölçülmüştü: her karede
+      > beyaz kıvılcım maskesi bağlı bileşenlere ayrılıp 2500 pikselden büyük
+      > YENİ bileşen "patlama" sayılmış, ağırlık merkezleri tabloya yazılmıştı.
+      > Bu turda `_Reference/cel/` klasöründeki 120 kutlama karesiyle
+      > BAĞIMSIZ bir kontrol yapıldı (kare 66'da sahne başlıyor):
+      >     66-70   siyah ekran, harfler tek tek beliriyor
+      >     71-76   "BLOCK" kuruluyor, ardından "OUT!"
+      >     81      logo tamam — konfeti HENÜZ YOK
+      >     86      konfeti başlıyor
+      >     91-96   alttan roket izleri yükseliyor (ince beyaz çizgiler)
+      >     101+    patlamalar, aynı anda birden fazla
+      > Bizim çizelgemiz aynı: `ConfettiAt = 0,98`, `RocketRise = 0,33`
+      > (patlamadan önce iz), sonra tablodan patlamalar. Yön de doğru —
+      > konfeti YUKARIDAN dökülmüyor, alttan fırlatılıyor.
 
-- [ ] **W3.** **Üst üste tıklayınca hızlandırılıp atlanabilmeli** (skip) —
+- [x] **W3.** **Üst üste tıklayınca hızlandırılıp atlanabilmeli** (skip) —
       her oyunda olan özellik.
       > *"ve tabi üst üste tıkladığımızda hızlandırıp skipleyebilelim, her
       > oyunda olan özellik"*
+      >
+      > **TAMAMLANDI (14. tur).** İki kademeli dokunuş (ilk dokunuş 3,2 kat
+      > hız, ikincisi atlama) 12. turda eklenmişti — ama YALNIZ BEKLEMELERE
+      > uygulanmıştı. Animasyonların dördü (`PopLetter`, `DropIn`, `Punch` ve
+      > `DropIn`in gecikmesi) `static` olduğu için `_speed` alanını göremiyor,
+      > gerçek zamanda dönmeye devam ediyordu. Sonuç "hızlandı" değil
+      > "senkron bozuldu" hissiydi: beklemeler kısalıyor, harfler eski hızda
+      > açılıyordu.
+      >
+      > Dördü de örnek metoda çevrildi ve çarpanı okuyor.
+      > **Doğrulama:** dosyadaki `Time.unscaledDeltaTime` / `WaitForSeconds`
+      > geçen HER satır tarandı; çarpanı görmeyen tek satır kalmadı
+      > (14 kullanım).
 
 ---
 

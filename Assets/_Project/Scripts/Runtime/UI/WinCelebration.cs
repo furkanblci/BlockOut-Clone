@@ -56,6 +56,33 @@ namespace BlockOut.Runtime.UI
         Coroutine _running;
         bool _skip;
 
+        /// <summary>
+        /// Zaman çarpanı: 1 normal, ilk dokunuştan sonra <see cref="TapSpeed"/>.
+        ///
+        /// NEDEN İKİ KADEME (12. tur, W3): Kullanıcı — *"üst üste
+        /// tıkladığımızda hızlandırıp skipleyebilelim, her oyunda olan
+        /// özellik."* Eskiden TEK dokunuş doğrudan sona atlıyordu; yani
+        /// "biraz hızlansın" diyen oyuncu kutlamayı hiç görmeden kaybediyordu.
+        ///
+        /// DERS (atlamak ile hızlandırmak aynı istek değildir): Sabırsız
+        /// oyuncu genelde "bitsin" demiyor, "bekletme" diyor. Tek kademeli
+        /// atlama, ikisini de aynı düğmeye sıkıştırıp ilkini imkânsız
+        /// kılıyor.
+        /// </summary>
+        float _speed = 1f;
+
+        /// <summary>İlk dokunuştan sonraki hız çarpanı.</summary>
+        const float TapSpeed = 3.2f;
+
+        /// <summary>
+        /// Perdeye dokunma: önce hızlandır, sonra atla.
+        /// </summary>
+        void OnTap()
+        {
+            if (_speed < TapSpeed) _speed = TapSpeed;
+            else _skip = true;
+        }
+
         public static WinCelebration Create(Transform parent)
         {
             var holder = new GameObject("WinCelebration");
@@ -65,13 +92,65 @@ namespace BlockOut.Runtime.UI
             return celebration;
         }
 
-        void Build()
+        /// <summary>
+        /// EDİTÖR ÖNİZLEMESİ: kutlamayı KANVAS KURMADAN kurar (12. tur, W1).
+        ///
+        /// `Create` yolunda `UiKit.CreateCanvas` var, o da `DontDestroyOnLoad`
+        /// çağırıyor — düzenleyici kipinde yasak (bu projede KURAL 0). Sonuç
+        /// ve duraklat önizlemelerinde çözülen aynı sorun: kanvası dışarıdan
+        /// almak.
+        ///
+        /// Harfler `localScale = 0` ile kuruluyor (giriş animasyonu için);
+        /// önizleme onları 1'e çekiyor ki logo durağan hâliyle ölçülebilsin.
+        /// </summary>
+        public static WinCelebration CreateLogoPreview(Transform parent)
         {
-            _canvas = UiKit.CreateCanvas("WinCanvas");
-            _canvas.transform.SetParent(transform, worldPositionStays: false);
-            _canvas.sortingOrder = 210;          // sonuç kartının da üstünde
+            // KÖK DÜZ TRANSFORM DEĞİL, RECTTRANSFORM OLMALI.
+            //
+            // İlk denemede `new GameObject("WinPreview")` düz bir Transform
+            // veriyordu ve yakalama BOMBOŞ çıktı. Arayüz çocukları çapalarını
+            // ÜST DİKDÖRTGENE göre çözüyor; düz bir Transform'un altında
+            // yerleşim sessizce çöküyor, hata da vermiyor.
+            //
+            // Bu tuzak `CreateResultPreview`de zaten belgelenmişti — aynı
+            // dosyada okumuş olmama rağmen yeni önizlemede tekrarladım.
+            var host = UiKit.CreateRect("WinPreview", parent);
+            UiKit.Place(host, 0f, 0f, 1f, 1f);
+            var c = host.gameObject.AddComponent<WinCelebration>();
+            c.Build(host);
+            var holder = host.gameObject;
 
-            _root = UiKit.CreateRect("Root", _canvas.transform);
+            // `Build` sonunda kök KAPATILIYOR (kutlama ancak kazanınca açılır).
+            // Önizlemenin görebilmesi için açılıyor; konfeti sahnesi kapalı
+            // kalıyor — burada ölçülen şey LOGO.
+            c._root.gameObject.SetActive(true);
+
+            foreach (var rt in holder.GetComponentsInChildren<RectTransform>(true))
+                if (rt.localScale.x < 0.02f || rt.localScale.y < 0.02f)
+                    rt.localScale = Vector3.one;
+            if (c._logoGroup != null) c._logoGroup.alpha = 1f;
+            return c;
+        }
+
+        void Build() => Build(null);
+
+        void Build(Transform hostOverride)
+        {
+            Transform host;
+            if (hostOverride != null)
+            {
+                // Önizleme yolu: kanvas yok, doğrudan verilen köke kuruluyor.
+                host = hostOverride;
+            }
+            else
+            {
+                _canvas = UiKit.CreateCanvas("WinCanvas");
+                _canvas.transform.SetParent(transform, worldPositionStays: false);
+                _canvas.sortingOrder = 210;          // sonuç kartının da üstünde
+                host = _canvas.transform;
+            }
+
+            _root = UiKit.CreateRect("Root", host);
             UiKit.Place(_root, 0f, 0f, 1f, 1f);
 
             // Referansta zemin TAM SİYAH, oyunun moru değil: fişeklerin
@@ -82,7 +161,7 @@ namespace BlockOut.Runtime.UI
 
             var skip = _curtain.gameObject.AddComponent<Button>();
             skip.transition = Selectable.Transition.None;
-            skip.onClick.AddListener(() => _skip = true);
+            skip.onClick.AddListener(OnTap);
 
             // GERÇEK LOGO GÖRSELİ (49. madde).
             //
@@ -331,8 +410,40 @@ namespace BlockOut.Runtime.UI
         const float OutOvershoot = 1.42f;
         const float OutPop = 0.72f;
 
-        /// <summary>Konfeti ve fişeklerin başladığı an (ilk harften itibaren).</summary>
-        const float ShowStarts = 0.94f;
+        /// <summary>
+        /// Konfeti ve fişeklerin başladığı an (ilk harften itibaren).
+        ///
+        /// 0,94 -> 0,55 (12. tur, W2). Kullanıcı: *"konfetiler havai fişekler
+        /// sırası uyumu orjinaldekiyle aynı değil."*
+        ///
+        /// YENİDEN ÖLÇÜLDÜ. `menus,powerups,vs.mp4` ve walkthrough videoları
+        /// bir ara "depoda yok" sanılmıştı; OneDrive'da duruyorlarmış.
+        /// Kutlama 20 fps'te 120 kareye ayrıldı, t=0 siyaha geçiş karesi:
+        ///
+        ///     t(sn)   konfeti(alt)%   fişek(üst)%   logo%
+        ///     0,15        0,1            0,9         25,4
+        ///     0,35        0,0            3,6         28,7
+        ///     0,55        3,2            4,0         49,6   <- konfeti BAŞLIYOR
+        ///     0,75        3,9            2,7         59,4
+        ///     1,15        5,1            3,4          —
+        ///     1,55        7,1            3,7          —
+        ///     1,75        8,7            6,5          —     <- konfeti doyuyor
+        ///     2,15        8,7           10,2          —     <- fişek tepesi
+        ///     2,55        8,5            4,9          —
+        ///
+        /// Yani konfeti logo HENÜZ OTURURKEN başlıyor (t=0,55'te logo %49,6,
+        /// yani harflerin yarısı yeni gelmiş). Bizde 0,94 idi: logo tamamen
+        /// yerleştikten sonra, arada gözle görülür bir ölü an bırakarak.
+        /// Fişek tablosu (`ReferenceBursts`, 1,614-2,741) ölçülen 1,75-2,15
+        /// penceresiyle örtüşüyor; ona dokunulmadı.
+        ///
+        /// DERS (bir kutlamada üst üste binme, sıralamadan iyidir): İki olayı
+        /// arka arkaya dizmek "önce şu bitsin, sonra bu başlasın" diye
+        /// düşünmenin doğal sonucu ama referans onları BİNDİRİYOR — konfeti
+        /// logo otururken patlıyor ve iki hareket birbirini itiyor. Aradaki
+        /// 0,39 saniyelik boşluk, kutlamayı iki ayrı gösteriye bölüyordu.
+        /// </summary>
+        const float ShowStarts = 0.55f;
 
         /// <summary>
         /// Harfleri soldan sağa, ölçülen aralıklarla getirir.
@@ -354,7 +465,7 @@ namespace BlockOut.Runtime.UI
                     last ? OutOvershoot : LetterOvershoot));
 
                 if (last) break;
-                for (float t = 0f; t < LetterStep && !_skip; t += Time.unscaledDeltaTime)
+                for (float t = 0f; t < LetterStep && !_skip; t += Time.unscaledDeltaTime * _speed)
                     yield return null;
                 if (_skip) break;
             }
@@ -373,7 +484,7 @@ namespace BlockOut.Runtime.UI
             // fark. Kalan oturma hareketi konfetinin altında sürüyor —
             // referansta da öyle.
             float wait = ShowStarts - LetterStep * (_letters.Count - 1);
-            for (float t = 0f; t < wait && !_skip; t += Time.unscaledDeltaTime)
+            for (float t = 0f; t < wait && !_skip; t += Time.unscaledDeltaTime * _speed)
                 yield return null;
         }
 
@@ -390,13 +501,26 @@ namespace BlockOut.Runtime.UI
         /// önce belirgin biçimde BÜYÜK geliyor, sonra küçülüyor. İkisi aynı
         /// kelimeyle ("overshoot") anılsa da farklı şeyler.
         /// </summary>
-        static IEnumerator PopLetter(RectTransform back, RectTransform letter,
-                                     float duration, float peak)
+        /// <remarks>
+        /// STATIC DEĞİL (14. tur, W3): Harf açılışı tek yerde hızdan
+        /// bağımsız kalmıştı. `static` olduğu için <c>_speed</c> ve
+        /// <c>_skip</c> alanlarını göremiyordu; ekranda perdeye dokunup
+        /// kutlamayı 3,2 katına çıkaran oyuncu, harflerin ESKİ hızda
+        /// açıldığını görüyordu — beklemeler kısalıyor ama harfler
+        /// kısalmıyor, ikisi birbirinden kopuyordu.
+        ///
+        /// DERS (bir hız çarpanı, zamanı okuyan HER yerde geçerli olmalı):
+        /// Hızlandırmayı beklemelere uygulayıp animasyonlara uygulamamak,
+        /// "hızlandı" değil "senkron bozuldu" hissi veriyor. Zamanı okuyan
+        /// yeni bir döngü yazarken çarpanı da yazmak gerekiyor.
+        /// </remarks>
+        IEnumerator PopLetter(RectTransform back, RectTransform letter,
+                              float duration, float peak)
         {
             if (letter == null) yield break;
 
             float rise = duration * 0.5f;
-            for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
+            for (float t = 0f; t < duration && !_skip; t += Time.unscaledDeltaTime * _speed)
             {
                 if (letter == null) yield break;
 
@@ -450,6 +574,7 @@ namespace BlockOut.Runtime.UI
         IEnumerator Routine(System.Action done)
         {
             _skip = false;
+            _speed = 1f;
             _root.gameObject.SetActive(true);
             SetAlpha(0f);
 
@@ -559,7 +684,7 @@ namespace BlockOut.Runtime.UI
 
             Services.AudioService.Star();
 
-            for (float t = 0f; t < Show && !_skip; t += Time.unscaledDeltaTime)
+            for (float t = 0f; t < Show && !_skip; t += Time.unscaledDeltaTime * _speed)
                 yield return null;
 
             yield return GameKit.FX.Juice.Tween(FadeOut, t => SetAlpha(1f - t));
@@ -740,7 +865,7 @@ namespace BlockOut.Runtime.UI
                     next++;
                 }
 
-                clock += Time.unscaledDeltaTime;
+                clock += Time.unscaledDeltaTime * _speed;   // 12. tur, W3
                 yield return null;
             }
         }
@@ -748,7 +873,7 @@ namespace BlockOut.Runtime.UI
         /// <summary>Roketin ucunda, ölçülen anda ve ölçülen noktada patlama.</summary>
         IEnumerator BurstAt(Vector3 beat, int index)
         {
-            for (float t = 0f; t < RocketRise && !_skip; t += Time.unscaledDeltaTime)
+            for (float t = 0f; t < RocketRise && !_skip; t += Time.unscaledDeltaTime * _speed)
                 yield return null;
             if (_skip || _stage == null) yield break;
 
@@ -825,11 +950,14 @@ namespace BlockOut.Runtime.UI
             text.color = c;
         }
 
-        /// <summary>Tamamlanan logoya kısa bir ölçek vuruşu.</summary>
-        static IEnumerator Punch(RectTransform target)
+        /// <summary>
+        /// Tamamlanan logoya kısa bir ölçek vuruşu. STATIC DEĞİL: hız
+        /// çarpanını görmesi gerekiyor (bkz. <see cref="PopLetter"/>).
+        /// </summary>
+        IEnumerator Punch(RectTransform target)
         {
             const float duration = 0.26f;
-            for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
+            for (float t = 0f; t < duration && !_skip; t += Time.unscaledDeltaTime * _speed)
             {
                 if (target == null) yield break;
                 float k = t / duration;
@@ -857,7 +985,7 @@ namespace BlockOut.Runtime.UI
             if (group == null) group = _logo.gameObject.AddComponent<CanvasGroup>();
 
             const float duration = 0.36f;
-            for (float t = 0f; t < duration && !_skip; t += Time.unscaledDeltaTime)
+            for (float t = 0f; t < duration && !_skip; t += Time.unscaledDeltaTime * _speed)
             {
                 float k = Mathf.Clamp01(t / duration);
                 _logo.localScale = Vector3.one *
@@ -869,15 +997,22 @@ namespace BlockOut.Runtime.UI
             group.alpha = 1f;
         }
 
-        static IEnumerator DropIn(RectTransform line, float delay)
+        /// <remarks>
+        /// STATIC DEĞİL (14. tur, W3): <see cref="PopLetter"/> ile aynı
+        /// sebep — hız çarpanını göremediği için logonun iki satırı,
+        /// kutlama hızlandırılsa bile eski hızda düşüyordu. Gecikme de
+        /// `WaitForSecondsRealtime` ile sabitti; çarpanla bölünüyor.
+        /// </remarks>
+        IEnumerator DropIn(RectTransform line, float delay)
         {
             if (line == null) yield break;
 
             Vector2 target = line.anchoredPosition;
-            if (delay > 0f) yield return new WaitForSecondsRealtime(delay);
+            for (float t = 0f; t < delay && !_skip; t += Time.unscaledDeltaTime * _speed)
+                yield return null;
 
             const float duration = 0.34f;
-            for (float t = 0f; t < duration; t += Time.unscaledDeltaTime)
+            for (float t = 0f; t < duration && !_skip; t += Time.unscaledDeltaTime * _speed)
             {
                 if (line == null) yield break;
                 float k = GameKit.FX.Juice.EaseOutBack(t / duration, 2.4f);

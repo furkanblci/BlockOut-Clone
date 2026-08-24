@@ -7179,3 +7179,25 @@ sabit bir kırpma penceresi kullanmıştım ve farklı yükseklikteki başlık
 bantlarında pencere farklı şeyleri yakalıyordu. Beşini tek görselde alt alta
 görmek saniyesinde çözdü. Sayı ile göz çeliştiğinde, önce sayının NEYİ
 ölçtüğüne bak.
+
+### W3 — hızlandırma yarım kalmış
+İki kademeli dokunuş (ilk dokunuş 3,2 kat, ikincisi atlama) 12. turda
+eklenmişti ama YALNIZ BEKLEMELERE uygulanmıştı. `PopLetter`, `DropIn` ve
+`Punch` `static` olduğu için `_speed` alanını göremiyor, gerçek zamanda
+dönüyordu. Sonuç "hızlandı" değil "senkron bozuldu" hissiydi.
+
+Üçü de örnek metoda çevrildi. Doğrulama: dosyadaki `Time.unscaledDeltaTime`
+ve `WaitForSeconds` geçen her satır tarandı; çarpanı görmeyen satır kalmadı.
+
+**Ders (bir hız çarpanı, zamanı okuyan HER yerde geçerli olmalı):**
+Hızlandırmayı beklemelere uygulayıp animasyonlara uygulamamak, kullanıcıya
+"özellik yok" değil "özellik bozuk" hissi veriyor — daha kötüsü. `static` bir
+yardımcı, örnek durumunu göremediği için bu hatayı SESSİZCE yapıyor; derleyici
+uyarmıyor. Zamanı okuyan yeni bir döngü yazarken çarpanı da yazmak gerekiyor.
+
+### W2 — bağımsız doğrulama
+Diziliş 12. turda ham karelerden ölçülmüştü. Bu turda `_Reference/cel/`
+klasöründeki 120 kutlama karesiyle bağımsız kontrol yapıldı:
+kare 66 siyah + harfler → 76 "BLOCK"+"OUT!" → 81 logo tamam, konfeti YOK →
+86 konfeti → 91-96 alttan roket izleri → 101+ patlamalar (aynı anda birden
+fazla). Bizim çizelgemiz aynı; değişiklik gerekmedi.
