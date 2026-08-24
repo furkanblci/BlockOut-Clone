@@ -7312,3 +7312,39 @@ gerekiyor.
 **Ders (yeni bir yerde kullanılan varlık yeniden ölçülür):** Bölge görselleri
 daire çizilmişti; arka plan olarak tam ekrana konunca köşelerde kavis
 görünüyordu. Kod doğruydu, biçim o iş için değildi.
+
+---
+
+## 14. TUR KAPANIŞI — `docs/APK-BULGULARI-6.md` bitti (56/56)
+
+Bu turda kapanan maddeler: M4f, M4g, M4h, M4i, M5, M6, N1, N2, H1, H2, H3,
+H4, H5, H6, K1, G2, G5, L1 (a-d), E1, J1, J2, J3, J4, W2, W3, Q1.
+
+**Bu turun en çok tekrarlanan dersi — ÖNİZLEME, ÇALIŞAN EKRAN DEĞİLDİR.**
+Aynı tuzağa BEŞ ayrı yerde düşüldü: `UiTextFit.LateUpdate`,
+`LeaderboardScreen.Refresh`, `JourneyScreen.Refresh`, `JourneyScreen.
+CenterOnCurrent`, `HomeScreen.ApplyDifficulty`. Düzenleyici kipinde
+`Start` / `OnEnable` / `LateUpdate` dönmüyor; yakalama kurulum
+varsayılanını gösteriyor. Her seferinde "kusur buldum" diye not aldım ve
+her seferinde kusur kendi aracımdı. Sekme panelini neredeyse baştan
+yazacaktım — oysa renkleri zaten doğruydu.
+**Kural:** bir ekranı yakalamadan önce durumu yazan metodu ELLE çağır.
+
+**İkinci ders — ÖLÇÜM DE YALAN SÖYLER, ama başka türlü.** Üç kez ölçüm
+yanlış çıktı ve üçünde de sebep araçtı: (1) yeşil eşiği ana ekranın çimenini
+sayınca oyna düğmesi ekranın %82'si göründü; (2) sabit kırpma penceresi
+farklı yükseklikteki başlık bantlarında farklı şeyler yakaladı; (3) kontur
+kalınlığı `GetPreferredValues`'a girmediği için "yazı taşıyor" dedi.
+**Kural:** sıfır dışında bir sayı çıkınca önce ARACIN ne ölçtüğünü doğrula.
+
+**Üçüncü ders — "ölçüm doğru, çizilen başka."** Üç kez: `PriceButton`ın
+yerleştirilmeyen kökü bandı %30 siyahla yıkıyordu; `preserveAspect` kürsü
+sütununu kutunun yarısına indiriyordu; sönüm katmanının kutusu ekran dışına
+taşıyordu. Sayıyı yazmak, o sayının çizileceği anlamına gelmiyor.
+
+**Açık bırakılanlar (kullanıcının kararına):**
+- Bölüm tasarımı uyarıları: 50 bölümün 44'ünde açılışta tek hamle; 5 bölüm
+  neredeyse tek çözüm sırası; 2 bölümde süre çok bol. Bölüm dosyaları
+  paralel çalışılan alan olduğu için dokunulmadı.
+- Kilitli yolculuk bölgesindeki asma kilidin boyutu: referansı yok.
+- `PrimeTweenConfig.SetTweensCapacity` açılışta ayarlanabilir (performans).
