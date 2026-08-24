@@ -728,7 +728,27 @@ varlık kullanmak serbest.
       >     varsayılana dönüş         -> manzara `bg_menu`         ✓
       >     kayıt geri yüklendi (ilerleme 5, arka plan 0)          ✓
 
-- [ ] **J2.** Orijinale göre eksikler detaylıca incelenip kapatılacak.
+- [x] **J2.** Orijinale göre eksikler detaylıca incelenip kapatılacak.
+      >
+      > **YAPILDI (14. tur).** Ekran referans karesiyle (`m_011`) ölçü ölçü
+      > karşılaştırıldı. İki gerçek fark çıktı, ikisi de düzeltildi:
+      >   * **Boru (yol) %33 inceydi:** referansta yatay kesiti 24 kare
+      >     pikseli = **48 birim**; bizimki 32'ydi.
+      >   * **Kilometre taşı kapsülü %20 kısaydı:** referansta çizilen
+      >     yükseklik 99-102 px = **~200 birim**; bizimki 161 çiziliyordu.
+      >     Adım (268) referansın 264'üyle zaten örtüşüyordu, yani fark
+      >     tamamen kapsülde ve aradaki boşluk gereğinden açıktı (referans
+      >     64, bizim 107 birim). Sabit 189 -> 235 yapıldı; ölçüm sonrası
+      >     çizilen yükseklik **200 birim**, referansla birebir.
+      >
+      > Örtüşen ölçüler (değişiklik gerekmedi): satır genişliği %83,3 (ref
+      > %81,5), satır adımı 268 birim (ref 264), ödül değerinin ikonun altında
+      > durması, bölge adının çemberin üstünde durması.
+      >
+      > **ÖLÇÜLEMEYEN:** kilitli bölgedeki asma kilidin boyutu. Elimizdeki
+      > yolculuk karelerinin hepsinde o bölge AÇIK; kilitli hâlin referansı
+      > yok. Bizimki çemberin yarısını kaplıyor ve büyük duruyor, ama
+      > ölçmeden değiştirmek tahmin olurdu.
 
 - [x] **J3.** Geçilen bölüm için çıkan **tikler çok kötü**; Grand'ın
       tikleri kullanılacak.
@@ -749,7 +769,15 @@ varlık kullanmak serbest.
       > `MenuSprites.Tick`te çizildi. Sonuç: en/boy **1,34**, ekran
       > genişliğinin **%11,0**'i (referans %10,8).
 
-- [ ] **J4.** Sahnenin geneli cilalanacak.
+- [x] **J4.** Sahnenin geneli cilalanacak.
+      >
+      > **YAPILDI (14. tur) — J2/J3/G2 ile birlikte.** Bu turda yolculuk
+      > ekranına dokunan düzeltmeler: tik referansın düz diline getirildi
+      > (J3), bölge başlığı sabit 1040 birimden orana çevrildi (G2 — dar
+      > telefonda ekranı %117 aşıyordu), başlık puntosu diğer sayfalarla
+      > eşitlendi (G5), boru ve kapsül ölçüye getirildi (J2), bölge
+      > görselleri hale temizliğinden geçti (K1), bölge arka planları
+      > kullanılabilir oldu (J1).
 
 ---
 

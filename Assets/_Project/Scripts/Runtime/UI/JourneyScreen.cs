@@ -143,7 +143,19 @@ namespace BlockOut.Runtime.UI
         // GENİŞLİK DOKUNULMADI: `PillX0/X1` (%83,3 sabit -> %81,0 çizim) X
         // ekseninde ve zaten doğru ölçülmüştü.
         const float RowHeight = 268f;
-        const float PillH     = 189f;
+        // ÖLÇÜM (14. tur, J2): referansta kapsülün ÇİZİLEN yüksekliği
+        // 99-102 kare pikseli = ~200 birim; bizimki 161 çiziliyordu, yani
+        // %20 kısaydı. Adım (RowHeight 268) referansın 264'üyle zaten
+        // örtüşüyordu — fark tamamen kapsülün kendisindeydi, aradaki boşluk
+        // gereğinden fazla açılıyordu (referans 64, bizim 107 birim).
+        //
+        // Sabit 189 iken 161 çiziliyor (kapsül görselinin kendi payı); 200
+        // çizdirmek için 189 x 200/161 = 235.
+        //
+        // DERS (yan yana koyup göze güvenmek de yanıltır): Bu satırı önce
+        // "bizimki FAZLA UZUN" diye okudum — iki görsel farklı ölçekte
+        // yaslanınca oran hissi bozuluyor. Ölçüm tersini söyledi.
+        const float PillH     = 235f;
         // Genişlik: referansta ekranın %81.0'i ÇİZİLİYOR. Sabit doğrudan
         // 0.81 verildiğinde ekranda %78.7 çıktı — kapsülün kendi iç payı
         // 2.3 puan yiyor. Sabit o payı telafi edecek şekilde %83.3.
@@ -151,7 +163,14 @@ namespace BlockOut.Runtime.UI
         const float PillX1    = 0.9165f;
         const float RegionH   = 760f;
         const float DiscSize  = 580f;
-        const float TubeW     = 32f;
+        // ÖLÇÜM (14. tur, J2): referansta borunun yatay kesiti 24 kare
+        // pikseli. Kare 443x960, kanvas 1920 birim yüksek, yani 1 piksel =
+        // 2 birim -> boru 48 birim. Bizimki 32'ydi, %33 ince.
+        //
+        // Boru bir NESNE (yolun kendisi), oran değil: her cihazda aynı
+        // kalınlıkta olmalı, bu yüzden sabit birim doğru (bkz. `Anchor`
+        // yorumu, G2).
+        const float TubeW     = 48f;
         const float EdgePad   = 150f;
 
         /// <summary>

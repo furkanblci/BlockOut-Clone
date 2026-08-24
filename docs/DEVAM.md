@@ -7243,3 +7243,27 @@ alırken kabuk eskisini çiziyordu.
 **DOĞRULAMA (oynatma kipinde):** ilerleme geçici 25 yapıldı; bölge1 açık /
 bölge2 kilitli / kilitli seçilemedi / açık seçildi ve manzara `region_1` oldu /
 varsayılana dönünce `bg_menu`. Kayıt sonunda gerçek değerine geri yüklendi.
+
+### J2 / J4 — yolculuk ölçü ölçü karşılaştırıldı
+İki gerçek fark çıktı: boru %33 inceydi (32 -> 48 birim, referansta 24 kare
+pikseli) ve kilometre taşı kapsülü %20 kısaydı (çizilen 161 -> 200 birim,
+sabit 189 -> 235). Adım (268) referansın 264'üyle zaten örtüşüyordu, yani
+fark tamamen kapsüldeydi ve aradaki boşluk gereğinden açıktı.
+
+**Ders (yan yana koyup göze güvenmek de yanıltır):** Kapsülü önce "bizimki
+FAZLA UZUN" diye okudum ve kısaltmaya gidiyordum. İki görsel farklı ölçekte
+yaslanınca oran hissi bozuluyor. Ölçüm TERSİNİ söyledi. "Ölçüm görselle
+çelişirse göze güven" kuralı tek yönlü değil: göz de yan yana koymanın
+ölçeğinden etkileniyor. Karar veren şey, İKİSİNİ AYNI BİRİME çeviren ölçüm.
+
+**Ders (dördüncü kez: önizleme, çalışan ekran değildir):** Yolculuğu ilk
+yakaladığımda kilitli bölgenin düğmesinde TİK duruyordu ve "mantık hatası"
+diye not almıştım. `JourneyScreen.Refresh()` düzenleyicide dönmediği için
+kurulum varsayılanını görüyordum. Aynı şekilde `CenterOnCurrent` de
+`LateUpdate`'te olduğu için liste kaydırılmamış çıkıyor ve alttaki düğme
+sekme çubuğunun altında kalmış GİBİ görünüyor. Yakalama kodu artık her
+ekranın `Refresh`ini elle çağırıyor.
+
+**ÖLÇÜLEMEYEN:** kilitli bölgedeki asma kilidin boyutu — elimizdeki bütün
+yolculuk karelerinde o bölge AÇIK. Bizimki çemberin yarısını kaplıyor ve
+büyük duruyor ama ölçmeden değiştirmek tahmin olurdu.
