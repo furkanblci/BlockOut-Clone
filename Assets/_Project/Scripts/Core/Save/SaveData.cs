@@ -109,13 +109,20 @@ namespace BlockOut.Core.Save
         /// tamamlandıysa açıktır. Tek kaynak `HighestUnlockedIndex`; ikinci
         /// bir liste tutmak, iki kaydın birbirinden ayrı düşmesi demekti.
         /// </summary>
-        /// VARSAYILAN 2 = "mor gece" (H4, 14. tur). Kullanıcının seçimi.
-        /// Gerekçe ölçülmüştü: arayüzün kromu indigo-mor (sekme çubuğu
-        /// 73,44,219; üst çubuk kapsülü 35,25,80) ama eski varsayılan manzara
-        /// sıcak pembe-turuncuydu ve oyna düğmesinin arkası (201,178,98)
-        /// sıcak kuma düşüyordu — yeşil düğme sıcak zemin üstünde
-        /// zayıflıyordu. Mor gökyüzü aynı aileden.
-        [JsonProperty("background")] public int Background = 2;
+        /// VARSAYILAN 0 = oyunun kendi manzarası (`bg_menu`).
+        ///
+        /// GERİ ALINDI (14. tur): H4 için varsayılan bir süre 2 ("mor gece")
+        /// yapılmıştı. Küçük önizlemelerde iyi duruyordu ama OYUNDA tam
+        /// ekranda felaketti: bölge görselleri yolculuk diskleri için DAİRE
+        /// çizilmiş, tam ekran arka plan olarak konunca köşeleri kavisli
+        /// kalıyor; kavisi gizlemek için uygulanan büyütme de sahneyi
+        /// kaydırıp içindeki karakterleri devleştiriyordu.
+        ///
+        /// DERS (küçük önizleme, tam ekranın yerine geçmez): Altı seçeneği
+        /// 300 piksel genişliğinde şeritler hâlinde yan yana koyup karar
+        /// verdim. O ölçekte kusur görünmüyordu. Bir arka plan kararı, arka
+        /// planın ÇİZİLECEĞİ boyutta verilmeli.
+        [JsonProperty("background")] public int Background;
 
         /// <summary>Sınırsız can hakkının bitiş anı (UTC, ISO-8601). Boş = hak yok.</summary>
         [JsonProperty("infiniteLivesUntilUtc")] public string InfiniteLivesUntilUtc = "";
