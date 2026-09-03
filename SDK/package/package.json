@@ -1,0 +1,23 @@
+{
+  "name": "com.furkanblci.gamekit",
+  "version": "1.0.0",
+  "displayName": "GameKit — Mobil Klon SDK",
+  "description": "Mobil casual klon oyunlar için hazır kabuk: tek sahneli uygulama kökü, meta ekranlar (mağaza, sıralama, profil, yolculuk, koleksiyon, ayarlar, günlük ödül), kayıt/ilerleme/can servisleri, kodla üretilen arayüz araç takımı, prosedürel sprite üreticisi, gizli geliştirici konsolu ve düzenleyici araçları. Block Out! klonundan çıkarıldı.",
+  "unity": "6000.0",
+  "author": {
+    "name": "furkanblci"
+  },
+  "dependencies": {
+    "com.unity.ugui": "2.0.0",
+    "com.unity.inputsystem": "1.18.0",
+    "com.unity.nuget.newtonsoft-json": "3.2.1",
+    "com.unity.render-pipelines.universal": "17.3.0"
+  },
+  "keywords": [
+    "mobile",
+    "casual",
+    "ui",
+    "meta",
+    "sdk"
+  ]
+}

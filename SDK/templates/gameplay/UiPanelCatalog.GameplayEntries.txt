@@ -1,0 +1,73 @@
+            // ------------------------------------------------------ oynanış
+            new Entry
+            {
+                Id = "gameplay.hud", Group = "Oynanış", Label = "Üst şerit (HUD)",
+                Key = "GameplayScreen/Hud",
+                Build = (parent, v) => GameplayScreen.CreateHudPreview(parent).transform
+            },
+            new Entry
+            {
+                Id = "gameplay.powerups", Group = "Oynanış", Label = "Yardımcı şeridi",
+                Key = "GameplayScreen",
+                Variants = 2,
+                VariantNames = new[] { "fiyatlı (stok yok)", "rozetli (stok var)" },
+                Build = (parent, v) => GameplayScreen
+                    .CreatePowerUpPreview(parent, v == 1 ? new[] { 3, 1, 2 } : new[] { 0, 0, 0 })
+                    .transform
+            },
+            new Entry
+            {
+                Id = "gameplay.result.win", Group = "Oynanış", Label = "Sonuç — kazandın",
+                Key = "GameplayScreen",
+                Note = "Kartın ve başlığın KENDİ dikdörtgeni her açılışta " +
+                       "ApplyResultLayout ile yeniden yazılıyor; o ikisine verilen " +
+                       "konum oyunda tutmaz. Çocukları serbest.",
+                Build = (parent, v) => GameplayScreen
+                    .CreateResultPreview(parent, true, 250, "Level 20", "PERFECT!").transform
+            },
+            new Entry
+            {
+                Id = "gameplay.result.lose", Group = "Oynanış", Label = "Sonuç — kaybettin",
+                Key = "GameplayScreen",
+                Note = "Kazanma kartıyla AYNI yolları paylaşır (GameplayScreen/Result/…) — " +
+                       "burada yaptığın bir düzeltme kazanma kartında da görünür.",
+                Build = (parent, v) => GameplayScreen
+                    .CreateResultPreview(parent, false, 0, "Level 20", "FAILED").transform
+            },
+            new Entry
+            {
+                Id = "gameplay.pause", Group = "Oynanış", Label = "Duraklat paneli",
+                Key = "GameplayScreen",
+                Note = "Ayar anahtarları oturum istediği için BASILAMAZ; önizleme " +
+                       "yalnız görünüm içindir.",
+                Build = (parent, v) => GameplayScreen.CreatePausePreview(parent).transform
+            },
+            new Entry
+            {
+                Id = "gameplay.retry", Group = "Oynanış", Label = "Yeniden başlat onayı",
+                Key = "GameplayScreen",
+                Build = (parent, v) => GameplayScreen.CreateRetryPreview(parent).transform
+            },
+
+            new Entry
+            {
+                Id = "menu.home", Group = "Menü", Label = "Ana ekran",
+                Note = "Jeton/can sayıları sahte kayıttan geliyor.",
+                Build = (parent, v) =>
+                {
+                    var screen = HomeScreen.CreatePreview(parent);
+                    Refresh(() => screen.Refresh());
+                    return null;
+                }
+            },
+            new Entry
+            {
+                Id = "panel.newitem", Group = "Paneller", Label = "Yeni öğe tanıtımı",
+                Variants = 7,
+                VariantNames = new[]
+                {
+                    "Buz blok", "Buz kapı", "Perde", "Katmanlı",
+                    "Renk sırası", "Yönlü blok", "Üreteç"
+                },
+                Build = (parent, v) => { NewItemPanel.CreatePreview(parent, v); return null; }
+            },

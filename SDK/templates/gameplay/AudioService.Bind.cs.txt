@@ -1,0 +1,42 @@
+        // ---------------------------------------------------------------- olaylar
+
+        /// <summary>
+        /// Tahta olaylarını sese bağlar. Her bölümde yeni bir olay merkezi
+        /// doğduğu için her seferinde çağrılır.
+        /// </summary>
+        public void Bind(BoardEvents events)
+        {
+            if (events == null) return;
+
+            events.BlockAbsorbed    += (b, g) => _player.Play(Clip(Sfx.Absorb), 0.45f);
+            events.LayerPeeled      += (b, g) => _player.Play(Clip(Sfx.Peel), 0.38f);
+            events.IceShattered     += b => _player.Play(Clip(Sfx.IceCrack), 0.55f);
+            events.GateIceShattered += g => _player.Play(Clip(Sfx.IceCrack), 0.55f);
+            events.CurtainOpened    += c => _player.Play(Clip(Sfx.CurtainOpen), 0.55f);
+            events.BoardCleared     += _ => _player.Play(Clip(Sfx.Win), 0.7f);
+
+            // Buraya kadarı zaten vardı. Aşağısı SESSİZDİ — olay yayınlanıyordu
+            // ama kimse dinlemiyordu. Referans oyunda hepsinin sesi var; sayaç
+            // tıklamaları özellikle önemli, çünkü oyuncu "ilerliyor muyum"
+            // sorusunu onlarla cevaplıyor.
+            // BU DÖRT OLAY TEK HAMLEDE BİRDEN ÇOK KEZ YAYINLANIYOR.
+            //
+            // Her emilimde tahtadaki BÜTÜN buzlu blokların sayacı bir azalıyor
+            // — beş buzlu blok varsa `IceDecremented` aynı karede beş kez
+            // yayınlanıyor. Beş özdeş klip aynı anda çalınca genlik beş katına
+            // çıkıyor: hem kırpma hem "çatırtı bombası". Aynı şey perde
+            // sayaçları ve aynı anda ghost olan kapılar için de geçerli.
+            //
+            // DERS (olay sayısı = ses sayısı DEĞİLDİR): Sentezlenmiş cılız
+            // bliplerle bu fark edilmiyordu; gerçek, tepe seviyeli kliplerle
+            // ilk denemede duyulur hâle geliyor. Bir olaya ses bağlarken
+            // "kaç kere yayınlanıyor" sorusu, "hangi ses" sorusu kadar önemli.
+            events.IceDecremented     += b => PlayOnce(Sfx.IceTick, 0.30f);
+            events.GateIceDecremented += g => PlayOnce(Sfx.IceTick, 0.30f);
+            events.CurtainDecremented += c => PlayOnce(Sfx.CurtainTick, 0.30f);
+            events.GateAdvanced       += g => PlayOnce(Sfx.GateAdvance, 0.35f);
+            events.GateGhosted        += g => PlayOnce(Sfx.GateDone, 0.45f);
+            events.BlockSpawned       += b => PlayOnce(Sfx.BlockSpawn, 0.35f);
+        }
+
+        /// <summary>Aynı sesin üst üste yığılmasını engelleyen son çalma anları.</summary>

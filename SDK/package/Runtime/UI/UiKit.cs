@@ -1,0 +1,712 @@
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace GameKit.UI
+{
+    /// <summary>
+    /// Arayüzü PREFAB'sız, kodla kuran yardımcılar — 3B tarafındaki ViewKit'in
+    /// arayüz karşılığı.
+    ///
+    /// DERS (neden prefab değil?): Prefab ve sahne dosyaları YAML'dır; iki kişi
+    /// aynı ekrana dokunduğunda git birleştirmesi neredeyse her zaman çakışır ve
+    /// çözmesi acı vericidir. Ekranı kodla kurmak hem gözden geçirilebilir bir
+    /// diff verir hem de "bu düğme neden burada" sorusunun cevabını yorumda
+    /// tutar. Bedeli: görsel düzenleme yok. Bu proje için doğru takas — düzen
+    /// zaten referans oyundan sabit.
+    ///
+    /// DERS (CanvasScaler): Mobil arayüzün en sık hatası piksel cinsinden düzen
+    /// kurmaktır; aynı arayüz 720p telefonda dev, tablette minik görünür.
+    /// ScaleWithScreenSize + referans çözünürlük, tüm ölçüleri "referans piksel"
+    /// cinsine çevirir. matchWidthOrHeight=1 (yükseklik) dikey oyunlarda
+    /// doğrudur: ekran ne kadar dar olursa olsun içerik dikeyde aynı kalır.
+    ///
+    /// NOT (font): Yazılar TMP'nin VARSAYILAN fontundan gelir; proje kurulumu
+    /// onu Baloo 2 ExtraBold'a çevirir (FontSetupTool). Böylece burada tek bir
+    /// `label.font = ...` satırı yok — font değişirse bütün ekranlar birlikte
+    /// değişir.
+    /// </summary>
+    public static class UiKit
+    {
+        public static readonly Vector2 ReferenceResolution = new Vector2(1080f, 1920f);
+
+        static Font _font;
+        public static Font Font =>
+            _font != null ? _font : (_font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"));
+
+        // Başlıkların paylaştığı kontur+gölge materyali. Etikete tek tek
+        // `outlineWidth` yazmak her birine ayrı materyal kopyası çıkarır;
+        // paylaşılan materyal hepsini tek çizim çağrısında toplar.
+        static Material _titleMaterial;
+        static bool _titleMaterialSearched;
+        public static Material TitleMaterial
+        {
+            get
+            {
+                if (!_titleMaterialSearched)
+                {
+                    _titleMaterialSearched = true;
+                    _titleMaterial = Resources.Load<Material>("Fonts/Baloo2 SDF Title");
+                }
+                return _titleMaterial;
+            }
+        }
+
+        // Referans oyunun paleti.
+        public static readonly Color Background = new Color(0.13f, 0.10f, 0.28f);
+        public static readonly Color Panel      = new Color(0.29f, 0.25f, 0.72f);
+        public static readonly Color PanelDark  = new Color(0.20f, 0.17f, 0.52f);
+        public static readonly Color Accent     = new Color(0.35f, 0.82f, 0.36f);
+        public static readonly Color Coin       = new Color(1f, 0.82f, 0.28f);
+        public static readonly Color Life       = new Color(0.95f, 0.35f, 0.45f);
+        public static readonly Color Locked     = new Color(0.30f, 0.28f, 0.42f);
+        public static readonly Color Ink        = new Color(1f, 0.98f, 0.94f);
+
+        /// <summary>Ekranın kök canvas'ı: ölçekleyici + girdi yakalayıcı hazır.</summary>
+        public static Canvas CreateCanvas(string name)
+        {
+            var go = new GameObject(name, typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            var canvas = go.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+
+            var scaler = go.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = ReferenceResolution;
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = 1f;
+
+            EnsureEventSystem();
+            return canvas;
+        }
+
+        /// <summary>
+        /// Dokunmanın işlenmesi için sahnede bir EventSystem şart; yoksa hiçbir
+        /// düğme çalışmaz ve sebebi de görünmez. Bu yüzden canvas kurulurken
+        /// sessizce garanti ediyoruz.
+        ///
+        /// DERS (iki girdi sistemi bir arada olmaz): Bu proje YENİ Input System
+        /// paketini kullanıyor. uGUI'nin varsayılan bileşeni olan
+        /// StandaloneInputModule ise ESKİ `UnityEngine.Input` sınıfını okur ve
+        /// her karede `InvalidOperationException` atar — sonuç: hiçbir düğme
+        /// tıklanmaz, üstelik hata yığını arayüzü değil girdi paketini işaret
+        /// ettiği için sebebi geç anlaşılır. Doğru bileşen
+        /// InputSystemUIInputModule.
+        /// </summary>
+        public static void EnsureEventSystem()
+        {
+            if (Object.FindFirstObjectByType<UnityEngine.EventSystems.EventSystem>() != null) return;
+
+            var go = new GameObject("EventSystem",
+                typeof(UnityEngine.EventSystems.EventSystem),
+                typeof(UnityEngine.InputSystem.UI.InputSystemUIInputModule));
+            Object.DontDestroyOnLoad(go);
+        }
+
+        /// <summary>
+        /// Çentik/köşe payını dışarıda bırakan güvenli alan kabı.
+        /// DERS: Modern telefonlarda ekranın üst şeridi kamera çentiğinin,
+        /// alt şeridi de sistem çubuğunun altında kalır. Screen.safeArea bunu
+        /// piksel olarak verir; içeriği bu dikdörtgene sıkıştırmazsak coin
+        /// göstergesi çentiğin altında kaybolur.
+        /// </summary>
+        public static RectTransform CreateSafeArea(Canvas canvas)
+        {
+            var rect = CreateRect("SafeArea", canvas.transform);
+
+            // Payı bileşen uyguluyor ve ekran değiştikçe yeniden uyguluyor;
+            // burada bir kez hesaplamak cihaz değişince/telefon dönünce
+            // arayüzü eski çentiğe göre bırakıyordu (bkz. UiSafeArea).
+            rect.gameObject.AddComponent<UiSafeArea>();
+            return rect;
+        }
+
+        public static RectTransform CreateRect(string name, Transform parent)
+        {
+            var go = new GameObject(name, typeof(RectTransform));
+            var rect = (RectTransform)go.transform;
+            rect.SetParent(parent, worldPositionStays: false);
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            return rect;
+        }
+
+        /// <summary>Düz renkli dikdörtgen — arka plan gibi köşesi önemsiz yerler için.</summary>
+        public static Image CreatePanel(string name, Transform parent, Color color)
+        {
+            var rect = CreateRect(name, parent);
+            var image = rect.gameObject.AddComponent<Image>();
+            image.color = color;
+            return image;
+        }
+
+        /// <summary>
+        /// Yuvarlak köşeli panel — referans oyunun her yüzeyi böyle.
+        ///
+        /// DERS (9-dilim): Sprite'ın köşe payı sabit kalır, ortası esner. Tek
+        /// 64×64 doku hem küçük bir rozette hem tam ekran bir panelde bozulmadan
+        /// çalışır; her boyut için ayrı görsel üretmeye gerek kalmaz.
+        ///
+        /// DERS (SABİT yarıçap iki yönde birden yanlıştır): Burası uzun süre
+        /// herkese sabit ~36 piksel yarıçap verdi. Ölçtük: bizim jeton
+        /// plakamızda yarıçap kısa kenarın **%40'ı** çıkıyordu, mağaza
+        /// bantlarında %39-40 — yani kutular HAP oluyordu. Referansta aynı
+        /// yüzeylerin oranı **%22**. Kullanıcının "coin kısmı oval, bantlar çok
+        /// oval, Off/On çok oval" bulgularının üçünün de tek sebebi buydu.
+        /// Yarıçap artık <see cref="UiCornerFit"/> ile kutunun boyundan
+        /// türetiliyor; ölçü değiştiğinde kendini yeniden hesaplıyor.
+        /// </summary>
+        public static Image CreateRoundedPanel(string name, Transform parent, Color color)
+            => CreateRoundedPanel(name, parent, color, UiCornerFit.HouseShare);
+
+        /// <summary>
+        /// Yarıçap oranı verilen yuvarlak panel. Oran kutunun KISA KENARINA
+        /// göredir; referansın ev değeri <see cref="UiCornerFit.HouseShare"/>.
+        /// Daha keskin bir yüzey isteyen (kart zemini, şerit) küçük bir oran
+        /// verir; bilinçli olarak hap isteyen 0.5 verir.
+        /// </summary>
+        public static Image CreateRoundedPanel(string name, Transform parent, Color color,
+            float cornerShare, float maxRadius = UiCornerFit.MaxRadius)
+        {
+            var rect = CreateRect(name, parent);
+            var image = rect.gameObject.AddComponent<Image>();
+            image.sprite = UiSprites.RoundedPanel;
+            image.type = Image.Type.Sliced;
+            image.color = color;
+
+            var fit = rect.gameObject.AddComponent<UiCornerFit>();
+            fit.Share = cornerShare;
+            fit.MaxRadiusPixels = maxRadius;
+            return image;
+        }
+
+        /// <summary>
+        /// 9-dilim köşe ölçeğini ELLE sabitler ve oransal hesabı kapatır.
+        ///
+        /// DERS (varsayılanı akıllandırınca elle ayarlananlar sessizce bozulur):
+        /// <see cref="CreateRoundedPanel"/> artık her yüzeye
+        /// <see cref="UiCornerFit"/> takıyor ve yarıçabı kutunun boyundan
+        /// hesaplıyor. Bu doğru varsayılan — ama projede kırk kadar yüzeyin
+        /// yarıçapı referanstan ÖLÇÜLEREK elle verilmişti
+        /// (<c>image.pixelsPerUnitMultiplier = 0.34f</c> gibi). Bileşen ölçü
+        /// her değiştiğinde yeniden yazdığı için o ölçümlerin hepsini sessizce
+        /// eziyordu: kod değişmemiş, yorumdaki gerekçe hâlâ orada, ekrandaki
+        /// sayı başka.
+        ///
+        /// Bu yüzden elle verilen değer artık bir NİYET BEYANI: hesabı kapatıp
+        /// değeri yazıyor. "Kim kazanır" sorusu çağrı yerinde görünür oluyor.
+        /// </summary>
+        /// <summary>
+        /// İSTENEN KÖŞE YARIÇAPI (kanvas birimi) → 9-dilim çarpanı.
+        ///
+        /// <see cref="SetSliceScale"/>'e verilen sayı bugüne kadar hep
+        /// tersinden yazıldı: 0.45 yazan biri aslında 44,4 birimlik bir köşe
+        /// istiyordu ama bunu yorumda söylemek zorundaydı. Yarıçapı doğrudan
+        /// yazabilmek, iki yüzeyin köşesini eş merkezli tutmayı da mümkün
+        /// kılıyor (bkz. MenuShell'deki seçili sekme kartı, 7. tur P56).
+        /// </summary>
+        public static float SliceScaleFor(float radiusUnits) =>
+            UiCornerFit.SpriteArcPixels / Mathf.Max(1f, radiusUnits);
+
+        public static void SetSliceScale(Image image, float multiplier)
+        {
+            if (image == null) return;
+
+            var fit = image.GetComponent<UiCornerFit>();
+            if (fit != null) fit.enabled = false;
+
+            image.pixelsPerUnitMultiplier = multiplier;
+        }
+
+        /// <summary>
+        /// Tam ekran arka plan görseli — ekranı KAPLAR, gerekirse taşar.
+        ///
+        /// DERS (kapla, esnetme): Arka planı dört köşeye yapıştırmak en kolayı
+        /// ama telefon oranı görselin oranından farklı olduğu anda görüntü ezilir
+        /// — 20:9 bir ekranda evler incelir. AspectRatioFitter'ın EnvelopeParent
+        /// kipi görseli oranını koruyarak ebeveyni ÖRTECEK kadar büyütür; fazlası
+        /// ekran dışında kalır. Fotoğraftaki "cover" davranışının aynısı.
+        /// </summary>
+        public static Image CreateCover(string name, Transform parent, Sprite sprite, Color fallback)
+        {
+            if (sprite == null) return CreatePanel(name, parent, fallback);
+
+            var rect = CreateRect(name, parent);
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+
+            var image = rect.gameObject.AddComponent<Image>();
+            image.sprite = sprite;
+            image.raycastTarget = false;
+
+            var fitter = rect.gameObject.AddComponent<AspectRatioFitter>();
+            fitter.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+            fitter.aspectRatio = sprite.rect.width / sprite.rect.height;
+            return image;
+        }
+
+        /// <summary>
+        /// Üretilmiş bir sprite'la 9-dilim panel. Sprite null ise prosedürel
+        /// yuvarlak panele düşer — böylece görsel gelmeden de ekran kurulabilir.
+        /// </summary>
+        public static Image CreateSlicedPanel(string name, Transform parent, Sprite sprite,
+            Color? tint = null)
+        {
+            if (sprite == null) return CreateRoundedPanel(name, parent, tint ?? Color.white);
+
+            var rect = CreateRect(name, parent);
+            var image = rect.gameObject.AddComponent<Image>();
+            image.sprite = sprite;
+            // Kenar payı olan sprite'lar 9-dilim, olmayanlar (ikon) düz çizilir.
+            image.type = sprite.border == Vector4.zero ? Image.Type.Simple : Image.Type.Sliced;
+            image.color = tint ?? Color.white;
+
+            // 9-dilim kutu kenar paylarından alçak/dar olabilir; o zaman paylar
+            // çakışıp görseli ezer. Bu bileşen payları kutuya göre küçültüyor.
+            if (image.type == Image.Type.Sliced)
+                image.gameObject.AddComponent<UiSliceFit>();
+
+            return image;
+        }
+
+        /// <summary>
+        /// İkon. En-boy oranı korunur — kare olmayan bir alana konsa bile ezilmez.
+        /// </summary>
+        public static Image CreateIcon(string name, Transform parent, Sprite sprite,
+            Color? tint = null)
+        {
+            var rect = CreateRect(name, parent);
+            var image = rect.gameObject.AddComponent<Image>();
+            image.sprite = sprite;
+            image.type = Image.Type.Simple;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+            image.color = tint ?? Color.white;
+            return image;
+        }
+
+        /// <summary>
+        /// İKON düğmesi: tıklanabilir, ama görseli en-boy oranını KORUR.
+        ///
+        /// DERS (düğme yüzeyi ile ikon farklı şeylerdir): Normal düğmenin yüzü
+        /// 9-dilim bir panel olduğu için serbestçe gerilir; bu doğrudur.
+        /// Ama yüzeyin kendisi bir İKON olduğunda (yeşil artı düğmesi gibi)
+        /// aynı gerdirme onu ovale çevirir. Yuvarlak çizilmiş bir artı düğmesi
+        /// ekranda yumurtaya dönüyordu. İkon düğmesi ayrı bir yardımcı olmalı.
+        /// </summary>
+        /// <summary>
+        /// Hazır bir yüzeyi TIKLANABİLİR yapar: raycast'i açar, Button ve
+        /// basma hissini ekler, dinleyiciyi bağlar.
+        ///
+        /// DERS (dinleyici bağlamak YETMEZ, dokunuşun ULAŞMASI da gerekir):
+        /// Bu projede aynı hata ÜÇ ayrı yerde çıktı — Yolculuk'un "Üst"/"Alt"
+        /// atlama düğmeleri, Yolculuk'un bölge oynat düğmeleri ve Mağaza'nın
+        /// "Restore Purchases" düğmesi. Üçünde de `onClick` bağlıydı, `Button`
+        /// yerindeydi, ekranda düğme gibi duruyordu; ama hedef grafik
+        /// `Capsule`/`MenuCapsule` gibi bir yardımcıdan geliyordu ve o
+        /// yardımcılar süs amaçlı üretildikleri için `raycastTarget`'ı KAPALI
+        /// bırakıyor. Dokunuş düğmeye hiç ulaşmıyordu.
+        ///
+        /// Daha sinsi olan şu: "onClick bağlı mı" diye bakan bir tarama bu
+        /// türü GÖREMEZ, ve `onClick.Invoke()` ile yapılan bir play-modu testi
+        /// de raycast'i atladığı için "çalışıyor" der. Bu yüzden düğmeyi elle
+        /// kurmak yerine bu yardımcıdan geçir: burada raycast'i açmayı
+        /// unutmak mümkün değil.
+        /// </summary>
+        public static Button MakeClickable(Graphic face, UnityEngine.Events.UnityAction onClick)
+        {
+            face.raycastTarget = true;
+
+            var button = face.gameObject.GetComponent<Button>();
+            if (button == null) button = face.gameObject.AddComponent<Button>();
+            button.targetGraphic = face;
+            button.transition = Selectable.Transition.None;
+
+            if (face.GetComponent<UiButtonFeel>() == null)
+                face.gameObject.AddComponent<UiButtonFeel>();
+
+            if (onClick != null) button.onClick.AddListener(onClick);
+            return button;
+        }
+
+        /// <summary>
+        /// Düğme başka bir nesnede, tıklanacak yüzey başkasındaysa: yüzeyin
+        /// raycast'ini açar ve düğmeyi ona bağlar.
+        /// </summary>
+        public static Button MakeClickable(GameObject host, Graphic face,
+            UnityEngine.Events.UnityAction onClick)
+        {
+            face.raycastTarget = true;
+
+            var button = host.GetComponent<Button>();
+            if (button == null) button = host.AddComponent<Button>();
+            button.targetGraphic = face;
+            button.transition = Selectable.Transition.None;
+
+            if (host.GetComponent<UiButtonFeel>() == null)
+                host.AddComponent<UiButtonFeel>();
+
+            if (onClick != null) button.onClick.AddListener(onClick);
+            return button;
+        }
+
+        public static Button CreateIconButton(string name, Transform parent, Sprite sprite,
+            Color? tint = null)
+        {
+            var rect = CreateRect(name, parent);
+            var image = rect.gameObject.AddComponent<Image>();
+            image.sprite = sprite;
+            image.type = Image.Type.Simple;
+            image.preserveAspect = true;
+            image.color = tint ?? Color.white;
+
+            var button = rect.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            button.transition = Selectable.Transition.None;
+
+            rect.gameObject.AddComponent<UiButtonFeel>();
+            return button;
+        }
+
+        /// <summary>
+        /// Görselli düğme: 3B butonun kendi gölgesi var, kod ayrıca gölge koymaz.
+        ///
+        /// DERS (görsel gelince kod SADELEŞİR): Prosedürel düğme, kalınlık
+        /// hissini vermek için ikinci bir koyu kopya çiziyordu. Butonun 3B alt
+        /// kenarı zaten görselin içinde olduğu için o kopya artık fazlalık —
+        /// hem bir Image hem bir çizim çağrısı eksiliyor. Renk geçişi de
+        /// kaldırıldı: sprite boyandığında parlaklık lekesi de boyanır ve
+        /// plastik görünüm bozulur; basma hissi <see cref="UiButtonFeel"/>
+        /// ölçeğinden geliyor.
+        /// </summary>
+        public static Button CreateSpriteButton(string name, Transform parent, Sprite sprite,
+            string text, int fontSize, Color ink)
+        {
+            var root = CreateRect(name, parent);
+
+            var face = CreateSlicedPanel("Face", root, sprite);
+            Place(face, 0f, 0f, 1f, 1f);
+
+            var button = root.gameObject.AddComponent<Button>();
+            button.targetGraphic = face;
+            button.transition = Selectable.Transition.None;
+
+            // Etiket metin BOŞ OLSA DA kurulur — aynı sebeple CreateTintedButton'da
+            // da öyle: çağıranlar düğmeyi boş kurup yazısını sonra
+            // GetComponentInChildren ile bulup yazıyor. Etiket hiç yaratılmazsa
+            // o arama null döner ve ekran yarı kurulmuş hâlde kalır.
+            var label = CreateLabel("Label", face.transform, text ?? "", fontSize, ink);
+            // Yazı butonun YÜZÜNE oturmalı; alt kalınlık payı bırakılmazsa
+            // aşağı kaymış görünür.
+            Place(label, 0.06f, 0.18f, 0.94f, 0.94f);
+            if (TitleMaterial != null) label.fontSharedMaterial = TitleMaterial;
+
+            root.gameObject.AddComponent<UiButtonFeel>();
+            return button;
+        }
+
+        /// <summary>
+        /// KISA düğmeler için: verilen sprite RENGE BOYANARAK kullanılır.
+        ///
+        /// DERS (9-dilim payı düğmenin boyunu belirler): Buton görselleri
+        /// 3:1 orana göre çizildi ve 9-dilim payları büyük (üstte 88, altta 68
+        /// piksel). Yüksekliği 140 pikselin altına inen bir düğmede bu iki pay
+        /// toplamı alanın tamamını yiyor; Unity payları orantılı kırpıyor ve
+        /// plastik yüzey eziliyor. Mağazadaki "300 J" ve ayarlardaki "Değiştir"
+        /// düğmeleri böyle bozulmuştu. Payları her kenarda eşit ve küçük olan
+        /// panel görselini boyamak, aynı dilde kalıp bu sorunu ortadan kaldırır.
+        ///
+        /// DERS (boyama ÇARPMADIR): Taban görsel koyu olursa boyanmış renk de
+        /// koyu çıkar — koyu lacivert bir paneli yeşile boyamak "yeşil" değil
+        /// "koyu yeşil" verir. Bu yüzden taban KREM kart görselidir: krem ≈ beyaz
+        /// olduğu için çarpım rengin kendisini bırakır, kartın alt bandı da
+        /// koyulaşarak bedava bir 3B kalınlık verir.
+        /// </summary>
+        /// <summary>
+        /// Düz, çerçeveli kutu: dolgu + ince kenarlık. 3B dudak YOK.
+        ///
+        /// DERS (baskılı gölgeyi BOYAYAMAZSIN): Bu projede `panel_card` uzun
+        /// süre her şeyin zemini olarak kullanıldı — kart, düğme, ipucu kutusu.
+        /// O sprite'ın alt kenarında BASKILI bir 3B gölge var. Krem üstünde
+        /// doğru duruyor; ama boyama çarpma olduğu için turuncuya boyayınca
+        /// gölge kırmızıya, kreme boyayınca magentaya kayıyor ve kutunun altında
+        /// oyunun hiçbir yerinde olmayan bir renk şeridi beliriyor.
+        ///
+        /// Kural: bir yüzeyi BOYAYACAKSAN baskılı gölgesi olmayanı kullan.
+        /// Baskılı gölgeli sprite'lar (`panel_card`, `btn_*`) yalnız KENDİ
+        /// renkleriyle, boyanmadan kullanılmalı.
+        /// </summary>
+        public static Image CreateOutlinedBox(string name, Transform parent,
+            Color fill, Color border, float borderInset = 0f,
+            float cornerShare = UiCornerFit.HouseShare)
+        {
+            // DERS (dolgu ve çerçeve AYNI yarıçapta olmak zorunda): İkisi ayrı
+            // sprite; biri sabit paylı 9-dilim, diğeri oranlı olursa çerçeve
+            // köşede dolgunun içine ya da dışına kaçar ve kenar "çift çizgi"
+            // gibi görünür. İkisi de aynı orandan besleniyor.
+            var box = CreateRoundedPanel(name, parent, fill, cornerShare);
+
+            var ring = CreateRect("Border", box.transform);
+            var ringImage = ring.gameObject.AddComponent<Image>();
+            ringImage.sprite = UiSprites.RoundedOutline;
+            ringImage.type = Image.Type.Sliced;
+            ringImage.color = border;
+            ringImage.raycastTarget = false;
+            var ringFit = ring.gameObject.AddComponent<UiCornerFit>();
+            ringFit.Share = cornerShare;
+            Place(ring, borderInset, borderInset, 1f - borderInset, 1f - borderInset);
+
+            return box;
+        }
+
+        /// <summary>
+        /// Bir başlığa KENDİNE ÖZEL kontur verir.
+        ///
+        /// DERS (paylaşılan materyal tek tek ayar KABUL ETMEZ): <see cref="CreateTitle"/>
+        /// bütün başlıklara ortak bir TMP materyali veriyor — bir atlas, bir
+        /// çizim çağrısı, mobilde doğru karar. Ama o materyale yazılan kontur
+        /// rengi TÜM başlıkları birden değiştirir; tek bir etikete mor kontur
+        /// vermek istediğinde CreateTitle'a verdiğin renk sessizce yok sayılır.
+        /// `fontMaterial`'e dokunmak o etikete özel bir kopya üretir: bir çizim
+        /// çağrısı daha, ama yalnız gerçekten farklı olması gereken başlıklarda.
+        /// Bu yüzden ayrı bir metot — varsayılan davranış hâlâ paylaşılan
+        /// materyal, ayrışmak bilinçli bir tercih.
+        /// </summary>
+        /// <summary>
+        /// Başlık konturunun EV DEĞERİ — referanstan ölçüldü (2026-08-18).
+        ///
+        /// Ölçüm yöntemi: her sütunda beyaz dolgunun hemen üstündeki kontur
+        /// bandının kalınlığı / büyük harf yüksekliği. Gürültüsüz olması için
+        /// yatay değil DİKEY tarandı (yatay tarama harflerin iç boşluklarını ve
+        /// kenar yumuşatmasını kontur sanıyordu).
+        ///
+        ///   referans "Mağaza" (mağaza başlığı) : 4/49  = 0.082
+        ///   referans "Pause"  (panel başlığı)  : 4/42  = 0.095
+        ///   BİZİM   "Shop"                     : 9/37  = 0.243
+        ///
+        /// Yani konturumuz yaklaşık 2.8 kat kalındı — kullanıcının "Shop
+        /// yazısının outline'ı çok fazla" ve "başlıkların kaplaması referanstaki
+        /// gibi olmalı" bulgularının ikisi de bu tek sayıdan geliyor.
+        /// Ölçülü doğrulama: 0.18 verince oran 0.071 çıktı (biraz ince), 0.22
+        /// verince hedef banda oturuyor. Not: paylaşılan materyalin değeri ZATEN
+        /// 0.22 idi ve doğruydu; hata, sayfa başlıklarının `SetOutline` ile
+        /// KENDİ materyal kopyasını alıp 0.50-0.55 yazmasıydı.
+        ///
+        /// DERS (aynı sayı on yere elle yazılırsa on ayrı sayı olur): Bu değer
+        /// projede 0.22'den 0.55'e kadar dokuz farklı yerde farklı yazılmıştı,
+        /// hepsi göz kararı. Referansta ise TEK bir oran var. Ev değeri burada
+        /// durur; ayrışmak isteyen bilinçli olarak sayı verir.
+        /// </summary>
+        public const float TitleOutlineWidth = 0.22f;
+
+        public static void SetOutline(TextMeshProUGUI label, Color color,
+            float width = TitleOutlineWidth)
+        {
+            if (label == null) return;
+            var material = label.fontMaterial;
+            material.SetColor(ShaderUtilities.ID_OutlineColor, color);
+            material.SetFloat(ShaderUtilities.ID_OutlineWidth, width);
+
+            // ALT GÖLGE DE KONTURLA BİRLİKTE (15. tur).
+            //
+            // Kullanıcı: *"dış mor kaplaması olan bütün textlerin alt
+            // kısımlarında gölge olmalı — üst kısmı açık renk, alt kısmı koyu
+            // gölge, referanstaki mantığın aynısı."*
+            //
+            // ÖLÇÜM (`collections.jpeg`, "Koleksiyon" başlığı): harf yüzü
+            // beyaz, konturu (45,32,138), harflerin ALTINDAKİ iz (34,21,109)
+            // — yani gölge konturun aynı morunun daha koyusu, nötr siyah
+            // değil. Paylaşılan başlık materyalinde bu ayar zaten vardı;
+            // kendi materyal kopyasını alan etiketler (bu metot) gölgeyi
+            // KAYBEDİYORDU çünkü yalnız konturu yazıyordu.
+            //
+            // DERS (bir kopya, kopyalanmayan ayarı da götürür): Paylaşılan
+            // materyalden ayrılan her etiket, o materyaldeki HER ayarı
+            // yeniden kurmak zorunda; yalnız değiştirmek istediğini yazmak
+            // yetmiyor.
+            material.EnableKeyword("UNDERLAY_ON");
+            material.SetColor(ShaderUtilities.ID_UnderlayColor,
+                new Color(color.r * 0.62f, color.g * 0.62f, color.b * 0.62f, 0.9f));
+            material.SetFloat(ShaderUtilities.ID_UnderlayOffsetX, 0f);
+            material.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -0.75f);
+            material.SetFloat(ShaderUtilities.ID_UnderlayDilate, 0.15f);
+            material.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0.12f);
+        }
+
+        public static Button CreateTintedButton(string name, Transform parent, Sprite sprite,
+            Color tint, string text, int fontSize, Color ink)
+        {
+            var root = CreateRect(name, parent);
+
+            var face = CreateSlicedPanel("Face", root, sprite, tint);
+            Place(face, 0f, 0f, 1f, 1f);
+
+            var button = root.gameObject.AddComponent<Button>();
+            button.targetGraphic = face;
+            button.transition = Selectable.Transition.ColorTint;
+
+            // BASIŞTA BOYAMA YOK (15. tur). Referansta ölçüldü: basılı ve
+            // serbest karede düğmenin yüz rengi AYNI piksel değeri
+            // (55,214,19) — basış yalnız ÖLÇEKTEN geliyor (bkz.
+            // `UiButtonFeel.PressedScale`). Bu yüzden basış ve üzerindelik
+            // renkleri normale eşit; geçiş `ColorTint` olarak KALIYOR çünkü
+            // devre dışı düğmenin solması hâlâ ondan geliyor.
+            var colors = button.colors;
+            colors.highlightedColor = Color.white;
+            colors.pressedColor = Color.white;
+            colors.selectedColor = Color.white;
+            colors.disabledColor = new Color(0.6f, 0.6f, 0.65f);
+            colors.fadeDuration = 0.06f;
+            button.colors = colors;
+
+            // Etiket metin BOŞ OLSA DA kurulur.
+            //
+            // DERS (sonradan doldurulacak alan var olmalı): Boş metinde etiketi
+            // atlamak "gereksiz nesne yaratma" gibi görünüyordu. Ama çağıranlar
+            // düğmeyi boş kurup yazısını sonra yazıyor
+            // (`GetComponentInChildren<TextMeshProUGUI>()` ile bulup). Etiket hiç
+            // yaratılmayınca o arama null döndü ve sonuç ekranı her açılışında
+            // NullReferenceException attı — panel yarı kurulmuş hâlde kaldı,
+            // kaybedince bile yıldızlar ekranda durdu. Bir Text bileşeninin
+            // maliyeti, bu sınıf hatasının maliyetinin yanında yok.
+            var label = CreateLabel("Label", face.transform, text ?? "", fontSize, ink);
+            Place(label, 0.05f, 0.06f, 0.95f, 0.94f);
+            label.fontStyle = FontStyles.Bold;
+
+            root.gameObject.AddComponent<UiButtonFeel>();
+            return button;
+        }
+
+        /// <summary>
+        /// Yazı.
+        ///
+        /// DERS (neden TMP?): Yerleşik `Text`, harfleri bir bitmap atlasına
+        /// çizer; büyütünce bulanıklaşır ve her punto için atlas şişer. TMP ise
+        /// İŞARETLİ MESAFE ALANI (SDF) kullanır: harfin kenarına olan mesafeyi
+        /// saklar, bu yüzden her boyutta keskin kalır ve kontur/gölge gibi
+        /// efektler bedavaya gelir. Mobilde tek atlas + keskin yazı demek.
+        /// </summary>
+        public static TextMeshProUGUI CreateLabel(string name, Transform parent, string text,
+            int fontSize, Color color, TextAlignmentOptions align = TextAlignmentOptions.Center)
+        {
+            var rect = CreateRect(name, parent);
+            var label = rect.gameObject.AddComponent<TextMeshProUGUI>();
+            label.text = text;
+            label.fontSize = fontSize;
+            label.color = color;
+            label.alignment = align;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.overflowMode = TextOverflowModes.Overflow;
+            label.raycastTarget = false;   // yazı dokunmayı yutmasın
+
+            // TAŞMA KORUMASI HER ETİKETTE (7. tur, M46). Yukarıdaki iki satır
+            // bilinçli: sarma kapalı, taşma serbest — böylece bir etiket asla
+            // kırpılıp KAYBOLMUYOR (4. turdaki sekme adı dersi). Bedeli, uzun
+            // metnin kutusunun dışına çıkması. <see cref="UiTextFit"/> o
+            // bedeli kaldırıyor: sığmayan yazının puntosunu küçültüyor.
+            // Bilerek taşan tek tük etiket için <see cref="NoFit"/> var.
+            label.gameObject.AddComponent<UiTextFit>();
+            return label;
+        }
+
+        /// <summary>
+        /// Bu etiketin taşmasına İZİN VER — <see cref="UiTextFit"/>'i kapatır.
+        ///
+        /// Kutusundan bilerek taşan tasarımlar için: halkanın üstüne binen
+        /// "ADS" yazısı gibi. Kural değil istisna; kullanıldığı her yerde
+        /// gerekçesi yorumda yazmalı.
+        /// </summary>
+        public static TextMeshProUGUI NoFit(TextMeshProUGUI label)
+        {
+            label.GetComponent<UiTextFit>()?.Release();
+            return label;
+        }
+
+        /// <summary>Başlık yazısı: kalın, konturlu — referanstaki gibi çıkıntılı.</summary>
+        public static TextMeshProUGUI CreateTitle(string name, Transform parent, string text,
+            int fontSize, Color color, Color outline)
+        {
+            var label = CreateLabel(name, parent, text, fontSize, color);
+            label.fontStyle = FontStyles.Bold;
+
+            if (TitleMaterial != null)
+            {
+                label.fontSharedMaterial = TitleMaterial;
+            }
+            else
+            {
+                // Materyal henüz üretilmemişse (ilk açılış) eski yola düş.
+                label.outlineWidth = 0.22f;
+                label.outlineColor = outline;
+            }
+            return label;
+        }
+
+        /// <summary>
+        /// Etiketli düğme; tıklama davranışı çağıran tarafından bağlanır.
+        ///
+        /// DERS (düğme HİSSİ): Rengi biraz değiştirmek "basıldı" hissi vermez.
+        /// Referans oyunda düğme basınca hafifçe KÜÇÜLÜR, bırakınca hedefi
+        /// aşarak geri gelir. Bu 0.1 saniyelik hareket, arayüzü "canlı"
+        /// gösteren şeyin ta kendisi — <see cref="UiButtonFeel"/>.
+        /// </summary>
+        public static Button CreateButton(string name, Transform parent, string text,
+            int fontSize, Color background, Color ink)
+        {
+            // Kap: hem gölgeyi hem yüzü taşır, basma animasyonu ikisini birden
+            // ölçekler. Gölge yüzün ÇOCUĞU olsaydı onunla birlikte kayardı ve
+            // kalınlık hissi kaybolurdu.
+            var root = CreateRect(name, parent);
+
+            // Alt gölge: yüzün biraz altında duran koyu kopya. Düğmeye fiziksel
+            // bir kalınlık verir — referans oyunun tüm düğmeleri böyle.
+            var shadow = CreateRoundedPanel("Shadow", root,
+                Color.Lerp(background, Color.black, 0.42f));
+            Place(shadow, 0f, 0f, 1f, 1f);
+            shadow.rectTransform.offsetMin = new Vector2(0f, -10f);
+            shadow.rectTransform.offsetMax = new Vector2(0f, -10f);
+            shadow.raycastTarget = false;
+
+            var face = CreateRoundedPanel("Face", root, background);
+            Place(face, 0f, 0f, 1f, 1f);
+
+            // Button KÖKE takılıyor ama hedef grafiği yüz. Böylece çağıran
+            // `Place(button, ...)` dediğinde kap yerleşiyor (gölge dahil), yine
+            // de renk geçişi yüze uygulanıyor. Dokunma olayları çocuktaki
+            // grafikten köke KABARARAK (bubbling) ulaşır.
+            var button = root.gameObject.AddComponent<Button>();
+            button.targetGraphic = face;
+            button.transition = Selectable.Transition.ColorTint;
+
+            // BASIŞTA BOYAMA YOK (15. tur) — gerekçe yukarıdaki kardeşinde.
+            var colors = button.colors;
+            colors.highlightedColor = Color.white;
+            colors.pressedColor = Color.white;
+            colors.selectedColor = Color.white;
+            colors.disabledColor = Color.Lerp(background, new Color(0.5f, 0.5f, 0.55f), 0.7f);
+            colors.fadeDuration = 0.06f;
+            button.colors = colors;
+
+            var label = CreateLabel("Label", face.transform, text, fontSize, ink);
+            label.fontStyle = FontStyles.Bold;
+
+            root.gameObject.AddComponent<UiButtonFeel>();
+            return button;
+        }
+
+        /// <summary>Dikdörtgeni ebeveyninde ORANLA konumlandırır (0-1 aralığı).</summary>
+        public static void Place(RectTransform rect,
+            float minX, float minY, float maxX, float maxY, float padding = 0f)
+        {
+            rect.anchorMin = new Vector2(minX, minY);
+            rect.anchorMax = new Vector2(maxX, maxY);
+            rect.offsetMin = new Vector2(padding, padding);
+            rect.offsetMax = new Vector2(-padding, -padding);
+        }
+
+        public static void Place(Component component,
+            float minX, float minY, float maxX, float maxY, float padding = 0f) =>
+            Place((RectTransform)component.transform, minX, minY, maxX, maxY, padding);
+    }
+}

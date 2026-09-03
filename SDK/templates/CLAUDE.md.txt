@@ -1,0 +1,76 @@
+# Proje kuralları
+
+> Bu dosyayı yeni projenin köküne `CLAUDE.md` adıyla kopyala ve köşeli
+> parantezleri doldur.
+
+## Proje
+
+`[OYUN ADI]` — `[referans oyun]` klonu. Unity `[sürüm]`, URP, mobil/portre.
+Portfolyo çalışması; ticari yayın yok.
+
+## Altyapı
+
+Meta katman, arayüz araç takımı ve düzenleyici araçları
+`Packages/com.furkanblci.gamekit/` içindeki **GameKit SDK**'dan geliyor.
+Yeni bir yardımcı yazmadan önce `[SDK yolu]/MANIFEST.md`'ye bak — büyük
+ihtimalle zaten var.
+
+SDK'nın oyunla konuştuğu tek yer **üç arayüz ve dört kanca**:
+
+| | |
+|---|---|
+| `IGameHost` | bölüm sayısı/kimliği, tüketilebilir listesi |
+| `IGameplayHost` | bölümü başlat / durdur |
+| `IHomeScreen` | ana ekranı tazele / kaydır |
+| `AppRoot.DevMenuInstaller` | hata ayıklama menüsü |
+| `AudioService.PaletteExtender` | oyunun kendi sesleri |
+| `UiPanelCatalog.GameEntries` | oyunun kendi panelleri |
+| `AndroidBuildTool.EnsureBuildScenes` | derleme sahne listesi |
+
+Başka bir yerde SDK'ya oyuna özel tip sızdırma.
+
+## Doğrulama — pazarlık konusu değil
+
+- Ölçmeden önce `EditorApplication.isPlaying` kontrol et; **oynatma modunda
+  betikler derlenmez** ve ölçtüğün şey eski koddur.
+- Düzenle → tazele → **AYRI komutta** ölç. Aynı komutta birleştirme.
+- Koyu renkleri gözle yargılama, **piksel ölç**.
+- Saydamlığı **düz koyu zemin** üstünde doğrula, dama tahtası üstünde değil.
+- Düğmeyi **ışın taramasıyla** test et, `onClick.Invoke()` ile değil.
+- Sayısal doğrulama > ekran görüntüsü. Görüntüyü son kontrol olarak kullan.
+- Yakalanan kare magenta çıkarsa suçlu kod değil, derlenmemiş shader varyantı.
+
+Tamamı ve gerekçeleri: `[SDK yolu]/docs/02-TUZAKLAR.md`
+
+## Arayüz
+
+- Arayüz **prefab değil kodla** kurulur (`UiKit`).
+- Ölçüler referanstan **ölçülerek** gelir, göz kararıyla değil.
+- Elle düzeltmeler `Ctrl+Shift+U` penceresiyle yapılır, fark olarak saklanır.
+- Prosedürel maske yazarken `Mathf.SmoothStep` GLSL'in `smoothstep`'i DEĞİLDİR
+  — yerel `Step` yardımcısını kullan.
+- Sonradan doldurulacak her yazının **kurulumda da** varsayılanı olsun.
+
+## Test araçları
+
+Asla görünür düğme olmaz. Gizli hareket (sol üste 2 saniyede 5 dokunuş, editörde
+`F8`) veya düzenleyici penceresi. Tamamı
+`#if DEVELOPMENT_BUILD || UNITY_EDITOR` içinde. Her liste kaydırılabilir olmalı.
+
+## Git
+
+- `git add -A` **YASAK** — yol vererek aşamala.
+- Bütün iş `feature/...` dalında, `main`'e PR ile girer.
+- Commit mesajları dar kapsamlı ve açıklayıcı; issue kapatan `Closes #N` yazar.
+
+## Klon etiği
+
+Hedef referansa **%85-95** benzerlik, %100 değil. Düzen, oran ve akış
+referanstan alınabilir (tür standardı); **renk vurguları, ikon çizimleri, logo,
+düğme gradyanları ve seçili sekme muamelesi bizim olmalı.** Referans stüdyonun
+asset'lerini birebir kullanma.
+
+## Oturum devri
+
+Her oturum sonunda `docs/DEVAM.md` güncellenir; yeni oturum "bu dosyayı oku,
+kaldığımız yerden devam et" diye başlar.
