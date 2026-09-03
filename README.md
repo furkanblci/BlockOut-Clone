@@ -2,12 +2,13 @@
 
 # Block Out! Clone
 
-**A production-grade study clone of Grand Games' _Block Out! – Color Sort Puzzle_,
-built solo in Unity 6.3 (URP, mobile portrait).**
+**A mobile colour-sort block puzzle, built solo in Unity 6.3 (URP, portrait) as a
+study of the genre defined by Grand Games' _Block Out!_.**
 
 Every screen is built from code. Every level is proved solvable by a search
-solver before it can be merged. Every art asset was generated with AI, directed
-by a style guide that was *measured* off the reference game rather than eyeballed.
+solver before it can be merged. Every art asset is AI-generated against a single
+documented style guide, so a hundred separately produced pieces still read as one
+coherent set.
 
 <img src="docs/media/core-loop.gif" width="290" alt="Core gameplay loop: dragging colour blocks out through matching gates" />
 
@@ -27,12 +28,12 @@ path — see [Recording the media](#recording-the-media).</sub>
 ---
 
 > [!IMPORTANT]
-> **Unofficial fan project.** This repository is a personal portfolio / learning
-> exercise. It is not affiliated with, endorsed by, or connected to Grand Games.
-> It ships **no** original code, assets, audio, or level data from *Block Out!*.
-> The goal was deliberately **85–95% resemblance, never 100%**: enough fidelity to
-> prove the engineering, not a redistribution of someone else's game.
-> All trademarks belong to their respective owners.
+> **Independent portfolio project.** Not affiliated with, endorsed by, or
+> connected to Grand Games. No original code, assets, audio or level data from
+> *Block Out!* is included — all code, art, audio and level content in this
+> repository was produced for this project. It exists to demonstrate engineering
+> and content-pipeline work, not to substitute for a commercial title. All
+> trademarks belong to their respective owners.
 
 ---
 
@@ -43,9 +44,9 @@ path — see [Recording the media](#recording-the-media).</sub>
 - [Mechanics](#mechanics)
 - [Level pipeline: JSON → editor → solver → CI](#level-pipeline-json--editor--solver--ci)
 - [Architecture](#architecture)
-- [The art pipeline: AI generation against a measured style guide](#the-art-pipeline-ai-generation-against-a-measured-style-guide)
+- [Art pipeline: AI generation against a documented style guide](#art-pipeline-ai-generation-against-a-documented-style-guide)
 - [Developer tooling](#developer-tooling)
-- [GameKit — the reusable SDK that fell out of this](#gamekit--the-reusable-sdk-that-fell-out-of-this)
+- [GameKit — the reusable SDK extracted from this project](#gamekit--the-reusable-sdk-extracted-from-this-project)
 - [Numbers](#numbers)
 - [Running it](#running-it)
 - [Recording the media](#recording-the-media)
@@ -190,7 +191,7 @@ become unreadable when the schema moves.
 <details>
 <summary><b>The editor window</b> (click to expand)</summary>
 
-Nine tabs, one shell. The split exists because authoring a level is four
+One shell, several tabs. The split exists because authoring a level is four
 different jobs, and each wants a different layout:
 
 | Tab | Job |
@@ -199,7 +200,7 @@ different jobs, and each wants a different layout:
 | **Gallery** | See the whole set — a page of thumbnails rendered from the JSON. |
 | **Validate** | See the health of the set — a sortable list of every level's errors and warnings. |
 | **Solution** | Understand a level — play the solver's moves back one at a time on the board. |
-| **Preview / Reference / Tools / Guide / Dashboard** | Camera-accurate preview, reference-frame overlay, batch operations, docs. |
+| **Preview / Tools / Guide / Dashboard** | Camera-accurate 3D preview, batch operations, set-wide statistics, authoring docs. |
 
 It edits the game's own `LevelData` DTOs directly — there is no separate editor
 model that can drift out of sync with what the game loads.
@@ -218,7 +219,7 @@ questions:
    epsilon and its axis locks), looking for a spot where a gate would accept it.
    Cheap, and enough for most boards.
 2. **Whole-board shuffle search.** When *no* block can reach a gate on its own —
-   normal on the reference game's near-full boards — the search escalates to the
+   normal on the near-full boards this genre uses — the search escalates to the
    state space of the entire board, 15-puzzle style, with a node budget and a
    focused heuristic ("get *this* block to *its* gate", because a global "nearest
    gate" heuristic flattens out at 20+ blocks and degenerates into blind BFS).
@@ -302,24 +303,17 @@ compile times sane.
 
 ---
 
-## The art pipeline: AI generation against a measured style guide
+## Art pipeline: AI generation against a documented style guide
 
-The reference game's assets were never available, and were never wanted. What was
-needed was its **art direction**, reconstructed accurately enough that separately
-generated pieces would look like one coherent set.
+Roughly 110 UI pieces — icons, frames, panels, backgrounds — were produced with
+generative image models. Generating them is the easy part; making a hundred
+independently generated assets look like they came from one artist is the hard
+part. That problem was solved with a written spec, not with retries.
 
-**1 · Measure the target, don't eyeball it.**
-Palette and geometry were pulled from lossless 1320×2868 App Store PNGs, not from
-compressed video — a lesson learned the hard way after 720p footage produced
-purples that were simply wrong. The studio's sister title (*Magic Sort!*, Android,
-Unity + IL2CPP) was unpacked to inspect the studio's actual UI kit — 5,773
-assets. That teardown answered the font question negatively but usefully: the two
-games do **not** share a typeface, so the search moved to measurement. The string
-`1550` was isolated from an iPad screenshot (thresholding on *colour*, not
-brightness, to drop the gold coin behind it), measured at 112×36 px, and compared
-against ten candidates normalised to the same weight and stroke — Baloo 2 came
-closest at an aspect ratio 0.034 off, and that is what ships. The palette work
-produced a hex table in [`docs/art-prompts.md`](docs/art-prompts.md):
+**1 · Fix the design system first.**
+Before any asset existed, the palette, the lighting model and the geometry rules
+were written down as a single source of truth. Every colour in the game is a
+named token in that table, so a screen is never "roughly purple":
 
 | Role | Value | | Role | Value |
 |---|---|---|---|---|
@@ -329,10 +323,10 @@ produced a hex table in [`docs/art-prompts.md`](docs/art-prompts.md):
 | Tab bar | `#3F2FCD` | | Coin gold | `#F0C000` |
 
 **2 · Write the style DNA once, append it to every prompt.**
-The reference UI is *3D-rendered glossy plastic*, not flat vector: one soft key
-light from the upper left, a hard specular highlight on top, thick rounded edges,
-no outlines on the 3D pieces, candy saturation. That description became a fixed
-suffix appended to **every** asset prompt. Consistency across a hundred
+The chosen direction is *3D-rendered glossy plastic*, not flat vector: one soft
+key light from the upper left, a hard specular highlight on top, thick rounded
+edges, no outlines on the 3D pieces, candy saturation. That description became a
+fixed suffix appended to **every** asset prompt. Consistency across a hundred
 separately generated icons comes from that shared suffix, not from luck.
 
 **3 · Constrain the output so it can be used as a game asset.**
@@ -340,13 +334,13 @@ separately generated icons comes from that shared suffix, not from luck.
 **no baked text or numbers** — every number in the game is TextMeshPro on top, so
 the same coin sprite serves `50` and `2 000`.
 
-**4 · Automate the boring half.** Python under [`tools/`](tools/):
+**4 · Automate the repetitive half.** Python under [`tools/`](tools/):
 `cutout.py` (trim + alpha), `import_art.py` / `import_audio.py` (drop into the
 project with correct import settings), `make_icon.py` and `make_icon_layers.py`
 (app icon), `check_art.py` (audit).
 
 <details>
-<summary><b>Three traps this pipeline walked into</b> (click to expand)</summary>
+<summary><b>Three lessons from the asset pipeline</b> (click to expand)</summary>
 
 - **Checkerboard blindness.** Generated images sometimes *paint* a transparency
   checkerboard. Verifying cutouts against a checkerboard background hid it inside
@@ -365,9 +359,9 @@ project with correct import settings), `make_icon.py` and `make_icon_layers.py`
 
 | Tool | What it does |
 |---|---|
-| **Hidden dev console** | Five quick taps in a top corner of the screen (or `F8` in the editor). Level jump, force win/lose, absorb one block, economy edits, input blocking. **Never a visible button** — a test button that ships is a bug. |
+| **Hidden dev console** | Five quick taps in a top corner of the screen (or `F8` in the editor). Level jump, force win/lose, absorb one block, economy edits, input blocking. Deliberately never a visible button, so it cannot ship as one. |
 | **Level browser** | Editor window listing every level with its validation state. |
-| **Board / UI / FX capture** | Render a level's board, or a specific screen's canvas, to PNG **without entering play mode** — so a visual fix can be *seen* rather than assumed. Built after the sixth round of "I think that's right" turned out not to be. |
+| **Board / UI / FX capture** | Render a level's board, or a specific screen's canvas, to PNG **without entering play mode**, so a visual change can be verified rather than assumed. |
 | **README capture** | The tool that produced the media on this page; see below. |
 | **Android build tool** | One-button APK with manifest patching and icon generation. |
 | **Device error overlay** | Prints uncaught exceptions on the device screen — the console you don't get on a phone. Explicitly disabled before release. |
@@ -375,9 +369,9 @@ project with correct import settings), `make_icon.py` and `make_icon_layers.py`
 
 ---
 
-## GameKit — the reusable SDK that fell out of this
+## GameKit — the reusable SDK extracted from this project
 
-Everything in this project that is *not* Block Out! was extracted into
+Everything in this project that is not gameplay-specific was extracted into
 [`SDK/`](SDK/): a game-agnostic Unity package (89 files, ~24,900 lines, verified
 to compile clean with Roslyn) covering the single-scene app shell, the meta layer
 (save, progress, lives, daily reward, purchases), the meta screens, the code-first
@@ -453,8 +447,8 @@ that drives the game and captures it frame-by-frame:
   `DragController`, `DragSolver` and `GateSystem` exactly as a finger would drive
   them — collision sliding, ice shattering, gate counters, combo and all.
 
-Which is the point: if the recording had teleported blocks into place, it would
-have proved nothing about the game.
+That distinction matters: a recording that teleported blocks into position would
+demonstrate nothing about the game itself.
 
 ---
 
